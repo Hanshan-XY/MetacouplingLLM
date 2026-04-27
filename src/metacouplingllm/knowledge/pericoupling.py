@@ -75,7 +75,7 @@ def _locate_csv() -> Path | None:
     Tries the full dataset first, then falls back to the subset.
     """
     try:
-        data_pkg = resources.files("metacoupling") / "data"
+        data_pkg = resources.files("metacouplingllm") / "data"
     except (TypeError, ModuleNotFoundError):
         return None
 

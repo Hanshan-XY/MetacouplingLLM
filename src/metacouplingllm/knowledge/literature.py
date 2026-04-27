@@ -163,7 +163,7 @@ _paper_db: list[Paper] | None = None
 def _locate_bib() -> Path | None:
     """Find the bundled BibTeX database."""
     try:
-        data_pkg = resources.files("metacoupling") / "data"
+        data_pkg = resources.files("metacouplingllm") / "data"
     except (TypeError, ModuleNotFoundError):
         return None
 

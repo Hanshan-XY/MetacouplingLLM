@@ -5,6 +5,29 @@ file. The format is loosely based on
 [Keep a Changelog](https://keepachangelog.com/), and this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] — Bundled-data loader fix (Critical)
+
+Bug fix release. **All v0.1.0 / v0.1.1 users should upgrade.**
+
+- **Fixed**: `resources.files("metacoupling")` was hardcoded in three
+  places (`knowledge/literature.py`, `knowledge/pericoupling.py`,
+  `knowledge/adm1_pericoupling.py`) — leftover from the
+  `metacoupling -> metacouplingllm` rename. The `try/except
+  ModuleNotFoundError` wrapper made it fail silently, returning an
+  empty database. Symptoms users saw:
+  - `[RAG] WARNING: No literature database loaded.`
+  - `[MetacouplingAssistant] WARNING: RAG engine loaded but has 0 chunks.`
+  - `Pre-retrieval RAG: 0 passages.`
+  - `total_papers: 0` from `get_database_info()`
+  - All paper recommendations and country/ADM1 pericoupling lookups
+    silently returning empty results.
+- **Fix**: All three `resources.files(...)` calls now correctly
+  reference `"metacouplingllm"`. After upgrading, the bundled
+  literature database loads with **265 papers** (249 with
+  keywords) and the RAG engine finds **10,032 chunks** as designed.
+- **No API or behavior changes** beyond the loader fix — same module
+  layout, same public interface.
+
 ## [0.1.1] — Author metadata fix
 
 Metadata-only release. No code or behavior changes.

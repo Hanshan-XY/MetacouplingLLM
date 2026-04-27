@@ -86,7 +86,7 @@ _adm1_metadata: dict[str, dict[str, str]] | None = None
 def _locate_csv() -> Path | None:
     """Find the ADM1 pericoupling CSV data file."""
     try:
-        data_pkg = resources.files("metacoupling") / "data"
+        data_pkg = resources.files("metacouplingllm") / "data"
     except (TypeError, ModuleNotFoundError):
         return None
 
