@@ -12,6 +12,11 @@ license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [
     { name = "Xiang Yu", email = "yuxiang4@msu.edu" },
+    { name = "Yingjie Li" },
+    { name = "Zihan Zheng" },
+    { name = "Nan Jia" },
+    { name = "Xin Lan" },
+    { name = "Jianguo Liu" },
 ]
 maintainers = [
     { name = "Xiang Yu", email = "yuxiang4@msu.edu" },

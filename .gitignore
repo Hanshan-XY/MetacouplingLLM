@@ -36,13 +36,21 @@ htmlcov/
 coverage.xml
 *.cover
 
-# IDE / OS
+# IDE / OS / dev-tool caches
 .vscode/
 .idea/
+.tmp/
+.claude/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
+
+# R session artifacts
+.Rhistory
+.RData
+.Rapp.history
+*.Rhistory
 
 # Secrets — NEVER commit
 .env
