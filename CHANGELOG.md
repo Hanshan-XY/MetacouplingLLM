@@ -1,9 +1,24 @@
 # Changelog
 
-All notable changes to the `metacoupling` package are documented in this
+All notable changes to the `MetacouplingLLM` package are documented in this
 file. The format is loosely based on
 [Keep a Changelog](https://keepachangelog.com/), and this project follows
 [Semantic Versioning](https://semver.org/).
+
+## [0.1.1] — Author metadata fix
+
+Metadata-only release. No code or behavior changes.
+
+- **Fixed**: PyPI's project page now shows all six authors (Xiang Yu,
+  Yingjie Li, Zihan Zheng, Nan Jia, Xin Lan, Jianguo Liu) on the
+  `Author:` line. In `0.1.0`, Xiang Yu's name was being rendered only
+  on the `Maintainer:` line because PEP 621 splits authors with emails
+  into a separate `Author-email:` METADATA field, and PyPI's UI then
+  showed only the email-less authors under "Author:". Removing the
+  email from Xiang Yu's `authors` entry (it stays on the
+  `maintainers` entry) consolidates all six names under a single
+  `Author:` field. The maintainer email is unchanged.
+- **No source-code changes** — this is purely a packaging metadata fix.
 
 ## [0.1.0] — Initial Release
 

@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "MetacouplingLLM"
-version = "0.1.0"
+version = "0.1.1"
 description = "LLM-powered toolkit for applying telecoupling and metacoupling frameworks to research"
 readme = "INTRODUCTION.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [
-    { name = "Xiang Yu", email = "yuxiang4@msu.edu" },
+    { name = "Xiang Yu" },
     { name = "Yingjie Li" },
     { name = "Zihan Zheng" },
     { name = "Nan Jia" },
