@@ -1,0 +1,11 @@
+{
+  "chunk_count": 10032,
+  "embedding_dim": 768,
+  "embedding_dtype": "float16",
+  "paper_count": 400,
+  "embedding_model": "BAAI/bge-base-en-v1.5",
+  "paper_key_order_sha256": "5616eb9e678c64189ab3fd8f3fa7961786946b287e4583f14384eb1e3a04ad33",
+  "built_at": "2026-04-25T08:38:51.073392+00:00",
+  "built_on": "Windows-11-10.0.26200-SP0",
+  "python_version": "3.13.2"
+}

@@ -1,0 +1,11 @@
+Sending,Receiving,Intracoupling
+MEX,USA,1
+USA,MEX,1
+CAN,USA,1
+USA,CAN,1
+MEX,CAN,0
+CAN,MEX,0
+BRA,CHN,0
+CHN,BRA,0
+MEX,GTM,1
+GTM,MEX,1

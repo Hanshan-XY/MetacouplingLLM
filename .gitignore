@@ -1,0 +1,74 @@
+# Python build / install
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Test / coverage
+.pytest_cache/
+.tmp_pytest/
+.pytest_run_*/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Secrets — NEVER commit
+.env
+.env.*
+*.pem
+*.key
+*credentials*
+*secret*
+
+# Local data caches (kept out of git; rebuildable)
+tmp/
+*.bak
+*.preCSVupdate
+
+# Working artifacts the user can regenerate
+adm1_overlay_comparison_*.png
+china_*.png
+map.png
+tmp_*.png
+tmp_*.html
+downloaded.shp
+stderr.log
+
+# Paper sources (large; managed separately)
+Papers/
+Papers_rebuilt/
+
+# Project-private notes
+CLAUDE.md
