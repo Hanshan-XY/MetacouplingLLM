@@ -33,7 +33,7 @@ production and export destinations.
 
 ### 2. Systems Identification
 
-**Sending System**: United Kingdom barley-producing regions [1]
+**Sending System**: United Kingdom barley-producing regions [T1:1]
 - **Human subsystem**:
 - **Natural subsystem**:
 - **Geographic scope**:
@@ -45,7 +45,7 @@ production and export destinations.
 
 ### 3. Flows Analysis
 
-- [Matter] United Kingdom → Ireland: Feed barley exports [1]
+- [Matter] United Kingdom → Ireland: Feed barley exports [T1:1]
 """
 
 
@@ -211,7 +211,7 @@ class TestStructuredExtractionEnabled:
         assert "UK feed mill sector" in result.formatted
         assert "Market intelligence and price feedback" in result.formatted
         # Citation markers carry through
-        assert "[1]" in result.formatted
+        assert "[T1:1]" in result.formatted
 
     def test_supplement_block_ordered_before_evidence_block(
         self, mock_rag_engine,

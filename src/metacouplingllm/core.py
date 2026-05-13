@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from metacouplingllm.knowledge.citations import sanitize_citations
+from metacouplingllm.knowledge.citations import (
+    TURN_CITATION_PATTERN,
+    sanitize_turn_citations,
+)
 from metacouplingllm.knowledge.countries import get_country_name, resolve_country_code
 from metacouplingllm.knowledge.literature import Paper
 from metacouplingllm.knowledge.pericoupling import (
@@ -100,7 +103,7 @@ class AnalysisResult:
         returns a dict with keys ``additional_{sending,receiving,
         spillover}_mentions``, ``{sending,receiving,spillover}_subsystem_fills``,
         and ``supplementary_flows``. Each entry carries evidence
-        passage IDs pointing back at the ``[N]`` references in the
+        passage IDs pointing back at the ``[Tk:N]`` references in the
         ``SUPPORTING EVIDENCE FROM LITERATURE`` block. Also rendered
         visibly in ``formatted`` under a ``SUPPLEMENTARY STRUCTURED
         EXTRACTION`` block. ``None`` when the feature is disabled or
@@ -147,18 +150,20 @@ class RAGResult:
     Attributes
     ----------
     answer:
-        The LLM's narrative response with ``[N]`` citation markers as
-        the LLM emitted them. Markers may be sparse (e.g. ``[1]``,
-        ``[3]``, ``[7]``) because they refer to positions in
-        ``retrieved_passages`` and the LLM doesn't cite every passage.
-        For a display-friendly version with re-numbered sequential
-        ``[1]``, ``[2]``, ``[3]`` markers plus a bibliography, use
-        :attr:`formatted` instead.
-        Out-of-range markers (e.g. ``[99]`` when only 8 passages were
-        retrieved) have already been sanitized.
+        The LLM's narrative response with turn-scoped citation tokens
+        like ``[T1:1]`` (literature) and ``[T1:W1]`` (web). Markers
+        may be sparse — the LLM cites only the passages that directly
+        support a claim. In multi-turn sessions the answer may also
+        back-reference prior turns (e.g., ``[T1:3]`` appearing in a
+        turn-2 answer). Invalid markers (e.g., ``[T1:99]`` when only
+        8 passages were retrieved for turn 1) have already been
+        stripped by the sanitizer. Bare legacy ``[N]`` / ``[W1]``
+        tokens are also stripped.
     references:
-        Papers actually cited by the LLM, deduplicated by ``key`` and
-        ordered by first appearance in the answer.
+        Papers cited by the LLM in the current turn's answer,
+        deduplicated by ``key`` and ordered by first appearance.
+        Prior-turn back-references are NOT included here — only
+        current-turn citations.
     retrieved_passages:
         All passages shown to the LLM for this turn (length ``rag_top_k``).
     web_sources:
@@ -181,34 +186,40 @@ class RAGResult:
     usage: dict[str, int] | None = None
     raw: str = ""
     retrieval_backend: str = "embeddings"
+    # Parallel to ``references``: the passage ID (the `N` in ``[Tk:N]``)
+    # at which each paper was first cited in ``answer``. Used by the
+    # bibliography renderer so its labels match the inline citations
+    # exactly. Empty when ``references`` is empty.
+    reference_passage_ids: list[int] = field(default_factory=list)
 
     @property
     def formatted(self) -> str:
-        """Display-friendly answer with sequential ``[1], [2], ...``
-        markers, a bibliography of cited papers, and (when
-        ``web_search=True``) a web-sources block.
+        """Display-friendly answer with the bibliography and (when
+        ``web_search=True``) the web-sources block appended.
 
-        Re-numbers the LLM's possibly-sparse ``[N]`` markers (which
-        refer to passage positions in ``retrieved_passages``) into
-        sequential ``[1], [2], [3], ...`` ordered by first appearance,
-        appends a ``REFERENCES`` block listing only the cited papers in
-        the same order, and appends a ``WEB SOURCES`` block (with
-        ``[w1], [w2], ...`` IDs) when web search returned hits. Use
-        this in place of ``answer`` when you want a single
+        The answer body is shown verbatim — the LLM already emitted
+        stable turn-scoped tokens like ``[T1:3]`` and ``[T2:1]`` so
+        no remapping is needed. A ``REFERENCES`` block lists each
+        cited paper as ``[Tk:N] Title …`` where ``N`` is the actual
+        passage ID the LLM used inline (so the label in the bibliography
+        always matches the inline citation). When the LLM also cited
+        web sources, a ``WEB SOURCES`` block follows with ``[Tk:W1]``-style
+        IDs. Use this in place of ``answer`` when you want a single
         ``print(result.formatted)`` to show everything a user needs.
         """
-        renumbered = _renumber_citations_sequentially(
-            self.answer, len(self.references)
-        )
-        parts = [renumbered]
+        parts = [self.answer]
         if self.references:
             parts.append(_format_references_block(
                 self.references,
                 self.retrieved_passages,
                 backend=self.retrieval_backend,
+                turn=self.turn_number,
+                passage_ids=self.reference_passage_ids,
             ))
         if self.web_sources:
-            parts.append(_format_web_sources_block(self.web_sources))
+            parts.append(_format_web_sources_block(
+                self.web_sources, turn=self.turn_number,
+            ))
         return "\n\n".join(parts)
 
     def __repr__(self) -> str:
@@ -226,43 +237,27 @@ class RAGResult:
         return f"RAGResult({', '.join(parts)})"
 
 
-def _renumber_citations_sequentially(answer: str, n_refs: int) -> str:
-    """Map possibly-sparse ``[N]`` tokens to ``[1], [2], [3], ...``
-    by first appearance in the text. Tokens whose original IDs were
-    already stripped by sanitization are left alone (they shouldn't
-    appear). Tokens past ``n_refs`` are also passed through unchanged
-    as a safety net.
-    """
-    if n_refs <= 0:
-        return answer
-    mapping: dict[int, int] = {}
-    next_id = 1
-
-    def _replace(match: re.Match[str]) -> str:
-        nonlocal next_id
-        original = int(match.group(1))
-        if original not in mapping:
-            if next_id > n_refs:
-                return match.group(0)  # unexpected; leave as-is
-            mapping[original] = next_id
-            next_id += 1
-        return f"[{mapping[original]}]"
-
-    return _CITATION_TOKEN_RE.sub(_replace, answer)
-
-
 def _format_references_block(
     refs: list[Paper],
     passages: list[RetrievalResult] | None = None,
     backend: str = "embeddings",
+    turn: int = 1,
+    passage_ids: list[int] | None = None,
 ) -> str:
     """Render the cited-papers list as a printable bibliography.
 
+    Each reference is labelled with the turn-scoped token ``[Tk:N]``
+    so the reader can match it back to the inline citations in the
+    answer body. When ``passage_ids`` is provided (a parallel list to
+    ``refs``), each entry uses the actual passage ID the LLM cited
+    inline; otherwise the entries are numbered sequentially
+    ``1..len(refs)`` as a fallback.
+
     When ``passages`` is provided, each reference also shows the
-    retrieval confidence (High / Medium / Low / Very Low) and the raw
-    similarity score, taken from the highest-scoring passage of that
-    paper in the retrieval set. ``backend`` ("embeddings" or "tfidf")
-    selects the appropriate confidence thresholds.
+    retrieval confidence (High / Medium / Low / Very Low) and the
+    raw similarity score, taken from the highest-scoring passage of
+    that paper in the retrieval set. ``backend`` ("embeddings" or
+    "tfidf") selects the appropriate confidence thresholds.
     """
     # Map paper_key -> best score across all retrieved passages of that paper.
     score_by_key: dict[str, float] = {}
@@ -277,9 +272,15 @@ def _format_references_block(
 
     lines: list[str] = []
     lines.append("=" * 70)
-    lines.append("  REFERENCES (cited in this answer)")
+    lines.append(f"  REFERENCES (cited in turn {turn})")
     lines.append("=" * 70)
-    for i, paper in enumerate(refs, start=1):
+    for idx, paper in enumerate(refs, start=1):
+        # Use the actual cited passage ID when available; fall back to
+        # sequential numbering otherwise.
+        if passage_ids is not None and idx - 1 < len(passage_ids):
+            label_n = passage_ids[idx - 1]
+        else:
+            label_n = idx
         # Trim very long author strings the same way format_evidence does.
         authors = paper.authors
         if len(authors) > 60:
@@ -287,7 +288,7 @@ def _format_references_block(
             if len(parts) > 2:
                 authors = parts[0] + " et al."
         lines.append("")
-        lines.append(f"  [{i}] {paper.title}")
+        lines.append(f"  [T{turn}:{label_n}] {paper.title}")
         lines.append(f"      {authors} ({paper.year})")
         score = score_by_key.get(paper.key)
         if score is not None:
@@ -299,16 +300,20 @@ def _format_references_block(
     return "\n".join(lines)
 
 
-def _format_web_sources_block(web_sources: list[dict[str, str]]) -> str:
+def _format_web_sources_block(
+    web_sources: list[dict[str, str]], turn: int = 1,
+) -> str:
     """Render the web search hits as a printable block.
 
-    Uses ``[w1], [w2], ...`` IDs to visually distinguish them from
-    literature citations (which use ``[1], [2], ...``). Snippets are
+    Uses turn-scoped ``[Tk:W1], [Tk:W2], ...`` IDs to match the
+    citation grammar used inline in the answer body. Snippets are
     truncated to ~140 chars to keep the block readable.
     """
     lines: list[str] = []
     lines.append("=" * 70)
-    lines.append("  WEB SOURCES (background context, not used for citations)")
+    lines.append(
+        f"  WEB SOURCES (turn {turn}, background context)"
+    )
     lines.append("=" * 70)
     for i, src in enumerate(web_sources, start=1):
         title = (src.get("title") or "(no title)").strip()
@@ -317,7 +322,7 @@ def _format_web_sources_block(web_sources: list[dict[str, str]]) -> str:
         if len(snippet) > 140:
             snippet = snippet[:137].rstrip() + "..."
         lines.append("")
-        lines.append(f"  [w{i}] {title}")
+        lines.append(f"  [T{turn}:W{i}] {title}")
         if url:
             lines.append(f"       {url}")
         if snippet:
@@ -327,37 +332,53 @@ def _format_web_sources_block(web_sources: list[dict[str, str]]) -> str:
 
 # System prompt for the RAG-only Q&A mode (coupling_analysis=False).
 # Multi-turn: the advisor maintains _rag_history across analyze() calls
-# so users can ask follow-up questions naturally.
+# so users can ask follow-up questions naturally. Citations are
+# turn-scoped — `[Tk:N]` for literature and `[Tk:Wn]` for web sources,
+# where `k` is the turn index. Prior-turn citations remain valid for
+# back-reference; the same number never changes meaning.
 _RAG_ONLY_SYSTEM_PROMPT = """\
 You are a literature assistant for the metacoupling and telecoupling
 research community. The user already understands the framework — do
 not lecture them about it.
 
 This is a multi-turn conversation. Use the prior turns as context to
-interpret follow-up questions, but ground every factual claim in the
-literature passages of the CURRENT turn.
+interpret follow-up questions, and ground every factual claim in the
+retrieved literature.
+
+CITATION GRAMMAR (turn-scoped):
+
+Each user message includes a `<retrieved_literature turn="k">` block
+with passages labelled `<passage turn="k" id="N" ...>`, and optionally
+a `<web_search_results turn="k">` block with web sources. The `turn`
+attribute is the turn index — it never changes for that block.
+
+- Cite literature as `[Tk:N]` and web sources as `[Tk:Wn]`, where
+  `k` is the block's `turn` attribute and `N` (or `n`) is the
+  passage's `id`. For example, the 2nd literature passage of turn 3
+  is cited as `[T3:2]`. The 1st web source of turn 1 is `[T1:W1]`.
+- Prior-turn citations stay valid. To back-reference an earlier
+  turn's evidence, copy its exact token verbatim
+  (e.g., *"as established in [T1:3], soybean imports..."*).
+- NEVER emit a bare `[N]` or `[W1]` — those are illegal under the
+  current grammar and will be silently stripped.
+- NEVER invent citations. `k` cannot exceed the highest turn you
+  have seen; `N` cannot exceed that turn's passage count.
 
 Answer using ONLY the retrieved literature passages provided in this
-turn's <retrieved_literature> block. Each passage is numbered
-[1]..[K] for THIS turn. Cite every factual claim with one or more [N]
-markers referring to this turn's passages. Do not invent citations.
-Do not introduce facts that are not supported by the passages.
-
-Note: [N] in your prior assistant turns referred to that turn's
-passages, not this one. If the user asks you to recall something from
-a prior turn, refer to it narratively rather than re-citing it by
-number.
+conversation. Cite every factual claim with one or more `[Tk:N]`
+markers. Do not introduce facts that are not supported by the
+passages. Prefer the literature for citable claims; web sources are
+background context.
 
 If the literature does not cover the question — or covers only part
 of it — say so explicitly and describe the gap. A short, well-cited
 answer is better than a long, weakly-supported one.
-
-If <web_search_results> is provided, you may use it for context but
-prefer the literature passages for any citable claim.
 """
 
-# Regex for extracting cited passage IDs from a sanitized answer.
-_CITATION_TOKEN_RE = re.compile(r"\[(\d+)\]")
+# Regex for extracting turn-scoped cited passage IDs from a sanitized
+# answer. Matches [Tk:N] (literature) and [Tk:Wn] (web). Groups:
+#   1 = turn k, 2 = "W" or "", 3 = ID N.
+_CITATION_TOKEN_RE = TURN_CITATION_PATTERN
 
 
 class MetacouplingAssistant:
@@ -418,25 +439,25 @@ class MetacouplingAssistant:
         Maximum number of evidence passages to retrieve per analysis.
         Default ``8``. In ``rag_mode="pre_retrieval"`` this also bounds
         the number of ``<retrieved_literature>`` passages injected into
-        the user message and therefore the number of valid ``[1]..[N]``
-        citation labels for the LLM.
+        the user message and therefore the number of valid
+        ``[T{k}:1]..[T{k}:N]`` citation labels for the LLM in turn ``k``.
     rag_mode:
         Selects how RAG integrates with the LLM call. Two options:
 
         - ``"pre_retrieval"`` (default): retrieve corpus passages
           **before** the LLM runs, embed them in the user message as
-          a labeled ``<retrieved_literature>`` XML block, and instruct
-          the LLM (via a citation-rules layer in the system prompt) to
-          cite them inline as ``[1]..[N]``. After the LLM responds,
-          out-of-range citation tokens are stripped (with a logged
-          warning) by
-          :func:`~metacouplingllm.knowledge.citations.sanitize_citations`,
+          a labeled ``<retrieved_literature turn="k">`` XML block, and
+          instruct the LLM (via a citation-rules layer in the system
+          prompt) to cite them inline as ``[Tk:N]``. After the LLM
+          responds, invalid citation tokens are stripped (with a
+          logged warning) by
+          :func:`~metacouplingllm.knowledge.citations.sanitize_turn_citations`,
           and the same evidence block as the post-hoc path is appended
           to the formatted output. This is the recommended mode and
           gives the LLM literature to ground its analysis in rather
           than relying purely on training memory.
         - ``"post_hoc"`` (alternative): the LLM generates from training
-          memory, then a keyword-overlap pass annotates ``[N]``
+          memory, then a keyword-overlap pass annotates ``[Tk:N]``
           citations onto sentences that match retrieved passages. Use
           this mode when downstream tooling expects citations to be
           assigned by post-hoc keyword matching rather than inline by
@@ -611,6 +632,16 @@ class MetacouplingAssistant:
         self._history: list[Message] = []
         self._turn: int = 0
 
+        # Per-turn citation-validation state. Populated at retrieval
+        # time in analyze() / refine() / _analyze_rag_only(), read by
+        # sanitize_turn_citations to keep `[Tk:N]` tokens whose `(k, N)`
+        # is in-range for the turn that produced the block. Cleared
+        # alongside the corresponding history.
+        self._turn_passage_counts: dict[int, int] = {}
+        self._turn_web_counts: dict[int, int] = {}
+        self._rag_turn_passage_counts: dict[int, int] = {}
+        self._rag_turn_web_counts: dict[int, int] = {}
+
         # RAG-only mode (coupling_analysis=False). Maintains a separate
         # multi-turn conversation history; framework `_history` is left
         # untouched so the two modes don't interfere.
@@ -699,19 +730,27 @@ class MetacouplingAssistant:
         """
         self._history.clear()
         self._turn = 0
+        self._turn_passage_counts.clear()
+        self._turn_web_counts.clear()
         self._last_rag_hits = None
         self._original_query = None
         self._rag_history.clear()
         self._rag_turn = 0
+        self._rag_turn_passage_counts.clear()
+        self._rag_turn_web_counts.clear()
 
     def _analyze_rag_only(self, query: str) -> RAGResult:
         """RAG-only Q&A path used when ``coupling_analysis=False``.
 
         Multi-turn: appends to ``self._rag_history`` so follow-up
-        questions can use prior turns as context.
+        questions can use prior turns as context. Citations are
+        turn-scoped (``[Tk:N]``) so prior-turn references remain
+        stable in conversation history.
         """
         if not query or not query.strip():
             raise ValueError("query must be a non-empty string")
+
+        next_turn = self._rag_turn + 1
 
         # Optional web search (per-turn). The map-signal extraction is
         # framework-only, so we deliberately skip extract_web_map_signals.
@@ -773,7 +812,9 @@ class MetacouplingAssistant:
                             f"{backend_used}"
                         )
                 if web_sources:
-                    web_context = format_web_context(web_sources)
+                    web_context = format_web_context(
+                        web_sources, turn=next_turn,
+                    )
                     print(
                         f"[MetacouplingAssistant] (RAG mode) Web search returned "
                         f"{len(web_sources)} results."
@@ -817,25 +858,35 @@ class MetacouplingAssistant:
                 )
                 passages = []
 
+        # Record per-turn passage / web counts before the LLM call so
+        # the post-LLM sanitizer can validate `[Tk:N]` tokens emitted by
+        # the model (or back-referenced from prior turns).
+        self._rag_turn_passage_counts[next_turn] = len(passages)
+        self._rag_turn_web_counts[next_turn] = (
+            len(web_sources) if web_sources else 0
+        )
+
         # Build this turn's user message: query + literature block
-        # (+ optional web block).
+        # (+ optional web block). The literature block is rendered with
+        # turn-scoped headers so the LLM sees `[Tk:N]` style labels
+        # next to each passage.
         from metacouplingllm.knowledge.rag import format_evidence
 
         literature_block = (
-            format_evidence(passages, anchor_text=query)
+            format_evidence(passages, anchor_text=query, turn=next_turn)
             if passages
             else "No literature passages were retrieved for this query."
         )
         user_parts = [
             query.strip(),
-            "<retrieved_literature>",
+            f'<retrieved_literature turn="{next_turn}">',
             literature_block,
             "</retrieved_literature>",
         ]
         if web_context:
             user_parts.extend([
                 "",
-                "<web_search_results>",
+                f'<web_search_results turn="{next_turn}">',
                 web_context,
                 "</web_search_results>",
             ])
@@ -867,15 +918,20 @@ class MetacouplingAssistant:
             max_tokens=self._max_tokens,
         )
 
-        # Sanitize citations: strip any [N] where N > number of passages
-        # for THIS turn.
-        sanitized, dropped = sanitize_citations(
-            response.content, n_valid=len(passages)
+        # Sanitize turn-scoped citations. Keeps `[Tk:N]` for any prior
+        # or current turn k whose recorded passage / web counts agree,
+        # strips forward references and out-of-range tokens, and
+        # silently strips any bare legacy `[N]` / `[W1]` the LLM slipped.
+        sanitized, dropped = sanitize_turn_citations(
+            response.content,
+            turn_passage_counts=self._rag_turn_passage_counts,
+            turn_web_counts=self._rag_turn_web_counts,
+            current_turn=next_turn,
         )
         if dropped and self._verbose:
             print(
                 "[MetacouplingAssistant] (RAG mode) Sanitized "
-                f"{len(dropped)} hallucinated citation(s): "
+                f"{len(dropped)} invalid citation token(s): "
                 f"{sorted(dropped)}"
             )
 
@@ -884,12 +940,16 @@ class MetacouplingAssistant:
         self._rag_history.append(
             Message(role="assistant", content=sanitized)
         )
-        self._rag_turn += 1
+        self._rag_turn = next_turn
 
-        # Extract cited references from the sanitized answer, dedup'd
-        # by paper key and ordered by first appearance.
-        references = self._build_references_from_citations(
-            sanitized, passages
+        # Extract current-turn cited references from the sanitized
+        # answer, dedup'd by paper key and ordered by first appearance.
+        # Prior-turn back-references (e.g. `[T1:3]` in a turn-2 answer)
+        # are intentionally excluded — they belong to turn 1's bibliography.
+        references, reference_passage_ids = (
+            self._build_references_from_citations(
+                sanitized, passages, current_turn=next_turn,
+            )
         )
 
         retrieval_backend = "embeddings"
@@ -910,21 +970,47 @@ class MetacouplingAssistant:
             usage=response.usage,
             raw=response.content,
             retrieval_backend=retrieval_backend,
+            reference_passage_ids=reference_passage_ids,
         )
 
     @staticmethod
     def _build_references_from_citations(
         answer: str,
         passages: list[RetrievalResult],
-    ) -> list[Paper]:
-        """Return cited papers in order of first appearance, dedup'd by key."""
+        current_turn: int,
+    ) -> tuple[list[Paper], list[int]]:
+        """Return ``(papers, passage_ids)`` cited in the current turn.
+
+        Both lists are parallel and in first-appearance order, dedup'd
+        by paper key:
+
+        - ``papers[i]`` is the i-th unique cited paper as a ``Paper``.
+        - ``passage_ids[i]`` is the passage ID (the ``N`` in
+          ``[T{current_turn}:N]``) at which it was first cited.
+
+        Only ``[Tk:N]`` tokens whose ``k`` matches ``current_turn`` are
+        counted as current-turn references. Prior-turn back-references
+        (``[T1:N]`` appearing in a turn-2 answer) are deliberately
+        excluded — they have already been listed in the prior turn's
+        REFERENCES block. Web tokens (``[Tk:Wn]``) are also ignored.
+        """
         if not passages:
-            return []
+            return [], []
         seen: set[str] = set()
-        out: list[Paper] = []
+        out_papers: list[Paper] = []
+        out_ids: list[int] = []
         for match in _CITATION_TOKEN_RE.finditer(answer):
             try:
-                idx = int(match.group(1))
+                k = int(match.group(1))
+            except ValueError:
+                continue
+            kind = match.group(2)
+            if kind == "W":
+                continue  # web citation, not a literature ref
+            if k != current_turn:
+                continue  # prior-turn back-reference
+            try:
+                idx = int(match.group(3))
             except ValueError:
                 continue
             if not (1 <= idx <= len(passages)):
@@ -937,7 +1023,7 @@ class MetacouplingAssistant:
                 year_int = int(chunk.year)
             except (TypeError, ValueError):
                 year_int = 0
-            out.append(
+            out_papers.append(
                 Paper(
                     key=chunk.paper_key,
                     title=chunk.paper_title,
@@ -945,7 +1031,8 @@ class MetacouplingAssistant:
                     year=year_int,
                 )
             )
-        return out
+            out_ids.append(idx)
+        return out_papers, out_ids
 
     def analyze(
         self, research_description: str
@@ -992,10 +1079,14 @@ class MetacouplingAssistant:
         # Reset for a new framework analysis
         self._history.clear()
         self._turn = 0
+        self._turn_passage_counts.clear()
+        self._turn_web_counts.clear()
         # Reset pre-retrieval state — even if RAG is disabled or fails,
         # leaving stale hits from a previous session would be wrong.
         self._last_rag_hits = None
         self._original_query = research_description
+
+        next_turn = self._turn + 1
 
         # Optional: pre-search web context
         web_context: str | None = None
@@ -1062,7 +1153,9 @@ class MetacouplingAssistant:
                             f"{backend_used}"
                         )
                 if self._last_web_results:
-                    web_context = format_web_context(self._last_web_results)
+                    web_context = format_web_context(
+                        self._last_web_results, turn=next_turn,
+                    )
                     if self._web_structured_extraction:
                         try:
                             self._last_web_map_signals = (
@@ -1170,9 +1263,18 @@ class MetacouplingAssistant:
             and self._rag_engine is not None
             else None
         )
+
+        # Record per-turn citation-validation counts so the post-LLM
+        # sanitizer can keep / strip `[Tk:N]` tokens correctly.
+        self._turn_passage_counts[next_turn] = (
+            len(literature_for_msg) if literature_for_msg else 0
+        )
+        self._turn_web_counts[next_turn] = len(self._last_web_results or [])
+
         user_msg = self._prompt_builder.build_initial_message(
             research_description,
             literature_passages=literature_for_msg,
+            turn=next_turn,
         )
         self._history.append(Message(role="user", content=user_msg))
 
@@ -1185,7 +1287,7 @@ class MetacouplingAssistant:
 
         # Record assistant response in history
         self._history.append(Message(role="assistant", content=response.content))
-        self._turn += 1
+        self._turn = next_turn
 
         return self._build_result(response)
 
@@ -1234,19 +1336,9 @@ class MetacouplingAssistant:
         original topic. Fresh hits replace ``self._last_rag_hits`` and
         are injected into the new user message.
 
-        .. warning::
-
-            **Stale citation tokens across turns (Phase 1 limitation).**
-            Because the conversation history persists across turns,
-            ``[1]`` in turn 2 may refer to a different paper than
-            ``[1]`` in turn 1 (because re-retrieval can return a
-            different ranking). The system prompt instructs the LLM to
-            cite only from the most recent ``<retrieved_literature>``
-            block, and the post-LLM sanitizer strips out-of-range
-            tokens, but neither can detect a token that is in-range yet
-            semantically wrong. Phase 2 will address this with
-            turn-scoped citation markers. See ``CHANGELOG.md`` for the
-            current workaround.
+        Citations are turn-scoped (``[Tk:N]``); turn 1's citations
+        remain stable across refines, and the LLM may back-reference
+        prior-turn evidence by copying the original token verbatim.
         """
         if self._turn == 0:
             raise RuntimeError(
@@ -1254,15 +1346,10 @@ class MetacouplingAssistant:
                 "Call `analyze()` first."
             )
 
+        next_turn = self._turn + 1
+
         # Pre-retrieval RAG on refinement: re-retrieve with the merged
         # query so the LLM gets fresh evidence for the refined ask.
-        # TODO(phase2): citation labels [1]..[N] are turn-local. After
-        # this re-retrieval the same number may now refer to a
-        # different paper than it did on a previous turn. The system
-        # prompt rule + sanitizer mitigate but cannot fully eliminate
-        # the "stale [1]" failure mode. Plan: prefix labels with a
-        # turn marker (e.g. [T2:1]) or strip prior-turn citations from
-        # history before each refine.
         if (
             self._rag_mode == "pre_retrieval"
             and self._rag_engine is not None
@@ -1299,19 +1386,30 @@ class MetacouplingAssistant:
             and self._rag_engine is not None
             else None
         )
+
+        # Record per-turn citation-validation counts. Refine() does NOT
+        # re-run web search (only re-retrieves literature), so we
+        # record the most recent web-result count under this turn so
+        # the LLM can still back-reference prior-turn `[Tk:Wn]` tokens.
+        self._turn_passage_counts[next_turn] = (
+            len(literature_for_msg) if literature_for_msg else 0
+        )
+        self._turn_web_counts[next_turn] = 0
+
         user_msg = self._prompt_builder.build_refinement_message(
             additional_info,
             focus_component=focus_component,
             literature_passages=literature_for_msg,
+            turn=next_turn,
         )
         self._history.append(Message(role="user", content=user_msg))
 
         if self._verbose:
-            print(f"[MetacouplingAssistant] Refining (turn {self._turn + 1})...")
+            print(f"[MetacouplingAssistant] Refining (turn {next_turn})...")
 
         response = self._call_llm()
         self._history.append(Message(role="assistant", content=response.content))
-        self._turn += 1
+        self._turn = next_turn
 
         return self._build_result(response)
 
@@ -1319,6 +1417,8 @@ class MetacouplingAssistant:
         """Clear conversation history and pre-retrieval state."""
         self._history.clear()
         self._turn = 0
+        self._turn_passage_counts.clear()
+        self._turn_web_counts.clear()
         self._last_rag_hits = None
         self._original_query = None
         if self._verbose:
@@ -4045,20 +4145,25 @@ class MetacouplingAssistant:
     @staticmethod
     def _format_web_sources(
         results: list[dict[str, str]],
+        turn: int = 1,
     ) -> str:
-        """Format web search results as a references section."""
+        """Format web search results as a references section.
+
+        Uses turn-scoped ``[Tk:Wn]`` headers to match the inline
+        citation grammar in the answer body.
+        """
         if not results:
             return ""
         lines = [
             "\n\n======================================================================",
-            "  WEB SOURCES",
+            f"  WEB SOURCES (turn {turn})",
             "======================================================================\n",
         ]
         for i, r in enumerate(results, 1):
             title = r.get("title", "Untitled")
             url = r.get("url", "")
             snippet = r.get("snippet", "")
-            lines.append(f"  [W{i}] {title}")
+            lines.append(f"  [T{turn}:W{i}] {title}")
             if url:
                 lines.append(f"      {url}")
             if snippet:
@@ -4072,29 +4177,31 @@ class MetacouplingAssistant:
 
     def _build_result(self, response: LLMResponse) -> AnalysisResult:
         """Parse and format an LLM response into an AnalysisResult."""
-        # Pre-retrieval citation sanitization. Run BEFORE parse_analysis()
-        # so the parser never sees out-of-range tokens — the parser
-        # preserves [N] tokens through structured field extraction, so
-        # any [99] etc. would otherwise survive into the final output.
+        # Pre-retrieval turn-scoped citation sanitization. Run BEFORE
+        # parse_analysis() so the parser never sees invalid tokens —
+        # the parser preserves [Tk:N] tokens through structured field
+        # extraction, so any forward refs or out-of-range tokens would
+        # otherwise survive into the final output. Bare legacy [N] /
+        # [W1] from a slipping LLM are also stripped here silently.
         # The sanitizer also runs an idempotent whitespace/punctuation
         # cleanup pass so the result reads naturally even when tokens
-        # were stripped. We log here in addition to the citations module
-        # so debug visibility lives close to the call site.
+        # were stripped.
         if (
             self._rag_mode == "pre_retrieval"
             and self._last_rag_hits is not None
         ):
-            n_valid = len(self._last_rag_hits)
-            sanitized, invalid_ids = sanitize_citations(
-                response.content, n_valid=n_valid
+            sanitized, invalid_tokens = sanitize_turn_citations(
+                response.content,
+                turn_passage_counts=self._turn_passage_counts,
+                turn_web_counts=self._turn_web_counts,
+                current_turn=self._turn,
             )
-            if invalid_ids:
+            if invalid_tokens:
                 logger.warning(
                     "MetacouplingAssistant sanitized %d invalid citation "
-                    "ID(s) from LLM response: %s (valid range: 1..%d)",
-                    len(invalid_ids),
-                    sorted(invalid_ids),
-                    n_valid,
+                    "token(s) from LLM response: %s",
+                    len(invalid_tokens),
+                    sorted(invalid_tokens),
                 )
             response = LLMResponse(content=sanitized, usage=response.usage)
 
@@ -4176,6 +4283,7 @@ class MetacouplingAssistant:
                             self._last_rag_hits,
                             anchor_text=self._original_query or "",
                             backend=rag_backend or "tfidf",
+                            turn=self._turn,
                         )
                     elif self._verbose:
                         print(
@@ -4222,8 +4330,11 @@ class MetacouplingAssistant:
                                 f"{len(results)} evidence passages."
                             )
                         if results:
-                            # Add inline [N] citations to analysis statements
-                            formatted = annotate_citations(formatted, results)
+                            # Add inline [Tk:N] citations to analysis
+                            # statements via keyword-overlap matching.
+                            formatted = annotate_citations(
+                                formatted, results, turn=self._turn,
+                            )
                             # Append the evidence reference block, passing
                             # the active backend so confidence thresholds
                             # match the score range.
@@ -4236,6 +4347,7 @@ class MetacouplingAssistant:
                                 results,
                                 anchor_text=query,
                                 backend=rag_backend or "tfidf",
+                                turn=self._turn,
                             )
                 except Exception as exc:
                     if self._verbose:
@@ -4251,10 +4363,13 @@ class MetacouplingAssistant:
 
                 formatted = annotate_web_citations(
                     formatted, self._last_web_results,
+                    turn=self._turn,
                 )
             except Exception:
                 pass  # Non-fatal: skip web annotation
-            formatted += self._format_web_sources(self._last_web_results)
+            formatted += self._format_web_sources(
+                self._last_web_results, turn=self._turn,
+            )
 
         # Optional: second LLM call to extract structured map data
         if self._auto_map and parsed.map_data is None:

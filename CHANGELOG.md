@@ -5,6 +5,74 @@ file. The format is loosely based on
 [Keep a Changelog](https://keepachangelog.com/), and this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
+
+Multi-turn citation disambiguation. **Recommended upgrade for anyone
+using `refine()` or follow-up `analyze()` calls in RAG-only mode.**
+
+**Breaking change**: the pre-v0.1.3 public citation API is gone.
+Callers that imported ``sanitize_citations``, ``extract_cited_ids``,
+or ``CITATION_PATTERN`` from ``metacouplingllm`` /
+``metacouplingllm.knowledge.citations`` must migrate to the new
+turn-scoped equivalents:
+
+| Removed (pre-v0.1.3)          | New (v0.1.3+)                   |
+|-------------------------------|---------------------------------|
+| ``sanitize_citations(text, n_valid)`` | ``sanitize_turn_citations(text, turn_passage_counts, turn_web_counts, current_turn)`` |
+| ``extract_cited_ids(text)``   | ``extract_turn_cited_ids(text)`` (returns ``set[tuple[int, str, int]]``) |
+| ``CITATION_PATTERN``          | ``TURN_CITATION_PATTERN``       |
+
+End-user code that only uses ``MetacouplingAssistant.analyze()`` /
+``refine()`` and consumes ``AnalysisResult`` / ``RAGResult`` is
+unaffected — sanitization is internal.
+
+- **Grammar change.** Literature citations are now emitted as
+  ``[Tk:N]`` and web citations as ``[Tk:Wn]``, where `k` is the
+  1-indexed turn number and `N`/`n` is the passage/web-source ID
+  within that turn. Previously, each turn re-numbered passages from
+  `[1]` — so turn 1's `[1]` and turn 2's `[1]` could refer to
+  different papers, and conversation history preserved both messages
+  verbatim. With the new grammar, once a citation is emitted it is
+  unambiguous forever: turn 1's `[T1:3]` always means turn 1's 3rd
+  passage, even when read inside a later turn.
+- **Back-references allowed.** The LLM may now cite prior-turn
+  evidence by copying the exact token verbatim — e.g., a turn-2
+  answer can say *"extending [T1:3] with the new data shows..."* —
+  because past-turn tokens stay valid.
+- **New sanitizer.** ``metacouplingllm.knowledge.citations.sanitize_turn_citations(text, turn_passage_counts, turn_web_counts, current_turn)``
+  validates each ``[Tk:N]`` and ``[Tk:Wn]`` against per-turn passage /
+  web counts recorded on the assistant. Forward references
+  (``[Tk:N]`` with `k > current_turn`), out-of-range IDs, and bare
+  ``[N]`` / ``[W1]`` slips from the LLM are stripped — the latter
+  silently as a defensive measure, with no public legacy API kept.
+- **Prompt rewrite.** ``CITATION_RULES_LAYER`` and
+  ``_RAG_ONLY_SYSTEM_PROMPT`` were rewritten to teach the new grammar
+  explicitly. Each ``<retrieved_literature>`` / ``<web_search_results>``
+  block now carries a ``turn="k"`` attribute, and each ``<passage>``
+  inherits the same. The LLM uses these attributes to assemble the
+  citation token.
+- **Renderer change.** ``REFERENCES`` and ``WEB SOURCES`` blocks in
+  ``AnalysisResult.formatted`` and ``RAGResult.formatted`` now show
+  each entry with its turn-scoped label (``[T1:1] Title…``,
+  ``[T2:W3] Title…``). The ``_renumber_citations_sequentially``
+  helper that re-mapped sparse ``[N]`` markers in RAG-only mode is
+  removed — the LLM emits stable tokens directly, so no remapping is
+  needed. ``RAGResult.references`` lists only **current-turn**
+  citations; prior-turn back-references are deliberately excluded
+  (they belong to the prior turn's reference block).
+- **Plumbed through.** ``PromptBuilder.build_initial_message`` and
+  ``build_refinement_message`` gained a ``turn`` kwarg.
+  ``format_web_context``, ``format_evidence``, ``annotate_citations``,
+  and ``annotate_web_citations`` likewise. ``MetacouplingAssistant``
+  records ``_turn_passage_counts``, ``_turn_web_counts`` (and the
+  RAG-mode equivalents) on every retrieval so the sanitizer can
+  validate any back-reference, no matter how old.
+- **Migration note.** Older saved conversations contain bare ``[N]``
+  / ``[W1]``; the new run will silently strip those on the next
+  refine and emit ``[Tk:N]`` going forward. History is not
+  retroactively rewritten — the fix is preventive (correct grammar
+  from the start), not corrective.
+
 ## [0.1.2] — Bundled-data loader fix (Critical)
 
 Bug fix release. **All v0.1.0 / v0.1.1 users should upgrade.**
@@ -212,16 +280,12 @@ metacoupling-framework research assistant built around:
 
 ### Known limitations
 
-- **Stale citation tokens across turns.** Because conversation history
-  persists across `refine()` calls and each refine re-retrieves a
-  fresh passage set, the same number `[1]` may refer to different
-  papers in turn 1 and turn 2. The system-prompt rule says "cite only
-  from the most recent block" and the sanitizer strips out-of-range
-  tokens, but neither can detect a token that is in-range yet
-  semantically wrong. Treat each turn's `SUPPORTING EVIDENCE` block
-  as the authoritative mapping for that turn's citations. A future
-  release is expected to introduce turn-scoped markers (e.g.,
-  `[T2:1]`).
+- **Stale citation tokens across turns.** *Resolved in v0.1.3* — see
+  the [0.1.3] entry. Turn 1's `[1]` and turn 2's `[1]` no longer
+  collide because the new grammar emits `[T1:N]` and `[T2:N]`
+  respectively. Pre-v0.1.3 saved conversations still contain bare
+  `[N]` tokens; running `refine()` under v0.1.3 will silently strip
+  them and emit the new turn-scoped form going forward.
 - **No second-stage reranking.** A cross-encoder reranker over the
   top-k retrieved passages is planned but not shipped; pre-retrieval
   currently uses the raw BGE-small ranking.

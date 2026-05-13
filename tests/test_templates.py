@@ -186,32 +186,46 @@ class TestCitationRulesLayer:
     def test_nonempty(self):
         assert len(CITATION_RULES_LAYER) > 200
 
-    def test_mentions_brackets(self):
-        # The rules should reference the [N] citation syntax explicitly
-        assert "[1]" in CITATION_RULES_LAYER
-        assert "[2]" in CITATION_RULES_LAYER
+    def test_mentions_turn_scoped_grammar(self):
+        # The rules must teach the [Tk:N] / [Tk:Wn] grammar explicitly
+        assert "[Tk:N]" in CITATION_RULES_LAYER
+        assert "[Tk:Wn]" in CITATION_RULES_LAYER
 
-    def test_mentions_recency(self):
-        # The "cite from the most recent block" rule must be present
-        # so the LLM doesn't reuse stale citation numbers across turns
+    def test_mentions_prior_turn_back_reference(self):
+        # Prior-turn citations must be allowed for back-reference so
+        # the LLM understands that past tokens stay valid.
         text = CITATION_RULES_LAYER.lower()
-        assert "most recent" in text
-        assert "previous turn" in text or "turn-local" in text
+        assert "prior" in text and "turn" in text
+        assert "back-reference" in text or "verbatim" in text
 
     def test_mentions_no_invent(self):
         # Forbids fabricating citations
         text = CITATION_RULES_LAYER.lower()
         assert "never invent" in text or "do not fabricate" in text
 
+    def test_mentions_no_bare_tokens(self):
+        # Bare [N] / [W1] are illegal under the new grammar — the
+        # prompt must explicitly forbid them so the LLM doesn't slip
+        # back to the legacy form.
+        text = CITATION_RULES_LAYER.lower()
+        assert "bare" in text or "without the `tk:` prefix" in text or "without the tk:" in text
+        # Confirm the illegal forms are named
+        assert "[n]" in text or "[N]" in CITATION_RULES_LAYER
+
     def test_mentions_retrieved_literature_block(self):
         # Should reference the XML block name so the LLM knows where to look
         assert "retrieved_literature" in CITATION_RULES_LAYER
+
+    def test_mentions_turn_attribute(self):
+        # The block's turn="k" attribute should be referenced
+        assert 'turn="k"' in CITATION_RULES_LAYER or "turn=" in CITATION_RULES_LAYER
 
     def test_mentions_empty_block_handling(self):
         # The rule for empty <retrieved_literature/> blocks must exist
         text = CITATION_RULES_LAYER.lower()
         assert "empty" in text
-        assert "no relevant passages" in text or "no specific evidence" in text
+        # The rule still permits back-references when empty
+        assert "back-reference" in text or "back-reference" in text or "prior" in text
 
 
 class TestUserTemplates:

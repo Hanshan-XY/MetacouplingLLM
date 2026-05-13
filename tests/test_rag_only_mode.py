@@ -6,9 +6,11 @@ Covers:
 - Multi-turn conversation: prior turns are remembered, each turn runs
   fresh RAG retrieval, ``clear_history()`` resets state, the
   framework-mode ``_history`` is left untouched.
-- Reference extraction: only papers actually cited in the answer appear
-  in ``RAGResult.references``, dedup'd by paper key in cite order.
-- Citation sanitizer: hallucinated ``[N]`` markers are stripped.
+- Reference extraction: only **current-turn** ``[Tk:N]`` citations are
+  resolved into ``RAGResult.references`` (prior-turn back-references
+  are kept in the answer but excluded from the current bibliography).
+- Citation sanitizer: invalid turn-scoped tokens and bare legacy
+  ``[N]`` / ``[W1]`` are stripped.
 - Web search is honoured when ``web_search=True``.
 - Empty queries raise ``ValueError``.
 """
@@ -65,26 +67,27 @@ class TestRagOnlyMode:
         self, advisor_rag_only, mock_llm_client
     ):
         mock_llm_client._responses = [
-            "Brazil exports soybeans to China at scale [1]. Land-use "
-            "change in Mato Grosso has been documented [3]."
+            "Brazil exports soybeans to China at scale [T1:1]. Land-use "
+            "change in Mato Grosso has been documented [T1:3]."
         ]
         result = advisor_rag_only.analyze(
             "What's the research status of China-Brazil soybean trade?"
         )
         assert isinstance(result, RAGResult)
         assert result.turn_number == 1
-        assert "[1]" in result.answer
+        assert "[T1:1]" in result.answer
         assert result.usage is not None
 
     def test_ragresult_only_includes_cited_papers_in_references(
         self, advisor_rag_only, mock_llm_client
     ):
-        # Answer cites passages [1] and [3] only — references should
-        # contain exactly those two papers, in that order, dedup'd.
+        # Answer cites passages [T1:1] and [T1:3] only — references
+        # should contain exactly those two papers, in that order,
+        # dedup'd.
         mock_llm_client._responses = [
-            "Brazil exports soybeans to China [1]. Land-use change "
-            "in Mato Grosso has been documented [3]. The trade has "
-            "grown rapidly [3]."  # repeated [3] should not duplicate
+            "Brazil exports soybeans to China [T1:1]. Land-use change "
+            "in Mato Grosso has been documented [T1:3]. The trade has "
+            "grown rapidly [T1:3]."  # repeated [T1:3] should not duplicate
         ]
         result = advisor_rag_only.analyze("Soybean trade")
         keys = [p.key for p in result.references]
@@ -93,16 +96,32 @@ class TestRagOnlyMode:
     def test_ragresult_sanitizes_invalid_citation_brackets(
         self, advisor_rag_only, mock_llm_client
     ):
-        # [99] is out of range (only 5 passages); should be stripped
+        # [T1:99] is out of range (only 5 passages); should be stripped
         # from the answer and excluded from references.
         mock_llm_client._responses = [
-            "Telecoupling is well-established [1]. There is also work [99]."
+            "Telecoupling is well-established [T1:1]. "
+            "There is also work [T1:99]."
         ]
         result = advisor_rag_only.analyze("Telecoupling overview")
-        assert "[99]" not in result.answer
-        assert "[1]" in result.answer
+        assert "[T1:99]" not in result.answer
+        assert "[T1:1]" in result.answer
         assert all(p.key != "" for p in result.references)
         # Only one valid citation → exactly one reference
+        assert len(result.references) == 1
+
+    def test_ragresult_strips_bare_legacy_tokens(
+        self, advisor_rag_only, mock_llm_client
+    ):
+        # If the LLM slips and emits a bare [1] (legacy form), it's
+        # silently stripped and contributes no reference.
+        mock_llm_client._responses = [
+            "Good cite [T1:1]. Legacy slip [1]. Bad legacy [W1]."
+        ]
+        result = advisor_rag_only.analyze("Legacy slip test")
+        assert "[T1:1]" in result.answer
+        assert "[1]" not in result.answer
+        assert "[W1]" not in result.answer
+        # Only the valid turn-scoped citation contributes a reference
         assert len(result.references) == 1
 
     def test_ragresult_raises_on_empty_query(self, advisor_rag_only):
@@ -117,8 +136,8 @@ class TestRagOnlyMode:
         self, advisor_rag_only, mock_llm_client
     ):
         mock_llm_client._responses = [
-            "Soybean trade between Brazil and China is well-studied [1].",
-            "The environmental impacts include cropland expansion [3].",
+            "Soybean trade between Brazil and China is well-studied [T1:1].",
+            "The environmental impacts include cropland expansion [T2:3].",
         ]
         r1 = advisor_rag_only.analyze("Tell me about China-Brazil soybean trade")
         r2 = advisor_rag_only.analyze("What about its environmental impacts?")
@@ -131,9 +150,33 @@ class TestRagOnlyMode:
         assert advisor_rag_only._rag_history[2].role == "assistant"
         assert advisor_rag_only._rag_history[3].role == "user"
         assert advisor_rag_only._rag_history[4].role == "assistant"
+        # Turn 1's [T1:1] is preserved verbatim in the stored
+        # assistant message even after turn 2 happens — that's the
+        # whole point of turn-scoped citations.
+        assert "[T1:1]" in advisor_rag_only._rag_history[2].content
         # Turn 2's LLM call must have received the full prior history
         msgs_for_turn2 = mock_llm_client.calls[1]
         assert len(msgs_for_turn2) == 4  # system + user1 + asst1 + user2
+
+    def test_multi_turn_back_reference_to_prior_turn(
+        self, advisor_rag_only, mock_llm_client
+    ):
+        """Turn 2 can back-reference turn 1's evidence by copying the
+        original [T1:N] token verbatim."""
+        mock_llm_client._responses = [
+            "Soybean trade is well-studied [T1:1] and [T1:3].",
+            "Extending [T1:3] with the new data: cropland in Mato "
+            "Grosso continues to expand [T2:1].",
+        ]
+        advisor_rag_only.analyze("China-Brazil soybean trade")
+        r2 = advisor_rag_only.analyze("What about new data?")
+
+        # Both turn-1 back-reference and turn-2 fresh citation survive
+        assert "[T1:3]" in r2.answer
+        assert "[T2:1]" in r2.answer
+        # Only the current-turn citation contributes to references
+        keys = [p.key for p in r2.references]
+        assert keys == ["liu_framing_2013"]
 
     def test_each_turn_runs_fresh_rag_retrieval(
         self, advisor_rag_only, mock_rag_engine
@@ -198,41 +241,49 @@ class TestRagOnlyMode:
         self, advisor_rag_only, mock_llm_client
     ):
         mock_llm_client._responses = [
-            "Telecoupling is a useful framing [1]. Land-use change "
-            "in Mato Grosso has been documented [3]."
+            "Telecoupling is a useful framing [T1:1]. Land-use change "
+            "in Mato Grosso has been documented [T1:3]."
         ]
         result = advisor_rag_only.analyze("Soybean trade")
         formatted = result.formatted
-        # Bibliography block is present
-        assert "REFERENCES (cited in this answer)" in formatted
-        # Both cited papers appear in the bibliography
-        assert "Framing Sustainability in a Telecoupled World" in formatted
-        assert "Telecoupled land-use changes in distant countries" in formatted
-        # Original answer text appears (with possibly-renumbered markers)
-        assert "Telecoupling is a useful framing" in formatted
-        assert "Mato Grosso" in formatted
+        # Bibliography block is present (turn-scoped header)
+        assert "REFERENCES (cited in turn 1)" in formatted
+        # Both cited papers appear in the bibliography with their
+        # actual cited passage IDs (1 and 3 — not renumbered to 1, 2).
+        assert "[T1:1] Framing Sustainability in a Telecoupled World" in formatted
+        assert "[T1:3] Telecoupled land-use changes in distant countries" in formatted
+        # Original answer text appears with its stable turn-scoped markers
+        assert "Telecoupling is a useful framing [T1:1]" in formatted
+        assert "Mato Grosso has been documented [T1:3]" in formatted
 
-    def test_formatted_renumbers_sparse_citations_to_sequential(
+    def test_formatted_bibliography_labels_match_inline_citations(
         self, advisor_rag_only, mock_llm_client
     ):
-        # LLM cited [1] and [3] (sparse). formatted should renumber to
-        # [1] and [2] sequentially in the answer body so they line up
-        # with the bibliography's [1] and [2] entries.
+        # The bibliography must use the LLM's original passage IDs
+        # (e.g. [T1:3]) so the reader can match each citation in the
+        # body to its entry in the references list. No renumbering.
         mock_llm_client._responses = [
-            "First claim [1]. Second claim [3]. Repeat second claim [3]."
+            "First claim [T1:1]. Second claim [T1:3]. Repeat second [T1:3]."
         ]
         result = advisor_rag_only.analyze("query")
-        # The original answer keeps the LLM's numbering
-        assert "[1]" in result.answer
-        assert "[3]" in result.answer
-        # The formatted view renumbers
+        # The answer keeps the LLM's exact tokens — no remapping
+        assert "[T1:1]" in result.answer
+        assert "[T1:3]" in result.answer
         formatted = result.formatted
-        assert "First claim [1]" in formatted
-        assert "Second claim [2]" in formatted
-        assert "Repeat second claim [2]" in formatted
-        assert "[3]" not in formatted.split("REFERENCES")[0]
+        assert "First claim [T1:1]" in formatted
+        assert "Second claim [T1:3]" in formatted
+        assert "Repeat second [T1:3]" in formatted
+        # The bibliography uses the actual passage IDs [T1:1] and
+        # [T1:3], not a renumbered [T1:2].
+        bib = formatted.split("REFERENCES")[1]
+        assert "[T1:1]" in bib
+        assert "[T1:3]" in bib
+        assert "[T1:2]" not in bib
 
-    def test_formatted_with_no_references_returns_renumbered_answer_only(
+        # And the parallel passage-id list reflects what was cited.
+        assert result.reference_passage_ids == [1, 3]
+
+    def test_formatted_with_no_references_returns_answer_only(
         self, advisor_rag_only, mock_llm_client
     ):
         # If the LLM produces no citations, references is empty and
@@ -285,9 +336,11 @@ class TestRagOnlyWebSearch:
         result = advisor.analyze("China-Brazil soybean trade in 2024")
         assert isinstance(result, RAGResult)
         assert result.web_sources == fake_results
-        # The user message sent to the LLM should include the web block.
+        # The user message sent to the LLM should include the web block,
+        # tagged with the current turn so the LLM knows which Tk: prefix
+        # to use for inline citations.
         user_msg = mock_llm_client.calls[0][1].content
-        assert "<web_search_results>" in user_msg
+        assert '<web_search_results turn="1">' in user_msg
 
 
 # ---------------------------------------------------------------------------
@@ -375,7 +428,7 @@ class TestRagOnlyVisibility:
         )
 
         mock_llm_client._responses = [
-            "Brazil exports soybeans at scale [1]."
+            "Brazil exports soybeans at scale [T1:1]."
         ]
         advisor = MetacouplingAssistant(
             llm_client=mock_llm_client,
@@ -387,18 +440,18 @@ class TestRagOnlyVisibility:
         result = advisor.analyze("Soybean trade")
 
         formatted = result.formatted
-        assert "WEB SOURCES (background context, not used for citations)" in formatted
-        assert "[w1] Brazil-China soy 2024 update" in formatted
+        assert "WEB SOURCES (turn 1, background context)" in formatted
+        assert "[T1:W1] Brazil-China soy 2024 update" in formatted
         assert "https://example.org/usda-2024" in formatted
-        assert "[w2] Cerrado deforestation analysis" in formatted
+        assert "[T1:W2] Cerrado deforestation analysis" in formatted
         # And the literature bibliography is still there too
-        assert "REFERENCES (cited in this answer)" in formatted
+        assert "REFERENCES (cited in turn 1)" in formatted
 
     def test_formatted_omits_web_sources_when_empty(
         self, advisor_rag_only, mock_llm_client
     ):
         # No web search → no web block in formatted (regression guard)
-        mock_llm_client._responses = ["Some claim [1]."]
+        mock_llm_client._responses = ["Some claim [T1:1]."]
         result = advisor_rag_only.analyze("query")
         assert result.web_sources is None
         assert "WEB SOURCES" not in result.formatted
@@ -409,7 +462,7 @@ class TestRagOnlyVisibility:
         """Each cited reference should show a Confidence line + the
         raw score from its highest-scoring retrieved passage."""
         mock_llm_client._responses = [
-            "Claim A [1]. Claim B [3]."
+            "Claim A [T1:1]. Claim B [T1:3]."
         ]
         result = advisor_rag_only.analyze("Soybean trade")
         formatted = result.formatted

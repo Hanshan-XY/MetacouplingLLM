@@ -197,3 +197,61 @@ class TestFullLengthPassageSurvivesTruncation:
         )
         block = PromptBuilder._format_literature_block([hit])
         assert "..." in block
+
+
+class TestLiteratureBlockTurnAttr:
+    """The literature block carries a turn attribute on both the
+    container and each passage, so the LLM can assemble the matching
+    [Tk:N] citation token."""
+
+    def _hit(self, idx: int = 1):
+        from metacouplingllm.knowledge.rag import RetrievalResult, TextChunk
+
+        return RetrievalResult(
+            chunk=TextChunk(
+                paper_key=f"paper{idx}",
+                paper_title=f"Paper {idx}",
+                authors="A. Author",
+                year=2024,
+                section="Results",
+                text=f"Body of passage {idx}.",
+                chunk_index=0,
+            ),
+            score=0.9,
+        )
+
+    def test_default_turn_is_one(self):
+        block = PromptBuilder._format_literature_block([self._hit()])
+        assert '<retrieved_literature turn="1">' in block
+        assert '<passage turn="1" id="1"' in block
+
+    def test_explicit_turn_propagates_to_passages(self):
+        block = PromptBuilder._format_literature_block(
+            [self._hit(1), self._hit(2)], turn=3,
+        )
+        assert '<retrieved_literature turn="3">' in block
+        assert '<passage turn="3" id="1"' in block
+        assert '<passage turn="3" id="2"' in block
+        # The wrong turn must not leak in
+        assert 'turn="1"' not in block
+        assert 'turn="2"' not in block
+
+    def test_empty_results_emits_self_closing_with_turn(self):
+        block = PromptBuilder._format_literature_block([], turn=5)
+        assert block == '<retrieved_literature turn="5"/>'
+
+    def test_build_initial_message_threads_turn(self):
+        msg = PromptBuilder.build_initial_message(
+            "My research question.",
+            literature_passages=[self._hit()],
+            turn=2,
+        )
+        assert '<passage turn="2" id="1"' in msg
+
+    def test_build_refinement_message_threads_turn(self):
+        msg = PromptBuilder.build_refinement_message(
+            "Follow-up question.",
+            literature_passages=[self._hit()],
+            turn=4,
+        )
+        assert '<passage turn="4" id="1"' in msg

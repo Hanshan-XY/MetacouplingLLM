@@ -163,7 +163,7 @@ The system prompt is constructed in six layers:
 
 Before calling the LLM, the system also injects:
 - **Pericoupling hints** from the geographic database (e.g., "Michigan and Indiana are pericoupled")
-- **Web search context** with `[W1]`, `[W2]` labels for inline citation
+- **Web search context** with `[Tk:W1]`, `[Tk:W2]` labels for inline citation (turn-scoped — `k` is the conversation turn)
 - **Structured web map hints** with validated countries and flows when enabled
 - **ADM1 neighbor information** when subnational regions are detected
 
@@ -175,7 +175,7 @@ The RAG engine provides evidence grounding from 262 full-text telecoupling and m
   - **Embeddings (default)** -- semantic retrieval via `fastembed` + the `BAAI/bge-small-en-v1.5` ONNX model. Captures synonyms, paraphrases, and related concepts (e.g., a query about "soybean trade" also matches chunks about "soya bean exports" and "Glycine max shipments"). Pre-computed corpus vectors are shipped with the package as `chunk_embeddings.npy` (~15 MB) so users never have to re-encode.
   - **TF-IDF (fallback)** -- lexical retrieval using TF-IDF + cosine similarity. Activated when `fastembed` is unavailable or the pre-computed file is missing.
 - **Retrieval**: Cosine similarity; top-k deduplication (at most one chunk per paper)
-- **Citation**: Evidence passages are appended as `[1]`, `[2]`, ... with inline annotation
+- **Citation**: Evidence passages are appended as `[Tk:1]`, `[Tk:2]`, ... with inline annotation (turn-scoped — `k` marks the turn so prior-turn references remain unambiguous across multi-turn conversations)
 - **Lightweight**: `fastembed` + `onnxruntime` add ~20 MB to the install; no torch/GPU dependencies
 - **Backend selection**: `MetacouplingAssistant(..., rag_backend="auto")` (default) picks embeddings if available and transparently falls back to TF-IDF. Explicit options: `"embeddings"`, `"tfidf"`.
 
@@ -185,7 +185,7 @@ Web search injects current, real-world context (trade data, policies, recent eve
 
 - Three fallback backends: `ddgs` -> `duckduckgo_search` -> stdlib (`urllib` + `html.parser`)
 - Works on Google Colab without any extra packages (stdlib fallback)
-- Results cited as `[W1]`, `[W2]`, ... -- distinct from literature `[1]`, `[2]`
+- Results cited as `[Tk:W1]`, `[Tk:W2]`, ... -- the `W` prefix distinguishes web sources from literature `[Tk:1]`, `[Tk:2]`. `k` is the turn index, so prior-turn web references stay stable across `refine()` calls.
 - Recommended default for web-grounded maps: `web_structured_extraction=True` runs a second LLM pass over the web snippets and validates map-ready countries and flows before using them in auto-maps
 
 ### 4.5 Pericoupling Databases
@@ -289,8 +289,8 @@ The output includes:
 - Causes grouped by the fixed cause/effect category vocabulary
 - Effects grouped by the fixed cause/effect category vocabulary
 - Research gaps and suggestions
-- Literature evidence with `[1]`-`[N]` citations
-- Web sources with `[W1]`-`[WN]` citations
+- Literature evidence with `[Tk:1]`-`[Tk:N]` citations (turn-scoped)
+- Web sources with `[Tk:W1]`-`[Tk:WN]` citations (turn-scoped)
 - Pericoupling database validation
 
 ### Step 4: Refine (optional)

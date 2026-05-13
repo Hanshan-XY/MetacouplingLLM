@@ -79,15 +79,17 @@ class TestPreRetrievalPromptInjection:
         # The user message is the second message in history (index 1)
         user_msg = advisor_pre_retrieval._history[1]
         assert user_msg.role == "user"
-        assert "<retrieved_literature>" in user_msg.content
+        # The block carries a turn="1" attribute under the new grammar
+        assert '<retrieved_literature turn="1">' in user_msg.content
         assert "</retrieved_literature>" in user_msg.content
 
     def test_citation_ids_sequential_and_stable(self, advisor_pre_retrieval):
         advisor_pre_retrieval.analyze("Soybean trade Brazil to China")
         user_msg = advisor_pre_retrieval._history[1].content
-        # Five passages from the fixture → ids 1..5 must all appear
+        # Five passages from the fixture → ids 1..5 must all appear,
+        # each tagged with turn="1"
         for i in range(1, 6):
-            assert f'id="{i}"' in user_msg
+            assert f'<passage turn="1" id="{i}"' in user_msg
         # And no id="6" (we only have 5 fake hits)
         assert 'id="6"' not in user_msg
 
@@ -98,7 +100,7 @@ class TestPreRetrievalPromptInjection:
         user_msg = advisor_pre_retrieval._history[1].content
         # Literature block must come BEFORE the research description
         # so the user's actual ask is the last thing the LLM reads
-        lit_pos = user_msg.index("<retrieved_literature>")
+        lit_pos = user_msg.index('<retrieved_literature turn="1">')
         ask_pos = user_msg.index("Soybean trade Brazil to China")
         assert lit_pos < ask_pos
 
@@ -138,7 +140,7 @@ class TestCitationRulesInSystemPrompt:
         advisor_post_hoc.analyze("Soybean trade")
         user_msg = advisor_post_hoc._history[1].content
         # post_hoc mode does NOT inject the XML block — RAG runs after
-        assert "<retrieved_literature>" not in user_msg
+        assert "<retrieved_literature" not in user_msg
         assert "<retrieved_literature/>" not in user_msg
 
 
@@ -173,12 +175,12 @@ class TestCitationSanitization:
     ):
         from tests.conftest import _RecordingMockLLMClient
 
-        # LLM cites both valid (1, 2) and invalid (99) IDs.
-        # The sanitizer must keep [1] and [2], strip [99], and log.
+        # LLM cites both valid ([T1:1], [T1:2]) and invalid ([T1:99]) IDs.
+        # The sanitizer must keep the valid tokens, strip [T1:99], and log.
         client = _RecordingMockLLMClient(
             responses=[
                 "### 1. Coupling Classification\n"
-                "Soybean trade is telecoupling [1] [2] [99]."
+                "Soybean trade is telecoupling [T1:1] [T1:2] [T1:99]."
             ]
         )
         advisor = MetacouplingAssistant(
@@ -192,9 +194,9 @@ class TestCitationSanitization:
         with caplog.at_level(logging.WARNING):
             result = advisor.analyze("Soybean trade")
 
-        assert "[1]" in result.formatted
-        assert "[2]" in result.formatted
-        assert "[99]" not in result.formatted
+        assert "[T1:1]" in result.formatted
+        assert "[T1:2]" in result.formatted
+        assert "[T1:99]" not in result.formatted
         # Either citations.py or core.py logger should have warned
         assert any("99" in record.message for record in caplog.records)
 
@@ -211,8 +213,10 @@ class TestCitationSanitization:
 
         advisor.analyze("Obscure niche topic with no matches")
         user_msg = advisor._history[1].content
-        # The self-closing form signals "retrieval ran but found nothing"
-        assert "<retrieved_literature/>" in user_msg
+        # The self-closing form signals "retrieval ran but found nothing".
+        # The turn attribute is still emitted so the LLM knows which
+        # Tk: prefix is in play.
+        assert '<retrieved_literature turn="1"/>' in user_msg
 
     def test_rag_engine_failure_does_not_crash_analyze(self, mock_llm_client):
         from tests.conftest import _RecordingMockRagEngine
