@@ -1268,24 +1268,30 @@ def search_web(
     return merged[:max_results]
 
 
-def format_web_context(results: list[dict[str, str]]) -> str:
+def format_web_context(
+    results: list[dict[str, str]], turn: int = 1
+) -> str:
     """Format web search results into a prompt-ready context section.
 
     Parameters
     ----------
     results:
         List of search result dicts from :func:`search_web`.
+    turn:
+        1-indexed turn number used to tag the block and assemble
+        turn-scoped citation tokens like ``[Tk:W1]``, ``[Tk:W2]``,
+        .... Default ``1``.
 
     Returns
     -------
-    A formatted string starting with ``## WEB SEARCH CONTEXT``, or an
-    empty string if no results are provided.
+    A formatted string starting with ``## WEB SEARCH CONTEXT (turn k)``,
+    or an empty string if no results are provided.
     """
     if not results:
         return ""
 
     lines: list[str] = [
-        "## WEB SEARCH CONTEXT",
+        f"## WEB SEARCH CONTEXT (turn {turn})",
         "",
         "The following web search snippets provide real-world context "
         "for the research topic. Use this information to ground your "
@@ -1298,9 +1304,11 @@ def format_web_context(results: list[dict[str, str]]) -> str:
         "data are sparse. Treat those as proxy context and label them "
         "clearly rather than presenting them as direct subnational facts.",
         "",
-        "When you use a fact from a web snippet, cite it inline as "
-        "[W1], [W2], etc.  These are distinct from the literature "
-        "citations [1], [2], … that may be added separately.",
+        f"When you use a fact from a web snippet, cite it inline as "
+        f"[T{turn}:W1], [T{turn}:W2], etc. These are turn-scoped — the "
+        f"`T{turn}:` prefix marks them as belonging to turn {turn} and "
+        f"distinguishes them from literature citations [T{turn}:1], "
+        f"[T{turn}:2], … that may be added separately.",
         "",
     ]
 
@@ -1308,7 +1316,7 @@ def format_web_context(results: list[dict[str, str]]) -> str:
         title = r.get("title", "Untitled")
         snippet = r.get("snippet", "")
         url = r.get("url", "")
-        lines.append(f"[W{i}] **{title}**")
+        lines.append(f"[T{turn}:W{i}] **{title}**")
         if snippet:
             lines.append(f"   {snippet}")
         if url:
@@ -1736,12 +1744,15 @@ def annotate_web_citations(
     web_results: list[dict[str, str]],
     min_keyword_overlap: int = 3,
     min_overlap_ratio: float = 0.25,
+    turn: int = 1,
 ) -> str:
-    """Add inline ``[WN]`` citations to formatted analysis lines.
+    """Add inline turn-scoped ``[Tk:Wn]`` citations to formatted
+    analysis lines.
 
-    Works the same way as the literature ``annotate_citations`` but uses
-    web-search snippets and the ``[W1]``, ``[W2]``, … prefix so that
-    web and literature references are visually distinct.
+    Works the same way as the literature ``annotate_citations`` but
+    uses web-search snippets and emits ``[Tk:W1]``, ``[Tk:W2]``, …
+    so web and literature references are visually distinct while
+    sharing the turn-scoped grammar.
 
     Parameters
     ----------
@@ -1754,10 +1765,13 @@ def annotate_web_citations(
     min_overlap_ratio:
         Minimum fraction of the line's keywords that must appear in the
         web snippet.
+    turn:
+        1-indexed turn number used to render citations as ``[Tk:Wn]``.
+        Default ``1``.
 
     Returns
     -------
-    The text with ``[WN]`` citations appended to matching lines.
+    The text with ``[Tk:Wn]`` citations appended to matching lines.
     """
     if not web_results:
         return formatted
@@ -1826,13 +1840,17 @@ def annotate_web_citations(
                 citations.append(idx + 1)
 
         if citations:
-            # Avoid duplicates if LLM already cited [WN] in the line
-            existing = set()
-            for m in re.finditer(r"\[W(\d+)\]", line):
-                existing.add(int(m.group(1)))
+            # Avoid duplicates if the LLM already cited a matching
+            # turn-scoped web token in the line.
+            existing: set[int] = set()
+            for m in re.finditer(r"\[T(\d+):W(\d+)\]", line):
+                if int(m.group(1)) == turn:
+                    existing.add(int(m.group(2)))
             new_cites = [c for c in citations if c not in existing]
             if new_cites:
-                cite_str = " " + " ".join(f"[W{n}]" for n in new_cites)
+                cite_str = " " + " ".join(
+                    f"[T{turn}:W{n}]" for n in new_cites
+                )
                 annotated.append(f"{line}{cite_str}")
             else:
                 annotated.append(line)

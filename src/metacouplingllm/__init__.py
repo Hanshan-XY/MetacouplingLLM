@@ -58,8 +58,9 @@ from metacouplingllm.knowledge.adm1_pericoupling import (
     resolve_adm1_code,
 )
 from metacouplingllm.knowledge.citations import (
-    extract_cited_ids,
-    sanitize_citations,
+    TURN_CITATION_PATTERN,
+    extract_turn_cited_ids,
+    sanitize_turn_citations,
 )
 from metacouplingllm.knowledge.rag import (
     RAGEngine,
@@ -188,9 +189,10 @@ __all__ = [
     "TextChunk",
     "format_evidence",
     "annotate_citations",
-    # Citation sanitization (pre-retrieval RAG)
-    "sanitize_citations",
-    "extract_cited_ids",
+    # Citation sanitization (turn-scoped, pre-retrieval RAG)
+    "TURN_CITATION_PATTERN",
+    "sanitize_turn_citations",
+    "extract_turn_cited_ids",
     # Web search (requires metacoupling[search])
     "search_web",
     "AnthropicWebSearchBackend",

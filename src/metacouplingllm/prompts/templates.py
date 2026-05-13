@@ -457,49 +457,54 @@ research gaps, then end your response.\
 # semantically refers to a paper from a previous turn.
 
 CITATION_RULES_LAYER = """\
-## CITATION RULES (FOR RETRIEVED LITERATURE)
+## CITATION RULES (TURN-SCOPED)
 
 Each user message in this conversation may include a \
-`<retrieved_literature>` block containing numbered passages \
-(`<passage id="1" ...>`, `<passage id="2" ...>`, ...). When you draw \
-on these passages in your analysis, follow these rules strictly:
+`<retrieved_literature turn="k">` block containing numbered passages \
+(`<passage turn="k" id="1" ...>`, `<passage turn="k" id="2" ...>`, \
+...) and optionally a `<web_search_results turn="k">` block with web \
+sources (`[Tk:W1]`, `[Tk:W2]`, ...). The `turn` attribute is the \
+**turn index** — it never changes for that block, even after later \
+turns happen. Follow these rules strictly:
 
-1. **Cite inline as `[1]`, `[2]`, etc.** When a factual claim is \
-supported by a specific passage in the most recent \
-`<retrieved_literature>` block, append the corresponding bracketed \
-number to the claim.
+1. **Cite inline as `[Tk:N]` for literature and `[Tk:Wn]` for web \
+sources**, where `k` is the `turn` attribute of the block the \
+passage / web source came from and `N` (or `n`) is its `id`. For \
+example, if the current turn is 2 and you cite the 1st literature \
+passage, write `[T2:1]`. If you cite the 3rd web source from the \
+same turn, write `[T2:W3]`.
 
-2. **NEVER invent citations or paper numbers.** Only use citation \
-numbers that appear in the current `<retrieved_literature>` block. Do \
-not fabricate citations like `[7]` or `[Smith 2020]` if no such \
-passage was provided.
+2. **Current-turn citations** use the `turn` value of the **most \
+recent** `<retrieved_literature>` / `<web_search_results>` block.
 
-3. **NEVER cite a passage unless it directly supports the specific \
-claim.** Topical similarity is not sufficient — the cited passage must \
-actually contain evidence for what you are asserting.
+3. **Prior-turn citations are allowed for back-reference.** When you \
+want to refer to evidence that was cited in an earlier turn, copy \
+the exact original token verbatim (e.g., *"extending [T1:3] with the \
+new bilateral data shows..."*). Do NOT renumber prior-turn citations \
+into the current turn — that would silently change which paper is \
+being referenced.
 
-4. **If the evidence is insufficient or ambiguous, say so explicitly** \
-rather than citing a passage weakly. Phrases like "the retrieved \
-literature does not directly address X" are preferable to a misleading \
-citation.
+4. **NEVER invent citations.** Allowed turn indices `k` are bounded \
+by the highest turn you have seen in this conversation. Allowed \
+passage IDs `N` are bounded by that specific turn's passage count. \
+Do not fabricate citations like `[T7:5]` if no such turn/passage \
+was provided.
 
-5. **Prefer grounded statements over speculation.** When the retrieved \
-passages cover a topic, ground your analysis in them. When they do \
-not, qualify your statements (e.g., "this is not directly supported \
-by the retrieved literature, but...").
+5. **NEVER emit a bare `[N]` or `[W1]` token.** The pre-2026 grammar \
+without the `Tk:` prefix is invalid and will be silently stripped by \
+the post-LLM sanitizer.
 
-6. **Citation numbering is turn-local.** Each user turn may include a \
-fresh `<retrieved_literature>` block whose passages are renumbered \
-from `[1]`. The numbering refers ONLY to the passages in the **current \
-(most recent)** block. Do NOT reuse a citation number from a previous \
-turn — re-locate the same paper in the current block (using its \
-title and authors) or omit the citation. The same number `[1]` may \
-refer to a different paper across turns.
+6. **NEVER cite a passage unless it directly supports the specific \
+claim.** Topical similarity is not sufficient — the cited passage \
+must actually contain evidence for what you are asserting. If the \
+evidence is insufficient or ambiguous, say so explicitly rather \
+than citing weakly.
 
-7. **An empty `<retrieved_literature/>` block means retrieval found \
-no relevant passages.** When the block is empty, do not emit any \
-numeric citations at all — describe the framework concepts without \
-literature backing and note that no specific evidence was retrieved.\
+7. **An empty `<retrieved_literature/>` block** means the current \
+turn's retrieval found nothing. Emit no new current-turn citations; \
+you may still back-reference prior-turn `[Tk:N]` tokens if relevant. \
+A short, well-cited answer is better than a long, weakly-supported \
+one.\
 """
 
 

@@ -693,10 +693,11 @@ class TestAnnotateCitations:
             "    - Something completely unrelated about quantum physics\n"
         )
         annotated = annotate_citations(text, results)
-        # The deforestation line should get [1] since it matches the first result
+        # The deforestation line should get [T1:1] since it matches the
+        # first result (default turn=1)
         lines = annotated.split("\n")
         deforestation_line = [l for l in lines if "Deforestation" in l][0]
-        assert "[1]" in deforestation_line
+        assert "[T1:1]" in deforestation_line
 
     def test_headers_not_annotated(self):
         results = self._make_results()
@@ -720,14 +721,14 @@ class TestAnnotateCitations:
             "======================================================================\n"
             "  SUPPORTING EVIDENCE FROM LITERATURE\n"
             "======================================================================\n"
-            "  [1] Some Paper About Amazon Deforestation and Soybean\n"
+            "  [T1:1] Some Paper About Amazon Deforestation and Soybean\n"
         )
         annotated = annotate_citations(text, results)
         lines = annotated.split("\n")
         # Evidence block lines should never get extra citations
         evidence_line = [l for l in lines if "Some Paper" in l][0]
-        # Should still be [1] only (from the evidence block), not [1] [1]
-        assert evidence_line.count("[1]") == 1
+        # Should still be [T1:1] only (from the evidence block), not duplicated
+        assert evidence_line.count("[T1:1]") == 1
 
     def test_carbon_emission_matches_second_result(self):
         results = self._make_results()
@@ -738,7 +739,7 @@ class TestAnnotateCitations:
         annotated = annotate_citations(text, results)
         lines = annotated.split("\n")
         carbon_line = [l for l in lines if "Carbon" in l][0]
-        assert "[2]" in carbon_line
+        assert "[T1:2]" in carbon_line
 
     def test_multiple_citations_on_one_line(self):
         results = self._make_results()
@@ -804,8 +805,8 @@ class TestAnnotateCitations:
             line for line in annotated.split("\n")
             if "Trade tensions or sanitary restrictions" in line
         ][0]
-        assert "[2]" in target_line
-        assert "[1]" not in target_line
+        assert "[T1:2]" in target_line
+        assert "[T1:1]" not in target_line
 
     def test_limits_inline_citations_to_top_matches(self):
         results = [

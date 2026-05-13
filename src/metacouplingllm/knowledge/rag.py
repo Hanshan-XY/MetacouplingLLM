@@ -1539,6 +1539,7 @@ def format_evidence(
     results: list[RetrievalResult],
     anchor_text: str = "",
     backend: str = "tfidf",
+    turn: int = 1,
 ) -> str:
     """Format retrieved passages as a human-readable evidence block.
 
@@ -1554,6 +1555,10 @@ def format_evidence(
         ``"embeddings"``). Used to pick appropriate High/Medium/Low
         thresholds since the two backends have very different score
         ranges.
+    turn:
+        1-indexed turn number used to render evidence headers as
+        ``[Tk:N]`` matching the turn-scoped citation grammar. Default
+        ``1``.
 
     Returns
     -------
@@ -1564,7 +1569,7 @@ def format_evidence(
 
     lines: list[str] = []
     lines.append("=" * 70)
-    lines.append("  SUPPORTING EVIDENCE FROM LITERATURE")
+    lines.append(f"  SUPPORTING EVIDENCE FROM LITERATURE (turn {turn})")
     lines.append("=" * 70)
     lines.append("")
 
@@ -1579,7 +1584,7 @@ def format_evidence(
 
         confidence = _score_to_confidence(r.score, backend=backend)
 
-        lines.append(f"  [{i}] {chunk.paper_title}")
+        lines.append(f"  [T{turn}:{i}] {chunk.paper_title}")
         lines.append(f"      {authors} ({chunk.year})")
         lines.append(f"      Section: {chunk.section}")
         lines.append(f"      Confidence: {confidence} (score: {r.score:.3f})")
@@ -1599,12 +1604,14 @@ def annotate_citations(
     results: list[RetrievalResult],
     min_keyword_overlap: int = 3,
     min_overlap_ratio: float = 0.20,
+    turn: int = 1,
 ) -> str:
-    """Add inline citation numbers ``[N]`` to formatted analysis lines.
+    """Add inline turn-scoped citation tokens ``[Tk:N]`` to formatted
+    analysis lines.
 
     For each content line in the formatted output, checks keyword overlap
     with each RAG evidence passage.  If a sufficient number of distinctive
-    keywords match, appends ``[N]`` citation tags to the line.
+    keywords match, appends ``[Tk:N]`` citation tags to the line.
 
     Parameters
     ----------
@@ -1618,10 +1625,14 @@ def annotate_citations(
     min_overlap_ratio:
         Minimum fraction of the line's keywords that must appear in the
         evidence passage.
+    turn:
+        1-indexed turn number used to render citations as ``[Tk:N]``.
+        Default ``1``.
 
     Returns
     -------
-    The formatted text with ``[N]`` citations appended to matching lines.
+    The formatted text with ``[Tk:N]`` citations appended to matching
+    lines.
     """
     if not results:
         return formatted
@@ -1737,16 +1748,20 @@ def annotate_citations(
                 for _, citation in candidates[:max_citations]
             })
 
-            existing = {
-                int(match.group(1))
-                for match in re.finditer(r"\[(\d+)\]", line)
-            }
+            # Detect any turn-scoped `[Tk:N]` citations already on the
+            # line so we don't double-cite the same passage.
+            existing: set[int] = set()
+            for match in re.finditer(r"\[T(\d+):(\d+)\]", line):
+                if int(match.group(1)) == turn:
+                    existing.add(int(match.group(2)))
             new_citations = [c for c in citations if c not in existing]
             if not new_citations:
                 annotated.append(line)
                 continue
 
-            cite_str = " " + " ".join(f"[{n}]" for n in new_citations)
+            cite_str = " " + " ".join(
+                f"[T{turn}:{n}]" for n in new_citations
+            )
             annotated.append(f"{line}{cite_str}")
         else:
             annotated.append(line)

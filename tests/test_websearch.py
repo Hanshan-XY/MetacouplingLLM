@@ -47,18 +47,32 @@ class TestFormatWebContext:
         assert "Japan and Mexico" in text
         assert "https://example.com/pork" in text
 
-    def test_uses_w_prefix_numbering(self):
-        """Web results use [W1], [W2] to avoid collision with literature [1]."""
+    def test_uses_turn_scoped_w_numbering(self):
+        """Web results use [Tk:W1], [Tk:W2] to avoid collision with
+        literature [Tk:1] and to mark the conversation turn."""
         results = [
             {"title": "A", "snippet": "s1", "url": "https://a.com"},
             {"title": "B", "snippet": "s2", "url": "https://b.com"},
         ]
         text = format_web_context(results)
-        assert "[W1]" in text
-        assert "[W2]" in text
+        # Default turn=1
+        assert "[T1:W1]" in text
+        assert "[T1:W2]" in text
         # Must NOT contain bare [1] or [2] numbering
         assert "\n1." not in text
         assert "\n2." not in text
+
+    def test_renders_correct_turn_label(self):
+        """Passing turn=k must produce [Tk:Wn] headers."""
+        results = [
+            {"title": "A", "snippet": "s1", "url": "https://a.com"},
+            {"title": "B", "snippet": "s2", "url": "https://b.com"},
+        ]
+        text = format_web_context(results, turn=3)
+        assert "[T3:W1]" in text
+        assert "[T3:W2]" in text
+        assert "[T1:W1]" not in text
+        assert "WEB SEARCH CONTEXT (turn 3)" in text
 
     def test_handles_missing_fields(self):
         results = [{"title": "Test", "snippet": "", "url": ""}]
@@ -700,7 +714,8 @@ class TestAnnotateWebCitations:
             "The industry is important."
         )
         result = annotate_web_citations(text, self.WEB_RESULTS)
-        assert "[W1]" in result
+        # Default turn=1 → token is [T1:W1]
+        assert "[T1:W1]" in result
 
     def test_does_not_annotate_empty_results(self):
         text = "Some analysis line."
@@ -711,7 +726,7 @@ class TestAnnotateWebCitations:
         text = "COUPLING CLASSIFICATION\nSome pork production line."
         result = annotate_web_citations(text, self.WEB_RESULTS)
         lines = result.split("\n")
-        assert "[W" not in lines[0]
+        assert "[T1:W" not in lines[0]
 
     def test_skips_evidence_block(self):
         text = (
@@ -724,14 +739,23 @@ class TestAnnotateWebCitations:
         result = annotate_web_citations(text, self.WEB_RESULTS)
         # Only the first line (before the evidence block) should be annotated
         lines = result.split("\n")
-        assert "[W" in lines[0]
-        assert "[W" not in lines[-1]
+        assert "[T1:W" in lines[0]
+        assert "[T1:W" not in lines[-1]
 
     def test_avoids_duplicate_citations(self):
-        text = "Michigan pork production contributes GDP [W1]"
+        text = "Michigan pork production contributes GDP [T1:W1]"
         result = annotate_web_citations(text, self.WEB_RESULTS)
-        # Should not add another [W1]
-        assert result.count("[W1]") == 1
+        # Should not add another [T1:W1]
+        assert result.count("[T1:W1]") == 1
+
+    def test_uses_supplied_turn(self):
+        text = (
+            "Michigan pork production contributes significantly to GDP.\n"
+            "The industry is important."
+        )
+        result = annotate_web_citations(text, self.WEB_RESULTS, turn=2)
+        assert "[T2:W1]" in result
+        assert "[T1:W1]" not in result
 
 
 class TestStdlibFallback:
@@ -1311,9 +1335,16 @@ class TestAdvisorWebSearch:
             {"title": "Page B", "url": "https://b.com", "snippet": "snip"},
         ]
         footer = MetacouplingAssistant._format_web_sources(results)
-        assert "[W1]" in footer
-        assert "[W2]" in footer
+        # Default turn=1 yields turn-scoped [T1:Wn] headers
+        assert "[T1:W1]" in footer
+        assert "[T1:W2]" in footer
         assert "WEB SOURCES" in footer
+
+        # Explicit turn=4 yields the matching prefix
+        footer4 = MetacouplingAssistant._format_web_sources(results, turn=4)
+        assert "[T4:W1]" in footer4
+        assert "[T4:W2]" in footer4
+        assert "WEB SOURCES (turn 4)" in footer4
 
     def test_anthropic_adapter_auto_wires_anthropic_web_backend(
         self, monkeypatch

@@ -330,14 +330,16 @@ The package supports two RAG integration modes:
 
 - **`"pre_retrieval"` (default).** Retrieves corpus passages from the
   research description **before** calling the LLM, embeds them in the
-  user message as a `<retrieved_literature>` XML block, and instructs
-  the LLM to cite them inline as `[1]..[N]`. This is the standard RAG
-  pattern and gives the LLM literature to ground its analysis in
-  rather than relying purely on training memory. After the LLM
-  responds, any out-of-range citation tokens (e.g., `[99]` when only
-  8 passages were retrieved) are stripped with a logged warning.
+  user message as a `<retrieved_literature turn="k">` XML block, and
+  instructs the LLM to cite them inline as `[Tk:N]` — turn-scoped so
+  the same token never changes meaning across follow-ups. This is the
+  standard RAG pattern and gives the LLM literature to ground its
+  analysis in rather than relying purely on training memory. After
+  the LLM responds, any invalid citation tokens (e.g., `[T1:99]` when
+  only 8 passages were retrieved, or forward references like `[T9:1]`
+  before turn 9 exists) are stripped with a logged warning.
 - **`"post_hoc"` (alternative).** Generates the analysis from training
-  memory first, then runs a keyword-overlap pass to stamp `[N]`
+  memory first, then runs a keyword-overlap pass to stamp `[Tk:N]`
   citations onto sentences that match retrieved passages. Use this
   mode when downstream tooling expects citations to be assigned by
   post-hoc keyword matching rather than inline by the LLM:
@@ -365,12 +367,14 @@ The original research question is anchored at `analyze()` time and is
 **never** overwritten by subsequent refines, so multi-turn
 conversations stay anchored to the topic you started with.
 
-> ⚠️ **Phase 1 limitation.** Citation numbering is turn-local: the
-> same `[1]` may refer to different papers in turn 1 and turn 2,
-> because each refine() pulls a fresh passage set. The system prompt
-> tells the LLM to cite only from the most recent block, but this
-> isn't perfect. Until Phase 2 lands turn-scoped markers, treat each
-> turn's `SUPPORTING EVIDENCE FROM LITERATURE` block as the
+> 🆕 **Turn-scoped citations (v0.1.3).** Citations are emitted as
+> `[Tk:N]` (literature) and `[Tk:Wn]` (web), where `k` is the
+> conversation turn. Once a citation is emitted it never changes
+> meaning — turn 1's `[T1:3]` always refers to turn 1's 3rd passage,
+> even after several refines. The LLM may also back-reference prior
+> turns by copying the exact token verbatim (e.g., *"extending
+> [T1:3] with the new data..."*). Each turn's
+> `SUPPORTING EVIDENCE FROM LITERATURE (turn k)` block remains the
 > authoritative mapping for that turn's citations.
 
 ### What you get back: `AnalysisResult`
@@ -409,7 +413,7 @@ result = rag_advisor.analyze(
 print(result.formatted)
 
 # Or access the parts individually:
-print(result.answer)             # raw LLM output with [N] markers
+print(result.answer)             # LLM output with [Tk:N] markers
 for p in result.references:      # cited Paper objects, in cite order
     print(f"  [{p.key}] {p.title} — {p.authors} ({p.year})")
 print(result.usage)
@@ -419,9 +423,9 @@ The result is a `RAGResult` (not `AnalysisResult`) with these fields:
 
 | field | type | notes |
 |---|---|---|
-| `formatted` | `str` (property) | answer with sequential `[1]`, `[2]`, ... markers + a bibliography of cited papers — use this for `print()` |
-| `answer` | `str` | LLM response with `[N]` markers as the LLM emitted them (possibly sparse, e.g. `[1]`, `[3]`); out-of-range markers already sanitized |
-| `references` | `list[Paper]` | cited papers, dedup'd by key, in cite order |
+| `formatted` | `str` (property) | answer with turn-scoped `[Tk:N]` / `[Tk:Wn]` markers + a bibliography of cited papers (and a web-sources block when relevant) — use this for `print()` |
+| `answer` | `str` | LLM response with stable `[Tk:N]` / `[Tk:Wn]` markers as emitted; invalid tokens already stripped |
+| `references` | `list[Paper]` | papers cited in the **current** turn, dedup'd by key, in cite order — prior-turn back-references are NOT included here |
 | `retrieved_passages` | `list[RetrievalResult]` | all K passages shown to the LLM this turn |
 | `web_sources` | `list[dict] \| None` | web hits if `web_search=True`, else `None` |
 | `turn_number` | `int` | 1 for the first call; increments across turns |
@@ -429,10 +433,12 @@ The result is a `RAGResult` (not `AnalysisResult`) with these fields:
 | `raw` | `str` | the LLM response before citation sanitization |
 
 `formatted` is computed on access (no caching) so it always reflects
-the current state of the result. If the LLM emitted sparse citations
-(e.g. it cited passages 1 and 3 but not 2), `formatted` re-numbers
-them to `[1]`, `[2]` so the markers in the answer line up with the
-bibliography entries.
+the current state of the result. The LLM emits stable turn-scoped
+tokens like `[T1:1]` and `[T1:3]` directly — no remapping is
+performed, so the markers in the answer body match the bibliography
+entries exactly. Prior-turn back-references (e.g. `[T1:3]` appearing
+in a turn-2 answer) are kept verbatim but excluded from the current
+turn's references list.
 
 **Multi-turn by default.** Each subsequent `analyze()` call appends
 to a running conversation, so follow-ups work naturally:
@@ -448,11 +454,13 @@ Each turn runs a **fresh RAG retrieval** keyed off that turn's query,
 so follow-ups get the most relevant passages for *their* specific
 question rather than reusing turn 1's hits.
 
-**`[N]` markers reset each turn.** A `[1]` in turn 2's answer refers
-to turn 2's first passage, not turn 1's. The system prompt instructs
-the LLM about this; if a user asks about something from a prior
-turn, the LLM refers to it narratively rather than re-citing by
-number.
+**Citations are turn-scoped.** A `[T2:1]` in turn 2's answer refers
+to turn 2's first passage, and a `[T1:3]` in turn 2's answer
+back-references turn 1's third passage — both meanings remain stable
+forever. The LLM may freely back-reference prior-turn evidence by
+copying the original token. Bare `[N]` / `[W1]` tokens (the legacy
+grammar) are illegal under the new rules and are silently stripped
+by the sanitizer.
 
 **Framework-only options are silently disabled** when
 `coupling_analysis=False`: `auto_map`, `recommend_papers`,

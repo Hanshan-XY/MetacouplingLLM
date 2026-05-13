@@ -158,6 +158,7 @@ class PromptBuilder:
     def build_initial_message(
         research_description: str,
         literature_passages: "list[RetrievalResult] | None" = None,
+        turn: int = 1,
     ) -> str:
         """Format the user's research description for the first turn.
 
@@ -173,6 +174,10 @@ class PromptBuilder:
             reads. ``None`` (default) and ``[]`` are both handled —
             see :meth:`_format_literature_block`. When ``None`` no block
             is injected at all (post-hoc / no-RAG behavior).
+        turn:
+            1-indexed turn number used to tag the
+            ``<retrieved_literature turn="...">`` block and its
+            ``<passage turn="...">`` entries. Default ``1``.
 
         Returns
         -------
@@ -186,7 +191,9 @@ class PromptBuilder:
         # Pre-retrieval mode: scope-setting block goes BEFORE the
         # research description so the user's ask is the last thing
         # the LLM reads (recency bias).
-        block = PromptBuilder._format_literature_block(literature_passages)
+        block = PromptBuilder._format_literature_block(
+            literature_passages, turn=turn
+        )
         return f"{block}\n\n{body}"
 
     @staticmethod
@@ -194,6 +201,7 @@ class PromptBuilder:
         additional_info: str,
         focus_component: str | None = None,
         literature_passages: "list[RetrievalResult] | None" = None,
+        turn: int = 2,
     ) -> str:
         """Format a follow-up message for refining the analysis.
 
@@ -211,6 +219,10 @@ class PromptBuilder:
             message, the block is placed AFTER the refinement text so
             it reads as supporting evidence for the user's follow-up
             question rather than scope-setting context.
+        turn:
+            1-indexed turn number used to tag the
+            ``<retrieved_literature turn="...">`` block and its
+            ``<passage turn="...">`` entries. Default ``2``.
 
         Returns
         -------
@@ -228,7 +240,9 @@ class PromptBuilder:
 
         if literature_passages is None:
             return body
-        block = PromptBuilder._format_literature_block(literature_passages)
+        block = PromptBuilder._format_literature_block(
+            literature_passages, turn=turn
+        )
         return f"{body}\n\n{block}"
 
     # ------------------------------------------------------------------
@@ -238,6 +252,7 @@ class PromptBuilder:
     @staticmethod
     def _format_literature_block(
         results: "list[RetrievalResult] | None",
+        turn: int = 1,
     ) -> str:
         """Render retrieved passages as an XML ``<retrieved_literature>`` block.
 
@@ -247,22 +262,27 @@ class PromptBuilder:
             List of :class:`~metacouplingllm.knowledge.rag.RetrievalResult`
             objects in the order they should be cited (1-indexed). May
             be ``None`` or empty — in either case the block is emitted
-            as the self-closing tag ``<retrieved_literature/>`` so the
-            LLM knows that retrieval ran but found no relevant passages
+            as the self-closing tag
+            ``<retrieved_literature turn="K"/>`` so the LLM knows that
+            retrieval ran for this turn but found no relevant passages
             (preventing it from inventing citations).
+        turn:
+            1-indexed turn number used to tag the block. The LLM uses
+            this attribute to assemble the turn-scoped citation token
+            ``[Tk:N]``. Default ``1``.
 
         Returns
         -------
-        A string containing one ``<retrieved_literature>`` block. Each
-        passage is rendered as
-        ``<passage id="N" paper_key="..." authors="..." year="..." section="..." score="0.87">text</passage>``.
+        A string containing one ``<retrieved_literature turn="k">``
+        block. Each passage is rendered as
+        ``<passage turn="k" id="N" paper_key="..." authors="..." year="..." section="..." score="0.87">text</passage>``.
         Passage text is truncated to roughly :data:`_PASSAGE_MAX_CHARS`
         characters with a ``...`` suffix.
         """
         if not results:
-            return "<retrieved_literature/>"
+            return f'<retrieved_literature turn="{turn}"/>'
 
-        lines: list[str] = ["<retrieved_literature>"]
+        lines: list[str] = [f'<retrieved_literature turn="{turn}">']
         for idx, r in enumerate(results, 1):
             chunk = r.chunk
             authors = _xml_attr_escape(chunk.authors)
@@ -273,7 +293,7 @@ class PromptBuilder:
                 text = text[: _PASSAGE_MAX_CHARS - 3].rstrip() + "..."
             text = _xml_text_escape(text)
             lines.append(
-                f'<passage id="{idx}" paper_key="{paper_key}" '
+                f'<passage turn="{turn}" id="{idx}" paper_key="{paper_key}" '
                 f'authors="{authors}" year="{chunk.year}" '
                 f'section="{section}" score="{r.score:.2f}">'
             )
