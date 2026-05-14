@@ -266,11 +266,11 @@ class TestStructuredExtractionEnabled:
         assert main_flow_idx != -1
         assert sup_idx != -1
         assert main_flow_idx < sup_idx
-        # parsed.flows is not mutated by the supplement — still has
+        # parsed flows are not mutated by the supplement — still has
         # exactly what the parser extracted from the first response
         assert all(
             "Market intelligence" not in flow.get("description", "")
-            for flow in result.parsed.flows
+            for flow in result.parsed.iter_flow_entries()
         )
 
 

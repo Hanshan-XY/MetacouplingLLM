@@ -2,6 +2,16 @@
 
 from metacouplingllm.llm.parser import ParsedAnalysis, parse_analysis
 
+from ._helpers import (
+    legacy_agents,
+    legacy_causes,
+    legacy_effects,
+    legacy_flows,
+    legacy_suggestions,
+    legacy_systems,
+    make_parsed_analysis,
+)
+
 
 # A realistic mock LLM response.
 MOCK_RESPONSE = """\
@@ -87,37 +97,37 @@ class TestParseAnalysis:
 
     def test_parses_systems(self):
         result = parse_analysis(MOCK_RESPONSE)
-        assert len(result.systems) > 0
+        assert len(legacy_systems(result)) > 0
         # Should have sending, receiving, spillover
-        keys = set(result.systems.keys())
+        keys = set(legacy_systems(result).keys())
         assert "sending" in keys
         assert "receiving" in keys
         assert "spillover" in keys
 
     def test_parses_flows(self):
         result = parse_analysis(MOCK_RESPONSE)
-        assert len(result.flows) >= 3
+        assert len(legacy_flows(result)) >= 3
 
     def test_flow_has_category(self):
         result = parse_analysis(MOCK_RESPONSE)
-        categories = {f.get("category", "") for f in result.flows}
+        categories = {f.get("category", "") for f in legacy_flows(result)}
         assert "matter" in categories
 
     def test_parses_agents(self):
         result = parse_analysis(MOCK_RESPONSE)
-        assert len(result.agents) >= 4
+        assert len(legacy_agents(result)) >= 4
 
     def test_parses_causes(self):
         result = parse_analysis(MOCK_RESPONSE)
-        assert len(result.causes) > 0
+        assert len(legacy_causes(result)) > 0
 
     def test_parses_effects(self):
         result = parse_analysis(MOCK_RESPONSE)
-        assert len(result.effects) > 0
+        assert len(legacy_effects(result)) > 0
 
     def test_parses_suggestions(self):
         result = parse_analysis(MOCK_RESPONSE)
-        assert len(result.suggestions) >= 3
+        assert len(legacy_suggestions(result)) >= 3
 
     def test_raw_text_preserved(self):
         result = parse_analysis(MOCK_RESPONSE)
@@ -193,22 +203,22 @@ standards, agricultural practices.
 class TestMultilineFlows:
     def test_parses_multiline_flow_categories(self):
         result = parse_analysis(MOCK_MULTILINE_FLOWS)
-        assert len(result.flows) == 3
-        categories = {f.get("category", "") for f in result.flows}
+        assert len(legacy_flows(result)) == 3
+        categories = {f.get("category", "") for f in legacy_flows(result)}
         assert "matter" in categories
         assert "capital" in categories
         assert "information" in categories
 
     def test_parses_multiline_flow_directions(self):
         result = parse_analysis(MOCK_MULTILINE_FLOWS)
-        directions = [f.get("direction", "") for f in result.flows]
+        directions = [f.get("direction", "") for f in legacy_flows(result)]
         assert any("Ethiopia" in d and "Europe" in d for d in directions)
         assert any("Europe" in d and "Ethiopia" in d for d in directions)
         assert any("Bidirectional" in d or "bidirectional" in d.lower() for d in directions)
 
     def test_parses_multiline_flow_descriptions(self):
         result = parse_analysis(MOCK_MULTILINE_FLOWS)
-        descriptions = [f.get("description", "") for f in result.flows]
+        descriptions = [f.get("description", "") for f in legacy_flows(result)]
         assert any("coffee" in d.lower() for d in descriptions)
         assert any("payment" in d.lower() for d in descriptions)
 
@@ -216,9 +226,9 @@ class TestMultilineFlows:
         result = parse_analysis(MOCK_MULTILINE_FLOWS)
         assert result.is_parsed
         assert "telecoupling" in result.coupling_classification.lower()
-        assert len(result.systems) >= 2
-        assert len(result.agents) >= 2
-        assert len(result.suggestions) >= 1
+        assert len(legacy_systems(result)) >= 2
+        assert len(legacy_agents(result)) >= 2
+        assert len(legacy_suggestions(result)) >= 1
 
 
 MOCK_NUMBERED_FLOWS = """\
@@ -270,53 +280,53 @@ class TestNumberedFlows:
 
     def test_parses_three_flows(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        assert len(result.flows) == 3
+        assert len(legacy_flows(result)) == 3
 
     def test_parses_categories(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        categories = {f.get("category", "") for f in result.flows}
+        categories = {f.get("category", "") for f in legacy_flows(result)}
         assert "matter" in categories
         assert "capital" in categories
         assert "information" in categories
 
     def test_no_unspecified_category(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        for flow in result.flows:
+        for flow in legacy_flows(result):
             cat = flow.get("category", "")
             assert cat != "", f"Flow should have a category: {flow}"
             assert cat.lower() != "unspecified", f"Category should not be Unspecified: {flow}"
 
     def test_matter_flow_direction(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        mat_flow = [f for f in result.flows if f.get("category") == "matter"][0]
+        mat_flow = [f for f in legacy_flows(result) if f.get("category") == "matter"][0]
         assert "Ethiopia" in mat_flow.get("direction", "")
         assert "Europe" in mat_flow.get("direction", "")
 
     def test_capital_flow_direction(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        fin_flow = [f for f in result.flows if f.get("category") == "capital"][0]
+        fin_flow = [f for f in legacy_flows(result) if f.get("category") == "capital"][0]
         assert "Europe" in fin_flow.get("direction", "")
         assert "Ethiopia" in fin_flow.get("direction", "")
 
     def test_information_flow_bidirectional(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        info_flow = [f for f in result.flows if f.get("category") == "information"][0]
+        info_flow = [f for f in legacy_flows(result) if f.get("category") == "information"][0]
         direction = info_flow.get("direction", "")
         assert "bidirectional" in direction.lower() or "↔" in direction
 
     def test_matter_flow_has_description(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        mat_flow = [f for f in result.flows if f.get("category") == "matter"][0]
+        mat_flow = [f for f in legacy_flows(result) if f.get("category") == "matter"][0]
         assert "coffee" in mat_flow.get("description", "").lower()
 
     def test_capital_flow_has_description(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        fin_flow = [f for f in result.flows if f.get("category") == "capital"][0]
+        fin_flow = [f for f in legacy_flows(result) if f.get("category") == "capital"][0]
         assert "payment" in fin_flow.get("description", "").lower()
 
     def test_information_flow_has_description(self):
         result = parse_analysis(MOCK_NUMBERED_FLOWS)
-        info_flow = [f for f in result.flows if f.get("category") == "information"][0]
+        info_flow = [f for f in legacy_flows(result) if f.get("category") == "information"][0]
         assert "market" in info_flow.get("description", "").lower()
 
 
@@ -378,44 +388,44 @@ experiencing land-use pressure.
 class TestNestedSystems:
     def test_parses_nested_roles(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
-        assert "sending" in result.systems
-        assert "receiving" in result.systems
-        assert "spillover" in result.systems
+        assert "sending" in legacy_systems(result)
+        assert "receiving" in legacy_systems(result)
+        assert "spillover" in legacy_systems(result)
 
     def test_nested_systems_are_dicts(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
         for role in ("sending", "receiving", "spillover"):
-            assert isinstance(result.systems[role], dict), (
+            assert isinstance(legacy_systems(result)[role], dict), (
                 f"{role} system should be a dict"
             )
 
     def test_sending_name(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
         assert sending.get("name") == "Ethiopia"
 
     def test_sending_human_subsystem(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
         assert "farmers" in sending.get("human_subsystem", "").lower()
 
     def test_sending_natural_subsystem(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
         assert "forest" in sending.get("natural_subsystem", "").lower()
 
     def test_sending_geographic_scope(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
         assert "sidamo" in sending.get("geographic_scope", "").lower()
 
     def test_receiving_has_subsystems(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
-        receiving = result.systems["receiving"]
+        receiving = legacy_systems(result)["receiving"]
         assert isinstance(receiving, dict)
         assert receiving.get("name") == "European Markets"
         assert "importers" in receiving.get("human_subsystem", "").lower()
@@ -423,7 +433,7 @@ class TestNestedSystems:
 
     def test_spillover_has_subsystems(self):
         result = parse_analysis(MOCK_NESTED_SYSTEMS)
-        spillover = result.systems["spillover"]
+        spillover = legacy_systems(result)["spillover"]
         assert isinstance(spillover, dict)
         assert "Other Coffee Origins" in spillover.get("name", "")
         assert "colombia" in spillover.get("human_subsystem", "").lower()
@@ -455,21 +465,21 @@ class TestNestedSystems:
     def test_flat_systems_still_work(self):
         """Ensure the original flat format still parses correctly."""
         result = parse_analysis(MOCK_RESPONSE)
-        assert "sending" in result.systems
-        assert "receiving" in result.systems
-        assert "spillover" in result.systems
+        assert "sending" in legacy_systems(result)
+        assert "receiving" in legacy_systems(result)
+        assert "spillover" in legacy_systems(result)
 
 
 class TestParsedAnalysis:
     def test_default_values(self):
         pa = ParsedAnalysis()
         assert pa.coupling_classification == ""
-        assert pa.systems == {}
-        assert pa.flows == []
-        assert pa.agents == []
-        assert pa.causes == {}
-        assert pa.effects == {}
-        assert pa.suggestions == []
+        assert legacy_systems(pa) == {}
+        assert legacy_flows(pa) == []
+        assert legacy_agents(pa) == []
+        assert legacy_causes(pa) == {}
+        assert legacy_effects(pa) == {}
+        assert legacy_suggestions(pa) == []
         assert pa.raw_text == ""
         assert not pa.is_parsed
 
@@ -479,14 +489,14 @@ class TestParsedAnalysis:
 
     def test_get_system_detail_flat_string(self):
         """get_system_detail on flat-format systems returns the string."""
-        pa = ParsedAnalysis(systems={"sending": "Brazil soybean regions"})
+        pa = make_parsed_analysis(systems={"sending": "Brazil soybean regions"})
         assert pa.get_system_detail("sending") == "Brazil soybean regions"
         # sub_field on flat string returns empty
         assert pa.get_system_detail("sending", "human_subsystem") == ""
 
     def test_get_system_detail_nested_dict(self):
         """get_system_detail on nested-format systems works correctly."""
-        pa = ParsedAnalysis(systems={
+        pa = make_parsed_analysis(systems={
             "sending": {
                 "name": "Ethiopia",
                 "human_subsystem": "farmers",
@@ -560,49 +570,49 @@ class TestGPT51SystemParsing:
 
     def test_parses_all_three_systems(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        assert "sending" in result.systems
-        assert "receiving" in result.systems
-        assert "spillover" in result.systems
+        assert "sending" in legacy_systems(result)
+        assert "receiving" in legacy_systems(result)
+        assert "spillover" in legacy_systems(result)
 
     def test_sending_system_is_nested_dict(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
 
     def test_sending_system_name(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
         assert "Michigan Pork Production System" in sending.get("name", "")
 
     def test_sending_has_subsystems(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
         assert "producers" in sending.get("human_subsystem", "").lower()
         assert "agricultural" in sending.get("natural_subsystem", "").lower()
 
     def test_sending_geographic_scope(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        sending = result.systems["sending"]
+        sending = legacy_systems(result)["sending"]
         assert isinstance(sending, dict)
         assert "Michigan" in sending.get("geographic_scope", "")
 
     def test_receiving_system_name(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        receiving = result.systems["receiving"]
+        receiving = legacy_systems(result)["receiving"]
         assert isinstance(receiving, dict)
         assert "International Import Markets" in receiving.get("name", "")
 
     def test_spillover_system_name(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        spillover = result.systems["spillover"]
+        spillover = legacy_systems(result)["spillover"]
         assert isinstance(spillover, dict)
         assert "Adjacent Agricultural Regions" in spillover.get("name", "")
 
     def test_flows_parsed_correctly(self):
         result = parse_analysis(MOCK_GPT51_RESPONSE)
-        assert len(result.flows) >= 2
-        categories = {f.get("category", "") for f in result.flows}
+        assert len(legacy_flows(result)) >= 2
+        categories = {f.get("category", "") for f in legacy_flows(result)}
         assert "matter" in categories
         assert "capital" in categories
