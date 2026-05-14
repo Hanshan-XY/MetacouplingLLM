@@ -195,6 +195,7 @@ class TestMetacouplingAdvisor:
 class TestAnalysisResult:
     def test_fields(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
         result = AnalysisResult(
             parsed=ParsedAnalysis(raw_text="test"),
             formatted="Formatted text",
@@ -210,6 +211,7 @@ class TestAnalysisResult:
 
     def test_optional_usage(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
         result = AnalysisResult(
             parsed=ParsedAnalysis(),
             formatted="",
@@ -220,6 +222,7 @@ class TestAnalysisResult:
 
     def test_map_field_default_none(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
         result = AnalysisResult(
             parsed=ParsedAnalysis(),
             formatted="",
@@ -230,6 +233,7 @@ class TestAnalysisResult:
 
     def test_web_map_signals_default_none(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
         result = AnalysisResult(
             parsed=ParsedAnalysis(),
             formatted="",
@@ -240,6 +244,7 @@ class TestAnalysisResult:
 
     def test_map_notice_default_none(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
         result = AnalysisResult(
             parsed=ParsedAnalysis(),
             formatted="",
@@ -355,8 +360,9 @@ class TestResolveAdm1FromAnalysis:
 
     def test_michigan_us_resolves(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Michigan Pork Industry",
@@ -369,16 +375,18 @@ class TestResolveAdm1FromAnalysis:
 
     def test_no_systems_returns_none(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(systems={})
+        parsed = make_parsed_analysis(systems={})
         code = MetacouplingAssistant._resolve_adm1_from_analysis(parsed)
         assert code is None
 
     def test_country_level_returns_none(self):
         """When systems contain only country names, should return None."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Ethiopia",
@@ -396,8 +404,9 @@ class TestResolveAdm1FromAnalysis:
     def test_flat_systems_returns_none(self):
         """Flat (string) systems have no sub-fields to resolve."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": "Ethiopian coffee regions",
                 "receiving": "European markets",
@@ -408,8 +417,9 @@ class TestResolveAdm1FromAnalysis:
 
     def test_anhui_china_resolves(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Anhui Agriculture",
@@ -423,8 +433,9 @@ class TestResolveAdm1FromAnalysis:
     def test_country_scale_brazil_analysis_does_not_pick_example_adm1(self):
         """National Brazil studies should not flip to ADM1 from examples."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Soybean-producing Brazil [W5]",
@@ -446,8 +457,9 @@ class TestResolveAdm1FromAnalysis:
     def test_trade_word_does_not_trigger_false_adm1_map(self):
         """Trade-heavy country descriptions should not resolve to Trad, THA."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Brazil soybean trade system",
@@ -489,7 +501,12 @@ class TestAutoMapUnavailableNotice:
         assert result.map is None
         assert result.map_notice is not None
         assert "did not generate a figure" in result.map_notice
-        assert "city- or watershed-level geometries" in result.map_notice
+        # The notice now lists the unsupported geometry kinds in a
+        # comma-separated phrase: "city, watershed, protected-area,
+        # reserve, or park geometries". Just check that 'watershed'
+        # is mentioned, since this test is specifically about a
+        # watershed input.
+        assert "watershed" in result.map_notice
         assert result.map_notice in result.formatted
 
 
@@ -498,6 +515,7 @@ class TestCountryMapConfiguration:
 
     def test_generate_map_passes_adm0_shapefile(self, monkeypatch):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -516,7 +534,7 @@ class TestCountryMapConfiguration:
             auto_map=True,
             adm0_shapefile="country.gpkg",
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Brazil",
@@ -538,6 +556,7 @@ class TestCountryMapConfiguration:
 
     def test_generate_map_passes_resolved_country_flows(self, monkeypatch):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -555,7 +574,7 @@ class TestCountryMapConfiguration:
             llm_client=MockLLMClient(),
             auto_map=True,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Brazil",
@@ -588,6 +607,7 @@ class TestCountryMapConfiguration:
 
     def test_generate_map_merges_structured_web_map_signals(self, monkeypatch):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -631,7 +651,7 @@ class TestCountryMapConfiguration:
                 }
             ],
         }
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Brazil",
@@ -658,6 +678,7 @@ class TestCountryMapConfiguration:
 
     def test_generate_map_resolves_long_country_scope_flows(self, monkeypatch):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -675,7 +696,7 @@ class TestCountryMapConfiguration:
             llm_client=MockLLMClient(),
             auto_map=True,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Soybean-producing regions in Brazil",
@@ -716,6 +737,7 @@ class TestCountryMapConfiguration:
         self, monkeypatch
     ):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -733,7 +755,7 @@ class TestCountryMapConfiguration:
             llm_client=MockLLMClient(),
             auto_map=True,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Michigan pork production system",
@@ -773,8 +795,9 @@ class TestResolveFlowsForMap:
 
     def test_resolves_specific_country_names(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China"},
@@ -795,8 +818,9 @@ class TestResolveFlowsForMap:
     def test_resolves_adm1_region_to_country(self):
         """Michigan should resolve to USA via ADM1 database."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Michigan Pork System", "geographic_scope": "Michigan"},
                 "receiving": {"name": "China"},
@@ -819,8 +843,9 @@ class TestResolveFlowsForMap:
     def test_resolves_generic_receiving_reference(self):
         """'Receiving regions' should resolve to receiving system countries."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Michigan Pork System"},
                 "receiving": {
@@ -846,8 +871,9 @@ class TestResolveFlowsForMap:
     def test_skips_internal_flows(self):
         """Flows 'within Michigan' should be skipped."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={"sending": {"name": "Michigan"}},
             flows=[
                 {
@@ -862,8 +888,9 @@ class TestResolveFlowsForMap:
     def test_bidirectional_between_pattern(self):
         """'Bidirectional between Michigan and other regions' should resolve."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Michigan"},
                 "receiving": {"name": "China", "geographic_scope": "China"},
@@ -883,8 +910,9 @@ class TestResolveFlowsForMap:
     def test_skips_speculative_example_countries_for_generic_roles(self):
         """Generic role references should not become arrows from examples."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Michigan, United States",
@@ -922,8 +950,9 @@ class TestResolveFlowsForMap:
     def test_resolves_softened_receiving_market_list_for_outgoing_flow(self):
         """Likely receiving-market lists should restore proxy export arrows."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Michigan, United States"},
                 "receiving": {
@@ -953,8 +982,9 @@ class TestResolveFlowsForMap:
     def test_resolves_generic_receiving_source_back_to_focal_country(self):
         """Incoming capital flows from receiving markets should render."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Michigan, United States"},
                 "receiving": {
@@ -983,8 +1013,9 @@ class TestResolveFlowsForMap:
     def test_resolves_importing_country_synonyms_for_generic_flows(self):
         """Importing-country wording should resolve via the receiving system."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil", "geographic_scope": "Brazil"},
                 "receiving": {
@@ -1033,8 +1064,9 @@ class TestResolveFlowsForMap:
     def test_resolves_explicit_multi_country_direction_list(self):
         """Comma-separated country lists in the direction should still resolve."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={"sending": {"name": "Michigan"}},
             flows=[
                 {
@@ -1053,8 +1085,9 @@ class TestResolveFlowsForMap:
     def test_deduplicates_same_pair(self):
         """Multiple flows to same (category, src, tgt) should be deduplicated."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China"},
@@ -1074,8 +1107,9 @@ class TestResolveFlowsForMap:
     def test_resolves_domestic_adm1_neighbor_flows(self):
         """Explicit nearby-state flows should resolve to ADM1 arrow endpoints."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={"sending": {"name": "Michigan, United States"}},
             flows=[
                 {
@@ -1101,8 +1135,9 @@ class TestResolveFlowsForMap:
     def test_resolves_bidirectional_adjacent_state_flows(self):
         """Generic adjacent-state language should fan out to domestic neighbors."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={"sending": {"name": "Michigan, United States"}},
             flows=[
                 {
@@ -1135,8 +1170,9 @@ class TestResolveFlowsSystemsFallback:
     def test_generic_target_falls_back_to_receiving_system(self):
         """'Brazil → importing countries' should resolve via Systems."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {
@@ -1160,8 +1196,9 @@ class TestResolveFlowsSystemsFallback:
     def test_reverse_flow_uses_receiving_as_source(self):
         """'Importing countries → Brazil' → China → Brazil (capital flow)."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {
@@ -1191,8 +1228,9 @@ class TestResolveFlowsSystemsFallback:
     def test_generic_receiving_does_not_use_spillover(self):
         """When receiving is generic, spillover countries must NOT be used."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "United States corn-producing regions"},
                 "receiving": {"name": "Major foreign importing countries"},
@@ -1221,8 +1259,9 @@ class TestResolveFlowsSystemsFallback:
     def test_no_fallback_when_target_resolves(self):
         """When direction has specific countries, no fallback needed."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China, Japan, and South Korea"},
@@ -1248,8 +1287,9 @@ class TestStructuredMapData:
     def test_generate_map_uses_structured_data(self):
         """When map_data is present, _generate_map uses it directly."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={"sending": {"name": "Brazil"}},
             flows=[{"category": "matter", "direction": "Brazil \u2192 China"}],
             map_data={
@@ -1284,6 +1324,7 @@ class TestStructuredMapData:
     def test_map_data_defaults_to_none(self):
         """ParsedAnalysis.map_data defaults to None for backward compat."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         parsed = ParsedAnalysis()
         assert parsed.map_data is None
@@ -1328,8 +1369,9 @@ class TestStructuredMapData:
         the focal country (USA) or receiving countries should be shown.
         """
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="telecoupling",
             systems={
                 "sending": {"name": "United States"},
@@ -1415,6 +1457,7 @@ class TestStructuredMapData:
         )
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         class MockClient:
             def chat(self, messages, temperature=0.7, max_tokens=None):
@@ -1424,7 +1467,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Brazil soybean exports to China",
             systems={
                 "sending": {
@@ -1452,6 +1495,7 @@ class TestStructuredMapData:
         )
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         class MockClient:
             def chat(self, messages, temperature=0.7, max_tokens=None):
@@ -1461,7 +1505,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="USA corn exports",
             systems={
                 "sending": {
@@ -1490,6 +1534,7 @@ class TestStructuredMapData:
         )
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         class MockClient:
             def chat(self, messages, temperature=0.7, max_tokens=None):
@@ -1514,6 +1559,7 @@ class TestStructuredMapData:
 
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         # Mock LLM returns an invalid ADM1 code (BRA014 does not exist)
         fake_response = json.dumps({
@@ -1542,7 +1588,7 @@ class TestStructuredMapData:
         )
         # Parsed analysis mentions "Mato Grosso" so the regex
         # resolver should find BRA011.
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification=(
                 "Telecoupling between Mato Grosso, Brazil and China"
             ),
@@ -1570,6 +1616,7 @@ class TestStructuredMapData:
 
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         fake_response = json.dumps({
             "focal_country": "BRA",
@@ -1587,7 +1634,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso soybean exports",
             systems={
                 "sending": {
@@ -1610,6 +1657,7 @@ class TestStructuredMapData:
 
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         fake_response = json.dumps({
             "focal_country": "BRA",
@@ -1627,7 +1675,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification=(
                 "Telecoupling between Mato Grosso, Brazil and China"
             ),
@@ -1650,6 +1698,7 @@ class TestStructuredMapData:
 
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured_messages = []
 
@@ -1668,7 +1717,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso, Brazil soybean exports",
             systems={
                 "sending": {
@@ -1776,6 +1825,7 @@ class TestStructuredMapData:
         the USA (classified as spillover) should render as grey, not blue.
         """
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -1793,7 +1843,7 @@ class TestStructuredMapData:
             llm_client=MockLLMClient(),
             auto_map=True,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso soybean exports",
             systems={
                 "sending": {
@@ -1830,6 +1880,7 @@ class TestStructuredMapData:
     def test_generate_map_passes_mentioned_adm1_codes(self, monkeypatch):
         """_generate_map() passes mentioned_adm1_codes from map_data."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -1847,7 +1898,7 @@ class TestStructuredMapData:
             llm_client=MockLLMClient(),
             auto_map=True,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso soybean exports",
             systems={
                 "sending": {
@@ -1882,6 +1933,7 @@ class TestStructuredMapData:
     def test_generate_map_falls_back_to_regex_adm1_extraction(self, monkeypatch):
         """When map_data.mentioned_adm1_regions is empty, regex fallback runs."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -1902,7 +1954,7 @@ class TestStructuredMapData:
         # Regions appear in SUBSTANTIVE locations (flow descriptions,
         # effects) — not just in systems.geographic_scope, which is
         # ignored by the narrowed fallback.
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification=(
                 "Telecoupling: Mato Grosso, Brazil soybean exports to China."
             ),
@@ -1951,8 +2003,9 @@ class TestStructuredMapData:
     def test_extract_mentioned_adm1_from_text_finds_multiple(self):
         """Multi-match regex extractor finds all mentioned ADM1 regions."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification=(
                 "Mato Grosso, Brazil soybean exports to China."
             ),
@@ -1991,6 +2044,7 @@ class TestStructuredMapData:
 
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured_messages = []
 
@@ -2010,7 +2064,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso soybean exports",
             systems={
                 "sending": {
@@ -2035,6 +2089,7 @@ class TestStructuredMapData:
 
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         fake_response = json.dumps({
             "focal_country": "BRA",
@@ -2058,7 +2113,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso analysis",
             systems={"sending": {"name": "Mato Grosso"}},
         )
@@ -2080,6 +2135,7 @@ class TestStructuredMapData:
 
         from metacouplingllm.llm.client import LLMResponse
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured_messages = []
 
@@ -2099,7 +2155,7 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             auto_map=False,
         )
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso analysis",
             systems={"sending": {"name": "Mato Grosso"}},
         )
@@ -2116,8 +2172,9 @@ class TestStructuredMapData:
         (which are typically list-style enumerations from the DB hint).
         """
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso, Brazil soybean exports.",
             systems={
                 "sending": {
@@ -2158,8 +2215,9 @@ class TestStructuredMapData:
         up by the regex fallback.
         """
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso, Brazil soybean exports.",
             systems={
                 "sending": {
@@ -2187,8 +2245,9 @@ class TestStructuredMapData:
         bullet, it counts as substantive evidence.
         """
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="Mato Grosso soy analysis.",
             systems={
                 "sending": {
@@ -2221,6 +2280,7 @@ class TestStructuredMapData:
         bug we're fixing.
         """
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -2241,7 +2301,7 @@ class TestStructuredMapData:
         # LLM returns empty mentioned_adm1_regions. The regex
         # fallback may pick up the focal (BRA011), which then gets
         # discarded, leaving an empty set.
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification=(
                 "Telecoupling: Mato Grosso soybean exports to China."
             ),
@@ -2286,6 +2346,7 @@ class TestStructuredMapData:
         mentioned_adm1 is cosmetically noisy.
         """
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
         captured: dict[str, object] = {}
 
@@ -2306,7 +2367,7 @@ class TestStructuredMapData:
         # LLM returned mentioned_adm1_regions=[] — the regex fallback
         # will run and (because the classification text mentions
         # "Mato Grosso") may pick up BRA011.
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification=(
                 "Telecoupling: Mato Grosso soybean exports to China."
             ),
@@ -2346,8 +2407,9 @@ class TestValidateAdm1Pericoupling:
 
     def test_michigan_produces_adm1_info(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Michigan pork production system",
@@ -2369,8 +2431,9 @@ class TestValidateAdm1Pericoupling:
 
     def test_country_level_returns_false(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil", "geographic_scope": "Brazil"},
             },
@@ -2382,8 +2445,9 @@ class TestValidateAdm1Pericoupling:
     def test_validate_pericoupling_uses_adm1_for_michigan(self):
         """The main _validate_pericoupling should delegate to ADM1."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Michigan pork production system",
@@ -2400,8 +2464,9 @@ class TestValidateAdm1Pericoupling:
     def test_validate_pericoupling_falls_through_for_countries(self):
         """Country-level validation still works when ADM1 doesn't apply."""
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
 
-        parsed = ParsedAnalysis(
+        parsed = make_parsed_analysis(
             coupling_classification="telecoupling",
             systems={
                 "sending": {"name": "Brazil", "geographic_scope": "Brazil"},
@@ -2421,6 +2486,7 @@ class TestFormatterAdm1PericouplingInfo:
 
     def test_adm1_info_renders_subnational_header(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
         from metacouplingllm.output.formatter import AnalysisFormatter
 
         parsed = ParsedAnalysis(
@@ -2437,12 +2503,16 @@ class TestFormatterAdm1PericouplingInfo:
         output = AnalysisFormatter.format_full(parsed)
         assert "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)" in output
         assert "Michigan (USA023)" in output
-        assert "Same-country neighbors:" in output
-        assert "Cross-border neighbors:" in output
+        # Headers were title-cased: "Same-country neighbors:" ->
+        # "Domestic Neighbors:" and "Cross-border neighbors:" ->
+        # "Cross Border Neighbors:".
+        assert "Domestic Neighbors:" in output
+        assert "Cross Border Neighbors:" in output
         assert "Ontario" in output
 
     def test_country_info_renders_unchanged(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
         from metacouplingllm.output.formatter import AnalysisFormatter
 
         parsed = ParsedAnalysis(

@@ -20,6 +20,9 @@ skip_no_viz = pytest.mark.skipif(
 )
 
 
+from ._helpers import make_parsed_analysis
+
+
 # ---------------------------------------------------------------------------
 # Tests that do NOT require geopandas/matplotlib
 # ---------------------------------------------------------------------------
@@ -512,7 +515,7 @@ class TestExtractCountriesFromAnalysis:
             _extract_countries_from_analysis,
         )
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {"name": "Mexico", "geographic_scope": "Michoacan"},
                 "receiving": {"name": "United States", "geographic_scope": "California"},
@@ -530,7 +533,7 @@ class TestExtractCountriesFromAnalysis:
             _extract_countries_from_analysis,
         )
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": "Brazil soybean regions",
                 "receiving": "China consumer markets",
@@ -546,7 +549,7 @@ class TestExtractCountriesFromAnalysis:
             _extract_countries_from_analysis,
         )
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": "Tropical forests",
                 "receiving": "Global markets",
@@ -566,7 +569,7 @@ class TestExtractAllAnalysisCountries:
             _extract_all_analysis_countries,
         )
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {
                     "name": "Brazil Soybean Industry",
@@ -594,7 +597,7 @@ class TestExtractAllAnalysisCountries:
             _extract_all_analysis_countries,
         )
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China"},
@@ -616,7 +619,7 @@ class TestExtractAllAnalysisCountries:
             _extract_all_analysis_countries,
         )
 
-        analysis = ParsedAnalysis(systems={})
+        analysis = make_parsed_analysis(systems={})
         result = _extract_all_analysis_countries(analysis)
         assert result["sending"] == set()
         assert result["receiving"] == set()
@@ -628,7 +631,7 @@ class TestExtractAllAnalysisCountries:
             _extract_all_analysis_countries,
         )
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China"},
@@ -730,7 +733,7 @@ class TestPlotAnalysisMap:
         from metacouplingllm.llm.parser import ParsedAnalysis
         from metacouplingllm.visualization import plot_analysis_map
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {"name": "Mexico", "geographic_scope": "Michoacan"},
                 "receiving": {"name": "United States"},
@@ -745,7 +748,7 @@ class TestPlotAnalysisMap:
         from metacouplingllm.llm.parser import ParsedAnalysis
         from metacouplingllm.visualization import plot_analysis_map
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": "Tropical forests",
                 "receiving": "Global markets",
@@ -760,7 +763,7 @@ class TestPlotAnalysisMap:
         from metacouplingllm.llm.parser import ParsedAnalysis
         from metacouplingllm.visualization import plot_analysis_map
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": "Ethiopia coffee regions",
                 "receiving": "European Markets",
@@ -777,7 +780,7 @@ class TestPlotAnalysisMap:
         from metacouplingllm.llm.parser import ParsedAnalysis
         from metacouplingllm.visualization import plot_analysis_map
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China"},
@@ -817,7 +820,7 @@ class TestPlotAnalysisMap:
         from metacouplingllm.llm.parser import ParsedAnalysis
         from metacouplingllm.visualization import plot_analysis_map
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China"},
@@ -838,7 +841,7 @@ class TestPlotAnalysisMap:
         from metacouplingllm.llm.parser import ParsedAnalysis
         from metacouplingllm.visualization import plot_analysis_map
 
-        analysis = ParsedAnalysis(
+        analysis = make_parsed_analysis(
             systems={
                 "sending": {"name": "Brazil"},
                 "receiving": {"name": "China"},

@@ -3,10 +3,12 @@
 from metacouplingllm.llm.parser import ParsedAnalysis
 from metacouplingllm.output.formatter import AnalysisFormatter
 
+from ._helpers import make_parsed_analysis
+
 
 def _make_sample_analysis() -> ParsedAnalysis:
     """Create a sample ParsedAnalysis for testing (flat systems format)."""
-    return ParsedAnalysis(
+    return make_parsed_analysis(
         coupling_classification="This study involves telecoupling.",
         systems={
             "sending": "Brazil soybean regions",
@@ -40,7 +42,7 @@ def _make_sample_analysis() -> ParsedAnalysis:
 
 def _make_nested_analysis() -> ParsedAnalysis:
     """Create a sample ParsedAnalysis with nested systems (dict sub-fields)."""
-    return ParsedAnalysis(
+    return make_parsed_analysis(
         coupling_classification="This study involves telecoupling.",
         systems={
             "sending": {
@@ -85,13 +87,13 @@ class TestFormatFull:
 
     def test_contains_sections(self):
         text = AnalysisFormatter.format_full(_make_sample_analysis())
-        assert "COUPLING CLASSIFICATION" in text
-        assert "SYSTEMS IDENTIFICATION" in text
-        assert "FLOWS ANALYSIS" in text
-        assert "AGENTS" in text
-        assert "CAUSES" in text
-        assert "EFFECTS" in text
-        assert "RESEARCH GAPS & SUGGESTIONS" in text
+        assert "Coupling Classification" in text
+        assert "Systems Identification" in text
+        assert "Flows Analysis" in text
+        assert "Agents" in text
+        assert "Causes" in text
+        assert "Effects" in text
+        assert "Research Gaps and Suggestions" in text
 
     def test_unparsed_falls_back_to_raw(self):
         analysis = ParsedAnalysis(raw_text="Just raw text.")
@@ -128,39 +130,43 @@ class TestFormatComponent:
         text = AnalysisFormatter.format_component(analysis, "classification")
         assert "telecoupling" in text.lower()
 
-    def test_systems(self):
+    def test_telecoupling_section_renders_systems(self):
+        # In v0.1.0+, systems live inside the per-coupling-type section.
+        # The legacy "systems" component name was removed; use the
+        # coupling-type name instead.
         text = AnalysisFormatter.format_component(
-            _make_sample_analysis(), "systems"
+            _make_sample_analysis(), "telecoupling"
         )
         assert "Sending" in text
         assert "Brazil" in text
 
-    def test_flows(self):
+    def test_telecoupling_section_renders_flows(self):
         text = AnalysisFormatter.format_component(
-            _make_sample_analysis(), "flows"
+            _make_sample_analysis(), "telecoupling"
         )
         assert "Matter" in text
         assert "Soybeans" in text
 
-    def test_agents(self):
+    def test_telecoupling_section_renders_agents(self):
         text = AnalysisFormatter.format_component(
-            _make_sample_analysis(), "agents"
+            _make_sample_analysis(), "telecoupling"
         )
         assert "Brazilian farmers" in text
 
-    def test_causes(self):
+    def test_telecoupling_section_renders_causes(self):
         text = AnalysisFormatter.format_component(
-            _make_sample_analysis(), "causes"
+            _make_sample_analysis(), "telecoupling"
         )
         assert "Socioeconomic" in text
 
-    def test_effects(self):
+    def test_telecoupling_section_renders_effects(self):
         text = AnalysisFormatter.format_component(
-            _make_sample_analysis(), "effects"
+            _make_sample_analysis(), "telecoupling"
         )
         assert "Sending" in text
 
     def test_suggestions(self):
+        # "suggestions" is still accepted as an alias for research_gaps.
         text = AnalysisFormatter.format_component(
             _make_sample_analysis(), "suggestions"
         )
@@ -172,10 +178,13 @@ class TestFormatComponent:
         )
         assert "Unknown component" in text
 
-    def test_empty_component(self):
+    def test_empty_telecoupling_component(self):
+        # The legacy "agents" component is no longer recognised; the
+        # equivalent intent is "an empty coupling-type section reports
+        # no data".
         analysis = ParsedAnalysis()
-        text = AnalysisFormatter.format_component(analysis, "agents")
-        assert "No agents data" in text
+        text = AnalysisFormatter.format_component(analysis, "telecoupling")
+        assert "No telecoupling data" in text
 
 
 class TestFormatComparison:
@@ -191,11 +200,12 @@ class TestFormatComparison:
 
     def test_multiple_analyses(self):
         a1 = _make_sample_analysis()
-        a2 = ParsedAnalysis(
+        a2 = make_parsed_analysis(
             coupling_classification="Pericoupling study",
             systems={"sending": "System A", "receiving": "System B"},
             flows=[{"category": "information", "direction": "A→B", "description": "Data"}],
             agents=[{"level": "individual", "name": "Agent X"}],
+            coupling_type="pericoupling",
             raw_text="raw2",
         )
         text = AnalysisFormatter.format_comparison([a1, a2])
@@ -209,7 +219,7 @@ class TestNestedSystemsFormatting:
 
     def test_format_full_nested_systems(self):
         text = AnalysisFormatter.format_full(_make_nested_analysis())
-        assert "SYSTEMS IDENTIFICATION" in text
+        assert "Systems Identification" in text
         assert "Sending" in text
         assert "Receiving" in text
         assert "Spillover" in text
@@ -233,8 +243,10 @@ class TestNestedSystemsFormatting:
         assert "importers" in text.lower()
 
     def test_format_component_nested_systems(self):
+        # Render via the per-coupling-type section name (legacy "systems"
+        # component name was removed in v0.1.0).
         text = AnalysisFormatter.format_component(
-            _make_nested_analysis(), "systems"
+            _make_nested_analysis(), "telecoupling"
         )
         assert "Sending" in text
         assert "Ethiopia" in text
@@ -243,8 +255,9 @@ class TestNestedSystemsFormatting:
 
     def test_format_summary_nested_systems(self):
         text = AnalysisFormatter.format_summary(_make_nested_analysis())
-        assert "Sending" in text
-        assert "Receiving" in text
+        # format_summary now reports active coupling types and counts
+        # rather than echoing each system role by name.
+        assert "Telecoupling" in text or "telecoupling" in text
 
     def test_format_full_flat_still_works(self):
         """Ensure flat-format systems continue to render correctly."""

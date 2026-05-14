@@ -26,7 +26,9 @@ and electric vehicle (EV) manufacturing systems. The extraction of lithium \
 in South America and its use in EV batteries in Europe creates \
 socioeconomic-environmental interactions across vast distances.
 
-### 2. Systems Identification
+### 2. Telecoupling Analysis
+
+#### 2.1 Systems Identification
 
 - **Sending**: Lithium mining regions in Chile and Argentina (Lithium \
 Triangle). Human: mining companies, local communities, government agencies. \
@@ -40,7 +42,7 @@ landscapes, waste management systems.
 shifts), Bolivia (adjacent Lithium Triangle country), downstream communities \
 along water systems.
 
-### 3. Flows Analysis
+#### 2.2 Flows Analysis
 
 - [Matter] Chile/Argentina → Europe: Lithium carbonate and lithium \
 hydroxide shipped for battery manufacturing
@@ -51,7 +53,7 @@ mining technology innovations
 - [Energy] Chile/Argentina → Europe: Embodied energy in extracted and \
 processed lithium products
 
-### 4. Agents
+#### 2.3 Agents
 
 - Lithium mining corporations (SQM, Albemarle) in sending systems
 - European auto manufacturers (VW, BMW, Stellantis) in receiving systems
@@ -60,7 +62,7 @@ processed lithium products
 - Indigenous communities near salt flats (sending/spillover)
 - International commodity traders (intermediary)
 
-### 5. Causes
+#### 2.4 Causes
 
 **Proximate causes**
 - Rapid growth of EV market in Europe driven by climate policy
@@ -71,7 +73,7 @@ processed lithium products
 - Technological advances in lithium-ion battery chemistry
 - European industrial policy to secure critical mineral supply chains
 
-### 6. Effects
+#### 2.5 Effects
 
 **Sending system**
 - [Socioeconomic] Mining revenue and employment; but community displacement \
@@ -90,7 +92,7 @@ challenges
 geopolitical tensions over critical minerals
 - [Environmental] Potential mining expansion into Bolivia's Salar de Uyuni
 
-### 7. Research Gaps and Suggestions
+### 3. Research Gaps and Suggestions
 
 - Quantify water footprint of lithium extraction relative to local supplies
 - Assess battery recycling telecouplings (end-of-life flows back to \
@@ -126,22 +128,31 @@ class TestFullPipeline:
         assert result.turn_number == 1
 
         # Parsed data present
+        from ._helpers import (
+            legacy_agents,
+            legacy_causes,
+            legacy_effects,
+            legacy_flows,
+            legacy_suggestions,
+            legacy_systems,
+        )
+
         parsed = result.parsed
         assert parsed.is_parsed
         assert "telecoupling" in parsed.coupling_classification.lower()
-        assert len(parsed.systems) > 0
-        assert len(parsed.flows) >= 3
-        assert len(parsed.agents) >= 4
-        assert len(parsed.causes) > 0
-        assert len(parsed.effects) > 0
-        assert len(parsed.suggestions) >= 3
+        assert len(legacy_systems(parsed)) > 0
+        assert len(legacy_flows(parsed)) >= 3
+        assert len(legacy_agents(parsed)) >= 4
+        assert len(legacy_causes(parsed)) > 0
+        assert len(legacy_effects(parsed)) > 0
+        assert len(legacy_suggestions(parsed)) >= 3
 
         # Formatted output readable
         formatted = result.formatted
         assert "METACOUPLING FRAMEWORK ANALYSIS" in formatted
-        assert "COUPLING CLASSIFICATION" in formatted
-        assert "SYSTEMS IDENTIFICATION" in formatted
-        assert "FLOWS ANALYSIS" in formatted
+        assert "Coupling Classification" in formatted
+        assert "Systems Identification" in formatted
+        assert "Flows Analysis" in formatted
 
         # Raw text preserved
         assert result.raw == FULL_MOCK_RESPONSE
@@ -191,5 +202,10 @@ class TestPublicAPIImports:
 
     def test_version_accessible(self):
         import metacouplingllm
-        assert hasattr(metacoupling, "__version__")
-        assert metacouplingllm.__version__ == "0.1.0"
+        assert hasattr(metacouplingllm, "__version__")
+        # __version__ tracks the current package version. Just check
+        # that it's a non-empty SemVer-shaped string rather than
+        # pinning to a specific version.
+        version = metacouplingllm.__version__
+        assert isinstance(version, str)
+        assert version.count(".") >= 2
