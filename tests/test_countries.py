@@ -2,8 +2,10 @@
 
 from metacouplingllm.knowledge.countries import (
     ISO_ALPHA3_NAMES,
+    expand_supranational,
     get_country_name,
     resolve_country_code,
+    supranational_display_name,
 )
 
 
@@ -114,3 +116,89 @@ class TestISOAlpha3Names:
             assert len(code) == 3
             assert code.isalpha()
             assert code.isupper()
+
+
+class TestExpandSupranational:
+    """Test expand_supranational and supranational_display_name."""
+
+    def test_european_union_returns_27_members(self):
+        members = expand_supranational("European Union")
+        assert members is not None
+        assert len(members) == 27
+        # Spot-check known current members.
+        for code in ("FRA", "DEU", "POL", "HRV", "ESP"):
+            assert code in members
+        # Spot-check known non-members.
+        assert "GBR" not in members  # post-Brexit
+        assert "CHE" not in members  # never a member
+        assert "NOR" not in members  # never a member
+        # All entries must be valid ISO codes the rest of the
+        # codebase recognises.
+        for code in members:
+            assert code in ISO_ALPHA3_NAMES
+
+    def test_eu_abbreviations_resolve_identically(self):
+        full = expand_supranational("European Union")
+        assert full is not None
+        for alias in ("EU", "eu", "e.u.", "The European Union"):
+            assert expand_supranational(alias) == full
+
+    def test_asean_returns_10_members(self):
+        members = expand_supranational("ASEAN")
+        assert members is not None
+        assert len(members) == 10
+        for code in (
+            "BRN", "KHM", "IDN", "LAO", "MYS",
+            "MMR", "PHL", "SGP", "THA", "VNM",
+        ):
+            assert code in members
+
+    def test_asean_full_name_resolves(self):
+        members = expand_supranational(
+            "Association of Southeast Asian Nations",
+        )
+        assert members == expand_supranational("ASEAN")
+
+    def test_nafta_and_usmca_are_aliases(self):
+        nafta = expand_supranational("NAFTA")
+        usmca = expand_supranational("USMCA")
+        assert nafta == usmca
+        assert sorted(nafta) == sorted(["USA", "MEX", "CAN"])
+
+    def test_nafta_usmca_full_names_resolve(self):
+        assert expand_supranational(
+            "North American Free Trade Agreement",
+        ) == expand_supranational("NAFTA")
+        assert expand_supranational(
+            "United States-Mexico-Canada Agreement",
+        ) == expand_supranational("USMCA")
+
+    def test_case_insensitive(self):
+        assert expand_supranational("european union") == \
+            expand_supranational("EUROPEAN UNION")
+
+    def test_unknown_returns_none(self):
+        assert expand_supranational("OPEC") is None
+        assert expand_supranational("G7") is None
+        assert expand_supranational("United Nations") is None
+        assert expand_supranational("") is None
+        assert expand_supranational("   ") is None
+
+    def test_does_not_match_substring(self):
+        # Strict whole-name match: "EU member states" should NOT match.
+        assert expand_supranational("EU member states") is None
+        assert expand_supranational("the asean region") is None
+
+    def test_supranational_display_name_round_trip(self):
+        for alias in ("European Union", "ASEAN", "USMCA", "NAFTA"):
+            members = expand_supranational(alias)
+            assert members is not None
+            display = supranational_display_name(members)
+            assert display is not None
+            # Round-trip: the display name re-resolves to the same
+            # member set.
+            assert expand_supranational(display) == members
+
+    def test_supranational_display_name_unknown_returns_none(self):
+        assert supranational_display_name(["XYZ", "ABC"]) is None
+        assert supranational_display_name([]) is None

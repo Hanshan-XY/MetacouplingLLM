@@ -5,6 +5,44 @@ file. The format is loosely based on
 [Keep a Changelog](https://keepachangelog.com/), and this project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`AnalysisResult.flow_parse_warnings`** — list of flow-direction
+  strings the legacy regex map path could not resolve into endpoints.
+  Each entry carries `direction`, `category`, and `reason`. Empty when
+  all flows parsed cleanly. Mirrored to `logger.warning(...)` at the
+  moment of failure. Only populated by the legacy text-extraction map
+  path; the structured (`parsed.map_data`) path keeps its existing
+  `logger.debug` for dropped entries.
+- **Supranational entity recognition** in the flow resolver: `EU`
+  (27 members), `ASEAN` (10 members), and `NAFTA` / `USMCA`
+  (3 members) are now recognised as flow endpoints.  The map
+  renderer treats them as **single regions** — the union centroid
+  is the arrow target, member countries are highlighted with a
+  translucent overlay, and the arrow is labelled with the
+  supranational name.  Expansion is **conditional**: if any member
+  country is already mentioned in the same endpoint context, the
+  supranational mention is treated as redundant and skipped to avoid
+  visual double-counting.  New helpers `expand_supranational(name)`
+  and `supranational_display_name(member_codes)` live in
+  `metacouplingllm.knowledge.countries` (internal — not exported
+  from the top-level package).
+
+### Changed
+
+- **`MetacouplingAssistant._resolve_flows_for_map`** now returns
+  `tuple[list[dict], list[dict]]` — `(resolved_flows, parse_warnings)` —
+  rather than a bare `list`.  Same for
+  `_resolve_flows_for_adm1_map`.  Internal helpers; this is not part
+  of the user-facing API, but downstream code that imports them must
+  adopt the tuple unpack.
+- Flow dicts emitted for supranational targets now carry two extra
+  keys: `target_supranational` (the canonical display name) and
+  `target_supranational_members` (the list of member ISO codes).
+  Country-pair flows are unchanged.
+
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 
 Multi-turn citation disambiguation. **Recommended upgrade for anyone

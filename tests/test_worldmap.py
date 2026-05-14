@@ -861,3 +861,117 @@ class TestPlotAnalysisMap:
         arrows = [p for p in ax.patches if isinstance(p, FancyArrowPatch)]
         assert len(arrows) == 0
         plt.close(fig)
+
+
+@skip_no_viz
+class TestSupranationalRendering:
+    """Single-region rendering of supranational flow targets."""
+
+    def _eu_flow(self):
+        """Build a synthetic flow with target_supranational set so we
+        can exercise the rendering path without the LLM in the loop."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        members = expand_supranational("European Union")
+        return {
+            "category": "matter",
+            "direction": "United States → European Union",
+            "description": "Pork exports",
+            "target_supranational": "European Union",
+            "target_supranational_members": list(members),
+        }
+
+    def test_supranational_centroid_in_eu_bounding_box(self):
+        """``_get_supranational_centroid`` should land inside
+        continental Europe."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        from metacouplingllm.visualization.worldmap import (
+            _get_supranational_centroid,
+            _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        members = expand_supranational("European Union")
+        xy = _get_supranational_centroid(world, members)
+        assert xy is not None
+        x, y = xy
+        # Loose continental-Europe bounding box (longitude -10..40,
+        # latitude 35..60).
+        assert -10.0 <= x <= 40.0, f"longitude {x} outside Europe"
+        assert 35.0 <= y <= 60.0, f"latitude {y} outside Europe"
+
+    def test_eu_arrow_drawn_with_supranational_endpoint(self):
+        """A flow with ``target_supranational_members`` produces
+        exactly one arrow despite the EU having 27 members."""
+        import matplotlib.figure
+        from matplotlib.patches import FancyArrowPatch
+
+        # The thin __init__ wrapper doesn't pass `flows` through, so
+        # call the underlying implementation directly — matches how
+        # `_generate_map` invokes it in core.py.
+        from metacouplingllm.visualization.worldmap import (
+            plot_analysis_map,
+        )
+
+        analysis = make_parsed_analysis(
+            systems={
+                "sending": {"name": "Michigan, United States"},
+                "receiving": {"name": "European Union"},
+            },
+        )
+        fig = plot_analysis_map(
+            analysis, flows=[self._eu_flow()],
+        )
+        assert isinstance(fig, matplotlib.figure.Figure)
+        ax = fig.axes[0]
+        arrows = [p for p in ax.patches if isinstance(p, FancyArrowPatch)]
+        assert len(arrows) == 1
+        plt.close(fig)
+
+    def test_no_supranational_layer_when_no_supranational_flows(self):
+        """When no flow carries ``target_supranational_members``,
+        ``_draw_supranational_highlight`` is a no-op and returns the
+        empty set."""
+        import matplotlib.pyplot as _plt
+
+        from metacouplingllm.visualization.worldmap import (
+            _draw_supranational_highlight, _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        fig, ax = _plt.subplots()
+        members = _draw_supranational_highlight(
+            ax, world,
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → China",
+                "description": "",
+            }],
+        )
+        assert members == set()
+        _plt.close(fig)
+
+    def test_supranational_highlight_returns_member_codes(self):
+        """When a flow has supranational members, the highlight helper
+        returns those member codes (the rendering side-effect drew the
+        overlay)."""
+        import matplotlib.pyplot as _plt
+
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        from metacouplingllm.visualization.worldmap import (
+            _draw_supranational_highlight, _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        fig, ax = _plt.subplots()
+        members = _draw_supranational_highlight(
+            ax, world, flows=[self._eu_flow()],
+        )
+        expected = set(expand_supranational("European Union"))
+        assert members == expected
+        _plt.close(fig)

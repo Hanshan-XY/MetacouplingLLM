@@ -347,7 +347,7 @@ def test_worldmap_country_extraction_reads_all_coupling_types():
 def test_flow_resolution_uses_focal_intracoupling_and_receiving_systems():
     parsed = _make_direct_parsed()
 
-    flows = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+    flows, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
     directions = {flow["direction"] for flow in flows}
 
     assert "Brazil \u2192 China" in directions
