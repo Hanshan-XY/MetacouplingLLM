@@ -672,6 +672,32 @@ def _get_country_centroid(
     return (pt.x, pt.y)
 
 
+def _get_supranational_centroid(
+    world: gpd.GeoDataFrame, iso_codes: list[str],
+) -> tuple[float, float] | None:
+    """Return the (x, y) centroid for a supranational region.
+
+    The supranational region is defined as the geometric union of all
+    member-country polygons in ``iso_codes``.  We use the same
+    "representative point of the largest sub-polygon" strategy as
+    ``_get_country_centroid`` so the label lands on the visually
+    dominant landmass rather than on a small island exclave.
+    """
+    rows = world.loc[world["iso_code"].isin(iso_codes)]
+    if rows.empty:
+        return None
+    if hasattr(rows.geometry, "union_all"):
+        combined = rows.geometry.union_all()
+    else:
+        combined = rows.geometry.unary_union
+    if combined.geom_type == "MultiPolygon":
+        largest = max(combined.geoms, key=lambda p: p.area)
+        pt = largest.representative_point()
+    else:
+        pt = combined.representative_point()
+    return (pt.x, pt.y)
+
+
 def _resolve_flow_endpoints(
     flow: dict[str, str],
     world: gpd.GeoDataFrame,
@@ -683,6 +709,13 @@ def _resolve_flow_endpoints(
     """Resolve source and target centroids from a flow's direction string.
 
     Returns ``(source_xy, target_xy, is_bidirectional)``.
+
+    A flow may carry a ``target_supranational_members`` field (set by
+    ``MetacouplingAssistant._resolve_flows_for_map`` when the LLM
+    referenced a supranational like the EU without listing specific
+    member countries).  When present, the target endpoint is the union
+    centroid of the listed member ISO codes rather than a single
+    country centroid.
     """
     direction = flow.get("direction", "")
     if not direction:
@@ -710,15 +743,73 @@ def _resolve_flow_endpoints(
     tgt_name = re.sub(r"\s*\(.*\)", "", tgt_name).strip()
 
     src_code = resolve_country_code(src_name)
-    tgt_code = resolve_country_code(tgt_name)
-
-    if not src_code or not tgt_code:
+    if not src_code:
         return None, None, is_bidir
 
     src_xy = _get_country_centroid(world, src_code)
-    tgt_xy = _get_country_centroid(world, tgt_code)
+    if src_xy is None:
+        return None, None, is_bidir
 
+    # Supranational target: use union centroid of member countries.
+    sup_members = flow.get("target_supranational_members")
+    if sup_members:
+        tgt_xy = _get_supranational_centroid(world, list(sup_members))
+        return src_xy, tgt_xy, is_bidir
+
+    # Regular country target: existing path.
+    tgt_code = resolve_country_code(tgt_name)
+    if not tgt_code:
+        return None, None, is_bidir
+    tgt_xy = _get_country_centroid(world, tgt_code)
     return src_xy, tgt_xy, is_bidir
+
+
+def _draw_supranational_highlight(
+    ax: object,
+    world: gpd.GeoDataFrame,
+    flows: list[dict[str, str]],
+) -> set[str]:
+    """Outline supranational regions referenced by any flow.
+
+    Each flow that carries a ``target_supranational_members`` field
+    contributes its member ISO codes to a single outline overlay.
+    Member countries are drawn with a translucent fill plus a thicker
+    blue edge so the user sees them as one logical region rather than
+    several individual telecoupling targets.
+
+    Returns the set of member ISO codes that were highlighted, so the
+    caller can adjust legend / per-country fills if needed.
+    """
+    members_to_highlight: set[str] = set()
+    sup_names: set[str] = set()
+    for flow in flows:
+        members = flow.get("target_supranational_members")
+        if members:
+            members_to_highlight.update(members)
+        name = flow.get("target_supranational")
+        if isinstance(name, str) and name:
+            sup_names.add(name)
+
+    if not members_to_highlight:
+        return set()
+
+    rows = world.loc[world["iso_code"].isin(members_to_highlight)]
+    if rows.empty:
+        return set()
+
+    # Translucent overlay with a thicker dark-blue edge.  Drawn above
+    # the base coupling fill (zorder=2.5) but below disputed-territory
+    # hatching (zorder=3) and flow arrows (zorder=4 in matplotlib's
+    # default for FancyArrowPatch).
+    rows.plot(
+        ax=ax,
+        facecolor="#1f77b4",
+        edgecolor="#0d3a66",
+        linewidth=1.2,
+        alpha=0.30,
+        zorder=2.5,
+    )
+    return members_to_highlight
 
 
 def _draw_flow_arrows(
@@ -861,6 +952,12 @@ def _render_map(
     # been dissolved or merged.
     disputed_gdf = _get_disputed_territories_overlay(world.crs, world)
     _plot_disputed_overlay(ax, disputed_gdf, colors, zorder=3)
+
+    # Highlight supranational regions referenced by any flow before
+    # the arrow layer goes on top.  No-op when no flows reference a
+    # supranational entity.
+    if flows:
+        _draw_supranational_highlight(ax, world, flows)
 
     # Draw flow arrows if flows are provided
     flow_handles: list = []

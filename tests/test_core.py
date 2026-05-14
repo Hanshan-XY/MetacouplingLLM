@@ -253,6 +253,28 @@ class TestAnalysisResult:
         )
         assert result.map_notice is None
 
+    def test_flow_parse_warnings_default_empty(self):
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        result = AnalysisResult(
+            parsed=ParsedAnalysis(),
+            formatted="",
+            raw="",
+            turn_number=1,
+        )
+        assert result.flow_parse_warnings == []
+
+    def test_flow_parse_warnings_independent_per_instance(self):
+        # Mutating one instance's list must not affect another's
+        # (regression guard against accidentally sharing a default
+        # mutable across instances).
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        a = AnalysisResult(parsed=ParsedAnalysis(), formatted="",
+                           raw="", turn_number=1)
+        b = AnalysisResult(parsed=ParsedAnalysis(), formatted="",
+                           raw="", turn_number=1)
+        a.flow_parse_warnings.append({"direction": "x"})
+        assert b.flow_parse_warnings == []
+
 
 # ---------------------------------------------------------------------------
 # Auto-map integration tests
@@ -810,7 +832,7 @@ class TestResolveFlowsForMap:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
         assert len(result) >= 1
         assert "→" in result[0]["direction"]
         assert "China" in result[0]["direction"] or "CHN" in result[0]["direction"]
@@ -833,7 +855,7 @@ class TestResolveFlowsForMap:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         assert len(result) >= 1
         # Source should be USA (from Michigan ADM1), target should be China
         direction = result[0]["direction"]
@@ -861,7 +883,7 @@ class TestResolveFlowsForMap:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         # Should create arrows to CHN, JPN, MEX
         assert len(result) >= 2
         directions = " ".join(f["direction"] for f in result)
@@ -882,7 +904,7 @@ class TestResolveFlowsForMap:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         assert len(result) == 0
 
     def test_bidirectional_between_pattern(self):
@@ -902,7 +924,7 @@ class TestResolveFlowsForMap:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         assert len(result) >= 1
         assert "Bidirectional" in result[0]["direction"]
         assert "↔" in result[0]["direction"]
@@ -944,7 +966,7 @@ class TestResolveFlowsForMap:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         assert result == []
 
     def test_resolves_softened_receiving_market_list_for_outgoing_flow(self):
@@ -973,7 +995,7 @@ class TestResolveFlowsForMap:
             ],
         )
 
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         directions = " ".join(flow["direction"] for flow in result)
         assert "China" in directions
         assert "Mexico" in directions
@@ -1005,7 +1027,7 @@ class TestResolveFlowsForMap:
             ],
         )
 
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         directions = " ".join(flow["direction"] for flow in result)
         assert "China" in directions or "Mexico" in directions
         assert "United States" in directions
@@ -1052,7 +1074,7 @@ class TestResolveFlowsForMap:
             ],
         )
 
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
         directions = " | ".join(flow["direction"] for flow in result)
 
         assert "China" in directions
@@ -1076,7 +1098,7 @@ class TestResolveFlowsForMap:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         directions = " ".join(flow["direction"] for flow in result)
         assert "China" in directions
         assert "Japan" in directions
@@ -1097,7 +1119,7 @@ class TestResolveFlowsForMap:
                 {"category": "matter", "direction": "Brazil → China"},
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
         matter_to_china = [
             f for f in result
             if f["category"] == "matter" and "China" in f["direction"]
@@ -1120,7 +1142,7 @@ class TestResolveFlowsForMap:
             ],
         )
 
-        result = MetacouplingAssistant._resolve_flows_for_adm1_map(
+        result, _ = MetacouplingAssistant._resolve_flows_for_adm1_map(
             parsed,
             "USA023",
             "USA",
@@ -1148,7 +1170,7 @@ class TestResolveFlowsForMap:
             ],
         )
 
-        result = MetacouplingAssistant._resolve_flows_for_adm1_map(
+        result, _ = MetacouplingAssistant._resolve_flows_for_adm1_map(
             parsed,
             "USA023",
             "USA",
@@ -1187,7 +1209,7 @@ class TestResolveFlowsSystemsFallback:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
         # Should resolve "importing countries" to China via receiving system
         assert len(result) >= 1
         directions = " ".join(f["direction"] for f in result)
@@ -1213,7 +1235,7 @@ class TestResolveFlowsSystemsFallback:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
         # Should produce arrows FROM receiving countries TO Brazil
         assert len(result) >= 1
         for f in result:
@@ -1249,7 +1271,7 @@ class TestResolveFlowsSystemsFallback:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
         # No arrows should be produced — receiving is generic, and
         # spillover countries must NOT be used as trade partners.
         for f in result:
@@ -1274,7 +1296,7 @@ class TestResolveFlowsSystemsFallback:
                 },
             ],
         )
-        result = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
         assert len(result) == 1
         assert "China" in result[0]["direction"]
         # Should NOT include Japan/South Korea since direction was specific
@@ -2575,3 +2597,265 @@ class TestFlowArrowRegex:
         from metacouplingllm.core import _FLOW_ARROW_RE
         parts = _FLOW_ARROW_RE.split("USA  →  China")
         assert parts == ["USA", "China"]
+
+
+# ---------------------------------------------------------------------------
+# Flow parse warnings — observable failures from _resolve_flows_for_map
+# ---------------------------------------------------------------------------
+
+
+class TestResolveFlowsForMapWarnings:
+    """``_resolve_flows_for_map`` returns ``(arrows, warnings)`` and
+    populates the warnings list whenever a flow is dropped due to an
+    unparseable direction or unresolvable endpoints."""
+
+    def test_warning_fires_on_unparseable_prose(self, caplog):
+        import logging
+
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={"sending": {"name": "Michigan, USA"}},
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": (
+                        "Pork from Michigan is exported to Japan."
+                    ),
+                    "description": "",
+                },
+            ],
+        )
+        with caplog.at_level(
+            logging.WARNING, logger="metacouplingllm.core"
+        ):
+            arrows, warnings = (
+                MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+            )
+        assert arrows == []
+        assert len(warnings) == 1
+        w = warnings[0]
+        assert w["category"] == "matter"
+        assert "Michigan" in w["direction"]
+        assert "no recognized arrow" in w["reason"]
+        # Logger captured the same payload.
+        assert any(
+            "could not be resolved" in rec.getMessage()
+            for rec in caplog.records
+        )
+
+    def test_warning_does_not_fire_on_resolved_flow(self, caplog):
+        import logging
+
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {"name": "Brazil"},
+                "receiving": {"name": "China"},
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Brazil → China",
+                    "description": "Soybeans",
+                },
+            ],
+        )
+        with caplog.at_level(
+            logging.WARNING, logger="metacouplingllm.core"
+        ):
+            arrows, warnings = (
+                MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+            )
+        assert len(arrows) >= 1
+        assert warnings == []
+
+    def test_warning_does_not_fire_on_within_skip(self, caplog):
+        import logging
+
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={"sending": {"name": "Michigan, USA"}},
+            flows=[
+                {
+                    "category": "energy",
+                    "direction": (
+                        "Mostly within Michigan and embedded in exports"
+                    ),
+                    "description": "",
+                },
+            ],
+        )
+        with caplog.at_level(
+            logging.WARNING, logger="metacouplingllm.core"
+        ):
+            arrows, warnings = (
+                MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+            )
+        assert arrows == []
+        assert warnings == []
+
+    def test_warning_reason_for_unresolvable_endpoints(self, caplog):
+        """Connector present, but neither side resolves."""
+        import logging
+
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={"sending": {"name": "Some unknown planet"}},
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Atlantis → Wakanda",
+                    "description": "",
+                },
+            ],
+        )
+        with caplog.at_level(
+            logging.WARNING, logger="metacouplingllm.core"
+        ):
+            arrows, warnings = (
+                MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+            )
+        assert len(warnings) == 1
+        assert "endpoints could not be resolved" in warnings[0]["reason"]
+
+
+# ---------------------------------------------------------------------------
+# Supranational targets — single-region detection in _resolve_flows_for_map
+# ---------------------------------------------------------------------------
+
+
+class TestResolveFlowsSupranational:
+    """Supranational targets emit one flow with a
+    ``target_supranational_members`` field for the renderer to expand."""
+
+    def test_eu_target_emits_single_supranational_flow(self):
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {"name": "Michigan, United States"},
+                "receiving": {"name": "European Union"},
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Michigan → European Union",
+                    "description": "Pork exported",
+                },
+            ],
+        )
+        arrows, warnings = (
+            MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        )
+        assert warnings == []
+        assert len(arrows) == 1
+        assert arrows[0]["target_supranational"] == "European Union"
+        assert len(arrows[0]["target_supranational_members"]) == 27
+        assert "European Union" in arrows[0]["direction"]
+
+    def test_eu_skipped_when_explicit_members_present(self):
+        """When the analysis already lists EU members, the umbrella
+        ``European Union`` mention is treated as redundant."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={"sending": {"name": "Michigan, United States"}},
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": (
+                        "Michigan → Germany, France, European Union"
+                    ),
+                    "description": "Pork exported",
+                },
+            ],
+        )
+        arrows, warnings = (
+            MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        )
+        # Two regular country arrows (USA->DEU, USA->FRA) and NO
+        # supranational entry — EU was suppressed by the conditional
+        # rule.
+        assert warnings == []
+        assert len(arrows) == 2
+        for a in arrows:
+            assert "target_supranational" not in a
+        targets = sorted(a["direction"].split("→")[-1].strip()
+                         for a in arrows)
+        assert targets == ["France", "Germany"]
+
+    def test_asean_target_emits_supranational_flow(self):
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {"name": "Brazil"},
+                "receiving": {"name": "ASEAN"},
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Brazil → ASEAN",
+                    "description": "",
+                },
+            ],
+        )
+        arrows, _ = (
+            MetacouplingAssistant._resolve_flows_for_map(parsed, "BRA")
+        )
+        assert len(arrows) == 1
+        assert arrows[0]["target_supranational"] == "ASEAN"
+        assert len(arrows[0]["target_supranational_members"]) == 10
+
+    def test_nafta_and_usmca_aliases_emit_same_members(self):
+        from ._helpers import make_parsed_analysis
+
+        for alias in ("NAFTA", "USMCA"):
+            parsed = make_parsed_analysis(
+                systems={
+                    "sending": {"name": "China"},
+                    "receiving": {"name": alias},
+                },
+                flows=[
+                    {
+                        "category": "matter",
+                        "direction": f"China → {alias}",
+                        "description": "",
+                    },
+                ],
+            )
+            arrows, _ = (
+                MetacouplingAssistant._resolve_flows_for_map(parsed, "CHN")
+            )
+            assert len(arrows) == 1
+            assert sorted(arrows[0]["target_supranational_members"]) == \
+                sorted(["USA", "MEX", "CAN"])
+
+    def test_supranational_self_loop_skipped(self):
+        """If src is a member of the target supranational, no arrow is
+        emitted (would render as a self-loop into its own region)."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {"name": "France"},
+                "receiving": {"name": "European Union"},
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "France → European Union",
+                    "description": "",
+                },
+            ],
+        )
+        arrows, _ = (
+            MetacouplingAssistant._resolve_flows_for_map(parsed, "FRA")
+        )
+        # France is a member of the EU, so the supranational self-loop
+        # is suppressed and we get no arrows.
+        assert arrows == []

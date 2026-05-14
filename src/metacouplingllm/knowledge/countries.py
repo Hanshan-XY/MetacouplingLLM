@@ -435,6 +435,104 @@ _ALIASES: dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
+# Supranational groupings (not in ISO 3166-1)
+# ---------------------------------------------------------------------------
+#
+# These names are NOT sovereign-state ISO codes.  Treating them as such
+# would silently drop flows that mention them.  Instead, the resolver
+# expands a supranational mention to its member ISO codes when no
+# individual member is already detected in the same endpoint context;
+# the map renderer then draws ONE arrow ending at the geometric union
+# centroid of the member polygons and highlights the member region as
+# a single labelled entity.
+#
+# Membership lists are intentionally exhaustive within each grouping
+# but limited to three groupings (EU, ASEAN, NAFTA/USMCA) — the most
+# common in metacoupling research.  Add others (Mercosur, BRICS, AU,
+# G7/G20) only when actual analyses request them.
+
+# EU 27 member states as of 2026-05 (post-Brexit; Croatia joined 2013).
+_EU_27 = [
+    "AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST",
+    "FIN", "FRA", "DEU", "GRC", "HUN", "IRL", "ITA", "LVA",
+    "LTU", "LUX", "MLT", "NLD", "POL", "PRT", "ROM", "SVK",
+    "SVN", "ESP", "SWE",
+]
+
+# ASEAN 10 member states.
+_ASEAN_10 = [
+    "BRN", "KHM", "IDN", "LAO", "MYS",
+    "MMR", "PHL", "SGP", "THA", "VNM",
+]
+
+# NAFTA / USMCA 3 (treaty order).
+_USMCA_3 = ["USA", "MEX", "CAN"]
+
+# Map of normalised supranational name -> list of member ISO codes.
+# String values point at canonical keys (alias-of-alias indirection).
+_SUPRANATIONAL_ALIASES: dict[str, list[str] | str] = {
+    "european union":                         _EU_27,
+    "eu":                                     "european union",
+    "e.u.":                                   "european union",
+    "the european union":                     "european union",
+
+    "asean":                                  _ASEAN_10,
+    "association of southeast asian nations": "asean",
+
+    "nafta":                                  _USMCA_3,
+    "north american free trade agreement":    "nafta",
+    "usmca":                                  _USMCA_3,
+    "united states-mexico-canada agreement":  "usmca",
+}
+
+# Canonical display names looked up by sorted-tuple of member codes.
+# Used by the resolver to attach a stable label to each supranational
+# flow target that the map renderer can show.
+_SUPRANATIONAL_DISPLAY_NAMES: dict[tuple[str, ...], str] = {
+    tuple(sorted(_EU_27)):    "European Union",
+    tuple(sorted(_ASEAN_10)): "ASEAN",
+    tuple(sorted(_USMCA_3)):  "USMCA",
+}
+
+
+def expand_supranational(name: str) -> list[str] | None:
+    """Return member ISO 3166-1 alpha-3 codes for a supranational alias.
+
+    Returns ``None`` when ``name`` does not match any known grouping.
+
+    Examples
+    --------
+    >>> "FRA" in expand_supranational("European Union")
+    True
+    >>> expand_supranational("EU") == expand_supranational("European Union")
+    True
+    >>> expand_supranational("OPEC") is None
+    True
+    """
+    if not name or not name.strip():
+        return None
+    key = name.strip().lower()
+    value = _SUPRANATIONAL_ALIASES.get(key)
+    if value is None:
+        return None
+    if isinstance(value, str):
+        # Alias-of-alias: resolve once.
+        value = _SUPRANATIONAL_ALIASES.get(value)
+    if isinstance(value, list):
+        return list(value)
+    return None
+
+
+def supranational_display_name(member_codes: list[str]) -> str | None:
+    """Return canonical display name for a set of supranational member codes.
+
+    Looks up by sorted-tuple so order in ``member_codes`` doesn't matter.
+    Returns ``None`` if the set isn't a recognised grouping.
+    """
+    return _SUPRANATIONAL_DISPLAY_NAMES.get(tuple(sorted(member_codes)))
+
+
+# ---------------------------------------------------------------------------
 # Internal reverse index (lazily built)
 # ---------------------------------------------------------------------------
 

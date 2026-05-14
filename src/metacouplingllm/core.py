@@ -112,6 +112,15 @@ class AnalysisResult:
         Human-readable map status note appended to ``formatted`` when
         ``auto_map=True``. This explains whether a map was generated or
         why no map was produced.
+    flow_parse_warnings:
+        Flow direction strings the legacy regex map path could not
+        resolve into endpoints. Each entry is a dict with keys
+        ``direction`` (the original string), ``category`` (the flow's
+        category), and ``reason`` (a short string explaining why
+        resolution failed). Empty when all flows parsed cleanly. Only
+        populated by the legacy text-extraction map path; the
+        structured (``parsed.map_data``) path uses ``logger.debug``
+        for its own drops.
     """
 
     parsed: ParsedAnalysis
@@ -123,6 +132,7 @@ class AnalysisResult:
     web_map_signals: dict[str, object] | None = None
     structured_supplement: dict[str, object] | None = None
     map_notice: str | None = None
+    flow_parse_warnings: list[dict[str, str]] = field(default_factory=list)
 
     def __repr__(self) -> str:
         parts = [f"turn={self.turn_number}"]
@@ -140,6 +150,8 @@ class AnalysisResult:
                 sum(self.usage.values()),
             )
             parts.append(f"tokens={total}")
+        if self.flow_parse_warnings:
+            parts.append(f"flow_parse_warnings={len(self.flow_parse_warnings)}")
         return f"AnalysisResult({', '.join(parts)})"
 
 
@@ -586,6 +598,7 @@ class MetacouplingAssistant:
         self._last_web_results: list[dict[str, str]] = []
         self._last_web_map_signals: dict[str, object] | None = None
         self._last_map_notice: str | None = None
+        self._last_flow_parse_warnings: list[dict[str, str]] = []
         self._prompt_builder = PromptBuilder(max_examples=max_examples)
         self._formatter = AnalysisFormatter()
 
@@ -1752,8 +1765,21 @@ class MetacouplingAssistant:
     def _resolve_flows_for_map(
         parsed: ParsedAnalysis,
         focal_country: str,
-    ) -> list[dict[str, str]]:
+    ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Resolve flow directions to country-level endpoints for map arrows.
+
+        Returns ``(resolved_flows, parse_warnings)``.  Each warning is a
+        dict ``{"direction": str, "category": str, "reason": str}``
+        describing a flow that could not be turned into any arrow.
+
+        Supranational targets (EU / ASEAN / NAFTA / USMCA) are detected
+        via ``expand_supranational``.  When mentioned without any of
+        their member countries also appearing in the same endpoint
+        context, they are emitted as **single-region** flow entries
+        carrying ``target_supranational`` and
+        ``target_supranational_members`` fields, which the map renderer
+        uses to draw one labelled arrow at the union centroid plus a
+        member-region highlight overlay.
 
         This version is conservative about speculative examples, but still
         allows softened receiving-market lists such as
@@ -1766,17 +1792,43 @@ class MetacouplingAssistant:
             resolve_adm1_code,
         )
         from metacouplingllm.knowledge.countries import (
+            expand_supranational,
             get_country_name,
             resolve_country_code,
+            supranational_display_name,
         )
+
+        warnings: list[dict[str, str]] = []
+
+        def _record_warning(
+            direction: str, category: str, reason: str,
+        ) -> None:
+            """Append a parse warning and mirror it to the module logger."""
+            warnings.append({
+                "direction": direction,
+                "category": category,
+                "reason": reason,
+            })
+            logger.warning(
+                "Flow direction could not be resolved: %r "
+                "(category=%s) — %s. Falling back to systems-level inference.",
+                direction, category, reason,
+            )
 
         def _extract_country_list_codes(
             text: str,
             *,
             allow_soft_markers: bool = False,
-        ) -> set[str]:
+        ) -> tuple[set[str], set[str]]:
+            """Return ``(country_iso_codes, supranational_display_names)``.
+
+            Supranationals are filtered post-hoc: if any of a
+            supranational's members also appear in ``codes``, that
+            supranational is dropped to avoid double-counting (the
+            "EU should only fire when no EU countries detected" rule).
+            """
             if not text or not text.strip():
-                return set()
+                return set(), set()
 
             clean = re.sub(r"\[[^\]]+\]", "", text).strip()
             lowered = clean.lower()
@@ -1788,7 +1840,7 @@ class MetacouplingAssistant:
                 "should be confirmed", "to be confirmed",
             )
             if any(marker in lowered for marker in hard_blockers):
-                return set()
+                return set(), set()
 
             soft_markers = (
                 "such as", "likely", "may ", " may", "might", "could",
@@ -1799,10 +1851,11 @@ class MetacouplingAssistant:
                 not allow_soft_markers
                 and any(marker in lowered for marker in soft_markers)
             ):
-                return set()
+                return set(), set()
 
             chunks = re.split(r"[,;/]+|\band\b|\bor\b", clean)
             codes: set[str] = set()
+            supranationals: set[str] = set()
             resolved_chunks: list[str] = []
 
             for chunk in chunks:
@@ -1817,9 +1870,17 @@ class MetacouplingAssistant:
                 if code:
                     codes.add(code)
                     resolved_chunks.append(candidate.lower())
+                    continue
+                # Supranational fallback (EU / ASEAN / NAFTA / USMCA).
+                members = expand_supranational(candidate)
+                if members:
+                    display = supranational_display_name(members)
+                    if display:
+                        supranationals.add(display)
+                        resolved_chunks.append(candidate.lower())
 
-            if not codes:
-                return set()
+            if not codes and not supranationals:
+                return set(), set()
 
             residue = lowered
             for chunk in resolved_chunks:
@@ -1840,17 +1901,31 @@ class MetacouplingAssistant:
             residue = re.sub(r"[^a-z]+", " ", residue)
             leftover_tokens = [tok for tok in residue.split() if len(tok) > 2]
             if len(leftover_tokens) > 1:
-                return set()
+                return set(), set()
 
-            return codes
+            # Conditional rule: drop any supranational whose members
+            # already appear in ``codes`` -- the LLM listed both the
+            # specific countries and the umbrella term, treat the
+            # umbrella as redundant.
+            filtered_supranationals: set[str] = set()
+            for sup in supranationals:
+                members = expand_supranational(sup)
+                if members and not (codes & set(members)):
+                    filtered_supranationals.add(sup)
 
-        def _extract_explicit_codes(text: str) -> set[str]:
+            return codes, filtered_supranationals
+
+        def _extract_explicit_codes(
+            text: str,
+        ) -> tuple[set[str], set[str]]:
             return _extract_country_list_codes(
                 text,
                 allow_soft_markers=False,
             )
 
-        def _extract_proxy_receiving_codes(text: str) -> set[str]:
+        def _extract_proxy_receiving_codes(
+            text: str,
+        ) -> tuple[set[str], set[str]]:
             lowered = text.lower()
             if not any(
                 term in lowered
@@ -1860,7 +1935,7 @@ class MetacouplingAssistant:
                     "imports",
                 )
             ):
-                return set()
+                return set(), set()
             return _extract_country_list_codes(
                 text,
                 allow_soft_markers=True,
@@ -1879,6 +1954,9 @@ class MetacouplingAssistant:
             "spillover": set(),
             "adjacent": set(),
         }
+        # Role-level role_codes/proxy_role_codes track ISO codes only.
+        # Supranationals are detected per-flow (target side); discarding
+        # them here keeps role-based fallback unambiguous.
         for role in role_codes:
             for entry in parsed.get_system_entries(role):
                 texts: list[str] = []
@@ -1887,14 +1965,15 @@ class MetacouplingAssistant:
                     if candidate:
                         texts.append(candidate)
                 for text in texts:
-                    codes = _extract_explicit_codes(text)
-                    role_codes[role].update(codes)
+                    codes_for_text, _ = _extract_explicit_codes(text)
+                    role_codes[role].update(codes_for_text)
                     if entry.get("system_scope") == "adjacent":
-                        role_codes["adjacent"].update(codes)
+                        role_codes["adjacent"].update(codes_for_text)
                     if role == "receiving":
-                        proxy_role_codes[role].update(
-                            _extract_proxy_receiving_codes(text),
+                        proxy_codes, _ = _extract_proxy_receiving_codes(
+                            text,
                         )
+                        proxy_role_codes[role].update(proxy_codes)
         role_codes["sending"].update(role_codes["focal"])
 
         def _try_resolve(text: str) -> str | None:
@@ -1985,22 +2064,34 @@ class MetacouplingAssistant:
             return codes
 
         def _resolve_source(text: str) -> set[str]:
-            explicit_codes = _extract_explicit_codes(text)
+            """Source-side resolution -- supranationals are flattened to
+            their member countries (no special source-side rendering)."""
+            explicit_codes, explicit_sup = _extract_explicit_codes(text)
             if explicit_codes:
                 return explicit_codes
+            if explicit_sup:
+                # Source-side supranational: expand to all members.
+                flattened: set[str] = set()
+                for sup in explicit_sup:
+                    members = expand_supranational(sup) or []
+                    flattened.update(members)
+                if flattened:
+                    return flattened
             code = _try_resolve(text)
             if code:
                 return {code}
             return _resolve_role_reference(text)
 
-        def _resolve_target(text: str) -> set[str]:
-            explicit_codes = _extract_explicit_codes(text)
-            if explicit_codes:
-                return explicit_codes
+        def _resolve_target(text: str) -> tuple[set[str], set[str]]:
+            """Target-side resolution returning
+            ``(country_codes, supranational_names)``."""
+            explicit_codes, explicit_sup = _extract_explicit_codes(text)
+            if explicit_codes or explicit_sup:
+                return explicit_codes, explicit_sup
             code = _try_resolve(text)
             if code:
-                return {code}
-            return _resolve_role_reference(text)
+                return {code}, set()
+            return _resolve_role_reference(text), set()
 
         resolved: list[dict[str, str]] = []
         seen_pairs: set[tuple[str, str, str]] = set()
@@ -2015,17 +2106,19 @@ class MetacouplingAssistant:
                 not has_connector
                 and re.search(r"\bwithin\b", direction, re.IGNORECASE)
             ):
+                # Intentional skip -- internal flow, no warning.
                 continue
 
             is_bidir = (
                 "bidirectional" in direction.lower()
-                or "\u2194" in direction
+                or "↔" in direction
                 or "<->" in direction
                 or "<=>" in direction
             )
 
             src_codes: set[str] = set()
             tgt_codes: set[str] = set()
+            tgt_supranationals: set[str] = set()
 
             between_m = re.search(
                 r"[Bb](?:etween|idirectional\s+between)\s+(.+?)\s+and\s+(.+)",
@@ -2033,18 +2126,20 @@ class MetacouplingAssistant:
             )
             if between_m:
                 src_codes = _resolve_source(between_m.group(1))
-                tgt_codes = _resolve_target(between_m.group(2))
+                tgt_codes, tgt_supranationals = _resolve_target(
+                    between_m.group(2),
+                )
                 is_bidir = True
             else:
                 parts = _FLOW_ARROW_RE.split(direction)
                 if len(parts) >= 2:
                     src_codes = _resolve_source(parts[0])
-                    tgt_codes = _resolve_target(parts[1])
+                    tgt_codes, tgt_supranationals = _resolve_target(parts[1])
 
             # Fallback: when the LLM used a generic label like
             # "importing countries" instead of specific country names,
             # harvest concrete countries from the Systems section.
-            if not tgt_codes:
+            if not tgt_codes and not tgt_supranationals:
                 try:
                     from metacouplingllm.visualization.worldmap import (
                         _extract_all_analysis_countries,
@@ -2056,13 +2151,13 @@ class MetacouplingAssistant:
                     if receiving:
                         tgt_codes = receiving
                 except (ImportError, AttributeError, KeyError):
-                    pass  # Viz deps unavailable — use default resolution
+                    pass  # Viz deps unavailable -- use default resolution
 
             if not src_codes:
                 # When source is generic (e.g., "Importing countries")
                 # and target IS the focal country, the unresolved source
                 # is the receiving systems (e.g., China sends capital
-                # TO Brazil).  Only use receiving — never spillover,
+                # TO Brazil).  Only use receiving -- never spillover,
                 # which contains competing exporters, not trade partners.
                 if tgt_codes and focal_country in tgt_codes:
                     try:
@@ -2080,11 +2175,25 @@ class MetacouplingAssistant:
                         pass  # Viz deps unavailable
                 if not src_codes:
                     src_codes = {focal_country}
-            if not tgt_codes:
+            if not tgt_codes and not tgt_supranationals:
+                # All resolution paths exhausted and the flow has no
+                # endpoints to draw. Record a warning and move on.
+                if not has_connector:
+                    reason = (
+                        "no recognized arrow or 'between X and Y' pattern"
+                    )
+                else:
+                    reason = "endpoints could not be resolved to countries"
+                _record_warning(direction, category, reason)
                 continue
 
-            # Safety net: avoid self-loops where src == tgt.
-            if src_codes == tgt_codes:
+            # Safety net: avoid self-loops where src == tgt (no
+            # supranationals involved).  Try to swap in receiving
+            # partners as targets.
+            if (
+                src_codes == tgt_codes
+                and not tgt_supranationals
+            ):
                 try:
                     from metacouplingllm.visualization.worldmap import (
                         _extract_all_analysis_countries,
@@ -2100,11 +2209,9 @@ class MetacouplingAssistant:
                     pass  # Viz deps unavailable
 
             for src_code in sorted(src_codes):
+                # Country-to-country arrows (existing behaviour).
                 target_codes = set(tgt_codes)
                 target_codes.discard(src_code)
-                if not target_codes:
-                    continue
-
                 for tgt in sorted(target_codes):
                     key = (category, src_code, tgt)
                     if key in seen_pairs:
@@ -2115,25 +2222,60 @@ class MetacouplingAssistant:
                     tgt_name = get_country_name(tgt) or tgt
                     if is_bidir:
                         dir_str = (
-                            f"Bidirectional ({src_name} \u2194 {tgt_name})"
+                            f"Bidirectional ({src_name} ↔ {tgt_name})"
                         )
                     else:
-                        dir_str = f"{src_name} \u2192 {tgt_name}"
+                        dir_str = f"{src_name} → {tgt_name}"
                     resolved.append({
                         "category": category,
                         "direction": dir_str,
                         "description": flow.get("description", ""),
                     })
 
-        return resolved
+                # Supranational target arrows (one entry per
+                # supranational, carrying the member-list field for the
+                # renderer to use as a single-region endpoint).
+                for sup_name in sorted(tgt_supranationals):
+                    members = expand_supranational(sup_name) or []
+                    if not members:
+                        continue
+                    # Skip if src is a member of the supranational
+                    # (would render as a self-loop arrow into its own
+                    # region).
+                    if src_code in members:
+                        continue
+                    key = (category, src_code, f"__SUP__{sup_name}")
+                    if key in seen_pairs:
+                        continue
+                    seen_pairs.add(key)
+
+                    src_name = get_country_name(src_code) or src_code
+                    if is_bidir:
+                        dir_str = (
+                            f"Bidirectional ({src_name} ↔ {sup_name})"
+                        )
+                    else:
+                        dir_str = f"{src_name} → {sup_name}"
+                    resolved.append({
+                        "category": category,
+                        "direction": dir_str,
+                        "description": flow.get("description", ""),
+                        "target_supranational": sup_name,
+                        "target_supranational_members": list(members),
+                    })
+
+        return resolved, warnings
 
     @staticmethod
     def _resolve_flows_for_adm1_map(
         parsed: ParsedAnalysis,
         focal_adm1: str,
         focal_country: str,
-    ) -> list[dict[str, str]]:
+    ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Resolve mixed ADM1/country flow arrows for ADM1 maps.
+
+        Returns ``(resolved_flows, parse_warnings)``.  Warnings are
+        forwarded unchanged from :py:meth:`_resolve_flows_for_map`.
 
         International or cross-country flows remain country-level arrows.
         Same-country nearby flows involving adjacent ADM1 neighbors are
@@ -2145,7 +2287,7 @@ class MetacouplingAssistant:
             get_adm1_neighbors,
         )
 
-        resolved = MetacouplingAssistant._resolve_flows_for_map(
+        resolved, warnings = MetacouplingAssistant._resolve_flows_for_map(
             parsed,
             focal_country,
         )
@@ -2258,7 +2400,7 @@ class MetacouplingAssistant:
                     "is_bidirectional": is_bidir,
                 })
 
-        return resolved
+        return resolved, warnings
 
     def _build_adm1_reference_for_prompt(
         self,
@@ -3328,6 +3470,7 @@ class MetacouplingAssistant:
         Returns ``None`` if nothing can be resolved or deps are missing.
         """
         self._last_map_notice = None
+        self._last_flow_parse_warnings = []
         try:
             if self._has_unsupported_automap_scope(parsed):
                 self._last_map_notice = self._format_map_unavailable_notice(
@@ -3535,13 +3678,15 @@ class MetacouplingAssistant:
 
                     focal_country = get_adm1_country(adm1_code) or ""
                     parsed_flows = list(parsed.iter_flow_entries())
-                    map_flows_legacy = (
-                        self._resolve_flows_for_adm1_map(
-                            parsed, adm1_code, focal_country,
+                    if parsed_flows:
+                        map_flows_legacy, flow_warnings = (
+                            self._resolve_flows_for_adm1_map(
+                                parsed, adm1_code, focal_country,
+                            )
                         )
-                        if parsed_flows
-                        else []
-                    )
+                        self._last_flow_parse_warnings = list(flow_warnings)
+                    else:
+                        map_flows_legacy = []
                     map_flows_legacy = self._merge_map_flows(
                         map_flows_legacy,
                         self._structured_web_flow_dicts(),
@@ -3627,11 +3772,13 @@ class MetacouplingAssistant:
                     )
                 return None
             parsed_flows = list(parsed.iter_flow_entries())
-            map_flows_legacy = (
-                self._resolve_flows_for_map(parsed, focal_code)
-                if parsed_flows and focal_code
-                else []
-            )
+            if parsed_flows and focal_code:
+                map_flows_legacy, flow_warnings = self._resolve_flows_for_map(
+                    parsed, focal_code,
+                )
+                self._last_flow_parse_warnings = list(flow_warnings)
+            else:
+                map_flows_legacy = []
             map_flows_legacy = self._merge_map_flows(
                 map_flows_legacy,
                 self._structured_web_flow_dicts(),
@@ -4159,6 +4306,7 @@ class MetacouplingAssistant:
             web_map_signals=self._last_web_map_signals,
             structured_supplement=structured_supplement,
             map_notice=map_notice,
+            flow_parse_warnings=list(self._last_flow_parse_warnings),
         )
 
     @staticmethod
