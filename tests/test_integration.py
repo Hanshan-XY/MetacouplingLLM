@@ -26,7 +26,9 @@ and electric vehicle (EV) manufacturing systems. The extraction of lithium \
 in South America and its use in EV batteries in Europe creates \
 socioeconomic-environmental interactions across vast distances.
 
-### 2. Systems Identification
+### 2. Telecoupling Analysis
+
+#### 2.1 Systems Identification
 
 - **Sending**: Lithium mining regions in Chile and Argentina (Lithium \
 Triangle). Human: mining companies, local communities, government agencies. \
@@ -40,7 +42,7 @@ landscapes, waste management systems.
 shifts), Bolivia (adjacent Lithium Triangle country), downstream communities \
 along water systems.
 
-### 3. Flows Analysis
+#### 2.2 Flows Analysis
 
 - [Matter] Chile/Argentina → Europe: Lithium carbonate and lithium \
 hydroxide shipped for battery manufacturing
@@ -51,7 +53,7 @@ mining technology innovations
 - [Energy] Chile/Argentina → Europe: Embodied energy in extracted and \
 processed lithium products
 
-### 4. Agents
+#### 2.3 Agents
 
 - Lithium mining corporations (SQM, Albemarle) in sending systems
 - European auto manufacturers (VW, BMW, Stellantis) in receiving systems
@@ -60,7 +62,7 @@ processed lithium products
 - Indigenous communities near salt flats (sending/spillover)
 - International commodity traders (intermediary)
 
-### 5. Causes
+#### 2.4 Causes
 
 **Proximate causes**
 - Rapid growth of EV market in Europe driven by climate policy
@@ -71,7 +73,7 @@ processed lithium products
 - Technological advances in lithium-ion battery chemistry
 - European industrial policy to secure critical mineral supply chains
 
-### 6. Effects
+#### 2.5 Effects
 
 **Sending system**
 - [Socioeconomic] Mining revenue and employment; but community displacement \
@@ -90,7 +92,7 @@ challenges
 geopolitical tensions over critical minerals
 - [Environmental] Potential mining expansion into Bolivia's Salar de Uyuni
 
-### 7. Research Gaps and Suggestions
+### 3. Research Gaps and Suggestions
 
 - Quantify water footprint of lithium extraction relative to local supplies
 - Assess battery recycling telecouplings (end-of-life flows back to \

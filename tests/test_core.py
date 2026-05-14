@@ -501,7 +501,12 @@ class TestAutoMapUnavailableNotice:
         assert result.map is None
         assert result.map_notice is not None
         assert "did not generate a figure" in result.map_notice
-        assert "city- or watershed-level geometries" in result.map_notice
+        # The notice now lists the unsupported geometry kinds in a
+        # comma-separated phrase: "city, watershed, protected-area,
+        # reserve, or park geometries". Just check that 'watershed'
+        # is mentioned, since this test is specifically about a
+        # watershed input.
+        assert "watershed" in result.map_notice
         assert result.map_notice in result.formatted
 
 
@@ -2498,8 +2503,11 @@ class TestFormatterAdm1PericouplingInfo:
         output = AnalysisFormatter.format_full(parsed)
         assert "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)" in output
         assert "Michigan (USA023)" in output
-        assert "Same-country neighbors:" in output
-        assert "Cross-border neighbors:" in output
+        # Headers were title-cased: "Same-country neighbors:" ->
+        # "Domestic Neighbors:" and "Cross-border neighbors:" ->
+        # "Cross Border Neighbors:".
+        assert "Domestic Neighbors:" in output
+        assert "Cross Border Neighbors:" in output
         assert "Ontario" in output
 
     def test_country_info_renders_unchanged(self):

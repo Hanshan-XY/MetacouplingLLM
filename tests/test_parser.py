@@ -22,7 +22,9 @@ coffee-consuming systems. The international coffee trade connects Ethiopian \
 farming communities with European consumer markets across large geographic \
 distances.
 
-### 2. Systems Identification
+### 2. Telecoupling Analysis
+
+#### 2.1 Systems Identification
 
 - **Sending**: Ethiopian coffee-growing regions (Sidamo, Yirgacheffe). Human \
 components: smallholder farmers, cooperatives, export agencies. Natural \
@@ -36,7 +38,7 @@ components: minimal direct natural component at destination.
 by market competition; neighboring Ethiopian regions affected by land-use \
 change.
 
-### 3. Flows Analysis
+#### 2.2 Flows Analysis
 
 - [Matter] Ethiopia → Europe: Coffee beans exported from Ethiopian farms to \
 European markets
@@ -45,7 +47,7 @@ development aid for coffee communities
 - [Information] Bidirectional: Market prices, quality standards, \
 certification requirements
 
-### 4. Agents
+#### 2.3 Agents
 
 - Smallholder coffee farmers in Ethiopia (sending)
 - Coffee cooperatives and unions (sending)
@@ -54,7 +56,7 @@ certification requirements
 - Consumers in Europe (receiving)
 - Ethiopian and EU government trade agencies (both)
 
-### 5. Causes
+#### 2.4 Causes
 
 **Proximate causes**
 - Growing European demand for specialty and single-origin coffee
@@ -65,7 +67,7 @@ certification requirements
 - Global coffee market liberalization
 - Rising consumer interest in ethical sourcing and sustainability
 
-### 6. Effects
+#### 2.5 Effects
 
 **Sending system**
 - [Socioeconomic] Income for farming communities; dependence on volatile prices
@@ -80,7 +82,7 @@ practices maintain forest cover
 - [Socioeconomic] Competitive pressure on other coffee origins
 - [Environmental] Potential displacement of production to less sustainable areas
 
-### 7. Research Gaps and Suggestions
+### 3. Research Gaps and Suggestions
 
 - Quantify virtual water and carbon flows embedded in the coffee trade
 - Assess feedback effects: how European demand shapes Ethiopian land use
@@ -153,13 +155,15 @@ MOCK_MULTILINE_FLOWS = """\
 
 This study involves **telecoupling**.
 
-### 2. Systems Identification
+### 2. Telecoupling Analysis
+
+#### 2.1 Systems Identification
 
 - **Sending**: Ethiopian coffee regions
 - **Receiving**: European markets
 - **Spillover**: Other coffee origins
 
-### 3. Flows Analysis
+#### 2.2 Flows Analysis
 
 **Matter Flow**
 
@@ -179,22 +183,22 @@ coffee sector, financial incentives for sustainable practices.
 - **Description**: Market information, consumer preferences, sustainability \
 standards, agricultural practices.
 
-### 4. Agents
+#### 2.3 Agents
 
 - Ethiopian coffee farmers
 - European importers
 
-### 5. Causes
+#### 2.4 Causes
 
 **Proximate causes**
 - Growing demand for Ethiopian coffee
 
-### 6. Effects
+#### 2.5 Effects
 
 **Sending system**
 - Income for farming communities
 
-### 7. Research Gaps and Suggestions
+### 3. Research Gaps and Suggestions
 
 - Assess environmental footprint
 """
@@ -236,12 +240,14 @@ MOCK_NUMBERED_FLOWS = """\
 
 This study involves **telecoupling**.
 
-### 2. Systems Identification
+### 2. Telecoupling Analysis
+
+#### 2.1 Systems Identification
 
 - **Sending**: Ethiopia
 - **Receiving**: European markets
 
-### 3. Flows Analysis
+#### 2.2 Flows Analysis
 
 1. **Matter Flow**
 - Ethiopia → Europe
@@ -255,21 +261,21 @@ This study involves **telecoupling**.
 - Bidirectional (Ethiopia ↔ Europe)
 - Market demand signals, quality standards, and information on sustainable practices.
 
-### 4. Agents
+#### 2.3 Agents
 
 - Ethiopian coffee farmers
 
-### 5. Causes
+#### 2.4 Causes
 
 **Proximate causes**
 - Growing demand
 
-### 6. Effects
+#### 2.5 Effects
 
 **Sending system**
 - Income for communities
 
-### 7. Research Gaps and Suggestions
+### 3. Research Gaps and Suggestions
 
 - Assess environmental footprint
 """
@@ -335,7 +341,9 @@ MOCK_NESTED_SYSTEMS = """\
 
 This research involves **telecoupling**.
 
-### 2. Systems Identification
+### 2. Telecoupling Analysis
+
+#### 2.1 Systems Identification
 
 **Sending System**: Ethiopia
 
@@ -361,25 +369,25 @@ nations affected by market competition.
 experiencing land-use pressure.
 - **Geographic scope**: Major global coffee-producing regions outside Ethiopia.
 
-### 3. Flows Analysis
+#### 2.2 Flows Analysis
 
 - [Matter] Ethiopia → Europe: Coffee beans exported
 
-### 4. Agents
+#### 2.3 Agents
 
 - Ethiopian coffee farmers
 
-### 5. Causes
+#### 2.4 Causes
 
 **Proximate causes**
 - Growing demand
 
-### 6. Effects
+#### 2.5 Effects
 
 **Sending system**
 - Income for communities
 
-### 7. Research Gaps and Suggestions
+### 3. Research Gaps and Suggestions
 
 - Assess environmental footprint
 """
@@ -517,7 +525,9 @@ MOCK_GPT51_RESPONSE = """\
 
 This research examines the **telecoupling** involved in Michigan's pork exports.
 
-### 2. Systems Identification
+### 2. Telecoupling Analysis
+
+#### 2.1 Systems Identification
 
 #### **Sending System: Michigan Pork Production System**
 
@@ -537,7 +547,7 @@ This research examines the **telecoupling** involved in Michigan's pork exports.
 - **Natural Subsystem**: Great Lakes ecosystem, shared watersheds
 - **Geographic Scope**: Ohio, Indiana, Wisconsin
 
-### 3. Flows Analysis
+#### 2.2 Flows Analysis
 
 **1. Material Flows**
 - **Direction**: Michigan → China, Japan, Mexico
@@ -547,18 +557,18 @@ This research examines the **telecoupling** involved in Michigan's pork exports.
 - **Direction**: China, Japan, Mexico → Michigan
 - **Description**: Payment for pork exports
 
-### 4. Agents
+#### 2.3 Agents
 
 - Michigan pork farmers (sending)
 - Meatpacking companies (sending)
 - International importers (receiving)
 
-### 5. Causes
+#### 2.4 Causes
 
 **Socioeconomic**
 - Growing demand for affordable protein in import markets
 
-### 6. Effects
+#### 2.5 Effects
 
 **Biogeochemical**
 - Nutrient runoff from concentrated pork production
