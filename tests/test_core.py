@@ -2867,6 +2867,228 @@ class TestFormatterAdm1PericouplingInfo:
 
 
 # ---------------------------------------------------------------------------
+# Flow-category aliasing — _FLOW_CATEGORY_ALIASES / _normalize_flow_category
+# ---------------------------------------------------------------------------
+
+
+class TestFlowCategoryAliases:
+    """The ``_FLOW_CATEGORY_ALIASES`` table maps LLM slip / subset terms
+    onto the six Liu 2017 canonical categories.  These tests exercise
+    the helper directly and via the two consumer code paths."""
+
+    # --- Helper-level tests ----------------------------------------------
+
+    @pytest.mark.parametrize("raw,expected", [
+        # canonical forms pass through unchanged
+        ("matter",      "matter"),
+        ("capital",     "capital"),
+        ("information", "information"),
+        ("energy",      "energy"),
+        ("people",      "people"),
+        ("organisms",   "organisms"),
+    ])
+    def test_canonical_categories_pass_through(self, raw, expected):
+        from metacouplingllm.core import _normalize_flow_category
+        assert _normalize_flow_category(raw) == expected
+
+    @pytest.mark.parametrize("alias,canonical", [
+        # matter aliases
+        ("material",    "matter"),
+        ("materials",   "matter"),
+        ("goods",       "matter"),
+        ("commodity",   "matter"),
+        ("commodities", "matter"),
+        ("cargo",       "matter"),
+        ("food",        "matter"),
+        # capital aliases
+        ("financial",   "capital"),
+        ("money",       "capital"),
+        ("monetary",    "capital"),
+        ("investment",  "capital"),
+        ("cash",        "capital"),
+        ("currency",    "capital"),
+        ("funds",       "capital"),
+        ("payment",     "capital"),
+        ("payments",    "capital"),
+        # information aliases
+        ("data",        "information"),
+        ("knowledge",   "information"),
+        ("info",        "information"),
+        ("signals",     "information"),
+        # energy aliases
+        ("electricity", "energy"),
+        ("electrical",  "energy"),
+        ("electric",    "energy"),
+        ("fuel",        "energy"),
+        ("fuels",       "energy"),
+        # people aliases
+        ("humans",      "people"),
+        ("migration",   "people"),
+        ("migrants",    "people"),
+        ("labor",       "people"),
+        ("labour",      "people"),
+        ("workers",     "people"),
+        ("tourists",    "people"),
+        ("tourism",     "people"),
+        ("personnel",   "people"),
+        ("passengers",  "people"),
+        # organisms aliases
+        ("organism",    "organisms"),
+        ("species",     "organisms"),
+        ("wildlife",    "organisms"),
+        ("animals",     "organisms"),
+        ("plants",      "organisms"),
+        ("livestock",   "organisms"),
+    ])
+    def test_alias_normalises_to_canonical(self, alias, canonical):
+        from metacouplingllm.core import _normalize_flow_category
+        assert _normalize_flow_category(alias) == canonical
+
+    @pytest.mark.parametrize("alias,canonical", [
+        ("Material", "matter"),
+        ("GOODS", "matter"),
+        ("  Money  ", "capital"),
+        ("Electricity", "energy"),
+        ("TOURISM", "people"),
+    ])
+    def test_case_and_whitespace_insensitive(self, alias, canonical):
+        """``_normalize_flow_category`` strips + lowercases the input."""
+        from metacouplingllm.core import _normalize_flow_category
+        assert _normalize_flow_category(alias) == canonical
+
+    @pytest.mark.parametrize("rejected", [
+        # Genuinely ambiguous — kept rejected on purpose.
+        "power",       # political vs electrical vs computational
+        "products",    # digital (information) vs physical (matter)
+        "resources",   # could be people / energy / money / matter
+        "services",    # capital / people / information
+        "seeds",       # organisms vs harvested commodity
+        "crops",       # standing crop vs harvested grain
+        "economic",    # capital vs trade-in-goods
+        # Clearly outside the framework
+        "miscellaneous",
+        "other",
+        "xyz",
+        # Empty / whitespace
+        "",
+        "   ",
+    ])
+    def test_rejected_terms_return_none(self, rejected):
+        """Terms that are ambiguous or outside the framework must
+        return ``None`` so the caller can drop the flow."""
+        from metacouplingllm.core import _normalize_flow_category
+        assert _normalize_flow_category(rejected) is None
+
+    def test_alias_table_targets_are_all_canonical(self):
+        """Every value in ``_FLOW_CATEGORY_ALIASES`` must be one of the
+        six canonical Liu 2017 categories — a structural invariant
+        that prevents accidental typos (e.g. ``"capitall"``)."""
+        from metacouplingllm.core import (
+            _CANONICAL_FLOW_CATEGORIES, _FLOW_CATEGORY_ALIASES,
+        )
+        for alias, target in _FLOW_CATEGORY_ALIASES.items():
+            assert target in _CANONICAL_FLOW_CATEGORIES, (
+                f"alias {alias!r} maps to non-canonical {target!r}"
+            )
+
+    def test_alias_table_no_canonical_alias_to_itself(self):
+        """Canonical names should not appear as keys of the alias
+        table — they are recognised by the canonical-set check
+        directly, and listing them here would be confusing."""
+        from metacouplingllm.core import (
+            _CANONICAL_FLOW_CATEGORIES, _FLOW_CATEGORY_ALIASES,
+        )
+        for canonical in _CANONICAL_FLOW_CATEGORIES:
+            assert canonical not in _FLOW_CATEGORY_ALIASES, (
+                f"{canonical!r} should not be in the alias table"
+            )
+
+    # --- Integration via _extract_map_data_from_analysis -----------------
+
+    @staticmethod
+    def _make_advisor(fake_json):
+        import json
+
+        from metacouplingllm.llm.client import LLMResponse
+
+        class _StubClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content=json.dumps(fake_json))
+
+        return MetacouplingAssistant(
+            llm_client=_StubClient(),
+            auto_map=False,
+        )
+
+    @staticmethod
+    def _basic_parsed():
+        from ._helpers import make_parsed_analysis
+        return make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "United States"}},
+        )
+
+    @pytest.mark.parametrize("llm_label,canonical", [
+        ("goods",       "matter"),
+        ("money",       "capital"),
+        ("electricity", "energy"),
+        ("tourism",     "people"),
+        ("livestock",   "organisms"),
+        ("info",        "information"),
+    ])
+    def test_extract_map_data_aliases_subset_terms(
+        self, llm_label, canonical,
+    ):
+        """LLM-emitted subset terms (e.g. ``"electricity"``) are
+        normalised to their canonical category by the structured
+        extraction path."""
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": ["CHN"],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": llm_label,
+                    "source": "USA",
+                    "target": "CHN",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert len(result["flows"]) == 1
+        assert result["flows"][0]["category"] == canonical
+
+    @pytest.mark.parametrize("rejected_label", [
+        "power", "products", "resources", "services", "economic", "xyz",
+    ])
+    def test_extract_map_data_drops_rejected_categories(
+        self, rejected_label,
+    ):
+        """Ambiguous / unknown category labels still cause the flow
+        to be silently dropped."""
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": ["CHN"],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": rejected_label,
+                    "source": "USA",
+                    "target": "CHN",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result["flows"] == []
+
+
+# ---------------------------------------------------------------------------
 # _FLOW_ARROW_RE consistency tests
 # ---------------------------------------------------------------------------
 

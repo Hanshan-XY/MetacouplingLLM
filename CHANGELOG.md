@@ -40,6 +40,19 @@ file. The format is loosely based on
   `receiving_countries` or `spillover_countries`.  Closes the gap
   where these flows were silently dropped on the primary path even
   after the resolver-path single-region rendering was added.
+- **Flow-category alias table** (`_FLOW_CATEGORY_ALIASES`).  LLMs
+  occasionally emit narrower or near-synonym category labels (e.g.
+  `"goods"`, `"money"`, `"electricity"`, `"tourism"`, `"livestock"`,
+  `"info"`) instead of the six canonical Liu 2017 categories.  The new
+  module-level alias table maps 37 such labels onto the right canonical
+  bucket (`matter` / `capital` / `information` / `energy` / `people` /
+  `organisms`) before validation, so the flow survives instead of being
+  silently dropped.  A new `_normalize_flow_category(raw)` helper does
+  the lookup; both `_extract_map_data_from_analysis` and the structured-
+  extraction supplement now use it (replacing two ad-hoc local rewrite
+  dicts).  Genuinely ambiguous terms (`power`, `products`, `resources`,
+  `services`, `economic`, `seeds`, `crops`) are still rejected on
+  purpose, with rationale in code comments.
 
 ### Changed
 
