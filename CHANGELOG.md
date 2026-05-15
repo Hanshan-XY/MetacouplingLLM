@@ -66,6 +66,25 @@ file. The format is loosely based on
   keys: `target_supranational` (the canonical display name) and
   `target_supranational_members` (the list of member ISO codes).
   Country-pair flows are unchanged.
+- Loosened three prompt-budget caps in
+  `_extract_map_data_from_analysis` so the second LLM call sees
+  enough context to recover bilateral specifics:
+  - Flow `description` cap raised from 100 → 500 chars.  Bilateral
+    country lists ("Henan, Shanghai, Liaoning, …") frequently sit
+    past char 100 and were being truncated mid-word.
+  - System text cap raised from 400 → 800 chars **and** fields are
+    now emitted in priority order — `name` and `geographic_scope`
+    first, then `human_subsystem` / `natural_subsystem` /
+    `description`, then any unexpected fields.  Guarantees the
+    high-signal `geographic_scope` field reaches the LLM even when
+    subsystems are verbose.
+  - Hardcoded `[:10]` cap on web snippets replaced with a new
+    module constant `_MAX_WEB_SNIPPETS_IN_MAP_PROMPT = 100`.  The
+    user's `web_search_max_results` setting now flows through to the
+    map-extraction LLM (previously, anything above 10 was silently
+    dropped at the extraction step).  The constant acts purely as a
+    defensive ceiling against pathological configs.
+  No user-facing API changes; existing callers and tests unaffected.
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 
