@@ -29,6 +29,17 @@ file. The format is loosely based on
   and `supranational_display_name(member_codes)` live in
   `metacouplingllm.knowledge.countries` (internal — not exported
   from the top-level package).
+- **Supranational recognition on the primary map path**
+  (`_extract_map_data_from_analysis`).  When the structured-extraction
+  LLM call returns a flow whose `target` field is an umbrella name
+  (`"European Union"`, `"EU"`, `"ASEAN"`, `"NAFTA"`, `"USMCA"`)
+  rather than an ISO 3166-1 alpha-3 code, the post-processor stamps
+  the same `target_supranational` / `target_supranational_members`
+  fields the resolver path stamps.  Same conditional rule applies —
+  the umbrella is dropped if any member ISO code is already in
+  `receiving_countries` or `spillover_countries`.  Closes the gap
+  where these flows were silently dropped on the primary path even
+  after the resolver-path single-region rendering was added.
 
 ### Changed
 

@@ -2489,8 +2489,10 @@ class MetacouplingAssistant:
             get_adm1_info,
         )
         from metacouplingllm.knowledge.countries import (
+            expand_supranational,
             get_country_name,
             resolve_country_code,
+            supranational_display_name,
         )
         from metacouplingllm.knowledge.websearch import _extract_json_object
         from metacouplingllm.llm.client import Message
@@ -2737,6 +2739,11 @@ class MetacouplingAssistant:
         }
         flows: list[dict[str, object]] = []
         raw_flows = raw_obj.get("flows", [])
+        # Pre-compute the set of ISO codes the LLM already named
+        # explicitly, used by the conditional supranational rule below
+        # (only stamp single-region treatment when no member is already
+        # named \u2014 otherwise the umbrella is redundant).
+        already_named: set[str] = set(receiving) | set(spillover)
         if isinstance(raw_flows, list):
             for item in raw_flows:
                 if not isinstance(item, dict):
@@ -2746,24 +2753,68 @@ class MetacouplingAssistant:
                     cat = {"material": "matter", "financial": "capital"}[cat]
                 if cat not in valid_categories:
                     continue
-                src = resolve_country_code(str(item.get("source", "")))
-                tgt = resolve_country_code(str(item.get("target", "")))
-                if not src or not tgt or src == tgt:
-                    continue
+                raw_src = str(item.get("source", ""))
+                raw_tgt = str(item.get("target", ""))
+                src = resolve_country_code(raw_src)
+                tgt = resolve_country_code(raw_tgt)
                 bidir = bool(item.get("bidirectional", False))
-                src_name = get_country_name(src) or src
-                tgt_name = get_country_name(tgt) or tgt
-                if bidir:
-                    direction = f"Bidirectional ({src_name} \u2194 {tgt_name})"
-                else:
-                    direction = f"{src_name} \u2192 {tgt_name}"
-                flows.append({
-                    "category": cat,
-                    "source": src,
-                    "target": tgt,
-                    "direction": direction,
-                    "bidirectional": bidir,
-                })
+
+                # Country-pair flow (the common case).
+                if src and tgt and src != tgt:
+                    src_name = get_country_name(src) or src
+                    tgt_name = get_country_name(tgt) or tgt
+                    if bidir:
+                        direction = (
+                            f"Bidirectional ({src_name} \u2194 {tgt_name})"
+                        )
+                    else:
+                        direction = f"{src_name} \u2192 {tgt_name}"
+                    flows.append({
+                        "category": cat,
+                        "source": src,
+                        "target": tgt,
+                        "direction": direction,
+                        "bidirectional": bidir,
+                    })
+                    continue
+
+                # Supranational target fallback: the LLM may slip past
+                # rule #1 ("use ISO codes") and emit "EU" / "European
+                # Union" / "ASEAN" / "NAFTA" / "USMCA" as the target.
+                # Recognise the umbrella and stamp the supranational
+                # fields so the renderer treats it as a single region.
+                if src and not tgt:
+                    members = expand_supranational(raw_tgt)
+                    if not members:
+                        continue
+                    # Conditional rule (mirrors the resolver-path
+                    # behaviour): if any member is already named in
+                    # receiving_countries / spillover_countries, the
+                    # umbrella is redundant \u2014 skip this flow.
+                    if already_named & set(members):
+                        continue
+                    # Avoid self-loops where src is a member.
+                    if src in members:
+                        continue
+                    display = supranational_display_name(members)
+                    if not display:
+                        continue
+                    src_name = get_country_name(src) or src
+                    if bidir:
+                        direction = (
+                            f"Bidirectional ({src_name} \u2194 {display})"
+                        )
+                    else:
+                        direction = f"{src_name} \u2192 {display}"
+                    flows.append({
+                        "category": cat,
+                        "source": src,
+                        "target": None,
+                        "direction": direction,
+                        "bidirectional": bidir,
+                        "target_supranational": display,
+                        "target_supranational_members": list(members),
+                    })
 
         result = {
             "focal_country": focal,
@@ -3512,15 +3563,27 @@ class MetacouplingAssistant:
                 if adm1_region:
                     mentioned_adm1_set.discard(adm1_region)
 
-                # Build flow dicts for the renderer
+                # Build flow dicts for the renderer.  Propagate the
+                # optional supranational marker fields when present so
+                # the renderer can do single-region rendering for
+                # primary-path flows that target an umbrella entity
+                # (EU / ASEAN / NAFTA / USMCA).
                 map_flows: list[dict[str, str]] = []
                 for f in raw_flows:
                     if isinstance(f, dict) and f.get("direction"):
-                        map_flows.append({
+                        entry: dict[str, object] = {
                             "category": str(f.get("category", "")),
                             "direction": str(f["direction"]),
                             "description": str(f.get("description", "")),
-                        })
+                        }
+                        sup_name = f.get("target_supranational")
+                        sup_members = f.get("target_supranational_members")
+                        if sup_name and sup_members:
+                            entry["target_supranational"] = sup_name
+                            entry["target_supranational_members"] = list(
+                                sup_members
+                            )
+                        map_flows.append(entry)
 
                 # Merge with web-structured flows if available
                 map_flows = self._merge_map_flows(

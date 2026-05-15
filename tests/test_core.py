@@ -2424,6 +2424,321 @@ class TestStructuredMapData:
             )
 
 
+class TestExtractMapDataSupranational:
+    """Primary path (`_extract_map_data_from_analysis`) recognises
+    supranational entities (EU / ASEAN / NAFTA / USMCA) when the LLM
+    slips past the prompt's "use ISO codes" rule and emits an umbrella
+    name as a flow target.
+
+    Closes the gap left in PR #5: the resolver-path supranational
+    handling there only fired for the legacy fallback path.  These
+    tests exercise the structured (LLM-extracted) primary path."""
+
+    @staticmethod
+    def _make_advisor(fake_json):
+        """Build an assistant with a stubbed LLM client that returns
+        ``fake_json`` (a dict) as the structured-extraction response."""
+        import json
+
+        from metacouplingllm.llm.client import LLMResponse
+
+        class _StubClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content=json.dumps(fake_json))
+
+        return MetacouplingAssistant(
+            llm_client=_StubClient(),
+            auto_map=False,
+        )
+
+    @staticmethod
+    def _basic_parsed():
+        """A minimal ParsedAnalysis good enough to feed the extractor."""
+        from ._helpers import make_parsed_analysis
+        return make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Michigan, USA",
+                    "geographic_scope": "Michigan, USA",
+                },
+            },
+        )
+
+    def test_eu_target_stamps_supranational_fields(self):
+        """LLM returns 'European Union' as target → flow gets the
+        ``target_supranational`` and ``target_supranational_members``
+        marker fields stamped on it."""
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": [],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "European Union",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result is not None
+        assert len(result["flows"]) == 1
+        flow = result["flows"][0]
+        assert flow["target_supranational"] == "European Union"
+        assert len(flow["target_supranational_members"]) == 27
+        assert "European Union" in flow["direction"]
+        assert flow["target"] is None  # supranational replaces single ISO
+        assert flow["source"] == "USA"
+
+    def test_eu_skipped_when_member_already_in_receiving(self):
+        """Conditional rule: if the LLM listed any EU member country
+        explicitly in receiving_countries, the umbrella mention is
+        treated as redundant and the flow is dropped."""
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": ["DEU", "FRA"],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "European Union",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        # Flow is dropped — no supranational stamp, no country flow.
+        # The LLM's specific receiving_countries (DEU, FRA) are the
+        # source of truth.
+        assert result["flows"] == []
+
+    def test_eu_skipped_when_member_in_spillover(self):
+        """Same conditional rule but checking spillover_countries."""
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": [],
+            "spillover_countries": ["FRA"],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "European Union",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result["flows"] == []
+
+    def test_asean_target_stamps_10_members(self):
+        advisor = self._make_advisor({
+            "focal_country": "BRA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": [],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "BRA",
+                    "target": "ASEAN",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert len(result["flows"]) == 1
+        assert result["flows"][0]["target_supranational"] == "ASEAN"
+        assert len(result["flows"][0]["target_supranational_members"]) == 10
+
+    def test_nafta_and_usmca_are_recognised(self):
+        for alias in ("NAFTA", "USMCA"):
+            advisor = self._make_advisor({
+                "focal_country": "CHN",
+                "adm1_region": None,
+                "mentioned_adm1_regions": [],
+                "receiving_countries": [],
+                "spillover_countries": [],
+                "flows": [
+                    {
+                        "category": "matter",
+                        "source": "CHN",
+                        "target": alias,
+                        "bidirectional": False,
+                    },
+                ],
+            })
+            result = advisor._extract_map_data_from_analysis(
+                self._basic_parsed(),
+            )
+            assert len(result["flows"]) == 1
+            members = result["flows"][0]["target_supranational_members"]
+            assert sorted(members) == sorted(["USA", "MEX", "CAN"])
+
+    def test_self_loop_member_dropped(self):
+        """If the source is itself a member of the supranational, the
+        flow is dropped (would render as a self-loop into its own
+        region)."""
+        advisor = self._make_advisor({
+            "focal_country": "FRA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": [],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "FRA",
+                    "target": "European Union",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result["flows"] == []
+
+    def test_unknown_target_still_dropped(self):
+        """Non-supranational, non-ISO targets (typos, fictional places)
+        keep the existing silent-drop behaviour."""
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": [],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "Atlantis",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result["flows"] == []
+
+    def test_regular_country_pair_unchanged(self):
+        """Regression: regular ISO-pair flows still emit the same
+        country-to-country flow dict (no supranational fields)."""
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": ["CHN"],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "CHN",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert len(result["flows"]) == 1
+        flow = result["flows"][0]
+        assert flow["source"] == "USA"
+        assert flow["target"] == "CHN"
+        assert "target_supranational" not in flow
+        assert "target_supranational_members" not in flow
+
+    def test_eu_aliases_resolve(self):
+        """The 'EU' / 'eu' alias for 'European Union' should produce
+        the same supranational stamp."""
+        for alias in ("EU", "eu", "e.u.", "the european union"):
+            advisor = self._make_advisor({
+                "focal_country": "USA",
+                "adm1_region": None,
+                "mentioned_adm1_regions": [],
+                "receiving_countries": [],
+                "spillover_countries": [],
+                "flows": [
+                    {
+                        "category": "matter",
+                        "source": "USA",
+                        "target": alias,
+                        "bidirectional": False,
+                    },
+                ],
+            })
+            result = advisor._extract_map_data_from_analysis(
+                self._basic_parsed(),
+            )
+            assert len(result["flows"]) == 1, f"alias {alias!r} dropped"
+            assert (
+                result["flows"][0]["target_supranational"]
+                == "European Union"
+            )
+
+    def test_generate_map_propagates_supranational_fields(self):
+        """The downstream `_generate_map` flow-copy loop must keep the
+        supranational marker fields so the renderer can use them.
+
+        Uses a country-level focal (no ADM1 region) so we exercise the
+        country-level rendering path, then stubs ``plot_analysis_map``
+        to inspect the flow dict the renderer is actually handed.
+        """
+        advisor = self._make_advisor({
+            "focal_country": "USA",
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": [],
+            "spillover_countries": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "European Union",
+                    "bidirectional": False,
+                },
+            ],
+        })
+        captured: dict[str, object] = {}
+
+        def _fake_plot(parsed, **kwargs):
+            captured["flows"] = kwargs.get("flows")
+            return None
+
+        import metacouplingllm.visualization.worldmap as wm
+        original = wm.plot_analysis_map
+        wm.plot_analysis_map = _fake_plot
+        try:
+            from ._helpers import make_parsed_analysis
+            # Country-level system name avoids an ADM1 hit that would
+            # route us through plot_focal_adm1_map instead.
+            parsed = make_parsed_analysis(
+                coupling_classification="telecoupling",
+                systems={"sending": {"name": "United States"}},
+            )
+            parsed.map_data = advisor._extract_map_data_from_analysis(parsed)
+            advisor._generate_map(parsed)
+        finally:
+            wm.plot_analysis_map = original
+
+        assert "flows" in captured, (
+            "plot_analysis_map was never called — _generate_map likely "
+            "took the ADM1 branch instead of the country-level branch."
+        )
+        assert captured["flows"] is not None
+        assert len(captured["flows"]) == 1
+        passed_flow = captured["flows"][0]
+        assert passed_flow.get("target_supranational") == "European Union"
+        assert len(
+            passed_flow.get("target_supranational_members", [])
+        ) == 27
+
+
 class TestValidateAdm1Pericoupling:
     """Tests for ADM1-level pericoupling validation."""
 
