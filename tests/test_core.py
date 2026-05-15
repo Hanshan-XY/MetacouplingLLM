@@ -2867,6 +2867,246 @@ class TestFormatterAdm1PericouplingInfo:
 
 
 # ---------------------------------------------------------------------------
+# Prompt-budget caps in _extract_map_data_from_analysis
+# ---------------------------------------------------------------------------
+
+
+class TestExtractMapDataPromptBudgets:
+    """Verify the loosened prompt-budget caps in
+    ``_extract_map_data_from_analysis`` preserve high-signal content
+    (bilateral country names, geographic scope, web snippets up to
+    user-configured limits) instead of silently truncating it."""
+
+    @staticmethod
+    def _make_advisor_with_capture(**kwargs):
+        """Build an advisor whose LLM client records the user_text it
+        receives, then returns a minimal valid JSON response so the
+        extraction completes without errors.
+
+        ``kwargs`` are forwarded to ``MetacouplingAssistant`` (e.g.
+        ``web_search_max_results=20``)."""
+        import json
+
+        captured: dict[str, str] = {}
+
+        from metacouplingllm.llm.client import LLMResponse
+
+        class _CaptureClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                # Grab the user message — that's where the summary
+                # of the analysis lives.
+                for m in messages:
+                    if m.role == "user":
+                        captured["user_text"] = m.content
+                        break
+                return LLMResponse(content=json.dumps({
+                    "focal_country": "BRA",
+                    "adm1_region": None,
+                    "mentioned_adm1_regions": [],
+                    "receiving_countries": ["CHN"],
+                    "spillover_countries": [],
+                    "flows": [],
+                }))
+
+        advisor = MetacouplingAssistant(
+            llm_client=_CaptureClient(),
+            auto_map=False,
+            **kwargs,
+        )
+        return advisor, captured
+
+    # --- Flow description cap (100 -> 500) -------------------------------
+
+    def test_flow_description_under_500_chars_preserved(self):
+        from ._helpers import make_parsed_analysis
+
+        advisor, captured = self._make_advisor_with_capture()
+        # 300-char description with bilateral specifics at the end
+        long_desc = (
+            "Soybeans exported from Mato Grosso, Brazil to Henan, "
+            "Shanghai, Liaoning, Guangdong, and other Chinese coastal "
+            "provinces, totaling 35.4 million tonnes per year across "
+            "the 2020-2024 period covered by this analysis with "
+            "particular concentration in the bilateral relationship "
+            "with eastern China"
+        )
+        assert 100 < len(long_desc) <= 500
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazil"}},
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → China",
+                "description": long_desc,
+            }],
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+        # Full description text should make it into the prompt
+        for needle in ("Henan", "Shanghai", "Liaoning", "Guangdong"):
+            assert needle in captured["user_text"], (
+                f"{needle!r} missing from prompt — flow description cap "
+                f"truncating below 500 chars?"
+            )
+
+    def test_flow_description_truncated_at_500(self):
+        from ._helpers import make_parsed_analysis
+
+        advisor, captured = self._make_advisor_with_capture()
+        # Construct a description with markers we can locate precisely.
+        # The 500-char cap should preserve everything up to char 500
+        # but drop "MARKER_PAST_CAP" which sits well past it.
+        early_marker = " Henan, Shanghai, "
+        long_desc = "X" * 200 + early_marker + "Y" * 400 + "MARKER_PAST_CAP"
+        assert len(long_desc) > 500
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazil"}},
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → China",
+                "description": long_desc,
+            }],
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+        # Early content (chars ~200) survives the cap.
+        assert "Henan" in captured["user_text"]
+        assert "Shanghai" in captured["user_text"]
+        # Content beyond char 500 (the marker is at char ~618) is dropped.
+        assert "MARKER_PAST_CAP" not in captured["user_text"]
+
+    # --- System text cap (400 -> 800) and field priority -----------------
+
+    def test_system_geographic_scope_survives_verbose_subsystems(self):
+        from ._helpers import make_parsed_analysis
+
+        advisor, captured = self._make_advisor_with_capture()
+        # Each subsystem ~300 chars; combined with name they would have
+        # blown past the old 400-char cap. With priority ordering +
+        # 800-char cap, geographic_scope must still appear.
+        verbose_human = (
+            "Large agribusinesses (Bunge, Cargill, ADM), smallholder "
+            "cooperatives, federal agricultural agencies, port "
+            "logistics operators, and rural land speculators driving "
+            "the soy frontier expansion into the Cerrado biome"
+        ) * 2
+        verbose_natural = (
+            "Cerrado savanna ecosystems, Amazon transition forests, "
+            "soybean monoculture landscapes, freshwater river systems "
+            "supporting both irrigation and downstream urban supply"
+        ) * 2
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Brazilian Soybean Production Complex",
+                    "human_subsystem": verbose_human,
+                    "natural_subsystem": verbose_natural,
+                    "geographic_scope": (
+                        "Mato Grosso, Pará, Rondônia, Goiás states"
+                    ),
+                },
+            },
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+        assert "geographic_scope: Mato Grosso" in captured["user_text"], (
+            "geographic_scope must survive priority ordering even when "
+            "subsystems are verbose"
+        )
+
+    def test_system_field_priority_order(self):
+        """``name`` < ``geographic_scope`` < ``human_subsystem`` in
+        the rendered prompt order."""
+        from ._helpers import make_parsed_analysis
+
+        advisor, captured = self._make_advisor_with_capture()
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Sample sending system",
+                    "human_subsystem": "Sample humans",
+                    "natural_subsystem": "Sample natural",
+                    "geographic_scope": "Sample geography",
+                },
+            },
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+        text = captured["user_text"]
+        name_idx = text.find("name: Sample sending system")
+        geo_idx = text.find("geographic_scope: Sample geography")
+        human_idx = text.find("human_subsystem: Sample humans")
+        natural_idx = text.find("natural_subsystem: Sample natural")
+        assert name_idx >= 0 and geo_idx >= 0 and human_idx >= 0
+        assert name_idx < geo_idx, "name must come before geographic_scope"
+        assert geo_idx < human_idx, (
+            "geographic_scope must come before human_subsystem"
+        )
+        assert human_idx < natural_idx, (
+            "low-priority field order: human before natural"
+        )
+
+    # --- Web-snippet cap respects user config ----------------------------
+
+    def test_web_snippets_respect_max_results(self):
+        """Setting ``web_search_max_results=20`` and supplying 20 mock
+        web results should put all 20 in the prompt — the previous
+        hardcoded ``[:10]`` cap dropped 10 of them silently."""
+        from ._helpers import make_parsed_analysis
+
+        advisor, captured = self._make_advisor_with_capture(
+            web_search_max_results=20,
+        )
+        advisor._last_web_results = [
+            {"title": f"Result {i}", "snippet": f"snip {i}"}
+            for i in range(20)
+        ]
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazil"}},
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+        # All 20 snippets should appear as [W1]..[W20]
+        for i in range(1, 21):
+            assert f"[W{i}]" in captured["user_text"], (
+                f"[W{i}] missing from prompt — web snippet cap "
+                f"truncating below web_search_max_results?"
+            )
+
+    def test_web_snippets_capped_at_module_constant(self):
+        """If somehow more than ``_MAX_WEB_SNIPPETS_IN_MAP_PROMPT``
+        results are sitting on ``_last_web_results`` (e.g. user set
+        ``web_search_max_results=1000``), the defensive ceiling
+        caps the prompt at the module constant."""
+        from metacouplingllm.core import _MAX_WEB_SNIPPETS_IN_MAP_PROMPT
+
+        from ._helpers import make_parsed_analysis
+
+        # 150 > 100, simulating a pathological config
+        n = _MAX_WEB_SNIPPETS_IN_MAP_PROMPT + 50
+        advisor, captured = self._make_advisor_with_capture(
+            web_search_max_results=n,
+        )
+        advisor._last_web_results = [
+            {"title": f"Result {i}", "snippet": f"snip {i}"}
+            for i in range(n)
+        ]
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazil"}},
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+        # Up to the constant — present
+        assert f"[W{_MAX_WEB_SNIPPETS_IN_MAP_PROMPT}]" in (
+            captured["user_text"]
+        )
+        # Beyond the constant — absent
+        assert f"[W{_MAX_WEB_SNIPPETS_IN_MAP_PROMPT + 1}]" not in (
+            captured["user_text"]
+        )
+        assert f"[W{n}]" not in captured["user_text"]
+
+
+# ---------------------------------------------------------------------------
 # Flow-category aliasing — _FLOW_CATEGORY_ALIASES / _normalize_flow_category
 # ---------------------------------------------------------------------------
 

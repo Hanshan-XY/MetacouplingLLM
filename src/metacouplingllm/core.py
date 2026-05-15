@@ -79,6 +79,35 @@ _UNSUPPORTED_AUTOMAP_SCOPE_RE = re.compile(
 
 
 # ---------------------------------------------------------------------------
+# Prompt-budget configuration for the structured map-extraction LLM call
+# ---------------------------------------------------------------------------
+#
+# These constants govern how much of the parsed analysis is summarised into
+# the second LLM call inside ``_extract_map_data_from_analysis``.  They
+# replace previously hardcoded inline literals so the trade-offs are
+# documented and tunable in one place.
+#
+# Field-priority tuples: when summarising a system entry as
+# ``"key: value | key: value | ..."``, fields are emitted in this order.
+# ``name`` + ``geographic_scope`` carry the highest signal for map
+# extraction (they're how the LLM identifies countries / ADM1 regions),
+# so they go first and are guaranteed to survive truncation even when
+# verbose subsystem prose pushes the joined text past the per-system cap.
+_HIGH_PRIORITY_SYSTEM_FIELDS: tuple[str, ...] = ("name", "geographic_scope")
+_LOW_PRIORITY_SYSTEM_FIELDS: tuple[str, ...] = (
+    "human_subsystem", "natural_subsystem", "description",
+)
+
+# Defensive ceiling on the number of web-search snippets included in the
+# structured map-extraction prompt.  This is independent of the user's
+# ``web_search_max_results`` setting -- that setting already caps
+# ``self._last_web_results`` upstream.  The constant exists only to bound
+# prompt size if a user accidentally sets ``web_search_max_results`` to a
+# very large number.
+_MAX_WEB_SNIPPETS_IN_MAP_PROMPT: int = 100
+
+
+# ---------------------------------------------------------------------------
 # Flow-category aliasing
 # ---------------------------------------------------------------------------
 #
@@ -2616,17 +2645,35 @@ class MetacouplingAssistant:
         for role in ("focal", "adjacent", "sending", "receiving", "spillover"):
             entries = parsed.get_system_entries(role)
             for idx, entry in enumerate(entries[:2], 1):
-                text = " | ".join(
-                    f"{k}: {v}"
-                    for k, v in entry.items()
-                    if k != "role" and v
-                )
+                # Emit fields in priority order so ``name`` and
+                # ``geographic_scope`` are guaranteed to survive truncation
+                # at ``text[:800]`` even when subsystem prose is verbose.
+                ordered_parts: list[str] = []
+                seen_keys: set[str] = set()
+                for key in (
+                    _HIGH_PRIORITY_SYSTEM_FIELDS
+                    + _LOW_PRIORITY_SYSTEM_FIELDS
+                ):
+                    v = entry.get(key, "")
+                    if v:
+                        ordered_parts.append(f"{key}: {v}")
+                        seen_keys.add(key)
+                # Include any unexpected fields after the prioritised
+                # ones so we never silently lose data the parser
+                # surfaces under a non-standard key.
+                for k, v in entry.items():
+                    if k == "role" or k in seen_keys or not v:
+                        continue
+                    ordered_parts.append(f"{k}: {v}")
+                text = " | ".join(ordered_parts)
                 if text:
-                    parts.append(f"{role.title()} system {idx}: {text[:400]}")
+                    parts.append(f"{role.title()} system {idx}: {text[:800]}")
         for flow in list(parsed.iter_flow_entries())[:8]:
             cat = flow.get("category", "")
             dirn = flow.get("direction", "")
-            desc = flow.get("description", "")[:100]
+            # 500-char cap keeps bilateral country names (often listed
+            # late in a flow description) from being truncated mid-word.
+            desc = flow.get("description", "")[:500]
             parts.append(f"Flow [{cat}] {dirn}: {desc}")
 
         analysis_summary = "\n\n".join(parts)
@@ -2637,7 +2684,9 @@ class MetacouplingAssistant:
         web_snippet_text = ""
         if self._last_web_results:
             lines: list[str] = []
-            for idx, wr in enumerate(self._last_web_results[:10], 1):
+            for idx, wr in enumerate(
+                self._last_web_results[:_MAX_WEB_SNIPPETS_IN_MAP_PROMPT], 1,
+            ):
                 title = wr.get("title", "").strip()
                 snippet = wr.get("snippet", "").strip()[:200]
                 lines.append(f"[W{idx}] {title}: {snippet}")
