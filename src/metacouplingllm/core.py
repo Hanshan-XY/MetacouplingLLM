@@ -78,6 +78,115 @@ _UNSUPPORTED_AUTOMAP_SCOPE_RE = re.compile(
 )
 
 
+# ---------------------------------------------------------------------------
+# Flow-category aliasing
+# ---------------------------------------------------------------------------
+#
+# The Liu 2017 telecoupling framework (Table 1) defines six canonical flow
+# categories: matter, capital, information, energy, people, organisms.
+#
+# LLMs occasionally emit narrower or near-synonym labels (e.g. "goods",
+# "money", "electricity", "tourism", "livestock").  Each entry below maps a
+# slip into the right canonical bucket so the flow survives validation
+# instead of being silently dropped.
+#
+# Inclusion criteria — a candidate is added iff:
+#   1. It is a clear semantic equivalent of, or subset of, exactly one
+#      canonical category, AND
+#   2. It plausibly appears in real LLM output or research literature, AND
+#   3. It is NOT ambiguous between two categories.
+#
+# Notable rejections (kept here for posterity / reviewer reference):
+#   - "power"     — political vs market vs electrical power (ambiguous)
+#   - "products"  — digital products (information) vs physical goods (matter)
+#   - "resources" — too vague (people / energy / money / matter)
+#   - "services"  — capital / people / information all plausible
+#   - "seeds"     — propagules (organisms) vs harvested commodity (matter)
+#   - "crops"     — standing crop (organisms) vs harvested grain (matter)
+#   - "economic"  — capital vs trade-in-goods (matter)
+#
+# The lookup is case-insensitive — callers should ``str.strip().lower()``
+# the LLM-emitted category before consulting this dict.
+_FLOW_CATEGORY_ALIASES: dict[str, str] = {
+    # matter (physical goods, commodities)
+    "material":     "matter",
+    "materials":    "matter",
+    "goods":        "matter",
+    "commodity":    "matter",
+    "commodities":  "matter",
+    "cargo":        "matter",
+    "food":         "matter",
+    # capital (money, finance)
+    "financial":    "capital",
+    "money":        "capital",
+    "monetary":     "capital",
+    "investment":   "capital",
+    "cash":         "capital",
+    "currency":     "capital",
+    "funds":        "capital",
+    "payment":      "capital",
+    "payments":     "capital",
+    # information (data, knowledge, signals)
+    "data":         "information",
+    "knowledge":    "information",
+    "info":         "information",
+    "signals":      "information",
+    # energy (electrical, chemical, embodied)
+    "electricity":  "energy",
+    "electrical":   "energy",
+    "electric":     "energy",
+    "fuel":         "energy",
+    "fuels":        "energy",
+    # people (humans, migration, labor, tourism)
+    "humans":       "people",
+    "migration":    "people",
+    "migrants":     "people",
+    "labor":        "people",
+    "labour":       "people",
+    "workers":      "people",
+    "tourists":     "people",
+    "tourism":      "people",
+    "personnel":    "people",
+    "passengers":   "people",
+    # organisms (species, wildlife, livestock)
+    "organism":     "organisms",
+    "species":      "organisms",
+    "wildlife":     "organisms",
+    "animals":      "organisms",
+    "plants":       "organisms",
+    "livestock":    "organisms",
+}
+
+# The six canonical category names from Liu 2017 — the closed set every
+# valid flow must end up in after alias normalisation.
+_CANONICAL_FLOW_CATEGORIES: frozenset[str] = frozenset({
+    "matter",
+    "capital",
+    "information",
+    "energy",
+    "people",
+    "organisms",
+})
+
+
+def _normalize_flow_category(raw: str) -> str | None:
+    """Normalize a raw category label to a canonical Liu 2017 category.
+
+    Returns one of ``"matter" / "capital" / "information" / "energy" /
+    "people" / "organisms"``, or ``None`` if the label cannot be
+    confidently mapped.
+
+    The lookup is case-insensitive and tolerates surrounding whitespace.
+    """
+    cat = raw.strip().lower()
+    if not cat:
+        return None
+    cat = _FLOW_CATEGORY_ALIASES.get(cat, cat)
+    if cat in _CANONICAL_FLOW_CATEGORIES:
+        return cat
+    return None
+
+
 @dataclass
 class AnalysisResult:
     """The result of an analysis or refinement turn.
@@ -2732,11 +2841,11 @@ class MetacouplingAssistant:
             raw_obj.get("mentioned_adm1_regions"),
         )
 
-        # Validate flows
-        valid_categories = {
-            "matter", "material", "capital", "financial",
-            "information", "energy", "people", "organisms",
-        }
+        # Validate flows.  Category labels are normalised through the
+        # shared ``_FLOW_CATEGORY_ALIASES`` table so common slips like
+        # "goods", "money", "electricity", "tourism", "livestock" map
+        # to the right Liu 2017 canonical category instead of being
+        # silently dropped.
         flows: list[dict[str, object]] = []
         raw_flows = raw_obj.get("flows", [])
         # Pre-compute the set of ISO codes the LLM already named
@@ -2748,10 +2857,10 @@ class MetacouplingAssistant:
             for item in raw_flows:
                 if not isinstance(item, dict):
                     continue
-                cat = str(item.get("category", "")).strip().lower()
-                if cat in ("material", "financial"):
-                    cat = {"material": "matter", "financial": "capital"}[cat]
-                if cat not in valid_categories:
+                cat = _normalize_flow_category(
+                    str(item.get("category", "")),
+                )
+                if cat is None:
                     continue
                 raw_src = str(item.get("source", ""))
                 raw_tgt = str(item.get("target", ""))
@@ -3076,10 +3185,6 @@ class MetacouplingAssistant:
 
         # --- Validate + normalise ---------------------------------------
         n_valid_ids = len(self._last_rag_hits)
-        valid_categories = {
-            "matter", "capital", "information",
-            "energy", "people", "organisms",
-        }
 
         def _clean_ids(obj: object) -> list[int]:
             if not isinstance(obj, list):
@@ -3149,8 +3254,10 @@ class MetacouplingAssistant:
             for item in obj:
                 if not isinstance(item, dict):
                     continue
-                cat = str(item.get("category", "")).strip().lower()
-                if cat not in valid_categories:
+                cat = _normalize_flow_category(
+                    str(item.get("category", "")),
+                )
+                if cat is None:
                     continue
                 direction = str(item.get("direction", "")).strip()
                 if not direction:
