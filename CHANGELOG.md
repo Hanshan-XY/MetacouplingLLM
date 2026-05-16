@@ -113,6 +113,22 @@ file. The format is loosely based on
   keyword-only with a backward-compatible default; existing public
   callers of `format_evidence` are unaffected.
 
+### Fixed
+
+- The user-facing map-type notice ("a country-level metacoupling
+  map has been generated" vs the ADM1 variant) could disagree with
+  the actual rendered figure when the renderer's ADM1 attempt fell
+  through to a country-level map (e.g. `plot_focal_adm1_map`
+  raised on a missing shapefile region).  Previously `_build_result`
+  recomputed the type from `parsed.map_data["adm1_region"]` +
+  `_resolve_adm1_from_analysis` — the same inputs the renderer
+  used to *try* the ADM1 path — so a silent fall-through left the
+  notice claiming "ADM1" while `result.map` was a country-level
+  figure.  Fixed by recording the actually-rendered type in
+  `self._last_map_type` from inside `_generate_map` (only after a
+  successful render) and having `_build_result` read it instead of
+  recomputing.  No public API change.
+
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 
 Multi-turn citation disambiguation. **Recommended upgrade for anyone

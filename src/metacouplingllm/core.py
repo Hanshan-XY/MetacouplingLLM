@@ -737,6 +737,14 @@ class MetacouplingAssistant:
         self._last_web_map_signals: dict[str, object] | None = None
         self._last_map_notice: str | None = None
         self._last_flow_parse_warnings: list[dict[str, str]] = []
+        # Records what map type ``_generate_map`` actually rendered on
+        # the most recent call.  ``"adm1"`` / ``"country"`` / ``None``
+        # (when no figure was produced).  ``_build_result`` reads this
+        # so the user-facing notice always describes what was actually
+        # drawn, instead of recomputing the type from the same inputs
+        # and risking divergence when the renderer's ADM1 attempt
+        # silently falls through to a country-level map.
+        self._last_map_type: str | None = None
         self._prompt_builder = PromptBuilder(max_examples=max_examples)
         self._formatter = AnalysisFormatter()
 
@@ -3700,6 +3708,7 @@ class MetacouplingAssistant:
         """
         self._last_map_notice = None
         self._last_flow_parse_warnings = []
+        self._last_map_type = None
         try:
             if self._has_unsupported_automap_scope(parsed):
                 self._last_map_notice = self._format_map_unavailable_notice(
@@ -3834,7 +3843,11 @@ class MetacouplingAssistant:
                             f"{len(map_flows)} flows, "
                             f"mentioned_adm1={sorted(mentioned_adm1_set)}."
                         )
-                        return plot_focal_adm1_map(
+                        # Render first, stamp the type only on success —
+                        # if plot_focal_adm1_map raises, we fall through
+                        # to the country-level path below and the type
+                        # will be stamped "country" there instead.
+                        fig = plot_focal_adm1_map(
                             adm1_region,
                             shapefile=self._adm1_shapefile,
                             mentioned_countries=(
@@ -3847,6 +3860,8 @@ class MetacouplingAssistant:
                             mentioned_adm1_codes=mentioned_adm1_set,
                             flows=map_flows if map_flows else None,
                         )
+                        self._last_map_type = "adm1"
+                        return fig
                     except Exception as exc:
                         if self._verbose:
                             print(
@@ -3866,13 +3881,15 @@ class MetacouplingAssistant:
                     f"receiving={receiving}, "
                     f"{len(map_flows)} flows."
                 )
-                return plot_analysis_map(
+                fig = plot_analysis_map(
                     parsed,
                     adm0_shapefile=self._adm0_shapefile,
                     focal_code_override=focal_code,
                     mentioned_countries_override=mentioned,
                     flows=map_flows if map_flows else None,
                 )
+                self._last_map_type = "country"
+                return fig
 
             # ==============================================================
             # FALLBACK PATH: regex extraction (legacy)
@@ -3948,7 +3965,8 @@ class MetacouplingAssistant:
                             f"mentioned_adm1="
                             f"{sorted(mentioned_adm1_legacy)}."
                         )
-                    return plot_focal_adm1_map(
+                    # Render first, stamp the type only on success.
+                    fig = plot_focal_adm1_map(
                         adm1_code,
                         shapefile=self._adm1_shapefile,
                         mentioned_countries=(
@@ -3961,6 +3979,8 @@ class MetacouplingAssistant:
                             map_flows_legacy if map_flows_legacy else None
                         ),
                     )
+                    self._last_map_type = "adm1"
+                    return fig
                 except Exception as exc:
                     if self._verbose:
                         print(
@@ -4030,7 +4050,7 @@ class MetacouplingAssistant:
                     f"{focal_code or 'unknown'}, "
                     f"flows={len(map_flows_legacy)}."
                 )
-            return plot_analysis_map(
+            fig = plot_analysis_map(
                 parsed,
                 adm0_shapefile=self._adm0_shapefile,
                 # Skip spillover — they render as grey (NA).
@@ -4041,6 +4061,8 @@ class MetacouplingAssistant:
                     map_flows_legacy if map_flows_legacy else None
                 ),
             )
+            self._last_map_type = "country"
+            return fig
 
         except ImportError:
             self._last_map_notice = self._format_map_unavailable_notice(
@@ -4524,13 +4546,13 @@ class MetacouplingAssistant:
                 except Exception:
                     pass
 
-                # Determine map type for the notice
-                md = parsed.map_data
-                has_adm1 = (
-                    (md and md.get("adm1_region"))
-                    or self._resolve_adm1_from_analysis(parsed)
-                )
-                map_type = "adm1" if has_adm1 else "country"
+                # Use the map type that ``_generate_map`` actually
+                # rendered (recorded in ``self._last_map_type``).  This
+                # avoids the prior bug where the notice was recomputed
+                # from the same inputs the renderer used, and could
+                # disagree with reality when the renderer's ADM1 attempt
+                # silently fell through to a country-level map.
+                map_type = self._last_map_type or "country"
                 map_notice = self._format_map_notice(map_type)
                 formatted += map_notice
             elif self._last_map_notice:
