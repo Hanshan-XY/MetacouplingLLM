@@ -365,6 +365,63 @@ def _looks_like_reference_chunk(text: str) -> bool:
     return False
 
 
+# Hard char cap on individual chunk text.  Matches the LLM-side
+# passage budget (``_LLM_PASSAGE_MAX_CHARS`` / ``_PASSAGE_MAX_CHARS``)
+# so no retrieved chunk gets truncated when handed to the LLM.
+# The word-based ``max_chunk_words`` cap remains the primary control;
+# this constant only matters when a 250-word window contains very
+# long "words" (table cells, URLs, identifiers) that push past 5000
+# chars.
+_CHUNK_HARD_CHAR_CAP: int = 5000
+
+
+def _split_oversized(text: str, cap: int) -> list[str]:
+    """Split ``text`` into substrings each ``<= cap`` chars.
+
+    Tries break points in priority order so each sub-chunk ends on
+    a natural boundary when possible:
+
+      1. Paragraph break (``\\n\\n``)
+      2. Sentence-ending punctuation (``. ``, ``? ``, ``! ``)
+      3. Word boundary (space)
+      4. Hard char position (last-resort fallback)
+
+    A break point is only accepted when it sits past the midpoint
+    of the current window so we don't create tiny first-chunks
+    (e.g. when a sentence ends at char 100 of a 5,000-char window).
+
+    Returns ``[text]`` unchanged when ``len(text) <= cap``.
+    """
+    if len(text) <= cap:
+        return [text]
+
+    out: list[str] = []
+    remaining = text
+    while len(remaining) > cap:
+        window = remaining[:cap]
+        # Search backwards for the best break point in the window
+        # (last paragraph break, then last sentence end).
+        break_idx = -1
+        for pattern in ("\n\n", ". ", "? ", "! "):
+            idx = window.rfind(pattern)
+            if idx > cap // 2:
+                # Break AFTER the pattern (include the period etc.
+                # at the end of the prefix chunk).
+                break_idx = idx + len(pattern)
+                break
+        if break_idx == -1:
+            # No good punctuation break; fall back to last whitespace,
+            # then hard cut.
+            idx = window.rfind(" ")
+            break_idx = (idx + 1) if idx > cap // 2 else cap
+        out.append(remaining[:break_idx].rstrip())
+        remaining = remaining[break_idx:].lstrip()
+
+    if remaining:
+        out.append(remaining)
+    return out
+
+
 def _chunk_markdown(
     text: str,
     paper: Paper,
@@ -426,16 +483,28 @@ def _chunk_markdown(
             if len(chunk_words) >= 30 and not _looks_like_reference_chunk(
                 chunk_text
             ):
-                chunks.append(TextChunk(
-                    paper_key=paper.key,
-                    paper_title=paper.title,
-                    authors=paper.authors,
-                    year=paper.year,
-                    section=heading,
-                    text=chunk_text,
-                    chunk_index=chunk_idx,
-                ))
-                chunk_idx += 1
+                # Apply the hard char cap as a final pass.  Chunks <= cap
+                # pass through unchanged; oversized chunks split into
+                # sub-chunks on the best available boundary so no chunk
+                # exceeds the LLM passage budget by construction.
+                for sub_text in _split_oversized(
+                    chunk_text, _CHUNK_HARD_CHAR_CAP
+                ):
+                    if len(sub_text.split()) < 30:
+                        # Tail fragments shorter than 30 words after
+                        # splitting get the same treatment as regular
+                        # short chunks (dropped).
+                        continue
+                    chunks.append(TextChunk(
+                        paper_key=paper.key,
+                        paper_title=paper.title,
+                        authors=paper.authors,
+                        year=paper.year,
+                        section=heading,
+                        text=sub_text,
+                        chunk_index=chunk_idx,
+                    ))
+                    chunk_idx += 1
 
             # Advance with overlap
             if end >= len(words):
