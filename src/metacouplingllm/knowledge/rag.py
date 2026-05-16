@@ -504,6 +504,15 @@ def _citation_policy(section: str) -> tuple[int, float, int, int]:
     return 3, 0.20, 1, 3
 
 
+# Maximum per-passage character budget when ``format_evidence`` renders
+# the FULL chunk text (i.e. when called with ``max_chars=...``).  Used by
+# the RAG-only LLM-bound path so the LLM sees the same per-passage budget
+# as the framework analysis path's prompt builder.  The chunker caps
+# chunks at ~4700 chars max (p99 ~2000), so 5000 is effectively a no-op
+# for legitimate chunks while bounding pathological outliers.
+_LLM_PASSAGE_MAX_CHARS: int = 5000
+
+
 def _best_excerpt(
     text: str,
     anchor_text: str = "",
@@ -1540,6 +1549,8 @@ def format_evidence(
     anchor_text: str = "",
     backend: str = "tfidf",
     turn: int = 1,
+    *,
+    max_chars: int | None = None,
 ) -> str:
     """Format retrieved passages as a human-readable evidence block.
 
@@ -1559,6 +1570,15 @@ def format_evidence(
         1-indexed turn number used to render evidence headers as
         ``[Tk:N]`` matching the turn-scoped citation grammar. Default
         ``1``.
+    max_chars:
+        When ``None`` (default), each passage is rendered as a short
+        ``_best_excerpt`` (~300 chars) suitable for human display.
+        When given, each passage is rendered with its FULL chunk
+        text, truncated only if it exceeds ``max_chars``.  The
+        RAG-only LLM path uses ``max_chars=_LLM_PASSAGE_MAX_CHARS``
+        (5000) to give the LLM enough context to answer questions;
+        display-path callers keep the default to preserve readable
+        excerpts.
 
     Returns
     -------
@@ -1590,9 +1610,17 @@ def format_evidence(
         lines.append(f"      Confidence: {confidence} (score: {r.score:.3f})")
         lines.append(f"      ---")
 
-        # Show a short excerpt from the most relevant part of the chunk.
-        excerpt = _best_excerpt(chunk.text, anchor_text=anchor_text)
-        lines.append(f"      \"{excerpt}\"")
+        if max_chars is None:
+            # Display path: short excerpt for human readability.
+            rendered = _best_excerpt(chunk.text, anchor_text=anchor_text)
+        else:
+            # LLM-bound path: pass the full chunk, capped at max_chars.
+            # The RAG-only path uses this so the LLM sees the same
+            # per-passage budget as the framework analysis path.
+            rendered = chunk.text.strip()
+            if len(rendered) > max_chars:
+                rendered = rendered[: max_chars - 3].rstrip() + "..."
+        lines.append(f"      \"{rendered}\"")
         lines.append("")
 
     lines.append("=" * 70)

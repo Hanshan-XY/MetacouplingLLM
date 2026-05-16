@@ -475,3 +475,78 @@ class TestRagOnlyVisibility:
         liu_idx = formatted.index("Framing Sustainability")
         liu_score_idx = formatted.index("0.920", liu_idx)
         assert liu_idx < liu_score_idx
+
+
+# ---------------------------------------------------------------------------
+# RAG-only LLM passage budget — full chunks reach the LLM
+# ---------------------------------------------------------------------------
+
+
+class TestRagOnlyLLMPassageBudget:
+    """The RAG-only path sends a literature block to the LLM as part
+    of the user message.  Previously this used the dual-purpose
+    ``format_evidence`` helper's default 300-char excerpt — severely
+    under-using retrieved evidence in RAG-only mode (~16x smaller per
+    passage than the framework path).  The new
+    ``max_chars=_LLM_PASSAGE_MAX_CHARS`` (5000) parameter brings the
+    LLM-bound rendering up to parity with the framework path."""
+
+    def test_rag_only_sends_full_chunk_text_to_llm(self):
+        """End-to-end: a chunk with a marker at char ~1500 reaches
+        the LLM in RAG-only mode (would have been dropped under the
+        old 300-char excerpt cap)."""
+        from tests.conftest import (
+            _RecordingMockLLMClient, _RecordingMockRagEngine,
+        )
+        from metacouplingllm.knowledge.rag import (
+            RetrievalResult, TextChunk,
+        )
+
+        # ~3000-char chunk with a sentinel deliberately past char 1500
+        body = "lorem ipsum dolor sit amet " * 60   # ~1620 chars
+        marker = " SENTINEL_PAST_300_CHAR_EXCERPT_LIMIT "
+        chunk_text = body + marker + body
+        assert len(chunk_text) > 1500
+        # Marker sits at char ~1620 — far past the old 300-char excerpt.
+        assert chunk_text.index("SENTINEL") > 1500
+
+        hits = [
+            RetrievalResult(
+                chunk=TextChunk(
+                    paper_key="long_paper",
+                    paper_title="Long bilateral paper",
+                    authors="Test",
+                    year=2024,
+                    section="Results",
+                    text=chunk_text,
+                    chunk_index=0,
+                ),
+                score=0.9,
+            )
+        ]
+
+        client = _RecordingMockLLMClient(
+            responses=["A short answer with no citations."],
+        )
+        advisor = MetacouplingAssistant(
+            llm_client=client,
+            max_examples=0,
+            coupling_analysis=False,    # RAG-only mode
+        )
+        advisor._rag_engine = _RecordingMockRagEngine(
+            results=hits, backend="embeddings",
+        )
+
+        advisor.analyze("a query that triggers retrieval")
+
+        # The captured user message should contain the marker —
+        # confirming the LLM saw the full chunk text, not a 300-char
+        # excerpt.
+        assert client.call_count == 1
+        user_msg = next(
+            m.content for m in client.calls[0] if m.role == "user"
+        )
+        assert "SENTINEL_PAST_300_CHAR_EXCERPT_LIMIT" in user_msg, (
+            "RAG-only LLM should see full chunk text per passage; the "
+            "300-char excerpt cap is for human display only."
+        )

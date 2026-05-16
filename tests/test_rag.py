@@ -505,6 +505,84 @@ class TestFormatEvidence:
 
 
 # ---------------------------------------------------------------------------
+# format_evidence — LLM-bound mode (max_chars parameter)
+# ---------------------------------------------------------------------------
+
+
+class TestFormatEvidenceLLMMode:
+    """``format_evidence`` is dual-purpose:
+
+    * Default (``max_chars=None``) — short ``_best_excerpt`` (~300
+      chars) suitable for human display in the formatted evidence
+      block at the bottom of an analysis result.
+    * With ``max_chars`` provided — full chunk text capped at that
+      value, used by the RAG-only path so the LLM sees enough context
+      to answer questions.
+
+    These tests exercise the new keyword-only ``max_chars`` parameter
+    introduced to give the RAG-only LLM path parity with the framework
+    analysis path's per-passage budget.
+    """
+
+    def _long_chunk(self, text: str) -> "RetrievalResult":
+        return RetrievalResult(
+            chunk=TextChunk(
+                paper_key="test_2020",
+                paper_title="Test paper",
+                authors="Author A",
+                year=2020,
+                section="Results",
+                text=text,
+                chunk_index=0,
+            ),
+            score=0.85,
+        )
+
+    def test_default_max_chars_none_uses_excerpts(self):
+        """With no ``max_chars``, a long chunk is rendered as a short
+        excerpt — content past ~300 chars is dropped."""
+        long_text = "A" * 2000 + " MARKER_PAST_EXCERPT " + "B" * 500
+        results = [self._long_chunk(long_text)]
+        text = format_evidence(results)
+        assert "MARKER_PAST_EXCERPT" not in text, (
+            "Excerpt should not include content past ~300 chars"
+        )
+
+    def test_max_chars_given_uses_full_text(self):
+        """With ``max_chars`` provided, the full chunk text appears
+        in the output (when within the cap)."""
+        # ~3000 chars with a marker near the end — well past the
+        # default 300-char excerpt limit but within max_chars=5000.
+        body = ("This sentence has bilateral country names. " * 65)
+        long_text = body + " MARKER_NEAR_END_OF_CHUNK"
+        assert 1500 < len(long_text) < 5000
+        results = [self._long_chunk(long_text)]
+        text = format_evidence(results, max_chars=5000)
+        assert "MARKER_NEAR_END_OF_CHUNK" in text, (
+            "Full chunk text should appear when max_chars is given"
+        )
+
+    def test_max_chars_truncates_when_exceeded(self):
+        """When the chunk text is longer than ``max_chars``, the
+        output is truncated and ends in ``...``."""
+        # Marker placed at char ~700, max_chars set to 500 — marker
+        # should NOT appear and the trailing "..." suffix should.
+        long_text = "X" * 700 + " MARKER_PAST_500 " + "Y" * 1000
+        results = [self._long_chunk(long_text)]
+        text = format_evidence(results, max_chars=500)
+        assert "MARKER_PAST_500" not in text
+        assert "..." in text, (
+            "Truncated rendering should include the '...' suffix"
+        )
+
+    def test_llm_passage_max_chars_constant_is_5000(self):
+        """Lock the constant value so future tweaks are intentional
+        and cross-reviewed."""
+        from metacouplingllm.knowledge.rag import _LLM_PASSAGE_MAX_CHARS
+        assert _LLM_PASSAGE_MAX_CHARS == 5000
+
+
+# ---------------------------------------------------------------------------
 # RAG Engine integration (uses temp directory)
 # ---------------------------------------------------------------------------
 
