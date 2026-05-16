@@ -161,6 +161,19 @@ file. The format is loosely based on
   `chunk_embeddings.npy` and `chunk_embeddings.manifest.json` are
   regenerated as part of this PR (chunk count rises from 10,032
   to 10,039; manifest fingerprint changes).
+- `tests/test_rag.py::TestEmbeddingRetriever::test_query_returns_results_with_precomputed`
+  fed the retriever a 384-dim precomputed embedding array but never
+  overrode the embedder, so `EmbeddingRetriever.query()` lazily
+  loaded the real `BAAI/bge-base-en-v1.5` model (768-dim) and the
+  cosine-similarity matmul (`chunk_vecs @ query_vec`) failed with a
+  `ValueError: ... size 768 is different from 384`.  Fixed by
+  installing a small `_FakeEmbedder` that emits a 384-dim query
+  vector — mirroring the pattern the sibling
+  `test_deduplicates_by_paper_key` already uses.  No production-code
+  change; pre-existing test bug (default embedding model has been
+  768-dim since the initial commit) that was masked whenever
+  `fastembed` was unavailable, since the whole class is skipped
+  under `@pytest.mark.skipif(not HAS_FASTEMBED, ...)`.
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 
