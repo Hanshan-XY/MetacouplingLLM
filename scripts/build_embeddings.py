@@ -4,7 +4,7 @@
 Runs the fastembed encoder over every chunk in the bundled RAG corpus
 (``Papers.zip`` → 9,581 chunks as of writing) and saves the resulting
 (n_chunks, dims) numpy array to
-``src/metacoupling/data/chunk_embeddings.npy``.
+``src/metacouplingllm/data/chunk_embeddings.npy``.
 
 This file is bundled with the package so users never have to re-encode
 the corpus. The build script should be re-run whenever:
@@ -77,7 +77,7 @@ def main() -> int:
         "--output",
         default=None,
         help="Output path for the .npy file. Defaults to "
-             "src/metacoupling/data/chunk_embeddings.npy",
+             "src/metacouplingllm/data/chunk_embeddings.npy",
     )
     args = parser.parse_args()
 
@@ -104,7 +104,7 @@ def main() -> int:
     )
 
     output_path = Path(args.output) if args.output else (
-        ROOT / "src" / "metacoupling" / "data" / "chunk_embeddings.npy"
+        ROOT / "src" / "metacouplingllm" / "data" / "chunk_embeddings.npy"
     )
 
     if output_path.exists() and not args.force:

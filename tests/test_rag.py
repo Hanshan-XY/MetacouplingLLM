@@ -14,11 +14,13 @@ from metacouplingllm.knowledge.rag import (
     TextChunk,
     TfIdfIndex,
     _build_query_from_analysis,
+    _CHUNK_HARD_CHAR_CAP,
     _chunk_markdown,
     _load_precomputed_embeddings,
     _match_paper_to_db,
     _normalise_for_match,
     _score_to_confidence,
+    _split_oversized,
     _tokenise,
     annotate_citations,
     compute_chunk_fingerprint,
@@ -177,6 +179,93 @@ class TestTokenise:
 # Chunking
 # ---------------------------------------------------------------------------
 
+class TestSplitOversized:
+    """Unit tests for the ``_split_oversized`` text-splitting helper."""
+
+    def test_returns_unchanged_when_below_cap(self):
+        text = "short text under the cap"
+        out = _split_oversized(text, cap=100)
+        assert out == [text]
+
+    def test_splits_at_paragraph_break(self):
+        # Cap = 100; place a paragraph break past the midpoint (char 60).
+        first = "A" * 60
+        second = "B" * 60
+        text = first + "\n\n" + second
+        out = _split_oversized(text, cap=100)
+        assert len(out) == 2
+        assert all(len(s) <= 100 for s in out)
+        assert out[0] == first
+        assert out[1] == second
+
+    def test_splits_at_sentence_end(self):
+        # No paragraph break; sentence end at char 70 (past midpoint of 100).
+        prefix = "X" * 68 + "."  # ends with "." at index 68
+        text = prefix + " " + "Y" * 60
+        out = _split_oversized(text, cap=100)
+        assert len(out) == 2
+        assert all(len(s) <= 100 for s in out)
+        # The period is part of the first chunk.
+        assert out[0].endswith(".")
+        assert out[1].startswith("Y")
+
+    def test_falls_back_to_word_boundary(self):
+        # No punctuation; just words.  Cap = 50, give a long string of
+        # 4-char tokens separated by spaces so a space sits past the
+        # midpoint.
+        text = " ".join(["word"] * 30)  # ~149 chars, no punctuation
+        out = _split_oversized(text, cap=50)
+        assert len(out) >= 2
+        assert all(len(s) <= 50 for s in out)
+        # Word boundary split: no chunk should start or end mid-word
+        # (i.e. with a partial "word").
+        for s in out:
+            assert s.startswith("word")
+            assert s.endswith("word")
+
+    def test_hard_cuts_when_no_whitespace(self):
+        # Pathological "AAAA..." with no whitespace at all.
+        text = "A" * 250
+        out = _split_oversized(text, cap=100)
+        assert len(out) == 3
+        assert all(len(s) <= 100 for s in out)
+        # Reconstructs original text exactly (no whitespace lost).
+        assert "".join(out) == text
+
+    def test_multiple_passes(self):
+        # 3x cap → at least 3 sub-chunks, all <= cap.
+        text = " ".join(["alpha"] * 200)  # ~1200 chars
+        cap = 400
+        out = _split_oversized(text, cap=cap)
+        assert len(out) >= 3
+        assert all(len(s) <= cap for s in out)
+
+    def test_no_break_below_midpoint(self):
+        # Punctuation break very early in the window must NOT fire;
+        # walks forward to the next break or hard cut instead.
+        # Cap = 200.  Place ". " at char 30 (way before midpoint 100),
+        # then a "real" break (paragraph) past the midpoint.
+        text = (
+            "A" * 28
+            + ". "
+            + "B" * 100
+            + "\n\n"
+            + "C" * 100
+        )
+        out = _split_oversized(text, cap=200)
+        assert len(out) == 2
+        # The first chunk must NOT split at the early ". " — verify
+        # by checking that the second chunk does not start with "B".
+        assert out[1].startswith("C")
+
+    def test_strips_whitespace_at_boundaries(self):
+        # Sub-chunks should have no leading or trailing whitespace.
+        text = "X" * 60 + ".  " + "Y" * 60 + ".  " + "Z" * 60
+        out = _split_oversized(text, cap=100)
+        for s in out:
+            assert s == s.strip()
+
+
 class TestChunking:
 
     def _make_paper(self):
@@ -281,6 +370,70 @@ class TestChunking:
         assert len(chunks) > 0
         assert all("Innovation, leadership, and management" not in c.text for c in chunks)
         assert any("namibia" in c.text for c in chunks)
+
+    # --- Hard char cap integration tests --------------------------------
+
+    def test_oversized_chunk_splits_into_multiple(self):
+        # Dense body: 250 "words" of 50 chars each = ~12,500 chars in
+        # a single 250-word window.  Without the hard cap this would
+        # produce a single 12,500-char chunk; with the cap it should
+        # split into at least 3 sub-chunks, all <= 5000 chars.
+        long_word = "X" * 50
+        dense_body = " ".join([long_word] * 250)
+        md = f"## Dense Section\n\n{dense_body}"
+        paper = self._make_paper()
+        chunks = _chunk_markdown(md, paper)
+        assert len(chunks) >= 3
+        for c in chunks:
+            assert len(c.text) <= _CHUNK_HARD_CHAR_CAP, (
+                f"chunk {c.chunk_index} is {len(c.text)} chars, "
+                f"exceeds hard cap {_CHUNK_HARD_CHAR_CAP}"
+            )
+
+    def test_normal_chunks_unaffected(self):
+        # Typical paper with normal-length words: every chunk is well
+        # under the hard cap, so _split_oversized is a no-op and the
+        # chunker output is byte-identical to the pre-cap behaviour.
+        md = textwrap.dedent("""\
+        ## Introduction
+
+        """ + " ".join(["word"] * 300) + """
+
+        ## Methods
+
+        """ + " ".join(["method"] * 200))
+        paper = self._make_paper()
+        chunks = _chunk_markdown(md, paper)
+        assert len(chunks) >= 2
+        for c in chunks:
+            # Every chunk must be well under the cap (these are 4-char
+            # words; 250 of them = ~1250 chars).
+            assert len(c.text) < _CHUNK_HARD_CHAR_CAP
+
+    def test_chunk_indexes_remain_sequential(self):
+        # When an oversized chunk splits, the resulting sub-chunks must
+        # get sequential chunk_index values with no gaps.
+        long_word = "Y" * 50
+        dense_body = " ".join([long_word] * 250)
+        md = textwrap.dedent(f"""\
+        ## First
+
+        {" ".join(["short"] * 100)}
+
+        ## Dense
+
+        {dense_body}
+
+        ## Last
+
+        {" ".join(["tail"] * 100)}
+        """)
+        paper = self._make_paper()
+        chunks = _chunk_markdown(md, paper)
+        indexes = [c.chunk_index for c in chunks]
+        assert indexes == list(range(len(chunks))), (
+            f"chunk_index values are not sequential: {indexes}"
+        )
 
 
 # ---------------------------------------------------------------------------

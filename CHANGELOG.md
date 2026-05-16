@@ -144,6 +144,23 @@ file. The format is loosely based on
   `coupling_classification` text is present the note now reads
   neutrally instead of claiming consistency that wasn't checked.
   No public API change.
+- `_chunk_markdown` (the corpus chunker) was capping chunks by
+  **word count** (`max_chunk_words=250`) but had no char-based
+  cap.  When a section's body was dense (long table cells,
+  scientific identifiers, URLs), 250 "words" could exceed 5,000
+  chars — and those chunks were then silently truncated by
+  `format_evidence(..., max_chars=_LLM_PASSAGE_MAX_CHARS)` when
+  the LLM received them.  Measured on the bundled corpus, 6 of
+  10,032 chunks exceeded 5,000 chars; the worst was 13,488 chars
+  (losing ~63% of its content on truncation).  Fixed by adding a
+  new `_CHUNK_HARD_CHAR_CAP = 5000` constant plus a
+  `_split_oversized` helper that splits oversized chunks on the
+  best available boundary (paragraph → sentence → word → hard
+  char position).  After this change every chunk fits within the
+  LLM passage budget by construction.  Bundled
+  `chunk_embeddings.npy` and `chunk_embeddings.manifest.json` are
+  regenerated as part of this PR (chunk count rises from 10,032
+  to 10,039; manifest fingerprint changes).
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 
