@@ -128,6 +128,22 @@ file. The format is loosely based on
   `self._last_map_type` from inside `_generate_map` (only after a
   successful render) and having `_build_result` read it instead of
   recomputing.  No public API change.
+- `_validate_adm1_pericoupling` was unconditionally writing
+  `"LLM classification is consistent with the ADM1 pericoupling
+  database."` to `parsed.pericoupling_info["note"]` regardless of
+  whether the LLM's classification actually agreed with the
+  database — the country-level sibling `_validate_pericoupling`
+  performed a real comparison, but the ADM1 path was just stamping
+  the text.  Fixed by classifying each mentioned ADM1 region
+  (via `_extract_mentioned_adm1_from_text`) against the focal's
+  database neighbour set and emitting a "Consider revising."
+  warning on mismatch (mirrors the country-level branching
+  exactly: warn if DB shows adjacent partners but the LLM didn't
+  classify as pericoupling, or if DB shows only non-adjacent
+  partners but the LLM didn't classify as telecoupling).  When no
+  `coupling_classification` text is present the note now reads
+  neutrally instead of claiming consistency that wasn't checked.
+  No public API change.
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 
