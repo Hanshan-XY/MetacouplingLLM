@@ -768,3 +768,207 @@ class TestSupplementIntoMapBridge:
         advisor._merge_supplement_into_map_data(parsed, supp)
         assert "CHN" not in parsed.map_data["receiving_countries"]
         assert "JPN" in parsed.map_data["receiving_countries"]
+
+
+# ---------------------------------------------------------------------------
+# Draft-summary caps in _structured_extract_supplement
+# ---------------------------------------------------------------------------
+
+
+class TestStructuredExtractionDraftCaps:
+    """The supplement LLM receives a brief recap of the parsed analysis
+    (the "draft summary") so it can identify what's already been
+    covered and avoid re-emitting duplicates.  The per-flow
+    ``description`` cap and the three per-system subfield caps were
+    historically tighter than the same fields on the map-extraction
+    path.  PR #9 raised them to 500 / 400 chars respectively to match
+    the PR #8 changes; these tests prove the new caps actually flow
+    through to what the supplement LLM sees."""
+
+    @staticmethod
+    def _empty_supplement_json() -> str:
+        """JSON the supplement LLM returns when it finds nothing —
+        used as a no-op response so the tests focus on what the LLM
+        was *shown*, not what it extracted."""
+        return json.dumps({
+            "additional_sending_mentions": [],
+            "additional_receiving_mentions": [],
+            "additional_spillover_mentions": [],
+            "sending_subsystem_fills": {
+                "human_subsystem": None, "natural_subsystem": None,
+                "geographic_scope": None, "evidence_passage_ids": [],
+            },
+            "receiving_subsystem_fills": {
+                "human_subsystem": None, "natural_subsystem": None,
+                "geographic_scope": None, "evidence_passage_ids": [],
+            },
+            "spillover_subsystem_fills": {
+                "human_subsystem": None, "natural_subsystem": None,
+                "geographic_scope": None, "evidence_passage_ids": [],
+            },
+            "supplementary_flows": [],
+        })
+
+    @staticmethod
+    def _build_advisor_with_parsed(parsed) -> tuple[
+        "MetacouplingAssistant", "object"
+    ]:
+        """Wire up an assistant with a recording LLM client and a mock
+        RAG engine that returns a single retrieval hit (so the
+        supplement function actually runs — it early-returns when
+        ``_last_rag_hits`` is empty).
+
+        Returns ``(advisor, captured_user_text_callable)``.  Calling
+        ``advisor._structured_extract_supplement(parsed)`` populates
+        the captured prompt; the returned callable yields it.
+        """
+        from tests.conftest import (
+            _RecordingMockLLMClient, _RecordingMockRagEngine,
+        )
+        from metacouplingllm.knowledge.rag import RetrievalResult, TextChunk
+
+        # One trivial RAG hit so the supplement actually runs.
+        hits = [
+            RetrievalResult(
+                chunk=TextChunk(
+                    paper_key="dummy",
+                    paper_title="Dummy paper",
+                    authors="Test",
+                    year=2024,
+                    section="Discussion",
+                    text="Dummy chunk content for the supplement to read.",
+                    chunk_index=0,
+                ),
+                score=0.9,
+            )
+        ]
+        engine = _RecordingMockRagEngine(results=hits)
+        client = _RecordingMockLLMClient(
+            responses=[
+                TestStructuredExtractionDraftCaps._empty_supplement_json(),
+            ],
+        )
+        advisor = MetacouplingAssistant(
+            llm_client=client,
+            max_examples=0,
+            rag_mode="pre_retrieval",
+            rag_structured_extraction=True,
+        )
+        advisor._rag_engine = engine
+        # The supplement reads ``self._last_rag_hits``; populate it
+        # directly rather than running the full ``analyze()``.
+        advisor._last_rag_hits = hits
+
+        def get_user_text() -> str:
+            assert client.call_count == 1, (
+                f"expected exactly one supplement call, got "
+                f"{client.call_count}"
+            )
+            user = next(
+                m.content for m in client.calls[0] if m.role == "user"
+            )
+            return user
+
+        return advisor, get_user_text
+
+    # --- Flow description cap (100 -> 500) -------------------------------
+
+    def test_draft_flow_description_under_500_chars_preserved(self):
+        from ._helpers import make_parsed_analysis
+
+        # ~300-char description with bilateral specifics at the end
+        long_desc = (
+            "Soybeans exported from Mato Grosso, Brazil to Henan, "
+            "Shanghai, Liaoning, Guangdong, and other Chinese coastal "
+            "provinces, totaling 35.4 million tonnes per year across "
+            "the 2020-2024 period, with particular concentration in "
+            "the bilateral relationship with eastern China"
+        )
+        assert 100 < len(long_desc) <= 500
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazilian soybean industry"}},
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → China",
+                "description": long_desc,
+            }],
+        )
+        advisor, get_user_text = self._build_advisor_with_parsed(parsed)
+        advisor._structured_extract_supplement(parsed)
+        user_text = get_user_text()
+        # Each bilateral country name should reach the supplement LLM
+        for needle in ("Henan", "Shanghai", "Liaoning", "Guangdong"):
+            assert needle in user_text, (
+                f"{needle!r} missing from supplement prompt — "
+                f"flow description cap truncating below 500 chars?"
+            )
+
+    def test_draft_flow_description_truncated_at_500(self):
+        from ._helpers import make_parsed_analysis
+
+        # 200 chars of filler, then bilateral marker, then more
+        # filler, then a marker placed past char 500.
+        early_marker = " Henan, Shanghai, "
+        long_desc = "X" * 200 + early_marker + "Y" * 400 + "MARKER_PAST_CAP"
+        assert len(long_desc) > 500
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazilian soybean industry"}},
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → China",
+                "description": long_desc,
+            }],
+        )
+        advisor, get_user_text = self._build_advisor_with_parsed(parsed)
+        advisor._structured_extract_supplement(parsed)
+        user_text = get_user_text()
+        # Early content (~char 200) survives.
+        assert "Henan" in user_text
+        assert "Shanghai" in user_text
+        # Content past char 500 is dropped.
+        assert "MARKER_PAST_CAP" not in user_text
+
+    # --- Subsystem caps (120 -> 400) -------------------------------------
+
+    def test_draft_subsystem_caps_at_400(self):
+        from ._helpers import make_parsed_analysis
+
+        # Each subsystem field has a unique marker placed at char ~350
+        # (within the new 400 cap).  All three should appear in the
+        # supplement prompt.
+        human_text = (
+            "X" * 350 + " HUMAN_MARKER_AT_350 " + "Y" * 200
+            + "PAST_CAP_HUMAN"
+        )
+        natural_text = (
+            "X" * 350 + " NATURAL_MARKER_AT_350 " + "Y" * 200
+            + "PAST_CAP_NATURAL"
+        )
+        geo_text = (
+            "X" * 350 + " GEO_MARKER_AT_350 " + "Y" * 200
+            + "PAST_CAP_GEO"
+        )
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Test sending system",
+                    "human_subsystem": human_text,
+                    "natural_subsystem": natural_text,
+                    "geographic_scope": geo_text,
+                },
+            },
+        )
+        advisor, get_user_text = self._build_advisor_with_parsed(parsed)
+        advisor._structured_extract_supplement(parsed)
+        user_text = get_user_text()
+        # Markers within the 400-char cap survive
+        assert "HUMAN_MARKER_AT_350" in user_text
+        assert "NATURAL_MARKER_AT_350" in user_text
+        assert "GEO_MARKER_AT_350" in user_text
+        # Markers past the 400-char cap are dropped
+        assert "PAST_CAP_HUMAN" not in user_text
+        assert "PAST_CAP_NATURAL" not in user_text
+        assert "PAST_CAP_GEO" not in user_text

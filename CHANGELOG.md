@@ -85,6 +85,17 @@ file. The format is loosely based on
     dropped at the extraction step).  The constant acts purely as a
     defensive ceiling against pathological configs.
   No user-facing API changes; existing callers and tests unaffected.
+- Loosened the draft-summary caps in
+  `_structured_extract_supplement` to mirror the
+  `_extract_map_data_from_analysis` changes above:
+  per-flow `description` cap 100 → 500 chars, and the three
+  per-system subfield caps (`human_subsystem`, `natural_subsystem`,
+  `geographic_scope`) each raised 120 → 400 chars.  These caps
+  govern the brief recap of the parsed analysis that the supplement
+  LLM uses to identify what's already covered, so undersized caps
+  were producing duplicate "additional mention" suggestions for
+  content that the draft already had.  Per-call cost increase is
+  ~+400 tokens; no user-facing API changes.
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 

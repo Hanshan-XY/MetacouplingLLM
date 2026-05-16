@@ -3067,11 +3067,17 @@ class MetacouplingAssistant:
                 if entry:
                     break
             if entry is not None:
+                # 400-char per-subfield cap mirrors the loosening done
+                # in `_extract_map_data_from_analysis` (PR #8).  The
+                # draft summary tells the supplement LLM what the main
+                # analysis already covered, so undersized caps here
+                # produced duplicate "additional mention" entries for
+                # content that was actually present in the draft.
                 bits = [
                     f"name={entry.get('name', '')!r}",
-                    f"human={entry.get('human_subsystem', '')[:120]!r}",
-                    f"natural={entry.get('natural_subsystem', '')[:120]!r}",
-                    f"geographic_scope={entry.get('geographic_scope', '')[:120]!r}",
+                    f"human={entry.get('human_subsystem', '')[:400]!r}",
+                    f"natural={entry.get('natural_subsystem', '')[:400]!r}",
+                    f"geographic_scope={entry.get('geographic_scope', '')[:400]!r}",
                 ]
                 draft_lines.append(f"{label.title()} system: " + ", ".join(bits))
             else:
@@ -3082,7 +3088,10 @@ class MetacouplingAssistant:
             for flow in parsed_flows[:12]:
                 cat = flow.get("category", "?")
                 direction = flow.get("direction", "?")
-                desc = flow.get("description", "")[:100]
+                # 500-char cap (matches the map-extraction path) keeps
+                # bilateral country names that often sit late in a flow
+                # description from being truncated mid-word.
+                desc = flow.get("description", "")[:500]
                 draft_lines.append(f"  - [{cat}] {direction}: {desc}")
         else:
             draft_lines.append("Existing flows: (none)")
