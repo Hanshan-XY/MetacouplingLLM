@@ -4240,6 +4240,10 @@ class MetacouplingAssistant:
         combined = " ".join(part for part in scope_parts if part)
         return bool(_UNSUPPORTED_AUTOMAP_SCOPE_RE.search(combined))
 
+    # ------------------------------------------------------------------
+    # Result builder
+    # ------------------------------------------------------------------
+
     @staticmethod
     def _format_web_sources(
         results: list[dict[str, str]],
@@ -4268,10 +4272,6 @@ class MetacouplingAssistant:
                 lines.append(f"      {snippet[:200]}")
             lines.append("")
         return "\n".join(lines)
-
-    # ------------------------------------------------------------------
-    # Result builder
-    # ------------------------------------------------------------------
 
     def _build_result(self, response: LLMResponse) -> AnalysisResult:
         """Parse and format an LLM response into an AnalysisResult."""
