@@ -4622,11 +4622,56 @@ class MetacouplingAssistant:
         if cross_border:
             peri_info["cross_border_neighbors"] = _names(cross_border)
 
-        # Consistency note
-        peri_info["note"] = (
-            "LLM classification is consistent with the "
-            "ADM1 pericoupling database."
+        # Real consistency check (mirrors the country-level sibling
+        # `_validate_pericoupling`).  Classify each mentioned ADM1
+        # region against the focal's database neighbour set: a
+        # mentioned region is "pericoupled" with the focal iff it
+        # appears in the focal's adjacency set (domestic or
+        # cross-border), otherwise "telecoupled".  Then compare the
+        # LLM's text-level classification against what the database
+        # actually shows.
+        mentioned_adm1 = (
+            MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
         )
+        mentioned_adm1.discard(adm1_code)  # never compare focal with itself
+        all_neighbours = domestic | cross_border
+        peri_partners = mentioned_adm1 & all_neighbours
+        tele_partners = mentioned_adm1 - all_neighbours
+        has_peri = bool(peri_partners)
+        has_tele = bool(tele_partners)
+
+        if parsed.coupling_classification:
+            llm_class = parsed.coupling_classification.lower()
+            if has_peri and "pericoupl" not in llm_class:
+                peri_info["note"] = (
+                    "The ADM1 pericoupling database indicates at "
+                    "least one mentioned subnational region is "
+                    "adjacent to the focal region, but the LLM did "
+                    "not classify this study as pericoupling.  "
+                    "Consider revising."
+                )
+            elif has_tele and not has_peri and "telecoupl" not in llm_class:
+                peri_info["note"] = (
+                    "The ADM1 pericoupling database indicates all "
+                    "mentioned subnational regions are non-adjacent "
+                    "(telecoupled) to the focal region, but the LLM "
+                    "did not classify this study as telecoupling.  "
+                    "Consider revising."
+                )
+            else:
+                peri_info["note"] = (
+                    "LLM classification is consistent with the "
+                    "ADM1 pericoupling database."
+                )
+        else:
+            # No LLM classification text to compare against — describe
+            # the database result neutrally instead of claiming a
+            # consistency that wasn't checked.
+            peri_info["note"] = (
+                "ADM1 pericoupling database returned neighbour "
+                "information for the focal region (no LLM "
+                "classification to cross-check)."
+            )
 
         parsed.pericoupling_info = peri_info
         return True

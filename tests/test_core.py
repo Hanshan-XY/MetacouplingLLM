@@ -2963,6 +2963,112 @@ class TestValidateAdm1Pericoupling:
         assert info.get("level") is None
         assert "BRA" in info.get("focal_country", "")
 
+    # ------------------------------------------------------------------
+    # Consistency-note branches (PR #13)
+    # ------------------------------------------------------------------
+    #
+    # Each test below picks a Michigan-focal fixture so the resolver
+    # locks onto USA023 (well-populated with both domestic and cross-
+    # border neighbours in the bundled DB).  Mentioned partners are
+    # placed in the flow ``direction`` field so the arrow-split path
+    # in ``_extract_mentioned_adm1_from_text`` picks them up.  The
+    # focal's ``geographic_scope`` includes "United States" so the
+    # relevance guard accepts USA-side ADM1 codes; tele-partner cases
+    # add the partner country name to the classification text so the
+    # guard accepts foreign codes too.
+
+    @staticmethod
+    def _michigan_parsed(classification, direction):
+        """Build a Michigan-focal ParsedAnalysis with the partner in
+        the flow direction (arrow-split path the extractor scans)."""
+        from ._helpers import make_parsed_analysis
+        return make_parsed_analysis(
+            coupling_classification=classification,
+            systems={
+                "sending": {
+                    "name": "Michigan",
+                    "geographic_scope": "Michigan, United States",
+                },
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": direction,
+                    "description": "trade",
+                },
+            ],
+        )
+
+    def test_note_consistent_when_classification_matches_pericoupled(self):
+        """LLM said pericoupling + DB shows Ohio is adjacent → consistent."""
+        parsed = self._michigan_parsed(
+            "Pericoupling between Michigan and Ohio in the United States",
+            "Michigan → Ohio",
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        note = parsed.pericoupling_info["note"]
+        assert "consistent" in note.lower()
+        assert "Consider revising" not in note
+
+    def test_note_warns_when_pericoupled_partners_but_no_peri_classification(self):
+        """LLM said telecoupling + DB shows Ohio is adjacent →
+        warns 'at least one mentioned subnational region is adjacent
+        ... Consider revising.'"""
+        parsed = self._michigan_parsed(
+            "Telecoupling: Michigan in United States exports to "
+            "international markets",
+            "Michigan → Ohio",
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        note = parsed.pericoupling_info["note"]
+        assert "at least one mentioned subnational region is adjacent" in note
+        assert "Consider revising" in note
+        assert "consistent" not in note.lower()
+
+    def test_note_consistent_when_classification_matches_telecoupled(self):
+        """LLM said telecoupling + DB shows Mato Grosso is non-adjacent
+        → consistent."""
+        parsed = self._michigan_parsed(
+            "Telecoupling between Michigan, United States and "
+            "Mato Grosso, Brazil",
+            "Michigan → Mato Grosso",
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        note = parsed.pericoupling_info["note"]
+        assert "consistent" in note.lower()
+        assert "Consider revising" not in note
+
+    def test_note_warns_when_only_telecoupled_but_no_tele_classification(self):
+        """LLM said pericoupling + DB shows Mato Grosso is non-adjacent
+        (no pericoupled partners mentioned) → warns 'all mentioned
+        subnational regions are non-adjacent ... Consider revising.'"""
+        parsed = self._michigan_parsed(
+            "Pericoupling between Michigan, United States and "
+            "Mato Grosso, Brazil",
+            "Michigan → Mato Grosso",
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        note = parsed.pericoupling_info["note"]
+        assert "all mentioned subnational regions are non-adjacent" in note
+        assert "Consider revising" in note
+        assert "consistent" not in note.lower()
+
+    def test_note_neutral_when_no_classification_text(self):
+        """No ``coupling_classification`` to compare against → note
+        describes the DB result neutrally rather than claiming a
+        consistency that wasn't checked."""
+        parsed = self._michigan_parsed(
+            "",  # no classification text
+            "Michigan → Ohio",
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        note = parsed.pericoupling_info["note"]
+        assert "consistent" not in note.lower(), (
+            "Note must NOT claim consistency when no classification "
+            "text was available to compare against."
+        )
+        assert "returned neighbour information" in note
+
 
 class TestFormatterAdm1PericouplingInfo:
     """Tests for ADM1-level pericoupling info in formatted output."""
