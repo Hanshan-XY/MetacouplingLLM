@@ -96,6 +96,22 @@ file. The format is loosely based on
   were producing duplicate "additional mention" suggestions for
   content that the draft already had.  Per-call cost increase is
   ~+400 tokens; no user-facing API changes.
+- Brought RAG-only LLM passage budget to parity with the framework
+  path.  `_analyze_rag_only` previously sent only ~300-char excerpts
+  of each retrieved chunk to the LLM (via the dual-purpose
+  `format_evidence` helper), while the framework analysis path sent
+  up to 5000 chars per passage via the prompt builder — a ~16×
+  asymmetry that severely under-used retrieved evidence in RAG-only
+  mode.  `format_evidence` gains a new keyword-only `max_chars`
+  parameter; when provided, the function renders FULL chunk text
+  capped at that value instead of a short excerpt.
+  `_analyze_rag_only` now passes `max_chars=_LLM_PASSAGE_MAX_CHARS`
+  (5000) so the LLM sees the same per-passage budget as the
+  framework path.  Display-path callers (`_build_result`) keep the
+  default `max_chars=None` and continue to render readable
+  ~300-char excerpts for the user.  The new parameter is
+  keyword-only with a backward-compatible default; existing public
+  callers of `format_evidence` are unaffected.
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 

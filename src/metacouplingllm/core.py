@@ -1021,10 +1021,23 @@ class MetacouplingAssistant:
         # (+ optional web block). The literature block is rendered with
         # turn-scoped headers so the LLM sees `[Tk:N]` style labels
         # next to each passage.
-        from metacouplingllm.knowledge.rag import format_evidence
+        # ``max_chars=_LLM_PASSAGE_MAX_CHARS`` (5000) makes the LLM see
+        # the FULL chunk text per passage -- matching the framework
+        # analysis path's ``_PASSAGE_MAX_CHARS`` budget.  Without this,
+        # the dual-purpose ``format_evidence`` would default to ~300-char
+        # excerpts (right for user display, wrong for LLM grounding).
+        from metacouplingllm.knowledge.rag import (
+            _LLM_PASSAGE_MAX_CHARS,
+            format_evidence,
+        )
 
         literature_block = (
-            format_evidence(passages, anchor_text=query, turn=next_turn)
+            format_evidence(
+                passages,
+                anchor_text=query,
+                turn=next_turn,
+                max_chars=_LLM_PASSAGE_MAX_CHARS,
+            )
             if passages
             else "No literature passages were retrieved for this query."
         )
