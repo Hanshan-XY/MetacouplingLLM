@@ -812,6 +812,152 @@ class TestFormatMapNotice:
         assert "result.map" in notice
 
 
+class TestMapTypeNoticeConsistency:
+    """The user-facing map-type notice (``"ADM1"`` vs ``"country-level"``)
+    must match what ``_generate_map`` actually rendered — not what the
+    inputs *would* have selected.
+
+    Before this fix, ``_build_result`` recomputed the type from
+    ``parsed.map_data["adm1_region"]`` + ``_resolve_adm1_from_analysis``.
+    When the renderer's ADM1 attempt silently fell through to a
+    country-level map (e.g. ``plot_focal_adm1_map`` raised), the
+    notice would still claim "ADM1" while the actual figure was
+    country-level.
+
+    The fix records the actually-rendered type in
+    ``self._last_map_type`` from inside ``_generate_map`` (only after
+    each successful render) and has ``_build_result`` read it instead
+    of recomputing.
+    """
+
+    @staticmethod
+    def _parsed_with_adm1():
+        """A parsed analysis whose ``map_data`` carries an ADM1 region.
+
+        Used to trigger the ADM1 branch in ``_generate_map``.
+        """
+        from metacouplingllm.llm.parser import CouplingSection, ParsedAnalysis
+        parsed = ParsedAnalysis(
+            coupling_classification="telecoupling",
+            telecoupling=CouplingSection(systems=[
+                {"role": "sending", "name": "Michigan, USA"},
+                {"role": "receiving", "name": "China"},
+            ]),
+        )
+        parsed.map_data = {
+            "focal_country": "USA",
+            "adm1_region": "USA023",
+            "receiving_countries": ["CHN"],
+            "spillover_countries": [],
+            "flows": [],
+        }
+        return parsed
+
+    def test_initial_last_map_type_is_none(self):
+        """Fresh advisor: no map has been rendered yet."""
+        from unittest.mock import MagicMock
+        a = MetacouplingAssistant(llm_client=MagicMock())
+        assert a._last_map_type is None
+
+    def test_last_map_type_stamped_adm1_on_successful_adm1_render(self):
+        """When ``plot_focal_adm1_map`` returns a figure,
+        ``_last_map_type`` is ``"adm1"``."""
+        from unittest.mock import MagicMock, patch
+        a = MetacouplingAssistant(llm_client=MagicMock(), auto_map=True)
+        parsed = self._parsed_with_adm1()
+        with patch(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map"
+        ) as adm1_mock:
+            adm1_mock.return_value = "FAKE_FIG"
+            a._generate_map(parsed)
+        assert a._last_map_type == "adm1"
+
+    def test_last_map_type_stamped_country_on_adm1_fallback(self):
+        """REGRESSION: when ``plot_focal_adm1_map`` raises, the
+        renderer falls through to country-level — the stamp must
+        reflect what was actually drawn, not what was tried."""
+        from unittest.mock import MagicMock, patch
+        a = MetacouplingAssistant(llm_client=MagicMock(), auto_map=True)
+        parsed = self._parsed_with_adm1()
+        with patch(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map"
+        ) as adm1_mock, patch(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map"
+        ) as country_mock:
+            adm1_mock.side_effect = RuntimeError(
+                "shapefile missing the region"
+            )
+            country_mock.return_value = "FAKE_FIG"
+            a._generate_map(parsed)
+        assert a._last_map_type == "country", (
+            "Notice must reflect ACTUAL render. ADM1 attempt failed "
+            "and renderer fell through to country-level; the stamp "
+            "must say 'country' even though map_data['adm1_region'] "
+            "is set."
+        )
+
+    def test_last_map_type_stamped_country_when_no_adm1(self):
+        """No ADM1 region in map_data — straightforward country
+        path."""
+        from unittest.mock import MagicMock, patch
+        a = MetacouplingAssistant(llm_client=MagicMock(), auto_map=True)
+        parsed = self._parsed_with_adm1()
+        parsed.map_data["adm1_region"] = None
+        with patch(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map"
+        ) as country_mock:
+            country_mock.return_value = "FAKE_FIG"
+            a._generate_map(parsed)
+        assert a._last_map_type == "country"
+
+    def test_last_map_type_reset_to_none_at_start_of_generate_map(self):
+        """``_generate_map`` resets the stamp on each call so a prior
+        run's state can't leak into the current one."""
+        from unittest.mock import MagicMock, patch
+        a = MetacouplingAssistant(llm_client=MagicMock(), auto_map=True)
+        # Seed a stale value.
+        a._last_map_type = "adm1"
+
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        # ParsedAnalysis with no map_data and no resolvable focal —
+        # _generate_map returns None without rendering anything.
+        empty_parsed = ParsedAnalysis()
+        with patch(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map"
+        ), patch(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map"
+        ):
+            a._generate_map(empty_parsed)
+        # Either renderer wasn't called (returned None) or fell through
+        # to a no-focal-found path; in both cases the stamp must be
+        # cleared, not the stale "adm1".
+        assert a._last_map_type != "adm1", (
+            "Stale stamp from a prior call must not survive a new "
+            "_generate_map call that didn't successfully render."
+        )
+
+    def test_country_notice_used_when_adm1_falls_back(self):
+        """End-to-end (through ``_build_result``-equivalent code path):
+        when the ADM1 attempt falls through, the appended notice
+        reads "country-level", not "ADM1"."""
+        from unittest.mock import MagicMock, patch
+        a = MetacouplingAssistant(llm_client=MagicMock(), auto_map=True)
+        parsed = self._parsed_with_adm1()
+        with patch(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map"
+        ) as adm1_mock, patch(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map"
+        ) as country_mock:
+            adm1_mock.side_effect = RuntimeError("ADM1 path failed")
+            country_mock.return_value = "FAKE_FIG"
+            a._generate_map(parsed)
+        # Build the notice the way _build_result would now:
+        map_type = a._last_map_type or "country"
+        notice = MetacouplingAssistant._format_map_notice(map_type)
+        assert "country-level" in notice
+        assert "ADM1" not in notice
+
+
 class TestResolveFlowsForMap:
     """Test the _resolve_flows_for_map static method."""
 
