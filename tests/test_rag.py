@@ -1184,14 +1184,29 @@ class TestEmbeddingRetriever:
 
         np.random.seed(42)
         chunks = _make_chunks(5)
-        # Random unit vectors
-        vecs = np.random.rand(5, 384).astype(np.float32)
+        # Random unit vectors. The dim here is deliberately smaller than
+        # the production BGE-base model (768) so the test stays a pure
+        # unit test — no model download required. The matching-dim
+        # _FakeEmbedder below keeps the matmul shapes consistent.
+        dim = 384
+        vecs = np.random.rand(5, dim).astype(np.float32)
         vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)
 
         retriever = EmbeddingRetriever(
             chunks,
             precomputed_embeddings=vecs,
         )
+
+        # Override the embedder so the query vector matches the
+        # precomputed dim. Without this, query() would lazily load the
+        # real BGE-base model (768-dim) and the chunk_vecs @ query_vec
+        # matmul would fail with a shape mismatch.
+        class _FakeEmbedder:
+            def embed(self, texts):
+                for _ in texts:
+                    yield np.random.rand(dim).astype(np.float32)
+        retriever._embedder = _FakeEmbedder()
+
         # Use a very low min_score so any result passes.
         results = retriever.query(
             "soybean trade Brazil",
