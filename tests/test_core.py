@@ -532,6 +532,295 @@ class TestAutoMapUnavailableNotice:
         assert result.map_notice in result.formatted
 
 
+class TestAutoMapTrustsLLMAndUserFraming:
+    """Tests for the auto-map dispatcher's two-layer decision logic:
+
+    1. ``_has_unsupported_automap_scope`` must TRUST the LLM's
+       structured map extraction.  If ``parsed.map_data`` has a
+       resolvable ``focal_country`` or ``adm1_region``, the regex
+       scan over prose must not fire (which would skip the map even
+       when the LLM clearly identified a country/ADM1 focal).
+    2. ``_generate_map`` must RESPECT the user's framing.  When the
+       user's original query named no ADM1 region, prefer
+       country-level rendering even when the LLM stamped an ADM1
+       focal in the extraction.
+    """
+
+    def _make_parsed_with_map_data(self, **md_overrides):
+        from ._helpers import make_parsed_analysis
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {
+                    "name": "Mexico",
+                    "geographic_scope": (
+                        "Mexico, with focal production in Michoacan "
+                        "municipalities and watersheds around Tancitaro"
+                    ),
+                },
+                "receiving": {
+                    "name": "United States",
+                    "geographic_scope": "United States",
+                },
+            },
+        )
+        parsed.map_data = {
+            "focal_country": "MEX",
+            "adm1_region": None,
+            "receiving_countries": ["USA"],
+            "spillover_countries": [],
+            "flows": [],
+            **md_overrides,
+        }
+        return parsed
+
+    # --- Layer 1: regex-gate trusts structured extraction ---------------
+
+    def test_regex_gate_bypassed_when_focal_country_set(self):
+        """A ``focal_country`` from the LLM must short-circuit the
+        prose-keyword scan even when the prose mentions
+        municipalities/watersheds."""
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Impact of avocado production in Mexico on watersheds"
+        )
+        parsed = self._make_parsed_with_map_data(focal_country="MEX")
+        assert advisor._has_unsupported_automap_scope(parsed) is False
+
+    def test_regex_gate_bypassed_when_adm1_region_set(self):
+        """Same trust applies to ``adm1_region`` even if
+        ``focal_country`` is missing."""
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Avocado production in Michoacan watersheds"
+        )
+        parsed = self._make_parsed_with_map_data(
+            focal_country=None, adm1_region="MEX016",
+        )
+        assert advisor._has_unsupported_automap_scope(parsed) is False
+
+    def test_regex_gate_fires_when_no_structured_focal(self):
+        """When both ``focal_country`` and ``adm1_region`` are absent,
+        fall back to the regex check so users still get the
+        sub-ADM1-geography notice."""
+        from ._helpers import make_parsed_analysis
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Impact of the Grand River watershed on sustainability"
+        )
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {
+                    "name": "Grand River watershed",
+                    "geographic_scope": "Grand River watershed, Michigan",
+                },
+            },
+        )
+        parsed.map_data = {
+            "focal_country": None,
+            "adm1_region": None,
+            "receiving_countries": [],
+            "spillover_countries": [],
+            "flows": [],
+        }
+        assert advisor._has_unsupported_automap_scope(parsed) is True
+
+    # --- Layer 2: user-framing override ---------------------------------
+
+    def test_user_query_with_no_adm1_returns_false(self):
+        """``Mexican avocado trade`` names no ADM1 region."""
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Impact of avocado production and trade in Mexico "
+            "on sustainability"
+        )
+        assert advisor._user_query_mentions_adm1() is False
+
+    def test_user_query_with_explicit_adm1_returns_true(self):
+        """User-named state ("Michoacán") must be recognised.
+
+        The ADM1 database stores Mexican state names with Spanish
+        diacritics — users typing the accented form match directly.
+        ASCII-only typing ("Michoacan") falls through to country-level,
+        which is the safe default; the docstring on
+        ``_user_query_mentions_adm1`` explains how to force ADM1
+        explicitly via ISO code.
+        """
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Avocado production in Michoacán, Mexico and sustainability"
+        )
+        assert advisor._user_query_mentions_adm1() is True
+
+    def test_user_query_country_name_does_not_count_as_adm1(self):
+        """``Mexico`` is also a state name (Estado de Mexico) but
+        when used at top level it's framing the country -- must not
+        return True."""
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = "Sustainability in Mexico"
+        # If this returned True we'd never get country-level rendering
+        # for any query mentioning the country "Mexico".
+        assert advisor._user_query_mentions_adm1() is False
+
+    def test_user_query_with_iso_adm1_code_returns_true(self):
+        """ISO-style ADM1 codes ("MEX016") are recognised."""
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = "Analyze focal region MEX016 trade"
+        assert advisor._user_query_mentions_adm1() is True
+
+    def test_empty_query_returns_false(self):
+        """No query string -> no ADM1 mention -> country-level
+        preferred (safe default)."""
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = None
+        assert advisor._user_query_mentions_adm1() is False
+        advisor._original_query = ""
+        assert advisor._user_query_mentions_adm1() is False
+
+    # --- Integration: dispatcher uses Layer 2 to drop adm1_region -------
+
+    def test_generate_map_drops_adm1_when_query_is_country_scoped(
+        self, monkeypatch,
+    ):
+        """End-to-end: structured extraction returned adm1=MEX016 but
+        the user's query said only "Mexico" -> dispatcher renders
+        country-level, NOT ADM1."""
+        captured: dict[str, object] = {}
+
+        def fake_country_map(parsed, **kwargs):
+            captured["country_called"] = True
+            captured["kwargs"] = kwargs
+            return "country-figure"
+
+        def fake_adm1_map(*args, **kwargs):
+            captured["adm1_called"] = True
+            return "adm1-figure"
+
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map",
+            fake_country_map,
+        )
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map",
+            fake_adm1_map,
+        )
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Impact of avocado production and trade in Mexico "
+            "on sustainability"
+        )
+        parsed = self._make_parsed_with_map_data(
+            focal_country="MEX",
+            adm1_region="MEX016",   # LLM picked Michoacan
+            receiving_countries=["USA"],
+        )
+        result = advisor._generate_map(parsed)
+
+        assert result == "country-figure"
+        assert captured.get("country_called") is True
+        assert "adm1_called" not in captured
+        assert advisor._last_map_type == "country"
+
+    def test_generate_map_keeps_adm1_when_original_query_is_unset(
+        self, monkeypatch,
+    ):
+        """Regression guard: when ``_generate_map`` is called
+        without an ``analyze()`` call (e.g. unit tests, programmatic
+        callers), ``_original_query`` is None and we MUST preserve
+        the LLM's ADM1 choice as-is.  The user-framing override only
+        fires when we have a real user query to consult."""
+        captured: dict[str, object] = {}
+
+        def fake_adm1_map(adm1_code, **kwargs):
+            captured["adm1_called"] = True
+            captured["adm1_code"] = adm1_code
+            return "adm1-figure"
+
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map",
+            fake_adm1_map,
+        )
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        # NOTE: not calling analyze(); _original_query stays None.
+        parsed = self._make_parsed_with_map_data(
+            focal_country="MEX",
+            adm1_region="MEX016",
+            receiving_countries=["USA"],
+        )
+        result = advisor._generate_map(parsed)
+
+        assert result == "adm1-figure"
+        assert captured.get("adm1_called") is True
+        assert advisor._last_map_type == "adm1"
+
+    def test_generate_map_keeps_adm1_when_query_names_a_state(
+        self, monkeypatch,
+    ):
+        """End-to-end: structured extraction returned adm1=MEX016 AND
+        the user explicitly said "Michoacan" -> dispatcher renders
+        ADM1 (preserves existing behaviour for explicit subnational
+        queries)."""
+        captured: dict[str, object] = {}
+
+        def fake_country_map(parsed, **kwargs):
+            captured["country_called"] = True
+            return "country-figure"
+
+        def fake_adm1_map(adm1_code, **kwargs):
+            captured["adm1_called"] = True
+            captured["adm1_code"] = adm1_code
+            return "adm1-figure"
+
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map",
+            fake_country_map,
+        )
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map",
+            fake_adm1_map,
+        )
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Avocado production in Michoacán, Mexico"
+        )
+        parsed = self._make_parsed_with_map_data(
+            focal_country="MEX",
+            adm1_region="MEX016",
+            receiving_countries=["USA"],
+        )
+        result = advisor._generate_map(parsed)
+
+        assert result == "adm1-figure"
+        assert captured.get("adm1_called") is True
+        assert captured.get("adm1_code") == "MEX016"
+        assert "country_called" not in captured
+        assert advisor._last_map_type == "adm1"
+
+
 class TestCountryMapConfiguration:
     """Tests for country-level auto-map configuration passthrough."""
 

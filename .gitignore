@@ -74,6 +74,12 @@ tmp_*.html
 downloaded.shp
 stderr.log
 
+# Trace harness output (see scripts/trace_pipeline.py).  Artifacts
+# are reproducible from the harness, so keep them local-only by
+# default; use ``git add -f runs/<slug>/<file>`` to commit a
+# specific run as PR evidence.
+runs/
+
 # Paper sources (large; managed separately)
 Papers/
 Papers_rebuilt/
