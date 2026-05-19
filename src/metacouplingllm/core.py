@@ -3728,6 +3728,35 @@ class MetacouplingAssistant:
             if md and isinstance(md, dict) and md.get("focal_country"):
                 focal_code = md["focal_country"]
                 adm1_region = md.get("adm1_region")
+                # Respect the user's framing: when the original query
+                # named no ADM1 region, prefer country-level rendering
+                # even if the LLM stamped an ADM1 focal in the
+                # extraction.  Mexican avocado production IS centred
+                # on Michoacan, but a user who asked about "Mexican
+                # avocado trade" expects a world map of trade flows,
+                # not a Michoacan zoom.  When they explicitly name a
+                # state ("avocado production in Michoacan, Mexico"),
+                # the helper returns True and the LLM's ADM1 choice
+                # is preserved.
+                #
+                # Guard on ``self._original_query`` being non-empty:
+                # when ``_generate_map`` is called directly without an
+                # ``analyze()`` call (e.g. unit tests, programmatic
+                # callers), we have no user framing to consult and
+                # must preserve the LLM's ADM1 choice as-is.
+                if (
+                    adm1_region
+                    and self._original_query
+                    and not self._user_query_mentions_adm1()
+                ):
+                    if self._verbose:
+                        print(
+                            f"[MetacouplingAssistant] Structured "
+                            f"extraction returned adm1={adm1_region}, "
+                            f"but the user's query did not name an ADM1 "
+                            f"region; rendering country-level map instead."
+                        )
+                    adm1_region = None
                 receiving = md.get("receiving_countries", [])
                 # Spillover countries are retained in map_data for
                 # downstream use but intentionally NOT used here —
@@ -4254,13 +4283,92 @@ class MetacouplingAssistant:
         )
 
     def _has_unsupported_automap_scope(self, parsed: ParsedAnalysis) -> bool:
-        """Return True when the topic is below country/ADM1 map support."""
+        """Return True when no country/ADM1-scale map can be rendered.
+
+        Trusts the LLM's structured map extraction first: if it
+        produced a ``focal_country`` or ``adm1_region``, those are
+        validated ISO codes and the map IS renderable -- even when
+        the prose mentions municipalities, watersheds, or other
+        sub-ADM1 geographies in secondary roles.
+
+        Only falls back to the prose-keyword regex when the
+        structured extraction produced no resolvable focal at all.
+        In that case the keyword scan helps emit a sensible
+        ``unsupported_local_geography`` notice instead of a generic
+        "unresolved" one.
+        """
+        md = parsed.map_data or {}
+        if md.get("focal_country") or md.get("adm1_region"):
+            # LLM structured extraction is authoritative; the map can
+            # be rendered at country or ADM1 scale regardless of what
+            # the prose mentions in secondary roles.
+            return False
+
+        # Structured extraction produced no focal -- fall back to the
+        # legacy regex scan over prose to decide if this is a
+        # "sub-ADM1 geography" case worth a specific user notice.
         scope_parts = [self._original_query or ""]
         for role in ("focal", "adjacent", "sending", "receiving", "spillover"):
             scope_parts.append(parsed.get_system_detail(role, "name"))
             scope_parts.append(parsed.get_system_detail(role, "geographic_scope"))
         combined = " ".join(part for part in scope_parts if part)
         return bool(_UNSUPPORTED_AUTOMAP_SCOPE_RE.search(combined))
+
+    def _user_query_mentions_adm1(self) -> bool:
+        """Return True when the user's original query names any ADM1 region.
+
+        Used by the auto-map dispatcher to prefer country-level
+        rendering when the user's framing was country-level (no
+        subnational region named), even when the LLM's structured
+        extraction identified an ADM1 focal in the analysis content.
+        This avoids zooming into Michoacan when the user asked about
+        "Mexican avocado trade" -- they expected a world map.
+
+        Implementation: scan capitalised word groups in the query
+        against the ADM1 database via ``resolve_adm1_code``.  Word
+        groups that also resolve to a country (e.g. "Mexico" -- both
+        a country and a Mexican state) are treated as country
+        mentions and skipped, because users naming a country at the
+        top level are framing at country scale.  ISO-style codes
+        ("MEX016") are also recognised.
+        """
+        query = (self._original_query or "").strip()
+        if not query:
+            return False
+
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            get_adm1_info,
+            resolve_adm1_code,
+        )
+
+        # Capitalised word groups: "Michoacán", "São Paulo",
+        # "New South Wales".  Same regex shape as
+        # ``_extract_mentioned_adm1_from_text`` for consistency.
+        # Note: ``resolve_adm1_code`` matches the database's exact
+        # form, which preserves Spanish/Portuguese diacritics
+        # ("Michoacán", not "Michoacan").  A user typing the
+        # unaccented form will hit the country-level fallback;
+        # that's the safe default — users can use ISO codes
+        # ("MEX016") to force ADM1 explicitly.
+        for word_group in re.findall(
+            r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", query
+        ):
+            # Country mentions take precedence: if the word group
+            # resolves to a country, the user is framing at country
+            # scale (e.g. "Mexico" the country, not the state).
+            if resolve_country_code(word_group):
+                continue
+            if resolve_adm1_code(word_group):
+                return True
+
+        # ISO-style ADM1 codes: "MEX016", "USA023".
+        # ``get_adm1_info`` is the direct-code lookup;
+        # ``resolve_adm1_code`` only matches names.
+        for code in re.findall(r"\b([A-Z]{3}\d{3})\b", query):
+            if get_adm1_info(code) is not None:
+                return True
+
+        return False
 
     # ------------------------------------------------------------------
     # Result builder

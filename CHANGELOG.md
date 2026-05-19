@@ -174,6 +174,40 @@ file. The format is loosely based on
   768-dim since the initial commit) that was masked whenever
   `fastembed` was unavailable, since the whole class is skipped
   under `@pytest.mark.skipif(not HAS_FASTEMBED, ...)`.
+- Auto-map dispatcher had two related bugs that combined to skip
+  legitimately-renderable maps and over-zoom into ADM1 when the
+  user asked at country scale.  Observed on a Mexican-avocado
+  trace: the LLM's structured map extraction produced
+  `focal_country="MEX", adm1_region="MEX016"` (Michoacán) cleanly,
+  but the map was skipped entirely and the user-facing notice
+  claimed the focal geography was "below country/ADM1 scale".
+  Two fixes, both in `_generate_map` / `_has_unsupported_automap_scope`
+  in `core.py`:
+  - **Trust the LLM's structured extraction.**
+    `_has_unsupported_automap_scope` previously ran a regex over
+    the prose looking for keywords like `watershed`, `municipality`,
+    `reserve`, etc. and short-circuited the map render whenever
+    any matched — even when the LLM had already produced a
+    validated `focal_country` / `adm1_region` ISO code.  Now the
+    structured extraction is authoritative: if `parsed.map_data`
+    has either field set, the regex never fires.  The prose-keyword
+    fallback only runs when the LLM produced no structured focal at
+    all (preserving the helpful "sub-ADM1 geography" notice for the
+    genuine watershed-only case).
+  - **Respect the user's framing for map scale.**  When the LLM
+    stamps an `adm1_region` in the extraction but the user's
+    original query named no ADM1 region (e.g. "avocado trade in
+    Mexico" mentions no Mexican state), the dispatcher now drops
+    the ADM1 and renders country-level.  Explicit subnational
+    queries ("avocado production in Michoacán, Mexico") still
+    render ADM1 as before — the override only fires when the user's
+    framing is country-level.  Country names that double as state
+    names ("Mexico" the country = Estado de México the state) are
+    correctly treated as country mentions via a
+    `resolve_country_code` precedence check in the new
+    `_user_query_mentions_adm1` helper.  ISO-style codes ("MEX016")
+    in the query are also recognised as ADM1 mentions.  No public
+    API change.
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
 
