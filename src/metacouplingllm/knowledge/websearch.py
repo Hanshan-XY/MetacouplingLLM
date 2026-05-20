@@ -112,6 +112,7 @@ class OpenAIWebSearchBackend:
     reasoning: str = "default"
     external_web_access: bool = True
     allowed_domains: list[str] | None = None
+    blocked_domains: list[str] | None = None
     user_location: dict[str, object] | None = None
 
     def search(
@@ -126,8 +127,19 @@ class OpenAIWebSearchBackend:
             "type": "web_search",
             "external_web_access": self.external_web_access,
         }
-        if self.allowed_domains:
-            tool["filters"] = {"allowed_domains": self.allowed_domains}
+        # OpenAI web_search tool accepts a ``filters`` object with
+        # ``allowed_domains`` and ``blocked_domains``.  Mirror the
+        # existing Anthropic backend's signature so both adapters
+        # offer the same domain-control surface.  Gemini and Grok
+        # don't have native blocklists -- those would need
+        # post-filtering and are deferred.
+        if self.allowed_domains or self.blocked_domains:
+            filters: dict[str, list[str]] = {}
+            if self.allowed_domains:
+                filters["allowed_domains"] = self.allowed_domains
+            if self.blocked_domains:
+                filters["blocked_domains"] = self.blocked_domains
+            tool["filters"] = filters
         if self.user_location:
             tool["user_location"] = self.user_location
 

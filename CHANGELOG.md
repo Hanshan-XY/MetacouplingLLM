@@ -65,6 +65,13 @@ file. The format is loosely based on
 
 ### Added
 
+- **`OpenAIWebSearchBackend.blocked_domains`** parameter (mirrors
+  the existing Anthropic backend's `blocked_domains` field).
+  Passed to OpenAI's web_search tool as `filters.blocked_domains`.
+  Useful for excluding low-quality sources (Reddit, Quora, content
+  farms) from search results.  Coexists with `allowed_domains`
+  when both are set.  Gemini and Grok backends do not yet support
+  blocklists — deferred (their APIs would need post-filtering).
 - **Evidence cards, combined coverage notes, and suggested
   follow-up queries** surface from the web-search + main-analysis
   pipeline:

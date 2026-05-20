@@ -378,6 +378,79 @@ class TestStructuredWebMapSignals:
         assert js.get("name") == "web_map_signals"
         assert js.get("strict") is True
 
+    def test_openai_backend_passes_blocked_domains_to_filters(self):
+        """blocked_domains is forwarded to the OpenAI web_search tool's
+        filters.blocked_domains.  Mirrors Anthropic's existing surface."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(
+            client=MockClient(),
+            blocked_domains=["reddit.com", "quora.com"],
+        )
+        backend.search("test query", max_results=3)
+
+        tools = captured.get("tools", [])
+        assert tools, "no tools sent to the API"
+        filters = tools[0].get("filters", {})
+        assert filters.get("blocked_domains") == [
+            "reddit.com", "quora.com",
+        ]
+
+    def test_openai_backend_combines_allowed_and_blocked_domains(self):
+        """Both allowed and blocked can coexist in the same filters dict."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(
+            client=MockClient(),
+            allowed_domains=["nature.com"],
+            blocked_domains=["reddit.com"],
+        )
+        backend.search("q", max_results=1)
+
+        filters = captured.get("tools", [{}])[0].get("filters", {})
+        assert filters.get("allowed_domains") == ["nature.com"]
+        assert filters.get("blocked_domains") == ["reddit.com"]
+
     def test_extract_web_map_signals_omits_response_format_for_non_openai(
         self,
     ):
