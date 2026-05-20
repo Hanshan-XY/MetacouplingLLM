@@ -98,7 +98,7 @@ _LOW_PRIORITY_SYSTEM_FIELDS: tuple[str, ...] = (
     "human_subsystem", "natural_subsystem", "description",
 )
 
-# Defensive ceiling on the number of web-search snippets included in the
+# Defensive ceiling on the number of web-search results included in the
 # structured map-extraction prompt.  This is independent of the user's
 # ``web_search_max_results`` setting -- that setting already caps
 # ``self._last_web_results`` upstream.  The constant exists only to bound
@@ -483,15 +483,23 @@ def _format_web_sources_block(
     for i, src in enumerate(web_sources, start=1):
         title = (src.get("title") or "(no title)").strip()
         url = (src.get("url") or "").strip()
-        snippet = (src.get("snippet") or "").strip().replace("\n", " ")
-        if len(snippet) > 140:
-            snippet = snippet[:137].rstrip() + "..."
+        # Accept legacy "snippet" key alongside the canonical
+        # ``model_summary`` (the rename ships in the same PR; older
+        # downstream callers / serialised state may still carry
+        # ``snippet``).
+        model_summary = (
+            src.get("model_summary")
+            or src.get("snippet")
+            or ""
+        ).strip().replace("\n", " ")
+        if len(model_summary) > 140:
+            model_summary = model_summary[:137].rstrip() + "..."
         lines.append("")
         lines.append(f"  [T{turn}:W{i}] {title}")
         if url:
             lines.append(f"       {url}")
-        if snippet:
-            lines.append(f"       {snippet}")
+        if model_summary:
+            lines.append(f"       {model_summary}")
     return "\n".join(lines)
 
 
@@ -666,7 +674,7 @@ class MetacouplingAssistant:
         ``analyze()`` / ``refine()`` turn.
     web_structured_extraction:
         If ``True`` and ``web_search=True``, runs a second LLM pass over the
-        web snippets to extract validated map-ready countries and flows.
+        web results to extract validated map-ready countries and flows.
         These signals are used as conservative hints for map generation and
         are exposed on ``AnalysisResult.web_map_signals``. Recommended when
         ``web_search=True`` and ``auto_map=True`` are both enabled.
@@ -2714,20 +2722,24 @@ class MetacouplingAssistant:
 
         analysis_summary = "\n\n".join(parts)
 
-        # Include web search snippets so the LLM can identify specific
+        # Include web search results so the LLM can identify specific
         # countries even when the analysis uses generic labels like
         # "foreign importing countries."
-        web_snippet_text = ""
+        web_results_text = ""
         if self._last_web_results:
             lines: list[str] = []
             for idx, wr in enumerate(
                 self._last_web_results[:_MAX_WEB_SNIPPETS_IN_MAP_PROMPT], 1,
             ):
                 title = wr.get("title", "").strip()
-                snippet = wr.get("snippet", "").strip()[:200]
-                lines.append(f"[W{idx}] {title}: {snippet}")
-            web_snippet_text = (
-                "\n\nWeb search snippets (use these to identify specific "
+                # Accept legacy "snippet" key as fallback.
+                summary = (
+                    wr.get("model_summary")
+                    or wr.get("snippet", "")
+                ).strip()[:200]
+                lines.append(f"[W{idx}] {title}: {summary}")
+            web_results_text = (
+                "\n\nWeb search results (use these to identify specific "
                 "countries when the analysis is vague):\n"
                 + "\n".join(lines)
             )
@@ -2794,7 +2806,7 @@ class MetacouplingAssistant:
             "7. No flows should involve spillover countries as source "
             "or target.\n"
             "8. When the analysis says 'importing countries' without "
-            "naming them, use the web snippets to identify the most "
+            "naming them, use the web results to identify the most "
             "likely specific countries\n"
             "9. Do not invent countries with no supporting evidence\n"
             "10. For adm1_region: ONLY use codes from the reference "
@@ -2814,7 +2826,7 @@ class MetacouplingAssistant:
             "tracked separately via adm1_region.\n\n"
             f"{adm1_reference_text}"
             f"Analysis:\n{analysis_summary}"
-            f"{web_snippet_text}"
+            f"{web_results_text}"
         )
 
         try:
@@ -4409,12 +4421,15 @@ class MetacouplingAssistant:
         for i, r in enumerate(results, 1):
             title = r.get("title", "Untitled")
             url = r.get("url", "")
-            snippet = r.get("snippet", "")
+            # Accept legacy "snippet" key as fallback.
+            model_summary = (
+                r.get("model_summary") or r.get("snippet", "")
+            )
             lines.append(f"  [T{turn}:W{i}] {title}")
             if url:
                 lines.append(f"      {url}")
-            if snippet:
-                lines.append(f"      {snippet[:200]}")
+            if model_summary:
+                lines.append(f"      {model_summary[:200]}")
             lines.append("")
         return "\n".join(lines)
 

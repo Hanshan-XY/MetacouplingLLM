@@ -7,6 +7,33 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Changed (breaking — web-search return shape)
+
+- **Web-search backend dict key renamed: `snippet` → `model_summary`.**
+  All four web-search backends (OpenAI, Anthropic, Gemini, Grok)
+  and the DuckDuckGo fallback now return result dicts shaped
+  `{title, url, model_summary}` instead of `{title, url, snippet}`.
+  The rename makes the field name match its actual contents: for
+  OpenAI / Gemini / Grok the model writes a summary in response
+  to a prompt instruction, and for the DDG fallback the field
+  carries the page-metadata body — none of these are verbatim
+  page text in the way "snippet" implied.  Only the Anthropic
+  backend's `model_summary` is actually a verbatim excerpt
+  (Claude's `cited_text` field), and the rename leaves a
+  docstring note on
+  `_extract_anthropic_web_results` calling that out so callers
+  aren't misled.
+
+  Migration: callers reading `result.web_results[0]["snippet"]`
+  will get `KeyError`; switch to `["model_summary"]`.
+  `_normalise_backend_results` silently maps a legacy `snippet`
+  key from upstream provider responses to `model_summary` so
+  half-migrated providers don't break during transition.  The
+  three downstream consumers in `core.py`
+  (`format_web_context`, `_format_web_sources`,
+  `_extract_map_data_from_analysis`) accept either key for the
+  same reason.
+
 ### Added
 
 - **Evidence cards, combined coverage notes, and suggested

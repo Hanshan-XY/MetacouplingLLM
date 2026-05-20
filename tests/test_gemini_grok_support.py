@@ -241,8 +241,8 @@ class TestGeminiWebSearchBackend:
     def test_search_returns_results_from_json_response(self):
         json_text = '''
         {"results":[
-            {"title":"Paper A","url":"https://a.example","snippet":"snip A"},
-            {"title":"Paper B","url":"https://b.example","snippet":"snip B"}
+            {"title":"Paper A","url":"https://a.example","model_summary":"snip A"},
+            {"title":"Paper B","url":"https://b.example","model_summary":"snip B"}
         ]}
         '''
         client = _RecordingGeminiClient(response_text=json_text)
@@ -252,7 +252,7 @@ class TestGeminiWebSearchBackend:
         assert len(results) == 2
         assert results[0]["title"] == "Paper A"
         assert results[0]["url"] == "https://a.example"
-        assert results[1]["snippet"] == "snip B"
+        assert results[1]["model_summary"] == "snip B"
 
     def test_search_falls_back_to_grounding_chunks_when_json_invalid(self):
         # Model returns non-JSON text, but grounding_chunks have URLs
@@ -285,11 +285,11 @@ class TestGeminiWebSearchBackend:
     def test_search_caps_results_at_max_results(self):
         json_text = '''
         {"results":[
-            {"title":"1","url":"https://1.x","snippet":""},
-            {"title":"2","url":"https://2.x","snippet":""},
-            {"title":"3","url":"https://3.x","snippet":""},
-            {"title":"4","url":"https://4.x","snippet":""},
-            {"title":"5","url":"https://5.x","snippet":""}
+            {"title":"1","url":"https://1.x","model_summary":""},
+            {"title":"2","url":"https://2.x","model_summary":""},
+            {"title":"3","url":"https://3.x","model_summary":""},
+            {"title":"4","url":"https://4.x","model_summary":""},
+            {"title":"5","url":"https://5.x","model_summary":""}
         ]}
         '''
         client = _RecordingGeminiClient(response_text=json_text)
@@ -319,7 +319,7 @@ class TestGrokWebSearchBackend:
     def test_search_returns_results_from_json_response(self):
         json_text = '''
         {"results":[
-            {"title":"R1","url":"https://r1.x","snippet":"s1"}
+            {"title":"R1","url":"https://r1.x","model_summary":"s1"}
         ]}
         '''
         client = _RecordingOpenAIClient(content=json_text)

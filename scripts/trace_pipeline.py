@@ -270,10 +270,17 @@ def write_artifacts(
     web_md += f"`self._last_web_results` — {len(assistant._last_web_results)} entries.\n\n"
     for i, hit in enumerate(assistant._last_web_results, start=1):
         web_md += f"### Result {i}\n\n"
-        web_md += _kv_table({k: v for k, v in hit.items() if k != "snippet"})
-        snippet = hit.get("snippet", "")
-        if snippet:
-            web_md += f"\n**Snippet:**\n\n> {snippet}\n\n"
+        # Hide the long-form summary from the metadata table; render it
+        # as a quote block below.  Accept the legacy ``snippet`` key as
+        # a fallback for older backends that haven't migrated yet.
+        web_md += _kv_table({
+            k: v
+            for k, v in hit.items()
+            if k not in {"model_summary", "snippet"}
+        })
+        model_summary = hit.get("model_summary") or hit.get("snippet", "")
+        if model_summary:
+            web_md += f"\n**Model summary:**\n\n> {model_summary}\n\n"
     p = out_dir / "01_web_results_raw.md"
     p.write_text(web_md, encoding="utf-8")
     written.append(p)
@@ -285,7 +292,7 @@ def write_artifacts(
             title="02 — LLM call #1: structured web extraction",
             context=(
                 "First LLM call in the pipeline. Distills the raw web "
-                "search snippets above (file 01) into structured map "
+                "search results above (file 01) into structured map "
                 "signals (file 03). Triggered because `web_search=True` "
                 "AND `auto_map=True` auto-enabled `web_structured_extraction`."
             ),

@@ -314,7 +314,7 @@ class TestRagOnlyWebSearch:
         fake_results = [
             {
                 "title": "Brazil-China soy trade jumps 12%",
-                "snippet": "USDA report …",
+                "model_summary": "USDA report …",
                 "url": "https://example.org/usda",
             }
         ]
@@ -358,7 +358,7 @@ class TestRagOnlyVisibility:
         def _fake_search_web(query, max_results=5, backend=None, metadata=None):
             if metadata is not None:
                 metadata["backend_used"] = "ddgs_fallback"
-            return [{"title": "t", "snippet": "s", "url": "https://x"}]
+            return [{"title": "t", "model_summary": "s", "url": "https://x"}]
 
         monkeypatch.setattr(ws, "search_web", _fake_search_web)
 
@@ -413,12 +413,12 @@ class TestRagOnlyVisibility:
         fake = [
             {
                 "title": "Brazil-China soy 2024 update",
-                "snippet": "USDA reports record exports...",
+                "model_summary": "USDA reports record exports...",
                 "url": "https://example.org/usda-2024",
             },
             {
                 "title": "Cerrado deforestation analysis",
-                "snippet": "Recent satellite analysis shows ...",
+                "model_summary": "Recent satellite analysis shows ...",
                 "url": "https://example.org/cerrado",
             },
         ]

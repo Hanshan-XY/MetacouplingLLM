@@ -3772,7 +3772,7 @@ class TestExtractMapDataPromptBudgets:
             web_search_max_results=20,
         )
         advisor._last_web_results = [
-            {"title": f"Result {i}", "snippet": f"snip {i}"}
+            {"title": f"Result {i}", "model_summary": f"snip {i}"}
             for i in range(20)
         ]
         parsed = make_parsed_analysis(
@@ -3802,7 +3802,7 @@ class TestExtractMapDataPromptBudgets:
             web_search_max_results=n,
         )
         advisor._last_web_results = [
-            {"title": f"Result {i}", "snippet": f"snip {i}"}
+            {"title": f"Result {i}", "model_summary": f"snip {i}"}
             for i in range(n)
         ]
         parsed = make_parsed_analysis(

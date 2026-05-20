@@ -68,7 +68,7 @@ class WebSearchBackend(Protocol):
         query: str,
         max_results: int = 5,
     ) -> list[dict[str, str]]:
-        """Return search results as ``title``/``snippet``/``url`` dicts."""
+        """Return search results as ``title``/``model_summary``/``url`` dicts."""
         ...
 
 
@@ -76,7 +76,7 @@ class WebSearchBackend(Protocol):
 class OpenAIWebSearchBackend:
     """Web-search backend powered by OpenAI Responses API ``web_search``.
 
-    Results are normalized to the same ``title``/``snippet``/``url`` shape
+    Results are normalized to the same ``title``/``model_summary``/``url`` shape
     used by the existing DuckDuckGo backends so downstream consumers do not
     need to change.
     """
@@ -109,10 +109,10 @@ class OpenAIWebSearchBackend:
             f"Search the web for: {query.strip()}\n"
             f"Return up to {max_results} highly relevant results as JSON only.\n"
             "Schema: "
-            '{"results":[{"title":"...","url":"...","snippet":"..."}]}\n'
+            '{"results":[{"title":"...","url":"...","model_summary":"..."}]}\n'
             "Rules:\n"
             "- Use only information grounded in the web search results.\n"
-            "- Keep snippets concise and factual.\n"
+            "- Keep model_summary fields concise and factual.\n"
             "- Do not invent URLs.\n"
             "- Return JSON only.\n"
         )
@@ -286,7 +286,7 @@ class GeminiWebSearchBackend:
     ``client.models.generate_content`` with the ``google_search`` tool
     enabled (Gemini 2.x grounding). The model performs the search and
     synthesises results; we parse the response for a JSON list of
-    ``title``/``snippet``/``url`` items, falling back to
+    ``title``/``model_summary``/``url`` items, falling back to
     ``grounding_metadata.grounding_chunks`` for URL+title recovery if
     JSON parsing fails.
 
@@ -317,10 +317,10 @@ class GeminiWebSearchBackend:
             f"Search the web for: {query.strip()}\n"
             f"Return up to {max_results} highly relevant results as JSON only.\n"
             "Schema: "
-            '{"results":[{"title":"...","url":"...","snippet":"..."}]}\n'
+            '{"results":[{"title":"...","url":"...","model_summary":"..."}]}\n'
             "Rules:\n"
             "- Use only information grounded in the web search results.\n"
-            "- Keep snippets concise and factual.\n"
+            "- Keep model_summary fields concise and factual.\n"
             "- Do not invent URLs.\n"
             "- Return JSON only.\n"
         )
@@ -425,10 +425,10 @@ class GrokWebSearchBackend:
             f"Search the web for: {query.strip()}\n"
             f"Return up to {max_results} highly relevant results as JSON only.\n"
             "Schema: "
-            '{"results":[{"title":"...","url":"...","snippet":"..."}]}\n'
+            '{"results":[{"title":"...","url":"...","model_summary":"..."}]}\n'
             "Rules:\n"
             "- Use only information grounded in your live search results.\n"
-            "- Keep snippets concise and factual.\n"
+            "- Keep model_summary fields concise and factual.\n"
             "- Do not invent URLs.\n"
             "- Return JSON only.\n"
         )
@@ -510,7 +510,7 @@ def _extract_gemini_grounding_results(
             if not url or url in seen_urls:
                 continue
             seen_urls.add(url)
-            out.append({"title": title, "snippet": "", "url": url})
+            out.append({"title": title, "model_summary": "", "url": url})
             if len(out) >= max_results:
                 return out
     return out
@@ -530,19 +530,30 @@ def _extract_grok_citation_results(
         if isinstance(cite, str):
             url = cite.strip()
             title = url
-            snippet = ""
+            summary = ""
         elif isinstance(cite, dict):
             url = str(cite.get("url") or "").strip()
             title = str(cite.get("title") or url).strip()
-            snippet = str(cite.get("snippet") or cite.get("excerpt") or "").strip()
+            # Accept legacy "snippet" key on the way IN; emit
+            # "model_summary" on the way OUT.
+            summary = str(
+                cite.get("model_summary")
+                or cite.get("snippet")
+                or cite.get("excerpt")
+                or ""
+            ).strip()
         else:
             url = str(getattr(cite, "url", "") or "").strip()
             title = str(getattr(cite, "title", url) or url).strip()
-            snippet = str(getattr(cite, "snippet", "") or "").strip()
+            summary = str(
+                getattr(cite, "model_summary", None)
+                or getattr(cite, "snippet", "")
+                or ""
+            ).strip()
         if not url or url in seen_urls:
             continue
         seen_urls.add(url)
-        out.append({"title": title, "snippet": snippet, "url": url})
+        out.append({"title": title, "model_summary": summary, "url": url})
         if len(out) >= max_results:
             break
     return out
@@ -559,7 +570,12 @@ class _DuckDuckGoLiteParser(html.parser.HTMLParser):
         super().__init__()
         self.results: list[dict[str, str]] = []
         self._in_link = False
-        self._in_snippet = False
+        # ``_in_summary`` tracks the DDG result-snippet <td> -- the
+        # CSS class itself is "result-snippet" on the upstream HTML
+        # (that's DDG's class name; not ours), but the value we
+        # extract is mapped onto our ``model_summary`` output key
+        # for consistency with the rest of the backend pipeline.
+        self._in_summary = False
         self._current: dict[str, str] = {}
         self._text_buf: list[str] = []
 
@@ -569,25 +585,29 @@ class _DuckDuckGoLiteParser(html.parser.HTMLParser):
         attr = dict(attrs)
         if tag == "a" and attr.get("class") == "result-link":
             self._in_link = True
-            self._current = {"url": attr.get("href", ""), "title": "", "snippet": ""}
+            self._current = {
+                "url": attr.get("href", ""),
+                "title": "",
+                "model_summary": "",
+            }
             self._text_buf = []
         elif tag == "td" and attr.get("class") == "result-snippet":
-            self._in_snippet = True
+            self._in_summary = True
             self._text_buf = []
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "a" and self._in_link:
             self._in_link = False
             self._current["title"] = " ".join(self._text_buf).strip()
-        elif tag == "td" and self._in_snippet:
-            self._in_snippet = False
-            self._current["snippet"] = " ".join(self._text_buf).strip()
+        elif tag == "td" and self._in_summary:
+            self._in_summary = False
+            self._current["model_summary"] = " ".join(self._text_buf).strip()
             if self._current.get("url"):
                 self.results.append(self._current)
             self._current = {}
 
     def handle_data(self, data: str) -> None:
-        if self._in_link or self._in_snippet:
+        if self._in_link or self._in_summary:
             self._text_buf.append(data)
 
 
@@ -658,7 +678,12 @@ def _search_ddgs(query: str, max_results: int) -> list[dict[str, str]]:
     for r in DDGS().text(query, max_results=max_results):
         results.append({
             "title": r.get("title", ""),
-            "snippet": r.get("body", ""),
+            # DDG's ``body`` field maps onto our ``model_summary``
+            # output key.  DDG bodies are verbatim page excerpts
+            # rather than model-written summaries, but the field
+            # name reflects the shape of the contract, not the
+            # provenance.
+            "model_summary": r.get("body", ""),
             "url": _resolve_ddg_url(r.get("href", "")),
         })
     return results
@@ -683,7 +708,7 @@ def _search_duckduckgo_search(
         for r in DDGS2().text(query, max_results=max_results):
             results.append({
                 "title": r.get("title", ""),
-                "snippet": r.get("body", ""),
+                "model_summary": r.get("body", ""),
                 "url": _resolve_ddg_url(r.get("href", "")),
             })
     return results
@@ -695,8 +720,8 @@ def _result_key(result: dict[str, str]) -> tuple[str, str]:
     if url:
         return ("url", url)
     title = " ".join(result.get("title", "").lower().split())
-    snippet = " ".join(result.get("snippet", "").lower().split())
-    return ("text", f"{title}|{snippet}")
+    summary = " ".join(result.get("model_summary", "").lower().split())
+    return ("text", f"{title}|{summary}")
 
 
 def _normalise_backend_results(
@@ -704,7 +729,13 @@ def _normalise_backend_results(
     *,
     max_results: int,
 ) -> list[dict[str, str]]:
-    """Normalise backend output to ``title``/``snippet``/``url`` dicts."""
+    """Normalise backend output to ``title``/``model_summary``/``url`` dicts.
+
+    Accepts a legacy ``snippet`` key from provider responses and maps
+    it onto ``model_summary`` so a half-migrated provider doesn't lose
+    its summary text.  The output dict ALWAYS uses ``model_summary``;
+    callers downstream of this function never see ``snippet``.
+    """
     if not isinstance(results, list):
         return []
 
@@ -713,13 +744,19 @@ def _normalise_backend_results(
         if not isinstance(item, dict):
             continue
         title = str(item.get("title", "")).strip()
-        snippet = str(item.get("snippet", "")).strip()
+        # Legacy alias: providers that still emit "snippet" get mapped
+        # to "model_summary" silently.  Remove this shim in a future
+        # release once all internal providers have migrated.
+        model_summary = str(
+            item.get("model_summary")
+            or item.get("snippet", "")
+        ).strip()
         url = str(item.get("url", "")).strip()
         if not url:
             continue
         normalised.append({
             "title": title,
-            "snippet": snippet,
+            "model_summary": model_summary,
             "url": url,
         })
         if len(normalised) >= max_results:
@@ -761,8 +798,9 @@ def _extract_openai_source_results(
                     seen_urls.add(clean_url)
                     found.append({
                         "title": str(title).strip() if title else clean_url,
-                        "snippet": str(
-                            node.get("snippet")
+                        "model_summary": str(
+                            node.get("model_summary")
+                            or node.get("snippet")
                             or node.get("excerpt")
                             or node.get("description")
                             or ""
@@ -785,17 +823,22 @@ def _extract_anthropic_web_results(
     response: object,
     max_results: int,
 ) -> list[dict[str, str]]:
-    """Extract ``title``/``snippet``/``url`` rows from an Anthropic response.
+    """Extract ``title``/``model_summary``/``url`` rows from an Anthropic response.
 
-    Primary path: walk the ``citations`` lists on each ``text`` content block
-    — every citation carries the source URL, title, and up to 150 chars of
-    ``cited_text`` (the snippet). Dedupe by URL, take the first citation's
-    ``cited_text`` as the snippet when a URL is cited multiple times.
+    Primary path: walk the ``citations`` lists on each ``text`` content
+    block — every citation carries the source URL, title, and up to 150
+    chars of ``cited_text``.  Dedupe by URL, take the first citation's
+    ``cited_text`` as the ``model_summary`` when a URL is cited multiple
+    times.  Note: Anthropic's ``cited_text`` is a VERBATIM excerpt
+    rather than a model-written summary, so the ``model_summary`` field
+    in Anthropic-backend outputs is actually a true quote (~150 chars);
+    the field name reflects the dict-shape contract, not the
+    provenance of the text.
 
     Fallback path: when Claude returned search results but no citations,
     walk the ``web_search_tool_result`` blocks for ``url`` + ``title``.
-    ``encrypted_content`` is opaque by design, so snippets in this path
-    degrade to just the ``page_age`` timestamp.
+    ``encrypted_content`` is opaque by design, so ``model_summary`` in
+    this path degrades to just the ``page_age`` timestamp.
     """
     raw: object
     if hasattr(response, "model_dump"):
@@ -835,8 +878,12 @@ def _extract_anthropic_web_results(
                 continue
             seen_urls.add(url)
             title = str(cit.get("title", "") or "").strip() or url
-            snippet = str(cit.get("cited_text", "") or "").strip()
-            found.append({"title": title, "snippet": snippet, "url": url})
+            model_summary = str(cit.get("cited_text", "") or "").strip()
+            found.append({
+                "title": title,
+                "model_summary": model_summary,
+                "url": url,
+            })
             if len(found) >= max_results:
                 return found
 
@@ -861,8 +908,14 @@ def _extract_anthropic_web_results(
                 seen_urls.add(url)
                 title = str(res.get("title", "") or "").strip() or url
                 page_age = str(res.get("page_age", "") or "").strip()
-                snippet = f"(page age: {page_age})" if page_age else ""
-                found.append({"title": title, "snippet": snippet, "url": url})
+                model_summary = (
+                    f"(page age: {page_age})" if page_age else ""
+                )
+                found.append({
+                    "title": title,
+                    "model_summary": model_summary,
+                    "url": url,
+                })
                 if len(found) >= max_results:
                     return found
 
@@ -1174,7 +1227,7 @@ def search_web(
 
     Returns
     -------
-    A list of dicts, each with ``title``, ``snippet``, and ``url`` keys.
+    A list of dicts, each with ``title``, ``model_summary``, and ``url`` keys.
     Returns an empty list if the search fails or the library is not
     installed.
 
@@ -1293,19 +1346,21 @@ def format_web_context(
     lines: list[str] = [
         f"## WEB SEARCH CONTEXT (turn {turn})",
         "",
-        "The following web search snippets provide real-world context "
-        "for the research topic. Use this information to ground your "
-        "analysis in current facts (e.g., trade volumes, destinations, "
-        "policies), but always apply the metacoupling framework "
-        "rigorously.",
+        "The following web search results provide real-world context "
+        "for the research topic.  Each `model_summary` is a short "
+        "model-written summary of the source (verbatim for the "
+        "Anthropic backend, paraphrased for OpenAI / Gemini / Grok / "
+        "DDG).  Use this information to ground your analysis in "
+        "current facts (e.g., trade volumes, destinations, policies), "
+        "but always apply the metacoupling framework rigorously.",
         "",
-        "For subnational trade topics, some snippets may come from "
+        "For subnational trade topics, some results may come from "
         "broader country-level searches when place-specific trade-partner "
-        "data are sparse. Treat those as proxy context and label them "
+        "data are sparse.  Treat those as proxy context and label them "
         "clearly rather than presenting them as direct subnational facts.",
         "",
-        f"When you use a fact from a web snippet, cite it inline as "
-        f"[T{turn}:W1], [T{turn}:W2], etc. These are turn-scoped — the "
+        f"When you use a fact from a web result, cite it inline as "
+        f"[T{turn}:W1], [T{turn}:W2], etc.  These are turn-scoped — the "
         f"`T{turn}:` prefix marks them as belonging to turn {turn} and "
         f"distinguishes them from literature citations [T{turn}:1], "
         f"[T{turn}:2], … that may be added separately.",
@@ -1314,11 +1369,11 @@ def format_web_context(
 
     for i, r in enumerate(results, 1):
         title = r.get("title", "Untitled")
-        snippet = r.get("snippet", "")
+        model_summary = r.get("model_summary", "")
         url = r.get("url", "")
         lines.append(f"[T{turn}:W{i}] **{title}**")
-        if snippet:
-            lines.append(f"   {snippet}")
+        if model_summary:
+            lines.append(f"   {model_summary}")
         if url:
             lines.append(f"   Source: {url}")
         lines.append("")
@@ -1421,7 +1476,7 @@ def extract_web_map_signals(
     temperature: float = 0.0,
     max_tokens: int = 8192,
 ) -> dict[str, object] | None:
-    """Use an LLM to extract validated map-ready signals from web snippets.
+    """Use an LLM to extract validated map-ready signals from web results.
 
     Returns a dict containing ``focal_country``, ``receiving_systems``,
     ``spillover_systems``, and ``flows`` when extraction succeeds.
@@ -1436,12 +1491,17 @@ def extract_web_map_signals(
     from metacouplingllm.llm.client import Message
 
     available_ids = {f"W{i}" for i in range(1, len(results) + 1)}
-    snippet_lines: list[str] = []
+    result_lines: list[str] = []
     for idx, result in enumerate(results, 1):
-        snippet_lines.append(f"[W{idx}] {result.get('title', '').strip()}")
-        snippet_lines.append(f"Snippet: {result.get('snippet', '').strip()}")
-        snippet_lines.append(f"URL: {result.get('url', '').strip()}")
-        snippet_lines.append("")
+        result_lines.append(f"[W{idx}] {result.get('title', '').strip()}")
+        # Accept legacy "snippet" key from upstream providers as well.
+        summary = (
+            result.get("model_summary")
+            or result.get("snippet", "")
+        ).strip()
+        result_lines.append(f"Summary: {summary}")
+        result_lines.append(f"URL: {result.get('url', '').strip()}")
+        result_lines.append("")
 
     schema = {
         "focal_country": "country name, ISO code, or null",
@@ -1494,7 +1554,7 @@ def extract_web_map_signals(
     }
     system_text = (
         "You extract conservative, map-ready metacoupling signals from web "
-        "search snippets. Use only the provided snippets. Do not invent "
+        "search results.  Use only the provided results.  Do not invent "
         "countries, destinations, or flows. Return JSON only."
     )
     user_text = (
@@ -1502,10 +1562,10 @@ def extract_web_map_signals(
         "Extract map-ready countries and flows for a metacoupling map.\n"
         "Rules:\n"
         "- Use null or empty lists when uncertain.\n"
-        "- Label items as 'proxy' when the snippet is broader than the focal "
+        "- Label items as 'proxy' when a result is broader than the focal "
         "study but still useful context.\n"
         "- Only include countries that are explicitly supported by the "
-        "snippets.\n"
+        "results.\n"
         "- ONLY extract countries and flows that are DIRECTLY RELEVANT to "
         "the research query above. Ignore trade data about unrelated "
         "products, sectors, or commodities, even if they involve the focal "
@@ -1530,14 +1590,15 @@ def extract_web_map_signals(
         "- Every item must include evidence ids like W1.\n"
         "\n"
         "Evidence card rules:\n"
-        "- Emit ONE evidence_cards entry per web snippet you saw, even when "
-        "the snippet did not yield map signals.  Cards are independent of "
+        "- Emit ONE evidence_cards entry per web result you saw, even when "
+        "the result did not yield map signals.  Cards are independent of "
         "flows/systems -- they describe the web sources themselves.\n"
-        "- source_id MUST match the snippet's W-id exactly (W1..W{n}).  Do "
-        "not invent W-ids beyond the snippets shown.\n"
+        "- source_id MUST match the result's W-id exactly (W1..W{n}).  Do "
+        "not invent W-ids beyond the results shown.\n"
         "- claims_supported: 1-4 short factual phrases the source can "
-        "genuinely support.  Do NOT paraphrase the snippet wholesale -- "
-        "list the SPECIFIC factual claims the source establishes.\n"
+        "genuinely support.  Do NOT paraphrase the source's summary "
+        "wholesale -- list the SPECIFIC factual claims the source "
+        "establishes.\n"
         "- relevance_score: a float in [0.0, 1.0] for the source's "
         "relevance to the research query.  Scores below 0.3 are dropped "
         "downstream.\n"
@@ -1554,8 +1615,8 @@ def extract_web_map_signals(
         "downstream may also draw on local literature, so 'gap' here means "
         "a gap in WEB evidence only.\n\n"
         f"JSON schema example:\n{json.dumps(schema, ensure_ascii=True)}\n\n"
-        "Web snippets:\n"
-        f"{chr(10).join(snippet_lines)}"
+        "Web search results:\n"
+        f"{chr(10).join(result_lines)}"
     )
 
     response = llm_client.chat(
@@ -1684,7 +1745,7 @@ def extract_web_map_signals(
     if not focal_country and receiving and flows:
         focal_country = str(flows[0]["source_country"])
 
-    # Evidence cards — per-snippet structured metadata.  Cards survive
+    # Evidence cards — per-result structured metadata.  Cards survive
     # even when no map signals were extracted (so users can still see
     # which sources were found, what they support, and how relevant
     # the model rated each).
@@ -1764,7 +1825,7 @@ def format_web_map_signals_context(signals: dict[str, object] | None) -> str:
         "## STRUCTURED WEB MAP SIGNALS",
         "",
         "The following countries and flows were conservatively extracted "
-        "from the web snippets and validated for mapping. Treat these as "
+        "from the web results and validated for mapping. Treat these as "
         "high-priority map hints, while still reasoning carefully about "
         "direct versus proxy evidence.",
         "",
@@ -1814,7 +1875,7 @@ def format_web_map_signals_context(signals: dict[str, object] | None) -> str:
                 f"evidence={','.join(item.get('evidence', []))})"
             )
 
-    # Evidence cards — per-snippet structured metadata.  Helps the main
+    # Evidence cards — per-result structured metadata.  Helps the main
     # analysis LLM weight sources by type and relevance, and quote
     # specific claims rather than paraphrasing.
     evidence_cards = signals.get("evidence_cards", [])
@@ -1885,7 +1946,7 @@ def annotate_web_citations(
     analysis lines.
 
     Works the same way as the literature ``annotate_citations`` but
-    uses web-search snippets and emits ``[Tk:W1]``, ``[Tk:W2]``, …
+    uses web-search results and emits ``[Tk:W1]``, ``[Tk:W2]``, …
     so web and literature references are visually distinct while
     sharing the turn-scoped grammar.
 
@@ -1894,12 +1955,13 @@ def annotate_web_citations(
     formatted:
         The formatted analysis text.
     web_results:
-        Web search result dicts (each with ``title``, ``snippet``, ``url``).
+        Web search result dicts (each with ``title``, ``model_summary``,
+        ``url``).
     min_keyword_overlap:
         Minimum shared keywords for a citation to be added.
     min_overlap_ratio:
         Minimum fraction of the line's keywords that must appear in the
-        web snippet.
+        web result's ``model_summary``.
     turn:
         1-indexed turn number used to render citations as ``[Tk:Wn]``.
         Default ``1``.
@@ -1911,11 +1973,13 @@ def annotate_web_citations(
     if not web_results:
         return formatted
 
-    # Build keyword sets for each web snippet
-    snippet_keywords: list[set[str]] = []
+    # Build keyword sets for each web result (title + model_summary).
+    result_keywords: list[set[str]] = []
     for r in web_results:
-        combined = (r.get("title", "") + " " + r.get("snippet", "")).strip()
-        snippet_keywords.append(_web_tokenise(combined))
+        combined = (
+            r.get("title", "") + " " + r.get("model_summary", "")
+        ).strip()
+        result_keywords.append(_web_tokenise(combined))
 
     _skip_prefixes = (
         "COUPLING CLASSIFICATION", "SYSTEMS IDENTIFICATION",
@@ -1965,9 +2029,9 @@ def annotate_web_citations(
             annotated.append(line)
             continue
 
-        # Find matching web snippets
+        # Find matching web results
         citations: list[int] = []
-        for idx, sk in enumerate(snippet_keywords):
+        for idx, sk in enumerate(result_keywords):
             overlap = line_tokens & sk
             n_overlap = len(overlap)
             ratio = n_overlap / len(line_tokens) if line_tokens else 0
