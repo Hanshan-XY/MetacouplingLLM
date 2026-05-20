@@ -389,6 +389,70 @@ class TestOpenAIAdapter:
         assert calls[1]["max_completion_tokens"] == 200
 
 
+class TestOpenAIAdapterResponseFormat:
+    """Tests for the keyword-only ``response_format`` param on
+    ``OpenAIAdapter.chat()`` that enables strict json_schema mode."""
+
+    def _make_capturing_adapter(self):
+        captured: dict[str, object] = {}
+
+        class FakeChoice:
+            def __init__(self):
+                self.message = type("Msg", (), {"content": '{"ok":true}'})()
+
+        class FakeUsage:
+            prompt_tokens = 1
+            completion_tokens = 2
+            total_tokens = 3
+
+        class FakeResponse:
+            choices = [FakeChoice()]
+            usage = FakeUsage()
+
+        class FakeOpenAI:
+            def __init__(self):
+                outer = self
+
+                class Comp:
+                    @staticmethod
+                    def create(**kwargs):
+                        captured.update(kwargs)
+                        return FakeResponse()
+
+                self.chat = type("Chat", (), {"completions": Comp()})()
+
+        return OpenAIAdapter(FakeOpenAI(), model="gpt-4o-mini"), captured
+
+    def test_chat_passes_response_format_when_provided(self):
+        """When response_format is given, it shows up in the API
+        kwargs as-is."""
+        adapter, captured = self._make_capturing_adapter()
+        rf = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "test_schema",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"ok": {"type": "boolean"}},
+                    "required": ["ok"],
+                },
+            },
+        }
+        adapter.chat(
+            [Message(role="user", content="ping")],
+            response_format=rf,
+        )
+        assert captured.get("response_format") == rf
+
+    def test_chat_omits_response_format_by_default(self):
+        """No response_format kwarg unless explicitly provided."""
+        adapter, captured = self._make_capturing_adapter()
+        adapter.chat([Message(role="user", content="ping")])
+        assert "response_format" not in captured
+
+
 class TestAnthropicAdapter:
     def test_chat_separates_system_message(self):
         """Test that AnthropicAdapter extracts system into separate param."""

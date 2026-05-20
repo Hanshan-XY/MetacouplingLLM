@@ -284,6 +284,125 @@ class TestStructuredWebMapSignals:
         assert signals["evidence_cards"] == []
         assert signals["suggested_followup_queries"] == []
 
+    # --- Strict json_schema mode for OpenAI -----------------------------
+
+    def test_openai_search_passes_strict_json_schema_to_responses_api(self):
+        """OpenAIWebSearchBackend.search() sends text.format.json_schema."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(client=MockClient())
+        backend.search("test query", max_results=3)
+
+        assert "text" in captured
+        text_cfg = captured["text"]
+        assert isinstance(text_cfg, dict)
+        fmt = text_cfg.get("format", {})
+        assert fmt.get("type") == "json_schema"
+        assert fmt.get("strict") is True
+        assert fmt.get("name") == "web_search_results"
+        schema = fmt.get("schema", {})
+        # Spot-check schema shape.
+        assert "results" in schema.get("properties", {})
+
+    def test_extract_web_map_signals_passes_response_format_for_openai_adapter(
+        self,
+    ):
+        """When the client is an OpenAIAdapter, extract_web_map_signals
+        passes a response_format kwarg with the json_schema."""
+        from metacouplingllm.llm.client import LLMResponse, OpenAIAdapter
+
+        captured: dict[str, object] = {}
+
+        class MockUnderlyingOpenAI:
+            def __init__(self):
+                outer = self
+
+                class Comp:
+                    @staticmethod
+                    def create(**kwargs):
+                        captured.update(kwargs)
+
+                        class FakeChoice:
+                            def __init__(self):
+                                self.message = type(
+                                    "M", (),
+                                    {"content": (
+                                        '{"focal_country":"BRA",'
+                                        '"receiving_systems":[],'
+                                        '"spillover_systems":[],'
+                                        '"flows":[],'
+                                        '"evidence_cards":[],'
+                                        '"suggested_followup_queries":[]}'
+                                    )},
+                                )()
+
+                        class FakeResp:
+                            choices = [FakeChoice()]
+                            usage = None
+
+                        return FakeResp()
+
+                self.chat = type("Chat", (), {"completions": Comp()})()
+
+        adapter = OpenAIAdapter(
+            MockUnderlyingOpenAI(), model="gpt-4o-mini",
+        )
+        results = [{"title": "x", "model_summary": "y", "url": "u"}]
+        extract_web_map_signals(
+            "q", results, adapter, min_confidence=0.7,
+        )
+        assert "response_format" in captured
+        rf = captured["response_format"]
+        assert rf.get("type") == "json_schema"
+        js = rf.get("json_schema", {})
+        assert js.get("name") == "web_map_signals"
+        assert js.get("strict") is True
+
+    def test_extract_web_map_signals_omits_response_format_for_non_openai(
+        self,
+    ):
+        """When the client is NOT an OpenAIAdapter, no response_format
+        kwarg is sent (other adapters' chat() signatures don't accept it)."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        captured: dict[str, object] = {}
+
+        class GenericClient:
+            def chat(self, messages, **kwargs):
+                captured.update(kwargs)
+                return LLMResponse(content=(
+                    '{"focal_country":"BRA",'
+                    '"receiving_systems":[],"spillover_systems":[],'
+                    '"flows":[],"evidence_cards":[],'
+                    '"suggested_followup_queries":[]}'
+                ))
+
+        results = [{"title": "x", "model_summary": "y", "url": "u"}]
+        extract_web_map_signals(
+            "q", results, GenericClient(), min_confidence=0.7,
+        )
+        assert "response_format" not in captured
+
     # --- Legacy snippet → model_summary shim ----------------------------
 
     def test_normalise_backend_results_emits_model_summary_only(self):

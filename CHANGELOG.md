@@ -7,6 +7,35 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Changed
+
+- **Strict `json_schema` mode for OpenAI web-search +
+  `extract_web_map_signals`.**  Both calls previously asked the
+  model to emit JSON via prompt instructions and relied on
+  `_extract_json_object` to recover from malformed output.  They
+  now declare an explicit schema and OpenAI guarantees the
+  response conforms.
+  - `OpenAIWebSearchBackend.search()` adds a
+    `text={"format": {"type": "json_schema", "name":
+    "web_search_results", "strict": True, "schema": ...}}` payload
+    to the Responses-API call (schema defined as the
+    module-level `_OPENAI_WEB_SEARCH_RESULTS_SCHEMA`).
+  - `extract_web_map_signals` detects when the client is an
+    `OpenAIAdapter` (or subclass) and passes
+    `response_format={"type": "json_schema", "json_schema": {
+    "name": "web_map_signals", "strict": True, "schema": ...}}`
+    via the adapter's new keyword-only `response_format`
+    parameter (schema is the module-level
+    `_WEB_MAP_SIGNALS_SCHEMA`).
+  Non-OpenAI clients keep the prompt-based JSON path unchanged.
+  The `_extract_json_object` fallback parser stays as a
+  defensive measure for both paths.
+- **`OpenAIAdapter.chat()` gains a keyword-only `response_format`
+  parameter.**  Optional; when omitted the kwarg is not sent to
+  the OpenAI SDK so existing callers don't break.  The retry
+  paths (temperature, max_completion_tokens, capped max_tokens,
+  rate-limit backoff) carry `response_format` through unchanged.
+
 ### Changed (breaking — web-search return shape)
 
 - **Web-search backend dict key renamed: `snippet` → `model_summary`.**

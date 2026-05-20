@@ -72,6 +72,32 @@ class WebSearchBackend(Protocol):
         ...
 
 
+# JSON schema for OpenAI ``text.format.json_schema`` strict mode on
+# the web-search call.  When supplied, OpenAI guarantees the response
+# conforms to this shape, removing the need for prompt-based JSON
+# extraction.  See ``OpenAIWebSearchBackend.search()``.
+_OPENAI_WEB_SEARCH_RESULTS_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "results": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                    "model_summary": {"type": "string"},
+                },
+                "required": ["title", "url", "model_summary"],
+            },
+        },
+    },
+    "required": ["results"],
+}
+
+
 @dataclass
 class OpenAIWebSearchBackend:
     """Web-search backend powered by OpenAI Responses API ``web_search``.
@@ -123,6 +149,21 @@ class OpenAIWebSearchBackend:
             "tool_choice": "auto",
             "include": ["web_search_call.action.sources"],
             "input": prompt,
+            # Strict json_schema mode: OpenAI guarantees the response
+            # conforms to ``_OPENAI_WEB_SEARCH_RESULTS_SCHEMA``, which
+            # makes the ``_extract_json_object`` fallback below largely
+            # decorative for OpenAI.  We keep the fallback for cases
+            # where adapters wrapping the SDK strip the format field
+            # or where the model still emits warnings inside the
+            # output_text envelope.
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "web_search_results",
+                    "strict": True,
+                    "schema": _OPENAI_WEB_SEARCH_RESULTS_SCHEMA,
+                },
+            },
         }
         if self.reasoning and self.reasoning != "default":
             kwargs["reasoning"] = {"effort": self.reasoning}
@@ -1466,6 +1507,118 @@ def _coerce_confidence(value: object) -> float:
     return max(0.0, min(1.0, score))
 
 
+# JSON schema for OpenAI ``response_format`` strict mode on the
+# structured map-extraction call inside ``extract_web_map_signals``.
+# Mirrors the shape the function's normaliser expects (see the
+# normalisation logic below).  Optional fields (``reason``,
+# ``description``) are typed as strings rather than required because
+# upstream parsers tolerate missing values, but they MUST be in the
+# ``required`` list when ``strict=True`` is in effect — strict mode
+# requires every property to be in ``required``.  Non-OpenAI clients
+# never see this schema; they continue to use the prompt-based JSON
+# path with ``_extract_json_object`` as the parser.
+_WEB_MAP_SIGNALS_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "focal_country": {"type": ["string", "null"]},
+        "receiving_systems": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "country": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "confidence": {"type": "number"},
+                    "evidence": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "reason": {"type": "string"},
+                },
+                "required": [
+                    "country", "kind", "confidence",
+                    "evidence", "reason",
+                ],
+            },
+        },
+        "spillover_systems": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "country": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "confidence": {"type": "number"},
+                    "evidence": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "reason": {"type": "string"},
+                },
+                "required": [
+                    "country", "kind", "confidence",
+                    "evidence", "reason",
+                ],
+            },
+        },
+        "flows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "category": {"type": "string"},
+                    "source_country": {"type": "string"},
+                    "target_country": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "confidence": {"type": "number"},
+                    "evidence": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "description": {"type": "string"},
+                },
+                "required": [
+                    "category", "source_country", "target_country",
+                    "kind", "confidence", "evidence", "description",
+                ],
+            },
+        },
+        "evidence_cards": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "source_id": {"type": "string"},
+                    "claims_supported": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "relevance_score": {"type": "number"},
+                    "source_type": {"type": "string"},
+                },
+                "required": [
+                    "source_id", "claims_supported",
+                    "relevance_score", "source_type",
+                ],
+            },
+        },
+        "suggested_followup_queries": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    },
+    "required": [
+        "focal_country", "receiving_systems", "spillover_systems",
+        "flows", "evidence_cards", "suggested_followup_queries",
+    ],
+}
+
+
 def extract_web_map_signals(
     query: str,
     results: list[dict[str, str]],
@@ -1619,13 +1772,38 @@ def extract_web_map_signals(
         f"{chr(10).join(result_lines)}"
     )
 
+    # Pass response_format only when the client is an OpenAIAdapter
+    # (or subclass).  Other adapters' chat() signatures don't accept
+    # the kwarg; the JSON schema example embedded in the user_text
+    # above continues to teach them the expected shape, and the
+    # ``_extract_json_object`` fallback below recovers the JSON from
+    # whatever text they emit.
+    chat_kwargs: dict[str, object] = {
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    try:
+        from metacouplingllm.llm.client import OpenAIAdapter as _OpenAIAdapter
+        if isinstance(llm_client, _OpenAIAdapter):
+            chat_kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "web_map_signals",
+                    "strict": True,
+                    "schema": _WEB_MAP_SIGNALS_SCHEMA,
+                },
+            }
+    except Exception:
+        # If the adapter import fails for any reason, fall through to
+        # the prompt-based JSON path.
+        pass
+
     response = llm_client.chat(
         messages=[
             Message(role="system", content=system_text),
             Message(role="user", content=user_text),
         ],
-        temperature=temperature,
-        max_tokens=max_tokens,
+        **chat_kwargs,
     )
     raw_obj = _extract_json_object(response.content)
     if raw_obj is None:
