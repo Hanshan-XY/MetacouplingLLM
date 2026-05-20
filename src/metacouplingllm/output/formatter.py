@@ -177,6 +177,19 @@ class AnalysisFormatter:
                 parts.append(f"  - {gap}")
             parts.append("")
 
+        # §7 Evidence Coverage — model self-assessment block.  Skipped
+        # entirely when the LLM omitted the section (preserves backward
+        # compatibility with responses generated before the §7 prompt
+        # instruction shipped).  ``suggested_followup_queries`` is
+        # appended by ``MetacouplingAssistant._build_result`` (where the
+        # web_map_signals are accessible); the formatter only renders
+        # what's on the ParsedAnalysis itself.
+        if analysis.evidence_coverage_note:
+            parts.append("7. Evidence Coverage")
+            parts.append(_SUB_SEPARATOR)
+            parts.append(analysis.evidence_coverage_note)
+            parts.append("")
+
         if analysis.pericoupling_info:
             info = analysis.pericoupling_info
             if info.get("level") == "adm1":

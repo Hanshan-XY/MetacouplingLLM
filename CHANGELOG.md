@@ -9,6 +9,41 @@ file. The format is loosely based on
 
 ### Added
 
+- **Evidence cards, combined coverage notes, and suggested
+  follow-up queries** surface from the web-search + main-analysis
+  pipeline:
+  - **`evidence_cards`** on `web_map_signals`: a new top-level
+    array emitted by the web-extraction LLM call
+    (`extract_web_map_signals`).  One entry per web result, each
+    with `source_id` (W1..Wn), `claims_supported` (1–4 specific
+    factual phrases), `relevance_score` (0.0–1.0), and
+    `source_type` (academic / government / news / industry /
+    NGO / etc.).  Lets downstream consumers weight sources by
+    type and reason about which source supports which claim.
+  - **`AnalysisResult.evidence_coverage_note`** (`str`):
+    self-assessment by the MAIN analysis LLM call (§7 in the
+    output format) of where the analysis is well-grounded vs
+    thin.  Considers BOTH RAG literature AND web evidence,
+    since only the main call sees both streams — a web-only
+    coverage note would be misleading because the RAG corpus
+    may cover gaps the web search missed.  Mirrored from
+    `parsed.evidence_coverage_note`; rendered into `formatted`
+    as a "7. Evidence Coverage" block; empty string when the
+    LLM omitted §7 (backward-compatible).
+  - **`AnalysisResult.suggested_followup_queries`** (`list[str]`):
+    3–5 short web-search query strings the web-extraction LLM
+    proposes to fill gaps in the WEB evidence (RAG-side gaps are
+    discussed in `evidence_coverage_note` instead).  Surfaces in
+    `formatted` as a bullet footer beneath the EVIDENCE COVERAGE
+    block.  Users can run them manually via
+    `assistant.refine(query)` or programmatically for auto-
+    deepening loops.
+- **`web_search_max_results` default raised from 5 to 10** to
+  give the new combined coverage assessment richer evidence by
+  default.  Token cost on the search call rises ~30–50%; users
+  who want the previous behaviour can pass `web_search_max_results=5`
+  explicitly.
+
 - **`AnalysisResult.flow_parse_warnings`** — list of flow-direction
   strings the legacy regex map path could not resolve into endpoints.
   Each entry carries `direction`, `category`, and `reason`. Empty when

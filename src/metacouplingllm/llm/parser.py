@@ -86,6 +86,14 @@ class ParsedAnalysis:
     telecoupling: CouplingSection | None = None
     cross_coupling_interactions: list[str] = field(default_factory=list)
     research_gaps: list[str] = field(default_factory=list)
+    # §7 Evidence Coverage — model self-assessment of where the analysis
+    # is well-grounded vs thin.  Considers both web AND RAG evidence
+    # (since this section is emitted by the main analysis LLM call,
+    # which is the only call that sees both streams).  Plain prose;
+    # 2–5 short paragraphs as instructed in OUTPUT_FORMAT_LAYER.
+    # Empty string when the LLM omitted the section (legacy responses
+    # or LLM ignored the instruction).
+    evidence_coverage_note: str = ""
     raw_text: str = ""
     pericoupling_info: dict[str, str] | None = None
     map_data: dict[str, object] | None = None
@@ -309,6 +317,10 @@ _TOP_SECTION_PATTERNS: dict[str, re.Pattern[str]] = {
     ),
     "research_gaps": re.compile(
         r"^#+\s*\d*\.?\s*(research\s+gaps?(?:\s*&\s*suggestions|\s+and\s+suggestions)?)",
+        re.IGNORECASE | re.MULTILINE,
+    ),
+    "evidence_coverage": re.compile(
+        r"^#+\s*\d*\.?\s*evidence\s+coverage",
         re.IGNORECASE | re.MULTILINE,
     ),
 }
@@ -864,5 +876,10 @@ def parse_analysis(response_text: str) -> ParsedAnalysis:
         ]
     if "research_gaps" in sections:
         result.research_gaps = _extract_bullets(sections["research_gaps"])
+    if "evidence_coverage" in sections:
+        # Plain prose section — preserve paragraph structure.  Strip
+        # leading/trailing whitespace but keep internal newlines so
+        # the formatter can render paragraphs the way the LLM wrote them.
+        result.evidence_coverage_note = sections["evidence_coverage"].strip()
 
     return result

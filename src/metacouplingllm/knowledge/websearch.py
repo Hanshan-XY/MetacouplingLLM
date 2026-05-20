@@ -1474,6 +1474,23 @@ def extract_web_map_signals(
                 "description": "short flow description",
             }
         ],
+        "evidence_cards": [
+            {
+                "source_id": "W1",
+                "claims_supported": [
+                    "1-4 short factual claims this source can support",
+                ],
+                "relevance_score": 0.0,
+                "source_type": (
+                    "academic | government | international_organization | "
+                    "ngo | news | industry | company | database | other"
+                ),
+            }
+        ],
+        "suggested_followup_queries": [
+            "3-5 specific WEB search queries that would fill gaps "
+            "in the current evidence",
+        ],
     }
     system_text = (
         "You extract conservative, map-ready metacoupling signals from web "
@@ -1510,7 +1527,32 @@ def extract_web_map_signals(
         "anyone. For example, if USA exports corn to Mexico "
         "and Brazil is a competitor, do NOT add a Brazil \u2192 Mexico flow.\n"
         "- Keep at most 6 receiving systems, 6 spillover systems, and 8 flows.\n"
-        "- Every item must include evidence ids like W1.\n\n"
+        "- Every item must include evidence ids like W1.\n"
+        "\n"
+        "Evidence card rules:\n"
+        "- Emit ONE evidence_cards entry per web snippet you saw, even when "
+        "the snippet did not yield map signals.  Cards are independent of "
+        "flows/systems -- they describe the web sources themselves.\n"
+        "- source_id MUST match the snippet's W-id exactly (W1..W{n}).  Do "
+        "not invent W-ids beyond the snippets shown.\n"
+        "- claims_supported: 1-4 short factual phrases the source can "
+        "genuinely support.  Do NOT paraphrase the snippet wholesale -- "
+        "list the SPECIFIC factual claims the source establishes.\n"
+        "- relevance_score: a float in [0.0, 1.0] for the source's "
+        "relevance to the research query.  Scores below 0.3 are dropped "
+        "downstream.\n"
+        "- source_type: pick from the enum.  When unsure, use 'other'.\n"
+        "\n"
+        "Suggested follow-up queries:\n"
+        "- Emit 3-5 short, specific web-search query strings (each "
+        "between 4 and 12 words) that would fill GAPS in the current "
+        "web evidence.  Examples of good gap-filling queries: more recent "
+        "data, missing subtopics, alternate framings, missing geographic "
+        "regions, missing actor classes.\n"
+        "- Do NOT repeat the research query verbatim.\n"
+        "- These queries are WEB-specific suggestions; the main analysis "
+        "downstream may also draw on local literature, so 'gap' here means "
+        "a gap in WEB evidence only.\n\n"
         f"JSON schema example:\n{json.dumps(schema, ensure_ascii=True)}\n\n"
         "Web snippets:\n"
         f"{chr(10).join(snippet_lines)}"
@@ -1642,7 +1684,65 @@ def extract_web_map_signals(
     if not focal_country and receiving and flows:
         focal_country = str(flows[0]["source_country"])
 
-    if not any((focal_country, receiving, spillover, flows)):
+    # Evidence cards — per-snippet structured metadata.  Cards survive
+    # even when no map signals were extracted (so users can still see
+    # which sources were found, what they support, and how relevant
+    # the model rated each).
+    _ALLOWED_SOURCE_TYPES = frozenset({
+        "academic", "government", "international_organization", "ngo",
+        "news", "industry", "company", "database", "other",
+    })
+    evidence_cards: list[dict[str, object]] = []
+    seen_card_ids: set[str] = set()
+    raw_cards = raw_obj.get("evidence_cards", [])
+    if isinstance(raw_cards, list):
+        for item in raw_cards:
+            if not isinstance(item, dict):
+                continue
+            source_id = str(item.get("source_id", "")).strip().upper()
+            if source_id not in available_ids or source_id in seen_card_ids:
+                continue
+            claims_raw = item.get("claims_supported", [])
+            claims = (
+                [str(c).strip() for c in claims_raw if str(c).strip()]
+                if isinstance(claims_raw, list)
+                else []
+            )
+            score = _coerce_confidence(item.get("relevance_score", 0.0))
+            stype = str(item.get("source_type", "other")).strip().lower()
+            if stype not in _ALLOWED_SOURCE_TYPES:
+                stype = "other"
+            seen_card_ids.add(source_id)
+            evidence_cards.append({
+                "source_id": source_id,
+                "claims_supported": claims[:4],
+                "relevance_score": score,
+                "source_type": stype,
+            })
+    # Sort by W-id order (W1, W2, ...) for stable downstream rendering.
+    evidence_cards.sort(key=lambda c: int(str(c["source_id"])[1:] or 0))
+
+    # Suggested follow-up queries — short web-search strings.
+    followup_queries: list[str] = []
+    raw_followups = raw_obj.get("suggested_followup_queries", [])
+    if isinstance(raw_followups, list):
+        seen_followups: set[str] = set()
+        for q in raw_followups:
+            q_str = str(q).strip()
+            if not q_str or q_str.lower() in seen_followups:
+                continue
+            # Cap each query at a sensible length to keep the prompt tidy.
+            if len(q_str) > 160:
+                q_str = q_str[:157].rstrip() + "..."
+            seen_followups.add(q_str.lower())
+            followup_queries.append(q_str)
+            if len(followup_queries) >= 5:
+                break
+
+    if not any((
+        focal_country, receiving, spillover, flows,
+        evidence_cards, followup_queries,
+    )):
         return None
 
     return {
@@ -1650,6 +1750,8 @@ def extract_web_map_signals(
         "receiving_systems": receiving,
         "spillover_systems": spillover,
         "flows": flows,
+        "evidence_cards": evidence_cards,
+        "suggested_followup_queries": followup_queries,
     }
 
 
@@ -1711,6 +1813,39 @@ def format_web_map_signals_context(signals: dict[str, object] | None) -> str:
                 f"confidence={item.get('confidence', 0):.2f}, "
                 f"evidence={','.join(item.get('evidence', []))})"
             )
+
+    # Evidence cards — per-snippet structured metadata.  Helps the main
+    # analysis LLM weight sources by type and relevance, and quote
+    # specific claims rather than paraphrasing.
+    evidence_cards = signals.get("evidence_cards", [])
+    if isinstance(evidence_cards, list) and evidence_cards:
+        lines.append("")
+        lines.append("### EVIDENCE CARDS")
+        for card in evidence_cards:
+            if not isinstance(card, dict):
+                continue
+            claims = card.get("claims_supported", [])
+            claims_str = (
+                "; ".join(str(c) for c in claims)
+                if isinstance(claims, list) and claims
+                else "(no specific claims listed)"
+            )
+            lines.append(
+                f"- [{card.get('source_id', '?')}] "
+                f"({card.get('source_type', 'other')}, "
+                f"relevance={card.get('relevance_score', 0):.2f}) "
+                f"supports: {claims_str}"
+            )
+
+    # Suggested follow-up queries — gaps the web extraction identified.
+    # The main analysis LLM may incorporate these into its own coverage
+    # assessment, and they surface to the user via AnalysisResult.
+    followups = signals.get("suggested_followup_queries", [])
+    if isinstance(followups, list) and followups:
+        lines.append("")
+        lines.append("### SUGGESTED FOLLOW-UP WEB SEARCHES")
+        for q in followups:
+            lines.append(f"- {q}")
 
     return "\n".join(lines)
 

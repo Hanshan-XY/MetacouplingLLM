@@ -271,6 +271,21 @@ class AnalysisResult:
     structured_supplement: dict[str, object] | None = None
     map_notice: str | None = None
     flow_parse_warnings: list[dict[str, str]] = field(default_factory=list)
+    # §7 Evidence Coverage — model self-assessment by the MAIN
+    # analysis LLM call.  Considers both RAG literature AND web
+    # evidence (only the main call sees both streams), so a "gap"
+    # here means "no source supports this," not "web didn't cover
+    # it" (RAG may have).  Empty string when the LLM omitted §7.
+    # Mirror of ``self.parsed.evidence_coverage_note`` lifted onto
+    # the result for easier programmatic access.
+    evidence_coverage_note: str = ""
+    # Suggested follow-up web-search queries emitted by the
+    # web-extraction LLM call (``extract_web_map_signals``).  Each
+    # entry is a short, specific search query the model thinks
+    # would fill gaps in the WEB evidence (RAG-side gaps are
+    # discussed in ``evidence_coverage_note`` instead).  Empty
+    # list when no web search ran or no queries were suggested.
+    suggested_followup_queries: list[str] = field(default_factory=list)
 
     def __repr__(self) -> str:
         parts = [f"turn={self.turn_number}"]
@@ -697,7 +712,7 @@ class MetacouplingAssistant:
         rag_max_chunks_per_paper: int = 3,
         rag_structured_extraction: bool = False,
         web_search: bool = False,
-        web_search_max_results: int = 5,
+        web_search_max_results: int = 10,
         web_structured_extraction: bool = False,
         web_structured_min_confidence: float = 0.7,
         web_structured_max_targets: int = 6,
@@ -4667,6 +4682,33 @@ class MetacouplingAssistant:
                 map_notice = self._last_map_notice
                 formatted += map_notice
 
+        # Append a "Suggested follow-up web searches" footer when the
+        # web extraction emitted any.  ``evidence_coverage_note`` is
+        # already rendered into ``formatted`` by ``AnalysisFormatter
+        # .format_full`` via ``parsed.evidence_coverage_note``; only
+        # the follow-up queries live OUTSIDE ParsedAnalysis (they're
+        # on ``self._last_web_map_signals``), so they're appended here.
+        followup_queries: list[str] = []
+        if isinstance(self._last_web_map_signals, dict):
+            raw_q = self._last_web_map_signals.get(
+                "suggested_followup_queries", []
+            )
+            if isinstance(raw_q, list):
+                followup_queries = [str(q) for q in raw_q if str(q).strip()]
+        if followup_queries:
+            footer = [
+                "",
+                "----------------------------------------------------------------------",
+                "  Suggested follow-up web searches:",
+                "",
+            ]
+            for q in followup_queries:
+                footer.append(f"  - {q}")
+            footer.append(
+                "======================================================================"
+            )
+            formatted += "\n" + "\n".join(footer)
+
         return AnalysisResult(
             parsed=parsed,
             formatted=formatted,
@@ -4678,6 +4720,8 @@ class MetacouplingAssistant:
             structured_supplement=structured_supplement,
             map_notice=map_notice,
             flow_parse_warnings=list(self._last_flow_parse_warnings),
+            evidence_coverage_note=parsed.evidence_coverage_note,
+            suggested_followup_queries=followup_queries,
         )
 
     @staticmethod

@@ -410,16 +410,39 @@ reactions across scales.
 
 ### 6. Research Gaps and Suggestions
 
-**MANDATORY: §6 must always appear** as the closing section of the \
-analysis. Do not skip it even if §5 already mentioned some gaps. List \
-**at least 3** specific research gaps below — pick the most consequential \
-ones for the focal study.
+**MANDATORY: §6 must always appear**. Do not skip it even if §5 already \
+mentioned some gaps. List **at least 3** specific research gaps below — \
+pick the most consequential ones for the focal study.
 
 - What data or analysis is missing?
 - What additional systems, flows, or coupling-type interactions should \
 be considered?
 - How could a more complete metacoupling analysis strengthen the \
 research?
+
+### 7. Evidence Coverage
+
+**MANDATORY: §7 must always appear** as the closing section. This is \
+your self-assessment of where the analysis is well-grounded vs thin.
+
+Consider ALL evidence the user message made available to you — \
+retrieved literature passages AND web search results when present — \
+when assessing coverage. Be explicit about evidence strength: which \
+claims are supported by multiple sources, which by one weak source, \
+and which are inferred from training-data knowledge without direct \
+source support.
+
+Write 2–5 short paragraphs. Reference specific sources with their \
+turn-scoped citation tokens (``[Tk:N]`` for literature passages, \
+``[Tk:Wn]`` for web sources) when calling out support or gaps.
+
+Example wording:
+- "Strong evidence base: <topic A> from [T1:2] and [T1:W3]; <topic B> \
+from [T1:1, T1:4, T1:W1]."
+- "Limited evidence: <topic C> mentioned only briefly in [T1:5]; no \
+recent quantitative figures from any source."
+- "Inferred without direct source: <topic D> — discussed from general \
+knowledge of similar systems; would benefit from primary literature."
 
 ═══════════════════════════════════════════════
 
@@ -436,12 +459,13 @@ is present; otherwise OMIT entirely
 - [ ] §4 Telecoupling Analysis (with §4.1–§4.5) — only if telecoupling \
 is present; otherwise OMIT entirely
 - [ ] §5 Cross-coupling Interactions — ALWAYS
-- [ ] **§6 Research Gaps and Suggestions — ALWAYS, with at least 3 gaps**
+- [ ] §6 Research Gaps and Suggestions — ALWAYS, with at least 3 gaps
+- [ ] **§7 Evidence Coverage — ALWAYS, with 2–5 short paragraphs**
 
-If §6 is missing, your analysis is **incomplete and will be rejected**. \
-The most common failure mode is to wrap up after §5's synthesis — do \
-NOT stop there. After §5, write a brief §6 with at least 3 specific \
-research gaps, then end your response.\
+If §6 or §7 is missing, your analysis is **incomplete and will be \
+rejected**. The most common failure mode is to wrap up after §5's \
+synthesis — do NOT stop there. After §5, write §6 (≥3 gaps) and §7 \
+(2–5 coverage paragraphs), then end your response.\
 """
 
 # ---------------------------------------------------------------------------

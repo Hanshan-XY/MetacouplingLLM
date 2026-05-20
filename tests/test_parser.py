@@ -149,6 +149,28 @@ class TestParseAnalysis:
         assert not result.is_parsed
         assert result.raw_text == "Just some random text without sections."
 
+    def test_evidence_coverage_section_extracted(self):
+        """§7 Evidence Coverage prose is extracted into
+        ``ParsedAnalysis.evidence_coverage_note`` when present."""
+        response = (
+            "### 1. Coupling Classification\n\n"
+            "Telecoupling.\n\n"
+            "### 7. Evidence Coverage\n\n"
+            "Strong evidence base: trade volumes from [T1:2].\n\n"
+            "Limited evidence: cartel involvement, no source.\n"
+        )
+        result = parse_analysis(response)
+        assert result.evidence_coverage_note
+        assert "Strong evidence base" in result.evidence_coverage_note
+        assert "Limited evidence" in result.evidence_coverage_note
+        assert "cartel involvement" in result.evidence_coverage_note
+
+    def test_evidence_coverage_default_empty_when_section_missing(self):
+        """Backward compatibility: responses without §7 give an empty
+        ``evidence_coverage_note`` string."""
+        result = parse_analysis(MOCK_RESPONSE)
+        assert result.evidence_coverage_note == ""
+
 
 MOCK_MULTILINE_FLOWS = """\
 ### 1. Coupling Classification

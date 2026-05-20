@@ -48,6 +48,31 @@ class TestPromptBuilder:
         # Should still have framework knowledge, just no examples section
         assert "METACOUPLING FRAMEWORK OVERVIEW" in prompt
 
+    def test_system_prompt_includes_evidence_coverage_instruction(self):
+        """§7 Evidence Coverage is part of the output format spec — the
+        main analysis LLM must self-assess where the analysis is
+        well-grounded vs thin across all evidence streams.
+
+        The instruction deliberately AVOIDS literal XML tag names
+        (``<retrieved_literature>`` / ``<web_search_results>``) so
+        post-hoc-RAG-mode tests can still use "no literal tag in
+        history" as a proxy for "no literature was injected"; the
+        instruction refers to evidence streams by name instead.
+        """
+        prompt = self.builder.build_system_prompt()
+        assert "Evidence Coverage" in prompt
+        assert "self-assessment" in prompt.lower()
+        # Cross-source assessment is the whole point — verify the
+        # instruction mentions BOTH evidence streams by name.
+        assert "literature" in prompt.lower()
+        assert "web search results" in prompt.lower()
+        # Defensive: the instruction MUST NOT put literal XML tag
+        # names in the system prompt; that would break
+        # post-hoc-mode tests asserting the history never carries
+        # injected literature blocks.
+        assert "<retrieved_literature>" not in prompt
+        assert "<web_search_results>" not in prompt
+
 
 class TestBuildInitialMessage:
     def test_returns_formatted_message(self):

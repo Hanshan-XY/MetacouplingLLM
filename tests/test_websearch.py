@@ -151,6 +151,167 @@ class TestStructuredWebMapSignals:
         assert "CHN" in context
         assert "Brazil → China" in context
 
+    # --- Evidence cards + suggested follow-up queries -------------------
+
+    def test_evidence_cards_returned_with_per_card_metadata(self):
+        """When the LLM emits evidence_cards, each survives normalisation
+        with source_id/claims_supported/relevance_score/source_type."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[],'
+                    '"spillover_systems":[],'
+                    '"flows":[],'
+                    '"evidence_cards":['
+                    '  {"source_id":"W1","claims_supported":'
+                    '["soy exports grew 40%","Cerrado biome conversion"],'
+                    '"relevance_score":0.92,"source_type":"academic"},'
+                    '  {"source_id":"W2","claims_supported":["NAFTA effects"],'
+                    '"relevance_score":0.71,"source_type":"news"}'
+                    '],'
+                    '"suggested_followup_queries":[]}'
+                ))
+
+        results = [
+            {"title": "Soy 1", "snippet": "Brazil soy.", "url": "u1"},
+            {"title": "Soy 2", "snippet": "Brazil soy.", "url": "u2"},
+        ]
+        signals = extract_web_map_signals(
+            "Brazil soybean", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        cards = signals["evidence_cards"]
+        assert len(cards) == 2
+        assert cards[0]["source_id"] == "W1"
+        assert cards[0]["source_type"] == "academic"
+        assert cards[0]["relevance_score"] == 0.92
+        assert "soy exports grew 40%" in cards[0]["claims_supported"]
+        assert cards[1]["source_id"] == "W2"
+        assert cards[1]["source_type"] == "news"
+
+    def test_evidence_cards_drop_unknown_ids_and_clamp_types(self):
+        """Cards with source_ids beyond the available W-id range are
+        dropped; bogus source_type values fall back to 'other'."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[],"spillover_systems":[],"flows":[],'
+                    '"evidence_cards":['
+                    '  {"source_id":"W99","claims_supported":["fake"],'
+                    '"relevance_score":0.9,"source_type":"academic"},'
+                    '  {"source_id":"W1","claims_supported":["real"],'
+                    '"relevance_score":0.8,"source_type":"bogus_type"}'
+                    '],'
+                    '"suggested_followup_queries":[]}'
+                ))
+
+        results = [{"title": "x", "snippet": "x", "url": "u1"}]
+        signals = extract_web_map_signals(
+            "q", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        cards = signals["evidence_cards"]
+        assert len(cards) == 1  # W99 dropped (unknown id)
+        assert cards[0]["source_id"] == "W1"
+        assert cards[0]["source_type"] == "other"  # bogus_type clamped
+
+    def test_suggested_followup_queries_returned_and_deduped(self):
+        """Follow-up queries survive into the result dict, deduped and
+        capped at 5 entries."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[],"spillover_systems":[],"flows":[],'
+                    '"evidence_cards":[],'
+                    '"suggested_followup_queries":['
+                    '  "Cerrado biome conversion 2024",'
+                    '  "soybean farmer income Mato Grosso",'
+                    '  "cerrado biome conversion 2024",'
+                    '  "NAFTA effects soybean exports",'
+                    '  "Brazil-China grain trade",'
+                    '  "extra one to overflow",'
+                    '  "another overflow"'
+                    ']}'
+                ))
+
+        results = [{"title": "x", "snippet": "x", "url": "u1"}]
+        signals = extract_web_map_signals(
+            "Brazil soybean", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        queries = signals["suggested_followup_queries"]
+        assert len(queries) == 5  # capped at 5
+        assert "Cerrado biome conversion 2024" in queries
+        # Case-insensitive dedup: the third entry (lowercase
+        # variant) does not appear separately.
+        assert (
+            sum(q.lower() == "cerrado biome conversion 2024" for q in queries)
+            == 1
+        )
+
+    def test_new_fields_default_empty_when_omitted_by_llm(self):
+        """Backward compatibility: when LLM omits evidence_cards /
+        suggested_followup_queries, defaults are [] and the signals
+        dict still contains the keys with the correct types."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                # Legacy-style response without the new fields.
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[{"country":"China","kind":"direct",'
+                    '"confidence":0.91,"evidence":["W1"],"reason":"x"}],'
+                    '"spillover_systems":[],"flows":[]}'
+                ))
+
+        results = [{"title": "x", "snippet": "x", "url": "u1"}]
+        signals = extract_web_map_signals(
+            "q", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        assert "evidence_cards" in signals
+        assert "suggested_followup_queries" in signals
+        assert signals["evidence_cards"] == []
+        assert signals["suggested_followup_queries"] == []
+
+    def test_format_includes_evidence_cards_and_followups(self):
+        """The formatter renders both new sections when present."""
+        context = format_web_map_signals_context({
+            "focal_country": "BRA",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [],
+            "evidence_cards": [
+                {
+                    "source_id": "W1",
+                    "claims_supported": ["soy exports growth", "NAFTA"],
+                    "relevance_score": 0.92,
+                    "source_type": "academic",
+                },
+            ],
+            "suggested_followup_queries": [
+                "Cerrado biome conversion 2024",
+                "NAFTA effects on soybean",
+            ],
+        })
+        assert "EVIDENCE CARDS" in context
+        assert "[W1]" in context
+        assert "academic" in context
+        assert "0.92" in context
+        assert "soy exports growth" in context
+        assert "SUGGESTED FOLLOW-UP WEB SEARCHES" in context
+        assert "Cerrado biome conversion 2024" in context
+
 
 # ---------------------------------------------------------------------------
 # search_web (live test — only runs if network is available)
