@@ -91,18 +91,29 @@ def build_logging_adapter():
             messages: list[Message],
             temperature: float = 0.7,
             max_tokens: int | None = None,
+            **kwargs: Any,
         ) -> LLMResponse:
             # gpt-5-family models only accept their default temperature
             # (=1) and require max_completion_tokens instead of max_tokens.
             # The adapter retries max_tokens automatically, but the
             # internal structured-extraction calls hardcode temperature=0.0,
             # so we coerce here to avoid the 400 + skip-the-call path.
+            #
+            # ``**kwargs`` forwards forward-compat kwargs the library
+            # adds over time (e.g. ``response_format`` for strict
+            # json_schema mode).  Without this passthrough, a wrapper
+            # that subclasses ``OpenAIAdapter`` with a closed signature
+            # would crash whenever the library introduced a new chat()
+            # kwarg.
             effective_temp = temperature
             if self._model.startswith("gpt-5"):
                 effective_temp = 1.0
             t0 = time.perf_counter()
             response = super().chat(
-                messages, temperature=effective_temp, max_tokens=max_tokens,
+                messages,
+                temperature=effective_temp,
+                max_tokens=max_tokens,
+                **kwargs,
             )
             duration = time.perf_counter() - t0
             self.captured_calls.append({
@@ -113,6 +124,10 @@ def build_logging_adapter():
                 "requested_temperature": temperature,
                 "effective_temperature": effective_temp,
                 "max_tokens": max_tokens,
+                # Record forward-compat kwargs (e.g. response_format)
+                # so artifacts show which calls were made in strict
+                # json_schema mode vs prompt-based JSON.
+                "extra_kwargs": dict(kwargs),
                 "response_content": response.content,
                 "usage": dict(response.usage) if response.usage else {},
                 "duration_s": round(duration, 2),
