@@ -44,7 +44,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-OUT_DIR = Path("runs/avocado_2026-05-18")
+OUT_DIR = Path("runs/avocado_2026-05-21_pr22_supranationals")
 MODEL = "gpt-5.5"
 API_KEY_PATH = Path(
     r"D:\Onedrive\OneDrive - Michigan State University\Desktop\api.env"

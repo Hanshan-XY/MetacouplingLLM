@@ -4042,6 +4042,51 @@ class TestFlowCategoryAliases:
         result = advisor._extract_map_data_from_analysis(self._basic_parsed())
         assert result["flows"] == []
 
+    def test_extract_map_data_prompt_invites_supranational_targets(self):
+        """The Stage-3 map-extraction prompt must explicitly invite
+        supranational unions (EU/ASEAN/USMCA/NAFTA) as flow targets.
+        Without this rule, the LLM follows rule #1 ('Use ISO alpha-3
+        codes') strictly and never emits 'European Union' — which
+        means the downstream supranational-rendering fallback at
+        ``core.py:2987-3022`` rarely fires.  Observed in the
+        May-2026 avocado trace: even though W8 named the EU as a
+        virtual-water destination, the Stage-3 LLM emitted only
+        sovereign ISO codes and the map never drew an EU arrow."""
+        import json
+        from metacouplingllm.llm.client import LLMResponse
+
+        captured: list[object] = []
+
+        class _CapturingClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                captured.extend(messages)
+                return LLMResponse(content=json.dumps({
+                    "focal_country": "USA",
+                    "adm1_region": None,
+                    "mentioned_adm1_regions": [],
+                    "receiving_countries": [],
+                    "spillover_countries": [],
+                    "flows": [],
+                }))
+
+        advisor = MetacouplingAssistant(
+            llm_client=_CapturingClient(),
+            auto_map=False,
+        )
+        advisor._extract_map_data_from_analysis(self._basic_parsed())
+        # The user message is messages[1].
+        user_text = captured[1].content
+        # The supranational rule must ship.
+        assert "Supranational unions as flow targets" in user_text
+        # All four umbrella names must be listed as accepted values.
+        assert "European Union" in user_text
+        assert "ASEAN" in user_text
+        assert "USMCA" in user_text
+        assert "NAFTA" in user_text
+        # The redundancy-avoidance clause must ship so the LLM
+        # doesn't emit both the umbrella and its named members.
+        assert "prefer those" in user_text
+
 
 # ---------------------------------------------------------------------------
 # _FLOW_ARROW_RE consistency tests

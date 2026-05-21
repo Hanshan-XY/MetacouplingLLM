@@ -9,6 +9,34 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Teach both extraction prompts that supranational unions are
+  valid map targets.**  The supranational-rendering infrastructure
+  has been in place since PR #5/#6 — `countries.py` knows
+  `"european union"` → 27 ISO codes, `expand_supranational()`
+  resolves it, `target_supranational` fields drive single-region
+  rendering at the union centroid with all members highlighted —
+  but neither extraction LLM was ever told it could *emit* a union
+  name.  The Stage-1 web-extraction prompt
+  (`extract_web_map_signals` in `websearch.py:~1817`) said *"Only
+  include countries"* and used a schema field literally named
+  `country`.  The Stage-3 map-extraction prompt
+  (`_extract_map_data_from_analysis` in `core.py:~2790`) opened
+  with rule #1 *"Use ISO alpha-3 codes (USA, BRA, CHN, MEX, JPN,
+  etc)"* and defined `target` as *"ISO alpha-3 code of the
+  importer/receiver"*.  Result: when the May-2026 avocado trace's
+  W8 source named *"United States, Japan, Canada, and the
+  European Union"* as virtual-water destinations, the Stage-1 LLM
+  obediently dropped EU and emitted only USA/CAN/JPN; the Stage-3
+  LLM never had a chance to surface it either.  The existing
+  fallback at `core.py:2987-3022` ("the LLM may slip past rule
+  #1") rarely fired because nothing was inviting the LLM to slip.
+
+  Both prompts now ship a paragraph naming the four accepted
+  unions (European Union, ASEAN, USMCA, NAFTA) and the
+  prefer-specific-members rule that avoids double-counting when
+  a source names both the umbrella and its constituent states.
+  No schema, parser, or renderer changes — the field types were
+  already `string` and the downstream code was ready and waiting.
 - **Richer prompt + `tool_choice="required"` +
   `max_output_tokens` + default `blocked_domains` on
   `OpenAIWebSearchBackend`.**  The web-search call's prompt was
