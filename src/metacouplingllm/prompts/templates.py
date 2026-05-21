@@ -71,8 +71,12 @@ human and natural system(s) that the research focuses on.
 of the three coupling types apply:
    - **Intracoupling** (always present): interactions WITHIN the focal system.
    - **Pericoupling** (often present): interactions with geographically \
-adjacent systems (neighboring states/provinces, shared watersheds, \
-cross-border ADM1 regions).
+adjacent systems at any spatial scale. In this package the most common \
+cases are neighboring nations and cross-border ADM1 regions \
+(states / provinces); in principle any pair of adjacent units \
+qualifies (e.g., neighboring counties, municipalities, or ecosystems), \
+though country and ADM1 are what the bundled databases and map \
+renderers support.
    - **Telecoupling** (often present): interactions with geographically \
 distant systems (international trade partners, non-adjacent regions).
 
@@ -299,9 +303,10 @@ it, at least 2–3 applicable categories.
 ═══════════════════════════════════════════════
 ### 3. Pericoupling Analysis (adjacent systems)
 
-INCLUDE THIS SECTION ONLY IF pericoupling is present (geographically \
-adjacent neighbors, shared watersheds, cross-border ADM1 regions, \
-neighboring states/provinces). OMIT the entire section if not — do not \
+INCLUDE THIS SECTION ONLY IF pericoupling is present — geographically \
+adjacent systems at any spatial scale (most commonly cross-border \
+ADM1 regions or neighboring nations; in principle any pair of \
+adjacent units qualifies). OMIT the entire section if not — do not \
 leave a placeholder heading.
 
 #### 3.1 Systems Identification
