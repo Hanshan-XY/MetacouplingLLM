@@ -938,7 +938,9 @@ class TestSupranationalRendering:
         import matplotlib.pyplot as _plt
 
         from metacouplingllm.visualization.worldmap import (
-            _draw_supranational_highlight, _get_world_geodataframe,
+            CouplingColors,
+            _draw_supranational_highlight,
+            _get_world_geodataframe,
         )
 
         world = _get_world_geodataframe()
@@ -950,6 +952,8 @@ class TestSupranationalRendering:
                 "direction": "Brazil → China",
                 "description": "",
             }],
+            classification={},
+            colors=CouplingColors(),
         )
         assert members == set()
         _plt.close(fig)
@@ -964,14 +968,143 @@ class TestSupranationalRendering:
             expand_supranational,
         )
         from metacouplingllm.visualization.worldmap import (
-            _draw_supranational_highlight, _get_world_geodataframe,
+            CouplingColors,
+            _draw_supranational_highlight,
+            _get_world_geodataframe,
         )
 
         world = _get_world_geodataframe()
         fig, ax = _plt.subplots()
         members = _draw_supranational_highlight(
             ax, world, flows=[self._eu_flow()],
+            classification={},
+            colors=CouplingColors(),
         )
         expected = set(expand_supranational("European Union"))
         assert members == expected
         _plt.close(fig)
+
+    def test_supranational_bloc_is_telecoupling_when_focal_not_adjacent(self):
+        """Brazil → EU: Brazil shares no border with any EU member, so
+        the bloc must render with the telecoupling fill color."""
+        import matplotlib.pyplot as _plt
+        from matplotlib.collections import PatchCollection
+        from matplotlib.patches import PathPatch
+
+        from metacouplingllm.knowledge.countries import expand_supranational
+        from metacouplingllm.visualization.worldmap import (
+            CouplingColors,
+            _draw_supranational_highlight,
+            _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        fig, ax = _plt.subplots()
+        # Brazil is focal, no EU member is pericoupled → telecoupling.
+        classification = {"BRA": "intracoupling"}
+        colors = CouplingColors()
+        _draw_supranational_highlight(
+            ax, world, flows=[self._eu_flow()],
+            classification=classification, colors=colors,
+        )
+        # Collect facecolors of patches added by the highlight call.
+        # geopandas .plot() draws polygons as PathPatch or via
+        # PatchCollection; sample both for the telecoupling color.
+        seen_fills: list = []
+        for coll in ax.collections:
+            try:
+                seen_fills.extend(coll.get_facecolors().tolist())
+            except Exception:
+                pass
+        # Convert the telecoupling hex to an RGBA tuple for comparison.
+        import matplotlib.colors as mcolors
+        tele_rgba = mcolors.to_rgba(colors.telecoupling)
+        # The dissolved-bloc fill must be present.
+        match = any(
+            all(abs(a - b) < 1e-6 for a, b in zip(rgba, tele_rgba))
+            for rgba in seen_fills
+        )
+        assert match, (
+            f"telecoupling fill {tele_rgba} not found in {seen_fills!r}"
+        )
+        _plt.close(fig)
+
+    def test_supranational_bloc_is_pericoupling_when_focal_borders_member(self):
+        """Russia → EU: Russia shares borders with Finland, Estonia,
+        Latvia, Lithuania, Poland.  Even one shared border with any
+        EU member must color the whole bloc as pericoupling."""
+        import matplotlib.pyplot as _plt
+        import matplotlib.colors as mcolors
+
+        from metacouplingllm.visualization.worldmap import (
+            CouplingColors,
+            _draw_supranational_highlight,
+            _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        fig, ax = _plt.subplots()
+        # Russia focal; Finland (FIN) is in EU and shares a border.
+        classification = {
+            "RUS": "intracoupling",
+            "FIN": "pericoupling",  # Finland is the bridging member
+            "EST": "pericoupling",  # Estonia too
+        }
+        colors = CouplingColors()
+        _draw_supranational_highlight(
+            ax, world, flows=[self._eu_flow()],
+            classification=classification, colors=colors,
+        )
+        seen_fills: list = []
+        for coll in ax.collections:
+            try:
+                seen_fills.extend(coll.get_facecolors().tolist())
+            except Exception:
+                pass
+        peri_rgba = mcolors.to_rgba(colors.pericoupling)
+        match = any(
+            all(abs(a - b) < 1e-6 for a, b in zip(rgba, peri_rgba))
+            for rgba in seen_fills
+        )
+        assert match, (
+            f"pericoupling fill {peri_rgba} not found in {seen_fills!r}"
+        )
+        _plt.close(fig)
+
+    def test_supranational_bloc_dissolves_internal_borders(self):
+        """The 27 EU member geometries are merged into a single
+        geometry before plotting, so internal France/Germany/etc.
+        borders inside the bloc disappear."""
+        import geopandas as _gpd
+
+        from metacouplingllm.knowledge.countries import expand_supranational
+        from metacouplingllm.visualization.worldmap import (
+            _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        eu_members = set(expand_supranational("European Union"))
+        rows = world.loc[world["iso_code"].isin(eu_members)]
+        # Before dissolution: one geometry per member country (some
+        # ISO matchers may miss a couple of small members, but it's
+        # > 20 separate rows).
+        assert len(rows) >= 20, (
+            f"expected ~27 EU member rows in shapefile, got {len(rows)}"
+        )
+        # After dissolution: a single (multi)geometry covering the
+        # entire bloc.  This is the operation that erases internal
+        # member borders for the highlight overlay.
+        dissolved_geom = rows.geometry.union_all()
+        dissolved = _gpd.GeoSeries([dissolved_geom], crs=rows.crs)
+        assert len(dissolved) == 1
+        # Cross-check the dissolved-area magnitude is in the EU
+        # ballpark (member areas should mostly add together, not
+        # cancel; small loss from shared internal borders only).
+        # Use sum of bounds-areas as a rough scale, then check
+        # dissolved-area within an order-of-magnitude band.
+        total_before = rows.geometry.area.sum()
+        total_after = dissolved.geometry.area.sum()
+        assert 0.85 * total_before <= total_after <= 1.15 * total_before, (
+            f"dissolved area {total_after} not within 15% of "
+            f"sum-of-members {total_before}"
+        )

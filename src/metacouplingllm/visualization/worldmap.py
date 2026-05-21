@@ -768,14 +768,29 @@ def _draw_supranational_highlight(
     ax: object,
     world: gpd.GeoDataFrame,
     flows: list[dict[str, str]],
+    classification: dict[str, str],
+    colors: CouplingColors,
 ) -> set[str]:
     """Outline supranational regions referenced by any flow.
 
     Each flow that carries a ``target_supranational_members`` field
-    contributes its member ISO codes to a single outline overlay.
-    Member countries are drawn with a translucent fill plus a thicker
-    blue edge so the user sees them as one logical region rather than
-    several individual telecoupling targets.
+    contributes its member ISO codes to a single overlay.  The member
+    polygons are dissolved into one shape (via ``unary_union``) so
+    internal borders inside the bloc disappear and the union reads as
+    one logical region rather than 27 individual telecoupling targets.
+
+    Fill color is decided from the focal country's adjacency to the
+    bloc, derived from ``classification``:
+
+    - ``pericoupling`` (bright green) when at least one bloc member is
+      classified ``"pericoupling"`` — i.e. shares a border with the
+      focal country (e.g., Russia/Norway/Switzerland → EU).
+    - ``telecoupling`` (light blue) otherwise — the bloc is distant
+      from the focal country (e.g., Brazil/China/Mexico → EU).
+
+    The dissolved fill is fully opaque so it covers whatever per-country
+    coloring the base layer assigned to individual members; the user
+    sees one unified bloc with one outline.
 
     Returns the set of member ISO codes that were highlighted, so the
     caller can adjust legend / per-country fills if needed.
@@ -797,16 +812,41 @@ def _draw_supranational_highlight(
     if rows.empty:
         return set()
 
-    # Translucent overlay with a thicker dark-blue edge.  Drawn above
-    # the base coupling fill (zorder=2.5) but below disputed-territory
-    # hatching (zorder=3) and flow arrows (zorder=4 in matplotlib's
-    # default for FancyArrowPatch).
-    rows.plot(
+    # Decide role by intersecting bloc members with the focal country's
+    # pericoupled neighbors (already encoded in ``classification``).  A
+    # single shared border with any member is enough to color the whole
+    # bloc as pericoupling — this matches the metacoupling-framework
+    # convention that the union is treated as a single entity.
+    pericoupled_codes = {
+        iso for iso, role in classification.items()
+        if role == "pericoupling"
+    }
+    is_pericoupled_bloc = bool(pericoupled_codes & members_to_highlight)
+    fill_color = (
+        colors.pericoupling if is_pericoupled_bloc else colors.telecoupling
+    )
+
+    # Dissolve all member geometries into one shape so internal borders
+    # between member states vanish (e.g., the France/Germany line inside
+    # the EU bloc).  ``union_all()`` is the modern shapely-backed
+    # geopandas operation (replaces the deprecated ``unary_union``
+    # attribute); gpd's ``dissolve()`` would also work but requires a
+    # groupby key and returns a GeoDataFrame.
+    import geopandas as _gpd
+    dissolved_geom = rows.geometry.union_all()
+    dissolved = _gpd.GeoSeries([dissolved_geom], crs=rows.crs)
+
+    # Drawn above the base coupling fill (zorder=2.5) but below
+    # disputed-territory hatching (zorder=3) and flow arrows (zorder=4
+    # in matplotlib's default for FancyArrowPatch).  Full alpha so the
+    # bloc fill covers whatever per-country color the base layer
+    # assigned to individual members.
+    dissolved.plot(
         ax=ax,
-        facecolor="#1f77b4",
-        edgecolor="#0d3a66",
+        facecolor=fill_color,
+        edgecolor=colors.border,
         linewidth=1.2,
-        alpha=0.30,
+        alpha=1.0,
         zorder=2.5,
     )
     return members_to_highlight
@@ -955,9 +995,14 @@ def _render_map(
 
     # Highlight supranational regions referenced by any flow before
     # the arrow layer goes on top.  No-op when no flows reference a
-    # supranational entity.
+    # supranational entity.  ``classification`` and ``colors`` are
+    # passed so the highlight can pick pericoupling vs telecoupling
+    # fill based on whether any bloc member shares a border with the
+    # focal country.
     if flows:
-        _draw_supranational_highlight(ax, world, flows)
+        _draw_supranational_highlight(
+            ax, world, flows, classification, colors,
+        )
 
     # Draw flow arrows if flows are provided
     flow_handles: list = []
