@@ -9,6 +9,73 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Fix two distinct silent failures in Stage-1 web extraction
+  that both surfaced as `Structured web extraction accepted 0
+  receiving systems`.**
+
+  (a) `OpenAIWebSearchBackend.search()` previously capped output
+  at `max_output_tokens=8000`, sufficient for 10 results × 300
+  word summaries but too small for 25+ results.  Excess content
+  was truncated, the JSON output broke, and the code silently
+  fell back to URL-only source citations (titles==urls, no
+  summaries).  Downstream Stage-1 then correctly emitted zero
+  receivers because it had no grounded data — 21 of 25 evidence
+  cards literally said *"No usable summary text was provided
+  for map extraction"*.  Fix: bump the dataclass default to
+  `max_output_tokens=12000` and scale
+  `effective_max_tokens = max(self.max_output_tokens,
+  max_results * 1000)` per call (1000 tokens/result is a
+  generous margin: ~500 for a 400-word summary plus ~500 for
+  title/URL/JSON overhead).  Also added two diagnostic warnings
+  so the silent fallback never goes unnoticed again: a partial
+  warning when `parsed_results < 0.5 * max_results` and a total
+  warning when JSON parsing failed entirely but URL-only source
+  citations exist.
+
+  (b) `_normalise_country_entry` and `_normalise_flow_entry` in
+  `extract_web_map_signals` silently dropped any LLM-emitted
+  receiver/flow whose country was a supranational name
+  (European Union / ASEAN / USMCA / NAFTA), because
+  `resolve_country_code()` only checks ISO codes and
+  `_ALIASES`, not `_SUPRANATIONAL_ALIASES`.  PR #22 taught the
+  Stage-1 LLM to emit such names; the validator was never
+  updated to accept them, making PR #22 effectively a no-op for
+  Stage-1.  Observed in the Brazil-soy → EU trace where the
+  raw LLM response correctly emitted
+  `{"country":"European Union","confidence":0.98,...}` and
+  three flows targeting/sourcing the EU, but the final
+  pipeline output had `receiving_systems: []` and `flows: []`.
+
+  Fix: extracted a `_resolve_country_or_supranational()` helper
+  that tries `resolve_country_code()` first; on None, falls
+  back to `expand_supranational()`.  If supranational lookup
+  succeeds, the entry's `country` is set to the canonical
+  display name (e.g., `"European Union"` regardless of whether
+  the LLM said `"EU"`, `"e.u."`, or `"european union"`), and a
+  `supranational_members` field is added carrying the member
+  ISO codes.  Flow entries get parallel
+  `source_supranational_members` / `target_supranational_members`
+  fields.
+
+  Downstream `_structured_web_receiving_codes()` and
+  `_structured_web_spillover_codes()` (`core.py:~4180`) detect
+  the `supranational_members` field and expand to the member
+  ISO codes when building their "map-ready code set" return
+  values — keeping the set semantically pure (ISO codes only)
+  so existing callers that pass codes through
+  `get_country_name()` or `ISO_ALPHA3_NAMES` continue to work.
+  The display name "European Union" stays in the source
+  signals dict so `format_web_map_signals_context()` (no code
+  change needed there) renders it verbatim into the Stage-2
+  analysis prompt.
+
+  **Conservative scope:** `_structured_web_flow_dicts` and the
+  Stage-1 → map renderer integration for supranational flow
+  endpoints are deferred to a future PR — Stage-3's existing
+  supranational path (`core.py:2987-3022` + PR #23's dissolved
+  bloc renderer) already handles the rendering correctly, so
+  the conservative scope leaves nothing visibly broken and
+  avoids a risky `_merge_map_flows` audit.
 - **Teach both extraction prompts that supranational unions are
   valid map targets.**  The supranational-rendering infrastructure
   has been in place since PR #5/#6 — `countries.py` knows

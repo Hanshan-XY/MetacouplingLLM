@@ -749,6 +749,202 @@ class TestStructuredWebMapSignals:
         assert "SUGGESTED FOLLOW-UP WEB SEARCHES" in context
         assert "Cerrado biome conversion 2024" in context
 
+    # ------------------------------------------------------------------
+    # Supranational normalization (PR #24).  PR #22 taught the Stage-1
+    # LLM to emit "European Union" / "ASEAN" / "USMCA" / "NAFTA" as
+    # valid ``country`` values, but the post-extraction normalizer in
+    # ``extract_web_map_signals`` was previously calling only
+    # ``resolve_country_code()`` which doesn't consult
+    # ``_SUPRANATIONAL_ALIASES``.  Result: every LLM-emitted
+    # supranational receiver/flow was silently dropped.  Observed in
+    # the Brazil-soy → EU trace where the LLM correctly emitted
+    # ``{"country": "European Union", "confidence": 0.98, ...}`` but
+    # the final pipeline output had ``receiving_systems: []``.
+    # ------------------------------------------------------------------
+
+    def _make_capturing_client(self, raw_json):
+        """Build an LLM stub that returns ``raw_json`` as response.content."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class _Stub:
+            def chat(self, messages, **kwargs):
+                return LLMResponse(content=raw_json)
+
+        return _Stub()
+
+    def test_extract_signals_accepts_european_union_as_receiver(self):
+        """Bug B fix: 'European Union' as country survives normalization
+        with supranational_members populated (all 27 EU ISO codes)."""
+        import json
+
+        raw = json.dumps({
+            "focal_country": "Brazil",
+            "receiving_systems": [
+                {
+                    "country": "European Union",
+                    "kind": "direct",
+                    "confidence": 0.98,
+                    "evidence": ["W1"],
+                    "reason": "Brazil exports soy to EU",
+                },
+            ],
+            "spillover_systems": [],
+            "flows": [],
+            "evidence_cards": [],
+            "suggested_followup_queries": [],
+        })
+        client = self._make_capturing_client(raw)
+        signals = extract_web_map_signals(
+            "Brazil soy", [{"title": "x", "model_summary": "y", "url": "u"}],
+            client, min_confidence=0.7,
+        )
+        assert signals is not None
+        recv = signals["receiving_systems"]
+        assert len(recv) == 1
+        eu = recv[0]
+        assert eu["country"] == "European Union"
+        assert eu["confidence"] == 0.98
+        # supranational_members carries all 27 EU member ISO codes.
+        members = eu.get("supranational_members")
+        assert isinstance(members, list)
+        assert len(members) == 27
+        assert "DEU" in members
+        assert "FRA" in members
+
+    def test_extract_signals_accepts_eu_abbreviation_canonicalises_name(self):
+        """LLM may emit 'EU', 'e.u.', or 'European Union' — all
+        collapse to the canonical display name 'European Union'."""
+        import json
+
+        for variant in ["EU", "european union", "European Union"]:
+            raw = json.dumps({
+                "focal_country": "Brazil",
+                "receiving_systems": [
+                    {
+                        "country": variant,
+                        "kind": "direct",
+                        "confidence": 0.95,
+                        "evidence": ["W1"],
+                        "reason": "test",
+                    },
+                ],
+                "spillover_systems": [],
+                "flows": [],
+                "evidence_cards": [],
+                "suggested_followup_queries": [],
+            })
+            client = self._make_capturing_client(raw)
+            signals = extract_web_map_signals(
+                "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+                client, min_confidence=0.7,
+            )
+            assert signals["receiving_systems"][0]["country"] == (
+                "European Union"
+            ), f"variant {variant!r} did not canonicalize"
+
+    def test_extract_signals_flow_with_supranational_target(self):
+        """Bug B fix: Brazil → European Union matter flow survives
+        normalization with target_supranational_members populated."""
+        import json
+
+        raw = json.dumps({
+            "focal_country": "Brazil",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source_country": "Brazil",
+                    "target_country": "European Union",
+                    "kind": "direct",
+                    "confidence": 0.96,
+                    "evidence": ["W1"],
+                    "description": "soy exports",
+                },
+            ],
+            "evidence_cards": [],
+            "suggested_followup_queries": [],
+        })
+        client = self._make_capturing_client(raw)
+        signals = extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            client, min_confidence=0.7,
+        )
+        flows = signals["flows"]
+        assert len(flows) == 1
+        flow = flows[0]
+        assert flow["source_country"] == "BRA"
+        assert flow["target_country"] == "European Union"
+        assert "Brazil" in flow["direction"]
+        assert "European Union" in flow["direction"]
+        members = flow.get("target_supranational_members")
+        assert isinstance(members, list) and len(members) == 27
+
+    def test_extract_signals_flow_with_supranational_source(self):
+        """Symmetric: European Union → Brazil capital flow survives
+        normalization with source_supranational_members populated."""
+        import json
+
+        raw = json.dumps({
+            "focal_country": "Brazil",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [
+                {
+                    "category": "capital",
+                    "source_country": "European Union",
+                    "target_country": "Brazil",
+                    "kind": "direct",
+                    "confidence": 0.85,
+                    "evidence": ["W1"],
+                    "description": "EU payments",
+                },
+            ],
+            "evidence_cards": [],
+            "suggested_followup_queries": [],
+        })
+        client = self._make_capturing_client(raw)
+        signals = extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            client, min_confidence=0.7,
+        )
+        flows = signals["flows"]
+        assert len(flows) == 1
+        flow = flows[0]
+        assert flow["source_country"] == "European Union"
+        assert flow["target_country"] == "BRA"
+        members = flow.get("source_supranational_members")
+        assert isinstance(members, list) and len(members) == 27
+
+    def test_extract_signals_still_drops_unknown_country_name(self):
+        """Regression guard: random unresolvable names like 'Atlantis'
+        still drop.  The supranational fallback must NOT widen the
+        acceptance criteria for genuinely unknown names."""
+        import json
+
+        raw = json.dumps({
+            "focal_country": "Brazil",
+            "receiving_systems": [
+                {
+                    "country": "Atlantis",
+                    "kind": "direct",
+                    "confidence": 0.99,
+                    "evidence": ["W1"],
+                    "reason": "test",
+                },
+            ],
+            "spillover_systems": [],
+            "flows": [],
+            "evidence_cards": [],
+            "suggested_followup_queries": [],
+        })
+        client = self._make_capturing_client(raw)
+        signals = extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            client, min_confidence=0.7,
+        )
+        assert signals["receiving_systems"] == []
+
 
 # ---------------------------------------------------------------------------
 # search_web (live test — only runs if network is available)
@@ -809,8 +1005,13 @@ class TestOpenAIWebSearchBackend:
         # actually invokes web_search rather than answering from
         # training data.
         assert client.responses.kwargs["tool_choice"] == "required"
-        # Defensive max_output_tokens ceiling.
-        assert client.responses.kwargs["max_output_tokens"] == 8000
+        # Defensive max_output_tokens ceiling.  PR #24 bumped the
+        # dataclass default from 8000 to 12000 (and made it a
+        # *floor* with per-call scaling = max_results * 1000) so
+        # that 25+ result calls don't silently truncate.  With
+        # max_results=3, the formula yields max(12000, 3000) =
+        # 12000.
+        assert client.responses.kwargs["max_output_tokens"] == 12000
 
     def test_falls_back_to_sources_when_json_missing(self):
         class MockResponse:
@@ -850,6 +1051,111 @@ class TestOpenAIWebSearchBackend:
             "url": "https://example.com/namibia",
             "model_summary": "Grounded source snippet.",
         }]
+
+    # ------------------------------------------------------------------
+    # Token budget scaling + silent-fallback warnings (PR #24).  The
+    # default ``max_output_tokens=12000`` is sufficient for 10-12
+    # results at 200-400 word summaries each; above that, the formula
+    # ``max(self.max_output_tokens, max_results * 1000)`` scales the
+    # ceiling so the model can emit all requested results without
+    # JSON truncation.  Truncation previously caused
+    # ``_extract_json_object`` to fail, ``parsed_results`` to fall
+    # back to URL-only source citations with empty model_summaries,
+    # and downstream Stage-1 to honestly emit zero receivers.
+    # ------------------------------------------------------------------
+
+    def test_search_scales_output_tokens_with_max_results(self):
+        """max_results=25 produces max_output_tokens >= 25000."""
+
+        class MockResponse:
+            output_text = '{"results": []}'
+
+            def model_dump(self):
+                return {"output": []}
+
+        class MockResponses:
+            def __init__(self):
+                self.kwargs = None
+
+            def create(self, **kwargs):
+                self.kwargs = kwargs
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self):
+                self.responses = MockResponses()
+
+        client = MockClient()
+        backend = OpenAIWebSearchBackend(client=client, model="gpt-5")
+        backend.search("x", max_results=25)
+        assert client.responses.kwargs["max_output_tokens"] >= 25000
+
+    def test_search_keeps_default_tokens_floor_when_max_results_small(self):
+        """max_results=10 keeps max_output_tokens at the dataclass
+        floor of 12000 (since 10 * 1000 = 10000 < 12000)."""
+
+        class MockResponse:
+            output_text = '{"results": []}'
+
+            def model_dump(self):
+                return {"output": []}
+
+        class MockResponses:
+            def __init__(self):
+                self.kwargs = None
+
+            def create(self, **kwargs):
+                self.kwargs = kwargs
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self):
+                self.responses = MockResponses()
+
+        client = MockClient()
+        backend = OpenAIWebSearchBackend(client=client, model="gpt-5")
+        backend.search("x", max_results=10)
+        assert client.responses.kwargs["max_output_tokens"] == 12000
+
+    def test_search_warns_on_total_fallback(self, capsys):
+        """When parsed JSON is empty but source URLs exist, emit a
+        warning so the silent fallback doesn't go unnoticed."""
+
+        class MockResponse:
+            # Empty JSON → _extract_json_object returns {} →
+            # parsed_results = [] but source_results may populate
+            # from response.model_dump's output sources.
+            output_text = ""
+
+            def model_dump(self):
+                # Mimic OpenAI's response shape with a source URL.
+                return {
+                    "output": [
+                        {
+                            "type": "web_search_call",
+                            "action": {
+                                "sources": [
+                                    {"url": "https://example.com/a"},
+                                ],
+                            },
+                        },
+                    ],
+                }
+
+        class MockResponses:
+            def create(self, **kwargs):
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self):
+                self.responses = MockResponses()
+
+        client = MockClient()
+        backend = OpenAIWebSearchBackend(client=client, model="gpt-5")
+        backend.search("x", max_results=10)
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "parsed 0/10" in captured.out
 
 
 class TestAnthropicWebSearchBackend:

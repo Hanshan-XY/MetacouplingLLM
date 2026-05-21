@@ -2428,6 +2428,51 @@ class TestStructuredMapData:
         assert "BRA" not in spillover
         assert "CHN" not in spillover
 
+    def test_structured_web_receiving_codes_expands_supranational(self):
+        """PR #24: when a receiving entry has supranational_members,
+        _structured_web_receiving_codes() expands to member ISO codes
+        instead of inserting the display name into the returned set.
+        Keeps the set semantically pure for downstream callers that
+        expect ISO codes."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content="ok")
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        # Stub _last_web_map_signals as if Stage-1 had emitted EU
+        # plus a regular ISO country.
+        advisor._last_web_map_signals = {
+            "focal_country": "BRA",
+            "receiving_systems": [
+                {
+                    "country": "European Union",
+                    "kind": "direct",
+                    "supranational_members": [
+                        "AUT", "BEL", "DEU", "FRA", "ITA", "ESP",
+                    ],
+                },
+                {"country": "CHN", "kind": "direct"},
+            ],
+            "spillover_systems": [],
+        }
+        receiving = advisor._structured_web_receiving_codes()
+        # ISO members are expanded into the set:
+        assert "DEU" in receiving
+        assert "FRA" in receiving
+        assert "ITA" in receiving
+        # The display name does NOT appear (would break downstream
+        # callers that pass codes through get_country_name() etc.):
+        assert "European Union" not in receiving
+        # Regular ISO countries pass through unchanged:
+        assert "CHN" in receiving
+        # Focal still included:
+        assert "BRA" in receiving
+
     def test_structured_web_country_codes_still_returns_all(self):
         """Backward-compat: _structured_web_country_codes() returns the union."""
         from metacouplingllm.llm.client import LLMResponse
