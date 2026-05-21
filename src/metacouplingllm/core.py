@@ -106,6 +106,18 @@ _LOW_PRIORITY_SYSTEM_FIELDS: tuple[str, ...] = (
 # very large number.
 _MAX_WEB_SNIPPETS_IN_MAP_PROMPT: int = 100
 
+# Per-summary character truncation when packing web results into the
+# Stage-3 map-extraction prompt.  Previously hardcoded to 200 chars
+# inline -- which cut OFF before any country name appeared in
+# destination-list sources like UN Comtrade's per-partner export
+# tables (where the leading sentences describe the dataset before
+# enumerating destinations).  At 2500 chars the substantive content
+# of typical 200-400 word summaries survives intact, including the
+# long-tail destination list; the cap remains as a defensive ceiling
+# against pathologically long future summaries.  See the
+# ``web_results_text`` assembly in ``_extract_map_data_from_analysis``.
+_MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT: int = 2500
+
 
 # ---------------------------------------------------------------------------
 # Flow-category aliasing
@@ -2732,11 +2744,16 @@ class MetacouplingAssistant:
                 self._last_web_results[:_MAX_WEB_SNIPPETS_IN_MAP_PROMPT], 1,
             ):
                 title = wr.get("title", "").strip()
-                # Accept legacy "snippet" key as fallback.
+                # Accept legacy "snippet" key as fallback.  Truncation
+                # via _MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT (2500) so
+                # the substantive content of 200-400 word summaries
+                # survives -- including long-tail destination lists
+                # in UN Comtrade-style sources where country names
+                # appear several hundred chars into the summary.
                 summary = (
                     wr.get("model_summary")
                     or wr.get("snippet", "")
-                ).strip()[:200]
+                ).strip()[:_MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT]
                 lines.append(f"[W{idx}] {title}: {summary}")
             web_results_text = (
                 "\n\nWeb search results (use these to identify specific "
