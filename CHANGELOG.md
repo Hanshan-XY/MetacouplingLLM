@@ -9,6 +9,45 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Wire Stage-1 supranational flows through to the map
+  renderer (deferred piece from PR #24).**  PR #24 fixed the
+  Stage-1 validator so LLM-emitted supranational receivers and
+  flows (European Union / ASEAN / USMCA / NAFTA) survive
+  normalization with their `target_supranational_members` and
+  `source_supranational_members` fields populated.  But
+  `_structured_web_flow_dicts()` — the function that repackages
+  Stage-1's flows into the renderer's input shape — was still
+  stripping the supranational marker fields, so a Stage-1
+  Brazil → European Union flow arrived at the renderer with
+  `target: "European Union"` and no member list.  The renderer
+  would then try to look up "European Union" in the world
+  shapefile, fail, and silently draw no arrow.
+
+  This change makes `_structured_web_flow_dicts()` preserve
+  `target_supranational`, `target_supranational_members`,
+  `source_supranational`, and `source_supranational_members`
+  when present, matching the shape produced by Stage-3's
+  `_extract_map_data_from_analysis`.  Also updated the type
+  hints on `_merge_map_flows` from `dict[str, str]` to
+  `dict[str, object]` (the member-list values are not strings)
+  and audited the merge logic to confirm flow dicts are
+  appended verbatim without field-stripping — so supranational
+  fields survive the merge.
+
+  **User-visible effect today**: none, because Stage-3 reliably
+  emits supranational flows itself and wins the merge dedupe on
+  `(category, direction)`.  The value is defense-in-depth: if
+  Stage-3 ever fails to emit an EU flow (timeout, JSON parse
+  error, prompt regression), Stage-1's repackaged flow now
+  carries enough data for the renderer to draw the EU bloc on
+  its own.
+
+  Source-side supranational rendering (e.g., a EU → Brazil
+  capital flow) is still gated on the renderer's
+  `_resolve_flow_endpoints` only consulting
+  `target_supranational_members`.  The data plumbing is correct
+  now so a future worldmap.py change can extend source-side
+  bloc rendering without re-touching the Stage-1 path.
 - **Fix two distinct silent failures in Stage-1 web extraction
   that both surfaced as `Structured web extraction accepted 0
   receiving systems`.**
