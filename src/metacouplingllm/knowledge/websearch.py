@@ -113,6 +113,15 @@ class OpenAIWebSearchBackend:
     external_web_access: bool = True
     allowed_domains: list[str] | None = None
     blocked_domains: list[str] | None = None
+    # OpenAI web_search tool config.  ``search_context_size`` controls
+    # how much context from web results is made available to the model
+    # ("low" | "medium" | "high"); default "high" maximises evidence
+    # depth at modest token cost.  ``return_token_budget`` controls the
+    # output token budget for GPT-5+ reasoning models ("default" |
+    # "unlimited"); we default to "default" so callers opt into the
+    # unbounded path explicitly.
+    search_context_size: str = "high"
+    return_token_budget: str = "default"
     user_location: dict[str, object] | None = None
 
     def search(
@@ -126,6 +135,8 @@ class OpenAIWebSearchBackend:
         tool: dict[str, object] = {
             "type": "web_search",
             "external_web_access": self.external_web_access,
+            "search_context_size": self.search_context_size,
+            "return_token_budget": self.return_token_budget,
         }
         # OpenAI web_search tool accepts a ``filters`` object with
         # ``allowed_domains`` and ``blocked_domains``.  Mirror the

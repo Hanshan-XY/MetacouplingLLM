@@ -65,6 +65,19 @@ file. The format is loosely based on
 
 ### Added
 
+- **`OpenAIWebSearchBackend.search_context_size`** parameter
+  (`"low" | "medium" | "high"`, default `"high"`).  Forwarded to
+  the OpenAI web_search tool as `search_context_size`.  Higher
+  values let the model see more context per search result at
+  modest extra token cost; default `"high"` aligns with the
+  "optimize for quality" preference of this library.
+- **`OpenAIWebSearchBackend.return_token_budget`** parameter
+  (`"default" | "unlimited"`, default `"default"`).  Forwarded to
+  the OpenAI web_search tool as `return_token_budget`.  Controls
+  the output-token budget for GPT-5+ reasoning models.  Keep at
+  `"default"` for predictable cost; pass `"unlimited"` for
+  long-form research tasks where output length matters more than
+  cost.
 - **`OpenAIWebSearchBackend.blocked_domains`** parameter (mirrors
   the existing Anthropic backend's `blocked_domains` field).
   Passed to OpenAI's web_search tool as `filters.blocked_domains`.

@@ -416,6 +416,76 @@ class TestStructuredWebMapSignals:
             "reddit.com", "quora.com",
         ]
 
+    def test_openai_backend_sends_search_context_size_high_by_default(self):
+        """search_context_size defaults to 'high' for quality-first runs."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(client=MockClient())
+        backend.search("test query", max_results=3)
+
+        tool = captured.get("tools", [{}])[0]
+        assert tool.get("search_context_size") == "high"
+        # ``return_token_budget`` defaults to the safe "default" value
+        # so callers opt into "unlimited" explicitly.
+        assert tool.get("return_token_budget") == "default"
+
+    def test_openai_backend_respects_explicit_context_and_budget_overrides(
+        self,
+    ):
+        """Both new parameters are configurable per-instance."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(
+            client=MockClient(),
+            search_context_size="medium",
+            return_token_budget="unlimited",
+        )
+        backend.search("q", max_results=1)
+
+        tool = captured.get("tools", [{}])[0]
+        assert tool.get("search_context_size") == "medium"
+        assert tool.get("return_token_budget") == "unlimited"
+
     def test_openai_backend_combines_allowed_and_blocked_domains(self):
         """Both allowed and blocked can coexist in the same filters dict."""
         from metacouplingllm.knowledge.websearch import (
