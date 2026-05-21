@@ -9,6 +9,58 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Constrained vocabulary + anti-coining rules for §5 Cross-coupling
+  Interactions, plus a prose-paragraph instruction for the Coupling
+  transformations bullet.**  Two related issues observed in the
+  May-18 avocado trace's §5 output:
+
+  1. The LLM emitted **"Pericoupling leakage"** as a coined compound
+     term that does not appear in the bundled corpus, the framework
+     knowledge layer, or any prompt.  The model combined "pericoupling"
+     + "leakage" by analogy because the concept (displacement to
+     adjacent regions) needed a label and the framework didn't
+     provide one.  §7 EVIDENCE COVERAGE (shipped in PR #17) detects
+     such extrapolation post-hoc but doesn't prevent it.
+
+  2. The **"Coupling transformations"** bullet rendered as visually
+     empty because the LLM wrote its content as nested sub-bullets
+     (Coupling / Potential decoupling / Recoupling), and
+     `_extract_bullets` (`parser.py:405-414`) `.strip()`s leading
+     whitespace, promoting nested children to siblings of the
+     empty parent.
+
+  Both fixes are scoped to §5 only (sending/receiving/spillover
+  terminology in §2-§4 is legitimately framework-defined and not
+  affected).
+
+  §5 now ships with an **approved vocabulary** drawn from the
+  metacoupling framework (Liu 2017 / Liu 2023) and corpus papers
+  (Yang et al. 2018 on feedback; Zhao et al. 2021 on synergies and
+  tradeoffs across SDGs in a metacoupled world; broader telecoupling
+  literature on displacement and cascading effects).  Accepted
+  terms include: Amplification, Offset, Spatial tradeoffs, Temporal
+  tradeoffs, Synergies, Cascading effects, Feedback loops,
+  Displacement, Coupling transformations (with the four phases
+  noncoupling/coupling/decoupling/recoupling), and Spillover
+  effects.  An explicit rule forbids coining compound terms by
+  combining framework concepts with environmental-economics jargon
+  (the "pericoupling leakage" / "telecoupling resilience" /
+  "metacoupling efficiency" failure mode), with the "pericoupling
+  leakage" case listed verbatim as a counter-example so the LLM
+  sees the specific compound it is being told to avoid.
+
+  The §5 Coupling transformations bullet now explicitly instructs
+  the LLM to weave the four phases into a single prose paragraph
+  rather than splitting into nested sub-bullets.  The instruction
+  explains the reason ("the downstream parser flattens nested
+  bullets, which causes the parent bullet to render as visually
+  empty while its children appear as orphan siblings") so the LLM
+  understands the constraint rather than just being told to obey
+  it.
+
+  Deeper parser-level fix — making `_extract_bullets` preserve
+  nesting and the formatter render parent → child trees — is
+  deferred to a separate PR.
 - **Clarify in the framework prompts that pericoupling adjacency
   works at any spatial scale, not just ADM1 / national.**  The
   prior wording in `METHODOLOGY_LAYER` and the §3 pericoupling-
