@@ -580,6 +580,44 @@ class TestStructuredWebMapSignals:
         assert "Do NOT invent" in user_text
         assert "Do NOT extrapolate" in user_text
 
+    def test_extract_web_map_signals_prompt_accepts_supranationals(self):
+        """The Stage-1 extraction prompt must explicitly permit
+        supranational unions as receiving_systems values.  Otherwise
+        the LLM (told 'Only include countries') silently drops
+        'European Union' mentions, even when a source names the union
+        as a destination — observed in the May-2026 avocado trace
+        where W8 named 'United States, Japan, Canada, and the
+        European Union' as virtual-water destinations and only the
+        three sovereign states made it into receiving_systems."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        captured_messages: list[object] = []
+
+        class MockClient:
+            def chat(self, messages, **kwargs):
+                captured_messages.extend(messages)
+                return LLMResponse(content=(
+                    '{"focal_country":"BRA","receiving_systems":[],'
+                    '"spillover_systems":[],"flows":[],'
+                    '"evidence_cards":[],"suggested_followup_queries":[]}'
+                ))
+
+        results = [{"title": "x", "model_summary": "y", "url": "u"}]
+        extract_web_map_signals(
+            "q", results, MockClient(), min_confidence=0.7,
+        )
+        user_text = captured_messages[1].content
+        # The discipline marker.
+        assert "Supranational unions are accepted" in user_text
+        # The four accepted union names must all ship.
+        assert "European Union" in user_text
+        assert "ASEAN" in user_text
+        assert "USMCA" in user_text
+        assert "NAFTA" in user_text
+        # The prefer-specific-members rule must ship so the LLM
+        # doesn't double-count when a source names both.
+        assert "prefer the specific" in user_text
+
     def test_openai_backend_combines_allowed_and_blocked_domains(self):
         """Both allowed and blocked can coexist in the same filters dict."""
         from metacouplingllm.knowledge.websearch import (
