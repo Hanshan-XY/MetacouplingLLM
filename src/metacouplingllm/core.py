@@ -4183,6 +4183,19 @@ class MetacouplingAssistant:
             for item in items:
                 if not isinstance(item, dict):
                     continue
+                # Supranational receivers (PR #24): expand to member
+                # ISO codes so the returned set stays semantically
+                # pure (ISO codes only) for downstream callers like
+                # get_country_name() and ISO_ALPHA3_NAMES lookups.
+                # The display name ("European Union") is preserved
+                # in the source signals dict for prompt-context
+                # formatting.
+                members = item.get("supranational_members")
+                if isinstance(members, list) and members:
+                    codes.update(
+                        m for m in members if isinstance(m, str) and m
+                    )
+                    continue
                 code = item.get("country")
                 if isinstance(code, str) and code:
                     codes.add(code)
@@ -4199,6 +4212,14 @@ class MetacouplingAssistant:
         if isinstance(items, list):
             for item in items:
                 if not isinstance(item, dict):
+                    continue
+                # Same supranational-expansion path as
+                # _structured_web_receiving_codes; see comment there.
+                members = item.get("supranational_members")
+                if isinstance(members, list) and members:
+                    codes.update(
+                        m for m in members if isinstance(m, str) and m
+                    )
                     continue
                 code = item.get("country")
                 if isinstance(code, str) and code:

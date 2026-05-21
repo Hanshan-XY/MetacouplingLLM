@@ -131,8 +131,12 @@ class OpenAIWebSearchBackend:
     user_location: dict[str, object] | None = None
     # Defensive ceiling on the API response token count.  Strict
     # json_schema mode keeps output compact, but a runaway model with
-    # 10+ rich evidence summaries could still grow large.
-    max_output_tokens: int = 8000
+    # 10+ rich evidence summaries could still grow large.  The value
+    # acts as a FLOOR -- ``search()`` raises it to ``max_results * 1000``
+    # when more results are requested (see effective_max_tokens
+    # calculation in ``search()``).  12000 covers ~10-12 results at
+    # 200-400 word summaries with ~500 tokens of overhead per result.
+    max_output_tokens: int = 12000
 
     def search(
         self,
@@ -210,6 +214,21 @@ class OpenAIWebSearchBackend:
             "JSON conforming to the provided schema."
         )
 
+        # Scale the response token ceiling with the requested result
+        # count: 1000 tokens/result is a generous safety margin (a
+        # 400-word summary is ~500 tokens; another ~500 covers
+        # title/URL/JSON overhead per result).  The dataclass default
+        # acts as a floor so callers can still raise it further.
+        # Without this scaling, ``max_results > ~10`` truncates the
+        # model's JSON output, ``_extract_json_object`` fails, and
+        # ``parsed_results`` falls back to URL-only source citations
+        # with empty summaries -- the avocado-25-results bug
+        # documented in PR #24.
+        effective_max_tokens = max(
+            self.max_output_tokens,
+            max_results * 1000,
+        )
+
         kwargs: dict[str, object] = {
             "model": self.model,
             "tools": [tool],
@@ -237,7 +256,7 @@ class OpenAIWebSearchBackend:
             },
             # Defensive ceiling on response token count.  See field
             # docstring on the dataclass.
-            "max_output_tokens": self.max_output_tokens,
+            "max_output_tokens": effective_max_tokens,
         }
         if self.reasoning and self.reasoning != "default":
             kwargs["reasoning"] = {"effort": self.reasoning}
@@ -252,9 +271,36 @@ class OpenAIWebSearchBackend:
                 max_results=max_results,
             )
 
+        # Warn on partial truncation: the model returned SOME parsed
+        # results but fewer than half of what we requested.  This
+        # usually means the JSON output was cut off mid-array.
+        if (
+            parsed_results
+            and len(parsed_results) < max(1, int(max_results * 0.5))
+        ):
+            print(
+                f"[OpenAIWebSearchBackend] Warning: parsed "
+                f"{len(parsed_results)}/{max_results} results -- "
+                "model may have truncated summary content (try "
+                "raising max_output_tokens)."
+            )
+
         # Fallback: if the model didn't emit JSON results cleanly, recover
         # from the included source list so the search still yields usable URLs.
         source_results = _extract_openai_source_results(response, max_results)
+
+        # Warn on total fallback: parsed JSON was unusable AND we're
+        # only returning URL-only source citations (titles == urls,
+        # no model_summary content).  Downstream Stage-1 extraction
+        # will see empty summaries and silently emit zero receivers.
+        if not parsed_results and source_results:
+            print(
+                f"[OpenAIWebSearchBackend] Warning: parsed 0/"
+                f"{max_results} results from JSON; falling back to "
+                "URL-only source citations (model summaries lost; "
+                "downstream extraction will have no grounded data)."
+            )
+
         if parsed_results:
             merged = []
             seen: set[tuple[str, str]] = set()
@@ -1712,8 +1758,10 @@ def extract_web_map_signals(
         return None
 
     from metacouplingllm.knowledge.countries import (
+        expand_supranational,
         get_country_name,
         resolve_country_code,
+        supranational_display_name,
     )
     from metacouplingllm.llm.client import Message
 
@@ -1903,10 +1951,42 @@ def extract_web_map_signals(
     if raw_obj is None:
         return None
 
+    def _resolve_country_or_supranational(
+        raw_name: str,
+    ) -> tuple[str | None, list[str] | None]:
+        """Try ISO resolution first; fall back to supranational lookup.
+
+        Returns ``(canonical_value, members)`` where:
+        - On ISO success: ``(iso_alpha3_code, None)``
+        - On supranational success: ``(display_name, [member_codes])``
+          (e.g., ``("European Union", ["AUT", "BEL", ...])``)
+        - On total failure: ``(None, None)``
+
+        PR #22 taught the Stage-1 LLM to emit supranational unions
+        (European Union / ASEAN / USMCA / NAFTA) as valid ``country``
+        values; without this fallback the post-extraction validator
+        silently drops every such entry.
+        """
+        if not raw_name:
+            return (None, None)
+        iso = resolve_country_code(raw_name)
+        if iso:
+            return (iso, None)
+        members = expand_supranational(raw_name)
+        if members:
+            # Use the canonical display name regardless of how the
+            # LLM spelled it ("EU" / "e.u." / "european union" all
+            # collapse to "European Union").
+            display = supranational_display_name(members) or raw_name
+            return (display, list(members))
+        return (None, None)
+
     def _normalise_country_entry(item: object) -> dict[str, object] | None:
         if not isinstance(item, dict):
             return None
-        code = resolve_country_code(str(item.get("country", "")).strip())
+        code, members = _resolve_country_or_supranational(
+            str(item.get("country", "")).strip(),
+        )
         if not code:
             return None
         confidence = _coerce_confidence(item.get("confidence", 0.0))
@@ -1920,19 +2000,26 @@ def extract_web_map_signals(
         if kind not in {"direct", "proxy"}:
             kind = "direct"
         reason = str(item.get("reason", "")).strip()
-        return {
+        result: dict[str, object] = {
             "country": code,
             "kind": kind,
             "confidence": confidence,
             "evidence": evidence,
             "reason": reason,
         }
+        if members:
+            result["supranational_members"] = members
+        return result
 
     def _normalise_flow_entry(item: object) -> dict[str, object] | None:
         if not isinstance(item, dict):
             return None
-        src_code = resolve_country_code(str(item.get("source_country", "")).strip())
-        tgt_code = resolve_country_code(str(item.get("target_country", "")).strip())
+        src_code, src_members = _resolve_country_or_supranational(
+            str(item.get("source_country", "")).strip(),
+        )
+        tgt_code, tgt_members = _resolve_country_or_supranational(
+            str(item.get("target_country", "")).strip(),
+        )
         if not src_code or not tgt_code or src_code == tgt_code:
             return None
         category = str(item.get("category", "")).strip().lower()
@@ -1952,9 +2039,13 @@ def extract_web_map_signals(
         if kind not in {"direct", "proxy"}:
             kind = "direct"
         description = str(item.get("description", "")).strip()
+        # For supranationals, ``code`` IS the display name already
+        # (e.g., "European Union"); ``get_country_name`` returns
+        # None and we fall through to the raw string.  For ISO
+        # codes, ``get_country_name`` returns the country name.
         src_name = get_country_name(src_code) or src_code
         tgt_name = get_country_name(tgt_code) or tgt_code
-        return {
+        result: dict[str, object] = {
             "category": category,
             "source_country": src_code,
             "target_country": tgt_code,
@@ -1964,6 +2055,11 @@ def extract_web_map_signals(
             "confidence": confidence,
             "evidence": evidence,
         }
+        if src_members:
+            result["source_supranational_members"] = src_members
+        if tgt_members:
+            result["target_supranational_members"] = tgt_members
+        return result
 
     focal_country = resolve_country_code(str(raw_obj.get("focal_country", "")).strip())
     receiving: list[dict[str, object]] = []
