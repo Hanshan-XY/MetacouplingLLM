@@ -445,7 +445,7 @@ class PromptBuilder:
             "focal region according to a curated ADM1 adjacency database. "
             "**Adjacency alone is NOT evidence of pericoupling.** Only "
             "classify a region as pericoupled if you have independent "
-            "evidence (from the research context, web snippets, or your "
+            "evidence (from the research context, web results, or your "
             "training knowledge) of actual interactions, flows, impacts, "
             "or exchanges between that region and the focal region — "
             "e.g., labor movement, transport corridors, commodity flows, "

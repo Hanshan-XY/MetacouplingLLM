@@ -31,12 +31,12 @@ class TestFormatWebContext:
         results = [
             {
                 "title": "Michigan Pork Exports Rise",
-                "snippet": "Michigan exported $200M in pork last year.",
+                "model_summary": "Michigan exported $200M in pork last year.",
                 "url": "https://example.com/pork",
             },
             {
                 "title": "US Pork Trade Data",
-                "snippet": "Top destinations include Japan and Mexico.",
+                "model_summary": "Top destinations include Japan and Mexico.",
                 "url": "https://example.com/trade",
             },
         ]
@@ -51,8 +51,8 @@ class TestFormatWebContext:
         """Web results use [Tk:W1], [Tk:W2] to avoid collision with
         literature [Tk:1] and to mark the conversation turn."""
         results = [
-            {"title": "A", "snippet": "s1", "url": "https://a.com"},
-            {"title": "B", "snippet": "s2", "url": "https://b.com"},
+            {"title": "A", "model_summary": "s1", "url": "https://a.com"},
+            {"title": "B", "model_summary": "s2", "url": "https://b.com"},
         ]
         text = format_web_context(results)
         # Default turn=1
@@ -65,8 +65,8 @@ class TestFormatWebContext:
     def test_renders_correct_turn_label(self):
         """Passing turn=k must produce [Tk:Wn] headers."""
         results = [
-            {"title": "A", "snippet": "s1", "url": "https://a.com"},
-            {"title": "B", "snippet": "s2", "url": "https://b.com"},
+            {"title": "A", "model_summary": "s1", "url": "https://a.com"},
+            {"title": "B", "model_summary": "s2", "url": "https://b.com"},
         ]
         text = format_web_context(results, turn=3)
         assert "[T3:W1]" in text
@@ -75,7 +75,7 @@ class TestFormatWebContext:
         assert "WEB SEARCH CONTEXT (turn 3)" in text
 
     def test_handles_missing_fields(self):
-        results = [{"title": "Test", "snippet": "", "url": ""}]
+        results = [{"title": "Test", "model_summary": "", "url": ""}]
         text = format_web_context(results)
         assert "Test" in text
         assert "WEB SEARCH CONTEXT" in text
@@ -99,12 +99,12 @@ class TestStructuredWebMapSignals:
         results = [
             {
                 "title": "Brazil soybean exports to China",
-                "snippet": "China remains Brazil's largest soybean export market.",
+                "model_summary": "China remains Brazil's largest soybean export market.",
                 "url": "https://example.com/china",
             },
             {
                 "title": "U.S. and Brazil soybean competitiveness",
-                "snippet": "The United States competes with Brazil in soybean exports.",
+                "model_summary": "The United States competes with Brazil in soybean exports.",
                 "url": "https://example.com/usa",
             },
         ]
@@ -151,6 +151,402 @@ class TestStructuredWebMapSignals:
         assert "CHN" in context
         assert "Brazil → China" in context
 
+    # --- Evidence cards + suggested follow-up queries -------------------
+
+    def test_evidence_cards_returned_with_per_card_metadata(self):
+        """When the LLM emits evidence_cards, each survives normalisation
+        with source_id/claims_supported/relevance_score/source_type."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[],'
+                    '"spillover_systems":[],'
+                    '"flows":[],'
+                    '"evidence_cards":['
+                    '  {"source_id":"W1","claims_supported":'
+                    '["soy exports grew 40%","Cerrado biome conversion"],'
+                    '"relevance_score":0.92,"source_type":"academic"},'
+                    '  {"source_id":"W2","claims_supported":["NAFTA effects"],'
+                    '"relevance_score":0.71,"source_type":"news"}'
+                    '],'
+                    '"suggested_followup_queries":[]}'
+                ))
+
+        results = [
+            {"title": "Soy 1", "model_summary": "Brazil soy.", "url": "u1"},
+            {"title": "Soy 2", "model_summary": "Brazil soy.", "url": "u2"},
+        ]
+        signals = extract_web_map_signals(
+            "Brazil soybean", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        cards = signals["evidence_cards"]
+        assert len(cards) == 2
+        assert cards[0]["source_id"] == "W1"
+        assert cards[0]["source_type"] == "academic"
+        assert cards[0]["relevance_score"] == 0.92
+        assert "soy exports grew 40%" in cards[0]["claims_supported"]
+        assert cards[1]["source_id"] == "W2"
+        assert cards[1]["source_type"] == "news"
+
+    def test_evidence_cards_drop_unknown_ids_and_clamp_types(self):
+        """Cards with source_ids beyond the available W-id range are
+        dropped; bogus source_type values fall back to 'other'."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[],"spillover_systems":[],"flows":[],'
+                    '"evidence_cards":['
+                    '  {"source_id":"W99","claims_supported":["fake"],'
+                    '"relevance_score":0.9,"source_type":"academic"},'
+                    '  {"source_id":"W1","claims_supported":["real"],'
+                    '"relevance_score":0.8,"source_type":"bogus_type"}'
+                    '],'
+                    '"suggested_followup_queries":[]}'
+                ))
+
+        results = [{"title": "x", "model_summary": "x", "url": "u1"}]
+        signals = extract_web_map_signals(
+            "q", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        cards = signals["evidence_cards"]
+        assert len(cards) == 1  # W99 dropped (unknown id)
+        assert cards[0]["source_id"] == "W1"
+        assert cards[0]["source_type"] == "other"  # bogus_type clamped
+
+    def test_suggested_followup_queries_returned_and_deduped(self):
+        """Follow-up queries survive into the result dict, deduped and
+        capped at 5 entries."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[],"spillover_systems":[],"flows":[],'
+                    '"evidence_cards":[],'
+                    '"suggested_followup_queries":['
+                    '  "Cerrado biome conversion 2024",'
+                    '  "soybean farmer income Mato Grosso",'
+                    '  "cerrado biome conversion 2024",'
+                    '  "NAFTA effects soybean exports",'
+                    '  "Brazil-China grain trade",'
+                    '  "extra one to overflow",'
+                    '  "another overflow"'
+                    ']}'
+                ))
+
+        results = [{"title": "x", "model_summary": "x", "url": "u1"}]
+        signals = extract_web_map_signals(
+            "Brazil soybean", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        queries = signals["suggested_followup_queries"]
+        assert len(queries) == 5  # capped at 5
+        assert "Cerrado biome conversion 2024" in queries
+        # Case-insensitive dedup: the third entry (lowercase
+        # variant) does not appear separately.
+        assert (
+            sum(q.lower() == "cerrado biome conversion 2024" for q in queries)
+            == 1
+        )
+
+    def test_new_fields_default_empty_when_omitted_by_llm(self):
+        """Backward compatibility: when LLM omits evidence_cards /
+        suggested_followup_queries, defaults are [] and the signals
+        dict still contains the keys with the correct types."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.0, max_tokens=None):
+                # Legacy-style response without the new fields.
+                return LLMResponse(content=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[{"country":"China","kind":"direct",'
+                    '"confidence":0.91,"evidence":["W1"],"reason":"x"}],'
+                    '"spillover_systems":[],"flows":[]}'
+                ))
+
+        results = [{"title": "x", "model_summary": "x", "url": "u1"}]
+        signals = extract_web_map_signals(
+            "q", results, MockClient(), min_confidence=0.7,
+        )
+        assert signals is not None
+        assert "evidence_cards" in signals
+        assert "suggested_followup_queries" in signals
+        assert signals["evidence_cards"] == []
+        assert signals["suggested_followup_queries"] == []
+
+    # --- Strict json_schema mode for OpenAI -----------------------------
+
+    def test_openai_search_passes_strict_json_schema_to_responses_api(self):
+        """OpenAIWebSearchBackend.search() sends text.format.json_schema."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(client=MockClient())
+        backend.search("test query", max_results=3)
+
+        assert "text" in captured
+        text_cfg = captured["text"]
+        assert isinstance(text_cfg, dict)
+        fmt = text_cfg.get("format", {})
+        assert fmt.get("type") == "json_schema"
+        assert fmt.get("strict") is True
+        assert fmt.get("name") == "web_search_results"
+        schema = fmt.get("schema", {})
+        # Spot-check schema shape.
+        assert "results" in schema.get("properties", {})
+
+    def test_extract_web_map_signals_passes_response_format_for_openai_adapter(
+        self,
+    ):
+        """When the client is an OpenAIAdapter, extract_web_map_signals
+        passes a response_format kwarg with the json_schema."""
+        from metacouplingllm.llm.client import LLMResponse, OpenAIAdapter
+
+        captured: dict[str, object] = {}
+
+        class MockUnderlyingOpenAI:
+            def __init__(self):
+                outer = self
+
+                class Comp:
+                    @staticmethod
+                    def create(**kwargs):
+                        captured.update(kwargs)
+
+                        class FakeChoice:
+                            def __init__(self):
+                                self.message = type(
+                                    "M", (),
+                                    {"content": (
+                                        '{"focal_country":"BRA",'
+                                        '"receiving_systems":[],'
+                                        '"spillover_systems":[],'
+                                        '"flows":[],'
+                                        '"evidence_cards":[],'
+                                        '"suggested_followup_queries":[]}'
+                                    )},
+                                )()
+
+                        class FakeResp:
+                            choices = [FakeChoice()]
+                            usage = None
+
+                        return FakeResp()
+
+                self.chat = type("Chat", (), {"completions": Comp()})()
+
+        adapter = OpenAIAdapter(
+            MockUnderlyingOpenAI(), model="gpt-4o-mini",
+        )
+        results = [{"title": "x", "model_summary": "y", "url": "u"}]
+        extract_web_map_signals(
+            "q", results, adapter, min_confidence=0.7,
+        )
+        assert "response_format" in captured
+        rf = captured["response_format"]
+        assert rf.get("type") == "json_schema"
+        js = rf.get("json_schema", {})
+        assert js.get("name") == "web_map_signals"
+        assert js.get("strict") is True
+
+    def test_openai_backend_passes_blocked_domains_to_filters(self):
+        """blocked_domains is forwarded to the OpenAI web_search tool's
+        filters.blocked_domains.  Mirrors Anthropic's existing surface."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(
+            client=MockClient(),
+            blocked_domains=["reddit.com", "quora.com"],
+        )
+        backend.search("test query", max_results=3)
+
+        tools = captured.get("tools", [])
+        assert tools, "no tools sent to the API"
+        filters = tools[0].get("filters", {})
+        assert filters.get("blocked_domains") == [
+            "reddit.com", "quora.com",
+        ]
+
+    def test_openai_backend_combines_allowed_and_blocked_domains(self):
+        """Both allowed and blocked can coexist in the same filters dict."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(
+            client=MockClient(),
+            allowed_domains=["nature.com"],
+            blocked_domains=["reddit.com"],
+        )
+        backend.search("q", max_results=1)
+
+        filters = captured.get("tools", [{}])[0].get("filters", {})
+        assert filters.get("allowed_domains") == ["nature.com"]
+        assert filters.get("blocked_domains") == ["reddit.com"]
+
+    def test_extract_web_map_signals_omits_response_format_for_non_openai(
+        self,
+    ):
+        """When the client is NOT an OpenAIAdapter, no response_format
+        kwarg is sent (other adapters' chat() signatures don't accept it)."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        captured: dict[str, object] = {}
+
+        class GenericClient:
+            def chat(self, messages, **kwargs):
+                captured.update(kwargs)
+                return LLMResponse(content=(
+                    '{"focal_country":"BRA",'
+                    '"receiving_systems":[],"spillover_systems":[],'
+                    '"flows":[],"evidence_cards":[],'
+                    '"suggested_followup_queries":[]}'
+                ))
+
+        results = [{"title": "x", "model_summary": "y", "url": "u"}]
+        extract_web_map_signals(
+            "q", results, GenericClient(), min_confidence=0.7,
+        )
+        assert "response_format" not in captured
+
+    # --- Legacy snippet → model_summary shim ----------------------------
+
+    def test_normalise_backend_results_emits_model_summary_only(self):
+        """Normaliser output ALWAYS uses model_summary; snippet key
+        from the input is mapped onto model_summary."""
+        from metacouplingllm.knowledge.websearch import (
+            _normalise_backend_results,
+        )
+        normalised = _normalise_backend_results(
+            [
+                {
+                    "title": "T1",
+                    "url": "https://e.com/1",
+                    "snippet": "legacy summary text",
+                },
+            ],
+            max_results=10,
+        )
+        assert len(normalised) == 1
+        assert normalised[0]["model_summary"] == "legacy summary text"
+        assert "snippet" not in normalised[0]
+
+    def test_normalise_backend_results_prefers_model_summary_over_snippet(
+        self,
+    ):
+        """When BOTH keys are present, model_summary wins."""
+        from metacouplingllm.knowledge.websearch import (
+            _normalise_backend_results,
+        )
+        normalised = _normalise_backend_results(
+            [
+                {
+                    "title": "T1",
+                    "url": "https://e.com/1",
+                    "model_summary": "new summary",
+                    "snippet": "old summary",
+                },
+            ],
+            max_results=10,
+        )
+        assert normalised[0]["model_summary"] == "new summary"
+        assert "snippet" not in normalised[0]
+
+    def test_format_includes_evidence_cards_and_followups(self):
+        """The formatter renders both new sections when present."""
+        context = format_web_map_signals_context({
+            "focal_country": "BRA",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [],
+            "evidence_cards": [
+                {
+                    "source_id": "W1",
+                    "claims_supported": ["soy exports growth", "NAFTA"],
+                    "relevance_score": 0.92,
+                    "source_type": "academic",
+                },
+            ],
+            "suggested_followup_queries": [
+                "Cerrado biome conversion 2024",
+                "NAFTA effects on soybean",
+            ],
+        })
+        assert "EVIDENCE CARDS" in context
+        assert "[W1]" in context
+        assert "academic" in context
+        assert "0.92" in context
+        assert "soy exports growth" in context
+        assert "SUGGESTED FOLLOW-UP WEB SEARCHES" in context
+        assert "Cerrado biome conversion 2024" in context
+
 
 # ---------------------------------------------------------------------------
 # search_web (live test — only runs if network is available)
@@ -163,7 +559,7 @@ class TestOpenAIWebSearchBackend:
                 '{"results": ['
                 '{"title": "Brazil soybean exports", '
                 '"url": "https://example.com/brazil", '
-                '"snippet": "Brazil exports soybeans to China."}'
+                '"model_summary": "Brazil exports soybeans to China."}'
                 "]}"
             )
 
@@ -189,7 +585,7 @@ class TestOpenAIWebSearchBackend:
         assert results == [{
             "title": "Brazil soybean exports",
             "url": "https://example.com/brazil",
-            "snippet": "Brazil exports soybeans to China.",
+            "model_summary": "Brazil exports soybeans to China.",
         }]
         assert client.responses.kwargs["model"] == "gpt-5"
         assert client.responses.kwargs["tools"] == [{
@@ -212,7 +608,7 @@ class TestOpenAIWebSearchBackend:
                                     {
                                         "title": "Namibia fisheries report",
                                         "url": "https://example.com/namibia",
-                                        "snippet": "Grounded source snippet.",
+                                        "model_summary": "Grounded source snippet.",
                                     }
                                 ]
                             },
@@ -234,7 +630,7 @@ class TestOpenAIWebSearchBackend:
         assert results == [{
             "title": "Namibia fisheries report",
             "url": "https://example.com/namibia",
-            "snippet": "Grounded source snippet.",
+            "model_summary": "Grounded source snippet.",
         }]
 
 
@@ -303,7 +699,7 @@ class TestAnthropicWebSearchBackend:
         assert results == [{
             "title": "Brazil soybean exports",
             "url": "https://example.com/brazil",
-            "snippet": "Brazil exported 100M tons of soybeans in 2025.",
+            "model_summary": "Brazil exported 100M tons of soybeans in 2025.",
         }]
         # Verify the tool was configured correctly
         assert client.messages.kwargs["model"] == "claude-opus-4-7"
@@ -359,12 +755,12 @@ class TestAnthropicWebSearchBackend:
             {
                 "title": "Fisheries Report",
                 "url": "https://example.com/report",
-                "snippet": "(page age: March 1, 2026)",
+                "model_summary": "(page age: March 1, 2026)",
             },
             {
                 "title": "Deep Analysis",
                 "url": "https://example.com/analysis",
-                "snippet": "(page age: March 8, 2026)",
+                "model_summary": "(page age: March 8, 2026)",
             },
         ]
 
@@ -420,8 +816,8 @@ class TestAnthropicWebSearchBackend:
         results = backend.search("test", max_results=5)
 
         assert results == [
-            {"title": "A", "url": "https://example.com/a", "snippet": "First passage."},
-            {"title": "B", "url": "https://example.com/b", "snippet": "Unique snippet."},
+            {"title": "A", "url": "https://example.com/a", "model_summary": "First passage."},
+            {"title": "B", "url": "https://example.com/b", "model_summary": "Unique snippet."},
         ]
 
     def test_respects_max_results_from_citations(self):
@@ -589,7 +985,7 @@ class TestSearchWeb:
         results = search_web("telecoupling soybean trade", max_results=2)
         for r in results:
             assert "title" in r
-            assert "snippet" in r
+            assert "model_summary" in r
             assert "url" in r
 
     def test_respects_max_results(self):
@@ -601,7 +997,7 @@ class TestSearchWeb:
             def search(self, query, max_results=5):
                 return [{
                     "title": f"Result for {query}",
-                    "snippet": "stub snippet",
+                    "model_summary": "stub snippet",
                     "url": "https://example.com/stub",
                 }]
 
@@ -614,7 +1010,7 @@ class TestSearchWeb:
 
         assert results == [{
             "title": "Result for telecoupling",
-            "snippet": "stub snippet",
+            "model_summary": "stub snippet",
             "url": "https://example.com/stub",
         }]
         build_queries.assert_not_called()
@@ -656,7 +1052,7 @@ class TestDuckDuckGoLiteParser:
         parser.feed(SAMPLE_LITE_HTML)
         assert len(parser.results) == 2
         assert parser.results[0]["title"] == "First Result Title"
-        assert parser.results[0]["snippet"] == "This is the first snippet."
+        assert parser.results[0]["model_summary"] == "This is the first snippet."
         assert parser.results[0]["url"] == "https://example.com/page1"
         assert parser.results[1]["title"] == "Second Result Title"
 
@@ -698,12 +1094,12 @@ class TestAnnotateWebCitations:
     WEB_RESULTS = [
         {
             "title": "Michigan Pork Industry Report",
-            "snippet": "Michigan pork production contributes $874 million GDP",
+            "model_summary": "Michigan pork production contributes $874 million GDP",
             "url": "https://example.com/pork",
         },
         {
             "title": "US Pork Exports Data",
-            "snippet": "United States exported pork to Japan Mexico Korea",
+            "model_summary": "United States exported pork to Japan Mexico Korea",
             "url": "https://example.com/trade",
         },
     ]
@@ -762,7 +1158,7 @@ class TestStdlibFallback:
     def test_falls_back_to_stdlib(self):
         """search_web falls back to stdlib when ddgs/duckduckgo_search absent."""
         fake_results = [
-            {"title": "Fallback", "snippet": "Works", "url": "https://x.com"},
+            {"title": "Fallback", "model_summary": "Works", "url": "https://x.com"},
         ]
         with patch(
             "metacouplingllm.knowledge.websearch._search_stdlib",
@@ -774,7 +1170,7 @@ class TestStdlibFallback:
         assert results == fake_results
 
     def test_stdlib_respects_max_results(self):
-        many = [{"title": f"R{i}", "snippet": "", "url": f"https://x.com/{i}"}
+        many = [{"title": f"R{i}", "model_summary": "", "url": f"https://x.com/{i}"}
                 for i in range(10)]
         with patch(
             "metacouplingllm.knowledge.websearch._search_stdlib",
@@ -788,15 +1184,15 @@ class TestStdlibFallback:
 class TestSearchBackendMerging:
     def test_merges_unique_results_across_backends(self):
         ddgs_results = [
-            {"title": "A", "snippet": "s1", "url": "https://a.com"},
-            {"title": "B", "snippet": "s2", "url": "https://b.com"},
+            {"title": "A", "model_summary": "s1", "url": "https://a.com"},
+            {"title": "B", "model_summary": "s2", "url": "https://b.com"},
         ]
         legacy_results = [
-            {"title": "B duplicate", "snippet": "s2", "url": "https://b.com"},
-            {"title": "C", "snippet": "s3", "url": "https://c.com"},
+            {"title": "B duplicate", "model_summary": "s2", "url": "https://b.com"},
+            {"title": "C", "model_summary": "s3", "url": "https://c.com"},
         ]
         stdlib_results = [
-            {"title": "D", "snippet": "s4", "url": "https://d.com"},
+            {"title": "D", "model_summary": "s4", "url": "https://d.com"},
         ]
         with patch(
             "metacouplingllm.knowledge.websearch._search_ddgs",
@@ -820,9 +1216,9 @@ class TestSearchBackendMerging:
 
     def test_stops_after_reaching_requested_count(self):
         ddgs_results = [
-            {"title": "A", "snippet": "s1", "url": "https://a.com"},
-            {"title": "B", "snippet": "s2", "url": "https://b.com"},
-            {"title": "C", "snippet": "s3", "url": "https://c.com"},
+            {"title": "A", "model_summary": "s1", "url": "https://a.com"},
+            {"title": "B", "model_summary": "s2", "url": "https://b.com"},
+            {"title": "C", "model_summary": "s3", "url": "https://c.com"},
         ]
         with patch(
             "metacouplingllm.knowledge.websearch._search_ddgs",
@@ -847,7 +1243,7 @@ class TestSearchWebMetadata:
             model = "claude-opus-4-7"
 
             def search(self, query, max_results=5):
-                return [{"title": "A", "snippet": "s", "url": "https://a.com"}]
+                return [{"title": "A", "model_summary": "s", "url": "https://a.com"}]
 
         # Make isinstance(..., AnthropicWebSearchBackend) hit by patching
         # the class check, OR construct a real backend instance with a
@@ -855,7 +1251,7 @@ class TestSearchWebMetadata:
         # subclass that overrides search().
         class RealishBackend(AnthropicWebSearchBackend):
             def search(self, query, max_results=5):
-                return [{"title": "A", "snippet": "s", "url": "https://a.com"}]
+                return [{"title": "A", "model_summary": "s", "url": "https://a.com"}]
 
         backend = RealishBackend(client=None, model="claude-opus-4-7")
         meta: dict[str, object] = {}
@@ -867,7 +1263,7 @@ class TestSearchWebMetadata:
     def test_records_openai_backend_on_success(self):
         class RealishBackend(OpenAIWebSearchBackend):
             def search(self, query, max_results=5):
-                return [{"title": "B", "snippet": "s", "url": "https://b.com"}]
+                return [{"title": "B", "model_summary": "s", "url": "https://b.com"}]
 
         backend = RealishBackend(client=None, model="gpt-5")
         meta: dict[str, object] = {}
@@ -880,7 +1276,7 @@ class TestSearchWebMetadata:
         with patch(
             "metacouplingllm.knowledge.websearch._search_single_query",
             return_value=[
-                {"title": "DDG", "snippet": "s", "url": "https://ddg.com"},
+                {"title": "DDG", "model_summary": "s", "url": "https://ddg.com"},
             ],
         ):
             search_web("metacoupling water", max_results=3, metadata=meta)
@@ -897,7 +1293,7 @@ class TestSearchWebMetadata:
         with patch(
             "metacouplingllm.knowledge.websearch._search_single_query",
             return_value=[
-                {"title": "DDG", "snippet": "s", "url": "https://ddg.com"},
+                {"title": "DDG", "model_summary": "s", "url": "https://ddg.com"},
             ],
         ):
             search_web(
@@ -920,7 +1316,7 @@ class TestSearchWebMetadata:
         with patch(
             "metacouplingllm.knowledge.websearch._search_single_query",
             return_value=[
-                {"title": "DDG", "snippet": "s", "url": "https://ddg.com"},
+                {"title": "DDG", "model_summary": "s", "url": "https://ddg.com"},
             ],
         ):
             search_web(
@@ -938,7 +1334,7 @@ class TestSearchWebMetadata:
         with patch(
             "metacouplingllm.knowledge.websearch._search_single_query",
             return_value=[
-                {"title": "X", "snippet": "s", "url": "https://x.com"},
+                {"title": "X", "model_summary": "s", "url": "https://x.com"},
             ],
         ):
             results = search_web("metacoupling water", max_results=2)
@@ -1081,13 +1477,13 @@ class TestSearchQueryExpansion:
         def fake_single_query(query: str, max_results: int):
             mapping = {
                 "Michigan pork export destinations": [
-                    {"title": "A", "snippet": "s1", "url": "https://a.com"},
+                    {"title": "A", "model_summary": "s1", "url": "https://a.com"},
                 ],
                 "Michigan pork trade partners": [
-                    {"title": "B", "snippet": "s2", "url": "https://b.com"},
+                    {"title": "B", "model_summary": "s2", "url": "https://b.com"},
                 ],
                 "Michigan pork export markets": [
-                    {"title": "C", "snippet": "s3", "url": "https://c.com"},
+                    {"title": "C", "model_summary": "s3", "url": "https://c.com"},
                 ],
             }
             return mapping.get(query, [])[:max_results]
@@ -1123,13 +1519,13 @@ class TestSearchQueryExpansion:
             if mr <= 6:
                 idx = len(calls)
                 return [
-                    {"title": f"V{idx}_{i}", "snippet": "",
+                    {"title": f"V{idx}_{i}", "model_summary": "",
                      "url": f"https://variant.com/{idx}/{i}"}
                     for i in range(2)
                 ]
             # Top-up call (full budget): returns 30 fresh URLs
             return [
-                {"title": f"T{i}", "snippet": "",
+                {"title": f"T{i}", "model_summary": "",
                  "url": f"https://topup.com/{i}"}
                 for i in range(30)
             ]
@@ -1170,7 +1566,7 @@ class TestSearchQueryExpansion:
             # Each variant returns 6 fresh URLs (per-variant cap saturates)
             idx = len(calls)
             return [
-                {"title": f"V{idx}_{i}", "snippet": "",
+                {"title": f"V{idx}_{i}", "model_summary": "",
                  "url": f"https://variant.com/{idx}/{i}"}
                 for i in range(6)
             ]
@@ -1195,7 +1591,7 @@ class TestSearchQueryExpansion:
             calls.append((q, mr))
             # Return only 3 URLs even though caller asked for 20
             return [
-                {"title": f"R{i}", "snippet": "",
+                {"title": f"R{i}", "model_summary": "",
                  "url": f"https://r.com/{i}"}
                 for i in range(3)
             ]
@@ -1286,7 +1682,7 @@ class TestAdvisorWebSearch:
                 return LLMResponse(content="Test response.")
 
         fake_results = [
-            {"title": "A", "snippet": "Brazil exports to China", "url": "https://a.com"},
+            {"title": "A", "model_summary": "Brazil exports to China", "url": "https://a.com"},
         ]
         fake_signals = {
             "focal_country": "BRA",
@@ -1331,8 +1727,8 @@ class TestAdvisorWebSearch:
         from metacouplingllm.core import MetacouplingAssistant
 
         results = [
-            {"title": "Page A", "url": "https://a.com", "snippet": "snip"},
-            {"title": "Page B", "url": "https://b.com", "snippet": "snip"},
+            {"title": "Page A", "url": "https://a.com", "model_summary": "snip"},
+            {"title": "Page B", "url": "https://b.com", "model_summary": "snip"},
         ]
         footer = MetacouplingAssistant._format_web_sources(results)
         # Default turn=1 yields turn-scoped [T1:Wn] headers
@@ -1469,7 +1865,7 @@ class TestAdvisorWebSearch:
             meta = kwargs.get("metadata")
             if meta is not None:
                 meta["backend_used"] = "Claude web_search (claude-opus-4-7)"
-            return [{"title": "X", "snippet": "s", "url": "https://x.com"}]
+            return [{"title": "X", "model_summary": "s", "url": "https://x.com"}]
 
         monkeypatch.setattr(
             "metacouplingllm.knowledge.websearch.search_web",
@@ -1507,7 +1903,7 @@ class TestAdvisorWebSearch:
                 meta["fallback_from"] = (
                     "Claude web_search (claude-opus-4-7) raised: API down"
                 )
-            return [{"title": "X", "snippet": "s", "url": "https://x.com"}]
+            return [{"title": "X", "model_summary": "s", "url": "https://x.com"}]
 
         monkeypatch.setattr(
             "metacouplingllm.knowledge.websearch.search_web",

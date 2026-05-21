@@ -98,7 +98,7 @@ _LOW_PRIORITY_SYSTEM_FIELDS: tuple[str, ...] = (
     "human_subsystem", "natural_subsystem", "description",
 )
 
-# Defensive ceiling on the number of web-search snippets included in the
+# Defensive ceiling on the number of web-search results included in the
 # structured map-extraction prompt.  This is independent of the user's
 # ``web_search_max_results`` setting -- that setting already caps
 # ``self._last_web_results`` upstream.  The constant exists only to bound
@@ -271,6 +271,21 @@ class AnalysisResult:
     structured_supplement: dict[str, object] | None = None
     map_notice: str | None = None
     flow_parse_warnings: list[dict[str, str]] = field(default_factory=list)
+    # §7 Evidence Coverage — model self-assessment by the MAIN
+    # analysis LLM call.  Considers both RAG literature AND web
+    # evidence (only the main call sees both streams), so a "gap"
+    # here means "no source supports this," not "web didn't cover
+    # it" (RAG may have).  Empty string when the LLM omitted §7.
+    # Mirror of ``self.parsed.evidence_coverage_note`` lifted onto
+    # the result for easier programmatic access.
+    evidence_coverage_note: str = ""
+    # Suggested follow-up web-search queries emitted by the
+    # web-extraction LLM call (``extract_web_map_signals``).  Each
+    # entry is a short, specific search query the model thinks
+    # would fill gaps in the WEB evidence (RAG-side gaps are
+    # discussed in ``evidence_coverage_note`` instead).  Empty
+    # list when no web search ran or no queries were suggested.
+    suggested_followup_queries: list[str] = field(default_factory=list)
 
     def __repr__(self) -> str:
         parts = [f"turn={self.turn_number}"]
@@ -468,15 +483,23 @@ def _format_web_sources_block(
     for i, src in enumerate(web_sources, start=1):
         title = (src.get("title") or "(no title)").strip()
         url = (src.get("url") or "").strip()
-        snippet = (src.get("snippet") or "").strip().replace("\n", " ")
-        if len(snippet) > 140:
-            snippet = snippet[:137].rstrip() + "..."
+        # Accept legacy "snippet" key alongside the canonical
+        # ``model_summary`` (the rename ships in the same PR; older
+        # downstream callers / serialised state may still carry
+        # ``snippet``).
+        model_summary = (
+            src.get("model_summary")
+            or src.get("snippet")
+            or ""
+        ).strip().replace("\n", " ")
+        if len(model_summary) > 140:
+            model_summary = model_summary[:137].rstrip() + "..."
         lines.append("")
         lines.append(f"  [T{turn}:W{i}] {title}")
         if url:
             lines.append(f"       {url}")
-        if snippet:
-            lines.append(f"       {snippet}")
+        if model_summary:
+            lines.append(f"       {model_summary}")
     return "\n".join(lines)
 
 
@@ -651,7 +674,7 @@ class MetacouplingAssistant:
         ``analyze()`` / ``refine()`` turn.
     web_structured_extraction:
         If ``True`` and ``web_search=True``, runs a second LLM pass over the
-        web snippets to extract validated map-ready countries and flows.
+        web results to extract validated map-ready countries and flows.
         These signals are used as conservative hints for map generation and
         are exposed on ``AnalysisResult.web_map_signals``. Recommended when
         ``web_search=True`` and ``auto_map=True`` are both enabled.
@@ -697,7 +720,7 @@ class MetacouplingAssistant:
         rag_max_chunks_per_paper: int = 3,
         rag_structured_extraction: bool = False,
         web_search: bool = False,
-        web_search_max_results: int = 5,
+        web_search_max_results: int = 10,
         web_structured_extraction: bool = False,
         web_structured_min_confidence: float = 0.7,
         web_structured_max_targets: int = 6,
@@ -2699,20 +2722,24 @@ class MetacouplingAssistant:
 
         analysis_summary = "\n\n".join(parts)
 
-        # Include web search snippets so the LLM can identify specific
+        # Include web search results so the LLM can identify specific
         # countries even when the analysis uses generic labels like
         # "foreign importing countries."
-        web_snippet_text = ""
+        web_results_text = ""
         if self._last_web_results:
             lines: list[str] = []
             for idx, wr in enumerate(
                 self._last_web_results[:_MAX_WEB_SNIPPETS_IN_MAP_PROMPT], 1,
             ):
                 title = wr.get("title", "").strip()
-                snippet = wr.get("snippet", "").strip()[:200]
-                lines.append(f"[W{idx}] {title}: {snippet}")
-            web_snippet_text = (
-                "\n\nWeb search snippets (use these to identify specific "
+                # Accept legacy "snippet" key as fallback.
+                summary = (
+                    wr.get("model_summary")
+                    or wr.get("snippet", "")
+                ).strip()[:200]
+                lines.append(f"[W{idx}] {title}: {summary}")
+            web_results_text = (
+                "\n\nWeb search results (use these to identify specific "
                 "countries when the analysis is vague):\n"
                 + "\n".join(lines)
             )
@@ -2779,7 +2806,7 @@ class MetacouplingAssistant:
             "7. No flows should involve spillover countries as source "
             "or target.\n"
             "8. When the analysis says 'importing countries' without "
-            "naming them, use the web snippets to identify the most "
+            "naming them, use the web results to identify the most "
             "likely specific countries\n"
             "9. Do not invent countries with no supporting evidence\n"
             "10. For adm1_region: ONLY use codes from the reference "
@@ -2799,7 +2826,7 @@ class MetacouplingAssistant:
             "tracked separately via adm1_region.\n\n"
             f"{adm1_reference_text}"
             f"Analysis:\n{analysis_summary}"
-            f"{web_snippet_text}"
+            f"{web_results_text}"
         )
 
         try:
@@ -4394,12 +4421,15 @@ class MetacouplingAssistant:
         for i, r in enumerate(results, 1):
             title = r.get("title", "Untitled")
             url = r.get("url", "")
-            snippet = r.get("snippet", "")
+            # Accept legacy "snippet" key as fallback.
+            model_summary = (
+                r.get("model_summary") or r.get("snippet", "")
+            )
             lines.append(f"  [T{turn}:W{i}] {title}")
             if url:
                 lines.append(f"      {url}")
-            if snippet:
-                lines.append(f"      {snippet[:200]}")
+            if model_summary:
+                lines.append(f"      {model_summary[:200]}")
             lines.append("")
         return "\n".join(lines)
 
@@ -4667,6 +4697,33 @@ class MetacouplingAssistant:
                 map_notice = self._last_map_notice
                 formatted += map_notice
 
+        # Append a "Suggested follow-up web searches" footer when the
+        # web extraction emitted any.  ``evidence_coverage_note`` is
+        # already rendered into ``formatted`` by ``AnalysisFormatter
+        # .format_full`` via ``parsed.evidence_coverage_note``; only
+        # the follow-up queries live OUTSIDE ParsedAnalysis (they're
+        # on ``self._last_web_map_signals``), so they're appended here.
+        followup_queries: list[str] = []
+        if isinstance(self._last_web_map_signals, dict):
+            raw_q = self._last_web_map_signals.get(
+                "suggested_followup_queries", []
+            )
+            if isinstance(raw_q, list):
+                followup_queries = [str(q) for q in raw_q if str(q).strip()]
+        if followup_queries:
+            footer = [
+                "",
+                "----------------------------------------------------------------------",
+                "  Suggested follow-up web searches:",
+                "",
+            ]
+            for q in followup_queries:
+                footer.append(f"  - {q}")
+            footer.append(
+                "======================================================================"
+            )
+            formatted += "\n" + "\n".join(footer)
+
         return AnalysisResult(
             parsed=parsed,
             formatted=formatted,
@@ -4678,6 +4735,8 @@ class MetacouplingAssistant:
             structured_supplement=structured_supplement,
             map_notice=map_notice,
             flow_parse_warnings=list(self._last_flow_parse_warnings),
+            evidence_coverage_note=parsed.evidence_coverage_note,
+            suggested_followup_queries=followup_queries,
         )
 
     @staticmethod

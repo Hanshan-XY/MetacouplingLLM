@@ -114,8 +114,22 @@ class OpenAIAdapter:
         messages: list[Message],
         temperature: float = 0.7,
         max_tokens: int | None = None,
+        *,
+        response_format: dict | None = None,
     ) -> LLMResponse:
-        """Send messages via the OpenAI Chat Completions API."""
+        """Send messages via the OpenAI Chat Completions API.
+
+        Parameters
+        ----------
+        response_format:
+            Optional OpenAI ``response_format`` payload (e.g.
+            ``{"type": "json_schema", "json_schema": {"name": ...,
+            "strict": True, "schema": {...}}}``).  When provided,
+            OpenAI guarantees the returned content conforms to the
+            schema, eliminating the need for prompt-based JSON
+            extraction + fallback parsing.  Keyword-only so legacy
+            callers don't break.
+        """
         api_messages = [
             {"role": msg.role, "content": msg.content} for msg in messages
         ]
@@ -127,6 +141,8 @@ class OpenAIAdapter:
         }
         if max_tokens is not None:
             kwargs["max_tokens"] = max_tokens
+        if response_format is not None:
+            kwargs["response_format"] = response_format
 
         try:
             response = self._client.chat.completions.create(**kwargs)

@@ -821,6 +821,180 @@ class TestAutoMapTrustsLLMAndUserFraming:
         assert advisor._last_map_type == "adm1"
 
 
+class TestEvidenceCoverageNote:
+    """Tests for the §7 Evidence Coverage flow:
+
+    1. ``parse_analysis`` extracts the section into
+       ``ParsedAnalysis.evidence_coverage_note``.
+    2. ``_build_result`` lifts it onto
+       ``AnalysisResult.evidence_coverage_note`` and lifts
+       ``suggested_followup_queries`` from ``_last_web_map_signals``
+       onto ``AnalysisResult.suggested_followup_queries``.
+    3. ``AnalysisFormatter.format_full`` renders the §7 block.
+    4. ``_build_result`` appends a "Suggested follow-up web searches"
+       footer when queries are present.
+    5. Backward compatibility: when both the §7 section and
+       follow-up queries are absent, ``formatted`` omits both
+       blocks entirely.
+    """
+
+    def _make_assistant_with_canned_response(self, response_text: str):
+        from metacouplingllm.llm.client import LLMResponse, Message
+
+        class CannedClient:
+            def __init__(self, text):
+                self._text = text
+
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content=self._text)
+
+        return MetacouplingAssistant(llm_client=CannedClient(response_text))
+
+    def _minimal_framework_response(self, extra_sections: str = "") -> str:
+        """Build a minimal but parsed framework response with §7 appended."""
+        body = (
+            "### 1. Coupling Classification\n\n"
+            "This study involves telecoupling between Mexico and the US.\n\n"
+            "### 2. Intracoupling Analysis\n\n"
+            "#### 2.1 Systems Identification\n"
+            "**Focal System**: Mexican avocado producers\n"
+            "- **Human subsystem**: Smallholders and exporters.\n"
+            "- **Natural subsystem**: Pine-oak forests, avocado orchards.\n"
+            "- **Geographic scope**: Michoacan and Jalisco.\n\n"
+            "### 6. Research Gaps and Suggestions\n\n"
+            "- Need data on cartel involvement.\n"
+            "- Need recent Jalisco expansion figures.\n"
+            "- Need labor condition data.\n\n"
+        )
+        return body + extra_sections
+
+    # --- Layer 1: parser extraction (covered separately in
+    # tests/test_parser.py — this layer is the integration through
+    # _build_result onto AnalysisResult). --------------------------------
+
+    def test_coverage_note_lifted_onto_result(self):
+        """parsed.evidence_coverage_note is mirrored onto
+        AnalysisResult.evidence_coverage_note for ergonomic access."""
+        response = self._minimal_framework_response(
+            extra_sections=(
+                "### 7. Evidence Coverage\n\n"
+                "Strong evidence base: trade volumes from [T1:2].\n"
+                "Limited evidence: cartel involvement not in any source.\n"
+            )
+        )
+        advisor = self._make_assistant_with_canned_response(response)
+        result = advisor.analyze("Mexican avocado trade")
+        assert result.evidence_coverage_note
+        assert "Strong evidence base" in result.evidence_coverage_note
+        assert (
+            result.parsed.evidence_coverage_note
+            == result.evidence_coverage_note
+        )
+
+    def test_followup_queries_lifted_from_web_map_signals(self):
+        """AnalysisResult.suggested_followup_queries mirrors
+        web_map_signals['suggested_followup_queries'].
+
+        Bypasses analyze() (which resets _last_web_map_signals at the
+        start) and calls _build_result directly with the pre-populated
+        instance state, mirroring the existing
+        test_generate_map_merges_structured_web_map_signals pattern.
+        """
+        from metacouplingllm.llm.client import LLMResponse
+
+        advisor = self._make_assistant_with_canned_response(
+            self._minimal_framework_response()
+        )
+        advisor._turn = 1
+        advisor._last_web_map_signals = {
+            "focal_country": "MEX",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [],
+            "evidence_cards": [],
+            "suggested_followup_queries": [
+                "cartel control Mexican avocado supply chain 2024",
+                "Jalisco avocado expansion post-USMCA",
+            ],
+        }
+        response = LLMResponse(content=self._minimal_framework_response())
+        result = advisor._build_result(response)
+        assert result.suggested_followup_queries == [
+            "cartel control Mexican avocado supply chain 2024",
+            "Jalisco avocado expansion post-USMCA",
+        ]
+        # Same data should also be reachable via web_map_signals dict.
+        assert (
+            result.web_map_signals["suggested_followup_queries"]
+            == result.suggested_followup_queries
+        )
+
+    def test_formatted_includes_evidence_coverage_block(self):
+        """When §7 prose is present, ``formatted`` contains the
+        rendered '7. Evidence Coverage' block."""
+        response = self._minimal_framework_response(
+            extra_sections=(
+                "### 7. Evidence Coverage\n\n"
+                "Strong evidence base for trade volumes; cartel data thin.\n"
+            )
+        )
+        advisor = self._make_assistant_with_canned_response(response)
+        result = advisor.analyze("Mexican avocado trade")
+        assert "7. Evidence Coverage" in result.formatted
+        assert "Strong evidence base for trade volumes" in result.formatted
+
+    def test_formatted_includes_followup_queries_footer(self):
+        """When suggested_followup_queries is non-empty, ``formatted``
+        appends the bullet footer regardless of §7's presence.
+
+        See note on test_followup_queries_lifted_from_web_map_signals
+        about bypassing analyze()'s state reset.
+        """
+        from metacouplingllm.llm.client import LLMResponse
+
+        advisor = self._make_assistant_with_canned_response(
+            self._minimal_framework_response()
+        )
+        advisor._turn = 1
+        advisor._last_web_map_signals = {
+            "focal_country": "MEX",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [],
+            "evidence_cards": [],
+            "suggested_followup_queries": [
+                "cartel control Mexican avocado supply chain 2024",
+            ],
+        }
+        response = LLMResponse(content=self._minimal_framework_response())
+        result = advisor._build_result(response)
+        assert "Suggested follow-up web searches" in result.formatted
+        assert "cartel control" in result.formatted
+
+    def test_formatted_omits_blocks_when_both_empty(self):
+        """Backward compat: when neither §7 nor follow-ups exist,
+        ``formatted`` contains neither block (preserves legacy shape
+        for tests/fixtures generated before this PR)."""
+        advisor = self._make_assistant_with_canned_response(
+            self._minimal_framework_response()
+        )
+        # No web extraction has populated signals.
+        assert advisor._last_web_map_signals is None
+        result = advisor.analyze("Mexican avocado trade")
+        assert "7. Evidence Coverage" not in result.formatted
+        assert "Suggested follow-up web searches" not in result.formatted
+
+    def test_new_fields_have_sensible_defaults(self):
+        """AnalysisResult exposes the new fields with empty defaults
+        when nothing populated them."""
+        advisor = self._make_assistant_with_canned_response(
+            self._minimal_framework_response()
+        )
+        result = advisor.analyze("Mexican avocado trade")
+        assert result.evidence_coverage_note == ""
+        assert result.suggested_followup_queries == []
+
+
 class TestCountryMapConfiguration:
     """Tests for country-level auto-map configuration passthrough."""
 
@@ -3598,7 +3772,7 @@ class TestExtractMapDataPromptBudgets:
             web_search_max_results=20,
         )
         advisor._last_web_results = [
-            {"title": f"Result {i}", "snippet": f"snip {i}"}
+            {"title": f"Result {i}", "model_summary": f"snip {i}"}
             for i in range(20)
         ]
         parsed = make_parsed_analysis(
@@ -3628,7 +3802,7 @@ class TestExtractMapDataPromptBudgets:
             web_search_max_results=n,
         )
         advisor._last_web_results = [
-            {"title": f"Result {i}", "snippet": f"snip {i}"}
+            {"title": f"Result {i}", "model_summary": f"snip {i}"}
             for i in range(n)
         ]
         parsed = make_parsed_analysis(

@@ -7,7 +7,105 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Changed
+
+- **Strict `json_schema` mode for OpenAI web-search +
+  `extract_web_map_signals`.**  Both calls previously asked the
+  model to emit JSON via prompt instructions and relied on
+  `_extract_json_object` to recover from malformed output.  They
+  now declare an explicit schema and OpenAI guarantees the
+  response conforms.
+  - `OpenAIWebSearchBackend.search()` adds a
+    `text={"format": {"type": "json_schema", "name":
+    "web_search_results", "strict": True, "schema": ...}}` payload
+    to the Responses-API call (schema defined as the
+    module-level `_OPENAI_WEB_SEARCH_RESULTS_SCHEMA`).
+  - `extract_web_map_signals` detects when the client is an
+    `OpenAIAdapter` (or subclass) and passes
+    `response_format={"type": "json_schema", "json_schema": {
+    "name": "web_map_signals", "strict": True, "schema": ...}}`
+    via the adapter's new keyword-only `response_format`
+    parameter (schema is the module-level
+    `_WEB_MAP_SIGNALS_SCHEMA`).
+  Non-OpenAI clients keep the prompt-based JSON path unchanged.
+  The `_extract_json_object` fallback parser stays as a
+  defensive measure for both paths.
+- **`OpenAIAdapter.chat()` gains a keyword-only `response_format`
+  parameter.**  Optional; when omitted the kwarg is not sent to
+  the OpenAI SDK so existing callers don't break.  The retry
+  paths (temperature, max_completion_tokens, capped max_tokens,
+  rate-limit backoff) carry `response_format` through unchanged.
+
+### Changed (breaking — web-search return shape)
+
+- **Web-search backend dict key renamed: `snippet` → `model_summary`.**
+  All four web-search backends (OpenAI, Anthropic, Gemini, Grok)
+  and the DuckDuckGo fallback now return result dicts shaped
+  `{title, url, model_summary}` instead of `{title, url, snippet}`.
+  The rename makes the field name match its actual contents: for
+  OpenAI / Gemini / Grok the model writes a summary in response
+  to a prompt instruction, and for the DDG fallback the field
+  carries the page-metadata body — none of these are verbatim
+  page text in the way "snippet" implied.  Only the Anthropic
+  backend's `model_summary` is actually a verbatim excerpt
+  (Claude's `cited_text` field), and the rename leaves a
+  docstring note on
+  `_extract_anthropic_web_results` calling that out so callers
+  aren't misled.
+
+  Migration: callers reading `result.web_results[0]["snippet"]`
+  will get `KeyError`; switch to `["model_summary"]`.
+  `_normalise_backend_results` silently maps a legacy `snippet`
+  key from upstream provider responses to `model_summary` so
+  half-migrated providers don't break during transition.  The
+  three downstream consumers in `core.py`
+  (`format_web_context`, `_format_web_sources`,
+  `_extract_map_data_from_analysis`) accept either key for the
+  same reason.
+
 ### Added
+
+- **`OpenAIWebSearchBackend.blocked_domains`** parameter (mirrors
+  the existing Anthropic backend's `blocked_domains` field).
+  Passed to OpenAI's web_search tool as `filters.blocked_domains`.
+  Useful for excluding low-quality sources (Reddit, Quora, content
+  farms) from search results.  Coexists with `allowed_domains`
+  when both are set.  Gemini and Grok backends do not yet support
+  blocklists — deferred (their APIs would need post-filtering).
+- **Evidence cards, combined coverage notes, and suggested
+  follow-up queries** surface from the web-search + main-analysis
+  pipeline:
+  - **`evidence_cards`** on `web_map_signals`: a new top-level
+    array emitted by the web-extraction LLM call
+    (`extract_web_map_signals`).  One entry per web result, each
+    with `source_id` (W1..Wn), `claims_supported` (1–4 specific
+    factual phrases), `relevance_score` (0.0–1.0), and
+    `source_type` (academic / government / news / industry /
+    NGO / etc.).  Lets downstream consumers weight sources by
+    type and reason about which source supports which claim.
+  - **`AnalysisResult.evidence_coverage_note`** (`str`):
+    self-assessment by the MAIN analysis LLM call (§7 in the
+    output format) of where the analysis is well-grounded vs
+    thin.  Considers BOTH RAG literature AND web evidence,
+    since only the main call sees both streams — a web-only
+    coverage note would be misleading because the RAG corpus
+    may cover gaps the web search missed.  Mirrored from
+    `parsed.evidence_coverage_note`; rendered into `formatted`
+    as a "7. Evidence Coverage" block; empty string when the
+    LLM omitted §7 (backward-compatible).
+  - **`AnalysisResult.suggested_followup_queries`** (`list[str]`):
+    3–5 short web-search query strings the web-extraction LLM
+    proposes to fill gaps in the WEB evidence (RAG-side gaps are
+    discussed in `evidence_coverage_note` instead).  Surfaces in
+    `formatted` as a bullet footer beneath the EVIDENCE COVERAGE
+    block.  Users can run them manually via
+    `assistant.refine(query)` or programmatically for auto-
+    deepening loops.
+- **`web_search_max_results` default raised from 5 to 10** to
+  give the new combined coverage assessment richer evidence by
+  default.  Token cost on the search call rises ~30–50%; users
+  who want the previous behaviour can pass `web_search_max_results=5`
+  explicitly.
 
 - **`AnalysisResult.flow_parse_warnings`** — list of flow-direction
   strings the legacy regex map path could not resolve into endpoints.
