@@ -435,6 +435,18 @@ one region to another -- adjacent OR distant)
 sending-receiving interaction -- distinct from the spillover \
 SYSTEM role defined in §2.1 / §3.1 / §4.1)
 
+**Coverage rule** (the vocabulary list is NOT a checklist):
+
+The approved vocabulary above is the SET of allowed terms, not a \
+checklist of required ones.  Discuss only the cross-coupling \
+interactions that genuinely apply to the focal study -- usually 2 to \
+4 of the 9 approved terms, not all of them.  Forcing weak claims \
+about every approved term (e.g., "This study has minimal synergies" \
+or "Temporal tradeoffs are not significant here") adds noise rather \
+than insight.  OMIT terms that don't apply.  A short, substantive \
+§5 with 2 well-grounded interactions beats a long, padded §5 that \
+mentions all 9.
+
 **Terminology rules for §5**:
 
 - Use only the terms above.  Do NOT coin compound terms by \

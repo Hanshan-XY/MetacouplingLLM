@@ -84,6 +84,20 @@ class TestPromptBuilder:
         ):
             assert term in prompt, f"missing approved §5 term: {term}"
 
+    def test_cross_coupling_vocabulary_is_explicitly_a_menu_not_checklist(self):
+        """§5 must explicitly tell the LLM the approved vocabulary
+        list is permissive (allowed terms) rather than prescriptive
+        (required terms).  Without this clarification, LLMs tend to
+        read labeled vocabulary lists as checklists and pad
+        analyses with weak claims about every listed term."""
+        prompt = self.builder.build_system_prompt()
+        # The header explicitly marks the rule as anti-checklist.
+        assert "NOT a checklist" in prompt
+        # The instruction text that prevents checklist behaviour.
+        assert "OMIT terms that don't apply" in prompt
+        # An explicit hint that 2-4 of the 9 terms is typical.
+        assert "2 to 4" in prompt
+
     def test_cross_coupling_section_forbids_coined_compound_terms(self):
         """§5 must explicitly forbid coining compound terms by
         combining framework concepts with environmental-economics

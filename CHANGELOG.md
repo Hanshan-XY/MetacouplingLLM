@@ -58,6 +58,13 @@ file. The format is loosely based on
   understands the constraint rather than just being told to obey
   it.
 
+  A **Coverage rule** added below the vocabulary list explicitly
+  marks it as a permissive menu (allowed terms) rather than a
+  prescriptive checklist (required terms), heading off the
+  LLM-as-checklist failure mode where the model would force weak
+  claims about every listed term to feel "complete".  Typical §5
+  output is 2-4 of the 9 approved interactions, not all 9.
+
   Deeper parser-level fix — making `_extract_bullets` preserve
   nesting and the formatter render parent → child trees — is
   deferred to a separate PR.
