@@ -48,6 +48,21 @@ class TestPromptBuilder:
         # Should still have framework knowledge, just no examples section
         assert "METACOUPLING FRAMEWORK OVERVIEW" in prompt
 
+    def test_system_prompt_pericoupling_definition_is_scale_agnostic(self):
+        """Pericoupling definition must NOT imply scale-capping at
+        ADM1 / nation -- it should call out 'any spatial scale'
+        explicitly.  Country and ADM1 stay as the focused examples
+        because the bundled databases and map renderers support them.
+        Locks in the wording so regressions surface."""
+        prompt = self.builder.build_system_prompt()
+        assert "any spatial scale" in prompt
+        # Country and ADM1 should still appear as the focused examples.
+        assert "ADM1" in prompt
+        assert (
+            "neighboring nations" in prompt
+            or "states/provinces" in prompt
+        )
+
     def test_system_prompt_includes_evidence_coverage_instruction(self):
         """§7 Evidence Coverage is part of the output format spec — the
         main analysis LLM must self-assess where the analysis is

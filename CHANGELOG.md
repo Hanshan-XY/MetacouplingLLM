@@ -9,6 +9,27 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Clarify in the framework prompts that pericoupling adjacency
+  works at any spatial scale, not just ADM1 / national.**  The
+  prior wording in `METHODOLOGY_LAYER` and the §3 pericoupling-
+  section gate (`OUTPUT_FORMAT_LAYER`) listed examples as
+  "neighboring states/provinces, shared watersheds, cross-border
+  ADM1 regions" — reading as if pericoupling were capped at those
+  scales.  In principle pericoupling applies to any pair of
+  geographically adjacent units (villages, municipalities,
+  ecosystems, nature reserves, etc.).  The package's bundled
+  pericoupling databases and map renderers still focus on country
+  and ADM1 — the examples in the prompts have not been expanded,
+  only the qualifier "at any spatial scale" was added so the LLM
+  doesn't reject a legitimately sub-ADM1 pericoupling claim on the
+  grounds of scale.
+
+  Out of scope for this PR: tightening the "shared watersheds"
+  example to make clear that watershed-sharing only qualifies as
+  pericoupling when the systems are ALSO geographically adjacent —
+  Nile basin Rwanda↔Egypt is co-basin but not adjacent, so
+  telecoupling.  Deferred per user request; addressable in a
+  follow-up PR.
 - **Strict `json_schema` mode for OpenAI web-search +
   `extract_web_map_signals`.**  Both calls previously asked the
   model to emit JSON via prompt instructions and relied on
