@@ -63,6 +63,64 @@ class TestPromptBuilder:
             or "states/provinces" in prompt
         )
 
+    def test_cross_coupling_section_lists_approved_vocabulary(self):
+        """§5 ships with an explicit approved-vocabulary list drawn from
+        the metacoupling framework (Liu 2017 / Liu 2023) and corpus
+        papers.  The list reduces LLM-coined compound terms by giving
+        the model a concrete vocabulary to choose from."""
+        prompt = self.builder.build_system_prompt()
+        # The header that introduces the approved list.
+        assert "Approved §5 vocabulary" in prompt
+        # Established terms that MUST appear in the list.
+        for term in (
+            "Amplification",
+            "Spatial tradeoffs",
+            "Synergies",
+            "Cascading effects",
+            "Feedback loops",
+            "Displacement",
+            "Coupling transformations",
+            "Spillover effects",
+        ):
+            assert term in prompt, f"missing approved §5 term: {term}"
+
+    def test_cross_coupling_vocabulary_is_explicitly_a_menu_not_checklist(self):
+        """§5 must explicitly tell the LLM the approved vocabulary
+        list is permissive (allowed terms) rather than prescriptive
+        (required terms).  Without this clarification, LLMs tend to
+        read labeled vocabulary lists as checklists and pad
+        analyses with weak claims about every listed term."""
+        prompt = self.builder.build_system_prompt()
+        # The header explicitly marks the rule as anti-checklist.
+        assert "NOT a checklist" in prompt
+        # The instruction text that prevents checklist behaviour.
+        assert "OMIT terms that don't apply" in prompt
+        # An explicit hint that 2-4 of the 9 terms is typical.
+        assert "2 to 4" in prompt
+
+    def test_cross_coupling_section_forbids_coined_compound_terms(self):
+        """§5 must explicitly forbid coining compound terms by
+        combining framework concepts with environmental-economics
+        jargon (the May-18 'pericoupling leakage' regression)."""
+        prompt = self.builder.build_system_prompt()
+        # The rule text.
+        assert "Do NOT coin compound terms" in prompt
+        # The specific counter-example from the May-18 trace,
+        # included verbatim so the LLM sees it.
+        assert "pericoupling leakage" in prompt.lower()
+
+    def test_coupling_transformations_asks_for_single_paragraph(self):
+        """§5 Coupling transformations bullet must instruct the LLM
+        to write a single prose paragraph instead of nested sub-bullets
+        that get flattened by _extract_bullets."""
+        prompt = self.builder.build_system_prompt()
+        # The four phases should still be listed in the vocab.
+        for phase in ("noncoupling", "coupling", "decoupling", "recoupling"):
+            assert phase in prompt
+        # The anti-nesting instruction.
+        assert "Do NOT nest sub-bullets" in prompt
+        assert "weave them into one paragraph" in prompt
+
     def test_system_prompt_includes_evidence_coverage_instruction(self):
         """§7 Evidence Coverage is part of the output format spec — the
         main analysis LLM must self-assess where the analysis is

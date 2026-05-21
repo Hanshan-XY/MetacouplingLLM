@@ -400,18 +400,93 @@ indicate which system (sending, receiving, spillover) it applies to.]
 
 ═══════════════════════════════════════════════
 ### 5. Cross-coupling Interactions
-After completing the per-type analyses, discuss how the active coupling \
-types interact:
 
-- **Amplification or offset**: Do intracoupling, pericoupling, and \
-telecoupling reinforce each other, or trade off against each other?
-- **Spatial tradeoffs**: Where one scale benefits at the cost of another \
-(e.g., telecoupling exports growing the intracoupling economy but \
-worsening intracoupling environmental impact).
-- **Coupling transformations**: noncoupling → coupling → decoupling → \
-recoupling under shocks.
-- **Cascading interactions**: events in one system triggering chain \
-reactions across scales.
+After completing the per-type analyses, discuss how the active coupling \
+types interact.  This section uses a CONSTRAINED VOCABULARY -- only the \
+terms listed below are accepted, because §5 is where LLMs tend to coin \
+plausible-sounding compound terms (e.g., "pericoupling leakage", \
+"telecoupling resilience", "metacoupling efficiency") that are NOT \
+established in the metacoupling framework or the cited literature.
+
+**Approved §5 vocabulary** (from Liu 2017, Liu 2023, and corpus \
+papers including Yang et al. 2018 on feedback, Zhao et al. 2021 on \
+synergies/tradeoffs across SDGs in a metacoupled world, and the \
+broader telecoupling literature on displacement and cascading \
+effects):
+
+- **Amplification** / **offset** (do the coupling types reinforce \
+each other, or work against each other?)
+- **Spatial tradeoffs** (one geographic scale benefits at the \
+cost of another)
+- **Temporal tradeoffs** (short-term gains vs long-term costs, or \
+vice versa)
+- **Synergies** / **synergistic effects** (combined effects \
+larger than the sum)
+- **Cascading effects** / **cascading interactions** (events in \
+one system trigger chain reactions across scales)
+- **Feedback loops** (positive or negative feedback where effects \
+alter causes or flows)
+- **Displacement** (activities, impacts, or pressures shifted from \
+one region to another -- adjacent OR distant)
+- **Coupling transformations** with the four phases: \
+**noncoupling**, **coupling**, **decoupling**, **recoupling** \
+(under historical or plausible shocks)
+- **Spillover effects** (third-party systems affected by the \
+sending-receiving interaction -- distinct from the spillover \
+SYSTEM role defined in §2.1 / §3.1 / §4.1)
+
+**Coverage rule** (the vocabulary list is NOT a checklist):
+
+The approved vocabulary above is the SET of allowed terms, not a \
+checklist of required ones.  Discuss only the cross-coupling \
+interactions that genuinely apply to the focal study -- usually 2 to \
+4 of the 9 approved terms, not all of them.  Forcing weak claims \
+about every approved term (e.g., "This study has minimal synergies" \
+or "Temporal tradeoffs are not significant here") adds noise rather \
+than insight.  OMIT terms that don't apply.  A short, substantive \
+§5 with 2 well-grounded interactions beats a long, padded §5 that \
+mentions all 9.
+
+**Terminology rules for §5**:
+
+- Use only the terms above.  Do NOT coin compound terms by \
+combining framework concepts (intracoupling / pericoupling / \
+telecoupling / metacoupling) with environmental-economics or \
+supply-chain jargon (leakage / resilience / efficiency / collapse) \
+unless the exact compound appears in a cited source.
+- If you borrow a compound term verbatim from a source, cite it \
+inline (e.g., "telecoupling leakage [T1:W5]").  Otherwise prefer \
+established names plus descriptive clauses (e.g., "displacement of \
+avocado expansion to neighboring municipalities" instead of \
+"pericoupling leakage").
+- The §7 EVIDENCE COVERAGE block at the end will flag any \
+inferred-without-source claims it detects; this constraint reduces \
+coining at generation time.
+
+**Format**:
+
+- Write each cross-coupling interaction you discuss as ONE bullet \
+with a **bold-term** label followed by a single prose paragraph.  \
+Do NOT nest sub-bullets under any §5 bullet -- the downstream \
+parser flattens nested bullets, which causes the parent bullet to \
+render as visually empty while its children appear as orphan \
+siblings.  When a single interaction has multiple sub-points (e.g., \
+Coupling transformations spanning coupling AND decoupling AND \
+recoupling phases), weave them into one paragraph rather than \
+splitting into sub-bullets.
+
+Examples of well-formed §5 bullets:
+
+- **Amplification between intracoupling and telecoupling**: U.S. \
+demand amplifies local Mexican land-use decisions.  Telecoupled \
+capital strengthens intracoupled processes (forest conversion, \
+irrigation investment, labor recruitment, packing-house expansion).
+- **Coupling transformations**: The avocado supply chain shifted \
+from noncoupling to telecoupling after NAFTA-era trade \
+liberalization; potential decoupling could occur through drought, \
+phytosanitary suspension, or consumer backlash; recoupling could \
+follow new certification, irrigation technology, or shifts to \
+Jalisco.
 
 ### 6. Research Gaps and Suggestions
 
