@@ -37,6 +37,43 @@ file. The format is loosely based on
   a source names both the umbrella and its constituent states.
   No schema, parser, or renderer changes — the field types were
   already `string` and the downstream code was ready and waiting.
+- **Render supranational map targets as a dissolved bloc colored by
+  focal adjacency, not as 27 individually-outlined members.**  Before
+  this change, `_draw_supranational_highlight` in `worldmap.py`
+  plotted each EU member country separately with a translucent
+  `#1f77b4` blue overlay and `#0d3a66` outlines — so the internal
+  France/Germany/etc. borders inside the bloc remained visible and
+  every member appeared with its own coupling-category color
+  underneath (a mix of pericoupling / telecoupling / na depending on
+  the focal country).
+
+  The function now:
+
+  1. Dissolves all member geometries into a single (multi)polygon via
+     `GeoSeries.union_all()` (replacing the now-deprecated
+     `unary_union` attribute), so the bloc reads as one logical
+     region with a single outline and no internal member borders.
+  2. Picks the bloc's fill color by intersecting member ISOs with the
+     focal country's pericoupled neighbors (already encoded in the
+     `classification` dict):
+     - **Pericoupling (bright green)** when at least one member
+       shares a border with the focal country.  Russia → EU
+       (Finland, Estonia, Latvia, Lithuania, Poland all border RUS),
+       Norway → EU, Switzerland → EU all paint the EU as
+       pericoupling.
+     - **Telecoupling (light blue)** otherwise.  Brazil → EU,
+       China → EU, Mexico → EU all paint the EU as telecoupling.
+  3. Uses full alpha (1.0 instead of 0.30) so the bloc fill covers
+     whatever per-country color the base classification layer
+     assigned to individual members — completing the single-region
+     illusion.
+
+  Applies uniformly to all four supported unions (European Union,
+  ASEAN, USMCA, NAFTA).  Signature of
+  `_draw_supranational_highlight` now takes the additional
+  `classification: dict[str, str]` and `colors: CouplingColors`
+  positional args; the single call site in `_render_map` already had
+  both in scope and was updated to pass them through.
 - **Richer prompt + `tool_choice="required"` +
   `max_output_tokens` + default `blocked_domains` on
   `OpenAIWebSearchBackend`.**  The web-search call's prompt was
