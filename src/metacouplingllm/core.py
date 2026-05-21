@@ -4955,19 +4955,48 @@ class MetacouplingAssistant:
 
     @staticmethod
     def _validate_pericoupling(parsed: ParsedAnalysis) -> None:
-        """Extract country names from systems and validate against the DB.
+        """Run BOTH ADM1 (subnational) and country-level validations.
+
+        PR #27: previously the function returned early once ADM1
+        validation succeeded, so analyses that identified a focal
+        subnational region (e.g. Jalisco / MEX014) plus multiple
+        destination countries (USA, CAN, JPN) only saw the
+        subnational block in the formatted output — the country-
+        level MEX↔USA / MEX↔CAN / MEX↔JPN classification was
+        silently skipped.  Now both validators run independently and
+        populate two separate fields on ``parsed`` so the formatter
+        can render both blocks when both apply.
+
+        - ``parsed.pericoupling_info``: ADM1 (subnational) result.
+        - ``parsed.country_pericoupling_info``: country-level result.
+
+        Either or both may stay None — country-only analyses just
+        get the second block, ADM1-only analyses just the first,
+        and dual-scope analyses get both.
 
         Only validates pairs involving the **sending system** (focal
         country).  This avoids spurious validation of pairs between
         receiving countries that the researcher did not intend to
         compare (e.g. USA ↔ Canada when the study is Mexico → USA/CAN).
-
-        Populates ``parsed.pericoupling_info`` with the validation result.
         """
-        # Try ADM1 (subnational) validation first.
-        if MetacouplingAssistant._validate_adm1_pericoupling(parsed):
-            return
+        # ADM1 (subnational): populates parsed.pericoupling_info when
+        # a focal subnational region is resolvable.
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
 
+        # Country-level: always runs (previously gated by the ADM1
+        # early-return).  Populates parsed.country_pericoupling_info.
+        MetacouplingAssistant._validate_country_pericoupling(parsed)
+
+    @staticmethod
+    def _validate_country_pericoupling(parsed: ParsedAnalysis) -> None:
+        """Country-level pericoupling validation.
+
+        Populates ``parsed.country_pericoupling_info`` when:
+        - A focal country is resolvable from the sending/focal system, AND
+        - At least one other country is mentioned in the systems.
+
+        Otherwise leaves the field as None.
+        """
         # --- Identify the focal (sending) country first ---
         focal_code: str | None = None
         focal_name: str | None = None
@@ -5055,7 +5084,7 @@ class MetacouplingAssistant:
                     "pericoupling database."
                 )
 
-        parsed.pericoupling_info = info
+        parsed.country_pericoupling_info = info
 
     @staticmethod
     def _extract_country_names(parsed: ParsedAnalysis) -> list[str]:

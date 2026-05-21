@@ -51,6 +51,55 @@ file. The format is loosely based on
   identified as the higher-leverage bottleneck on map coverage,
   so PR #26 ships that alone.  Stage-1 cap tuning is a separate
   follow-up if traces still show sparse coverage.
+- **Run BOTH ADM1 (subnational) and country-level pericoupling
+  validations when an analysis spans both scales.**  Previously
+  `_validate_pericoupling()` returned early once
+  `_validate_adm1_pericoupling()` succeeded, so the country-level
+  pair classification (e.g., MEX↔USA pericoupled, MEX↔CAN
+  telecoupled) was never computed when a focal subnational
+  region was also identified.  The formatted output for the
+  Mexico-avocado trace (focal Jalisco/MEX014 + destinations
+  USA/CAN/JPN/SLV/HND) showed only the subnational neighbor
+  list — the user-visible country-level pair classifications
+  silently disappeared.
+
+  Both validators now run independently:
+  - `parsed.pericoupling_info` holds the ADM1 result (as
+    before); stays None when no subnational focal region is
+    resolvable.
+  - `parsed.country_pericoupling_info` is a new
+    `ParsedAnalysis` field that holds the country-level pair
+    classification result; stays None when only one country
+    is detected.
+
+  The formatter (`output/formatter.py`) renders both blocks
+  when both are populated:
+  ```
+  PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)
+  ----------------------------------------
+    Focal Region: Jalisco (MEX014)
+    Domestic Neighbors: Aguascalientes (MEX001), ...
+    Note: LLM classification is consistent with the ADM1 pericoupling database.
+
+  PERICOUPLING DATABASE VALIDATION
+  ----------------------------------------
+    Focal Country: Mexico (MEX)
+    Pair Results:
+      Mexico (MEX) ↔ United States (USA): PERICOUPLED
+      Mexico (MEX) ↔ Canada (CAN): TELECOUPLED
+      Mexico (MEX) ↔ Japan (JPN): TELECOUPLED
+    Note: LLM classification is consistent with the pericoupling database.
+  ```
+
+  **Breaking change for direct consumers of
+  `parsed.pericoupling_info`**: for country-only analyses (no
+  ADM1 focal region resolvable), the country-level result now
+  lives in `country_pericoupling_info`, not `pericoupling_info`.
+  Code that read `pericoupling_info` for country results in
+  that case needs to also check `country_pericoupling_info`.
+  Internal callers and the formatter are updated; external
+  consumers of the public `AnalysisResult.pericoupling_info`
+  attribute should migrate.
 - **Wire Stage-1 supranational flows through to the map
   renderer (deferred piece from PR #24).**  PR #24 fixed the
   Stage-1 validator so LLM-emitted supranational receivers and

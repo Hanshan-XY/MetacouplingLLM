@@ -190,12 +190,32 @@ class AnalysisFormatter:
             parts.append(analysis.evidence_coverage_note)
             parts.append("")
 
-        if analysis.pericoupling_info:
-            info = analysis.pericoupling_info
+        # PR #27: render BOTH ADM1 (subnational) and country-level
+        # validation blocks when both are populated.  Previously
+        # _validate_pericoupling returned early once ADM1 succeeded,
+        # so country-level results were never shown for analyses
+        # that spanned both scales (e.g., focal=Jalisco MEX014 +
+        # destinations USA/CAN/JPN).  Now both helpers run
+        # independently and we render whichever is present.
+        for info_field, header_subnational, header_country in (
+            (
+                analysis.pericoupling_info,
+                "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)",
+                "PERICOUPLING DATABASE VALIDATION",
+            ),
+            (
+                analysis.country_pericoupling_info,
+                None,
+                "PERICOUPLING DATABASE VALIDATION",
+            ),
+        ):
+            if not info_field:
+                continue
+            info = info_field
             if info.get("level") == "adm1":
-                parts.append("PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)")
+                parts.append(header_subnational)
             else:
-                parts.append("PERICOUPLING DATABASE VALIDATION")
+                parts.append(header_country)
             parts.append(_SUB_SEPARATOR)
             for key, value in info.items():
                 if key == "level":

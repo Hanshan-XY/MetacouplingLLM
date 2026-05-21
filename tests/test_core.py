@@ -3783,7 +3783,12 @@ class TestValidateAdm1Pericoupling:
         assert info["level"] == "adm1"
 
     def test_validate_pericoupling_falls_through_for_countries(self):
-        """Country-level validation still works when ADM1 doesn't apply."""
+        """Country-level validation runs when ADM1 doesn't apply.
+
+        PR #27: country-level result now lives in
+        ``country_pericoupling_info`` (separate field) instead of
+        being aliased into ``pericoupling_info`` when ADM1 was
+        absent.  ``pericoupling_info`` stays ADM1-only."""
         from metacouplingllm.llm.parser import ParsedAnalysis
         from ._helpers import make_parsed_analysis
 
@@ -3795,11 +3800,90 @@ class TestValidateAdm1Pericoupling:
             },
         )
         MetacouplingAssistant._validate_pericoupling(parsed)
-        info = parsed.pericoupling_info
+        # ADM1 didn't fire (no subnational region) — ADM1 field stays None.
+        assert parsed.pericoupling_info is None
+        # Country-level fired — result in the new field.
+        info = parsed.country_pericoupling_info
         assert info is not None
-        # Should be country-level (no "level" key)
-        assert info.get("level") is None
+        assert info.get("level") is None  # country-level has no level key
         assert "BRA" in info.get("focal_country", "")
+
+    def test_validate_pericoupling_runs_both_when_adm1_focal_has_country_partners(self):
+        """PR #27: when the analysis has a focal ADM1 region (Michigan)
+        AND mentions other countries (China), BOTH validators run and
+        BOTH fields are populated.  Previously the ADM1 early-return
+        suppressed the country-level block entirely."""
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Michigan pork production system",
+                    "geographic_scope": "Michigan, United States",
+                },
+                "receiving": {
+                    "name": "China",
+                    "geographic_scope": "China",
+                },
+            },
+        )
+        MetacouplingAssistant._validate_pericoupling(parsed)
+
+        # ADM1 fired:
+        adm1_info = parsed.pericoupling_info
+        assert adm1_info is not None
+        assert adm1_info["level"] == "adm1"
+
+        # Country-level ALSO fired (PR #27 behavior):
+        country_info = parsed.country_pericoupling_info
+        assert country_info is not None
+        assert country_info.get("level") is None
+        assert "USA" in country_info.get("focal_country", "")
+        # The MEX↔USA case would be wrong here; this is USA↔CHN.
+        # Telecoupled because they don't share a border.
+        assert "TELECOUPLED" in country_info.get("pair_results", "")
+        assert "CHN" in country_info.get("pair_results", "")
+
+    def test_formatter_renders_both_blocks_when_both_pericoupling_fields_populated(self):
+        """The formatter must emit two separate pericoupling validation
+        sections when both pericoupling_info (ADM1) and
+        country_pericoupling_info (country-level) are populated.  This
+        is the user-visible result of PR #27."""
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        from metacouplingllm.output.formatter import AnalysisFormatter
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Michigan pork production system",
+                    "geographic_scope": "Michigan, United States",
+                },
+                "receiving": {"name": "China"},
+            },
+        )
+        # Populate both fields by running the validator.
+        MetacouplingAssistant._validate_pericoupling(parsed)
+        assert parsed.pericoupling_info is not None
+        assert parsed.country_pericoupling_info is not None
+
+        formatted = AnalysisFormatter.format_full(parsed)
+        # Both headers must appear.
+        assert "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)" in formatted
+        # Country-level header (without the SUBNATIONAL suffix) must
+        # ALSO appear, in addition to (and after) the subnational one.
+        subnat_idx = formatted.index(
+            "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)"
+        )
+        # Search for the country header after the subnational header.
+        country_search = formatted[subnat_idx + 50:]
+        assert "PERICOUPLING DATABASE VALIDATION" in country_search, (
+            "expected a second PERICOUPLING block after the "
+            "(SUBNATIONAL) one for the country-level validation"
+        )
 
     # ------------------------------------------------------------------
     # Consistency-note branches (PR #13)

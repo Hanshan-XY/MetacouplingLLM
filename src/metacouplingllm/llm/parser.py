@@ -96,6 +96,15 @@ class ParsedAnalysis:
     evidence_coverage_note: str = ""
     raw_text: str = ""
     pericoupling_info: dict[str, str] | None = None
+    # PR #27: when an analysis identifies BOTH a focal ADM1 region
+    # (which populates ``pericoupling_info`` with subnational-level
+    # neighbor info) AND multiple country-level destinations, the
+    # country-level pair classification (MEX↔USA pericoupled,
+    # MEX↔CAN telecoupled, etc.) lives in this second field.  The
+    # formatter renders both blocks when both are present.  Stays
+    # None for analyses where only one validation scale applies
+    # (country-only or ADM1-with-no-other-countries).
+    country_pericoupling_info: dict[str, str] | None = None
     map_data: dict[str, object] | None = None
 
     @property
