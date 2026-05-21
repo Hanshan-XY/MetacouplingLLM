@@ -9,6 +9,48 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Richer prompt + `tool_choice="required"` +
+  `max_output_tokens` + default `blocked_domains` on
+  `OpenAIWebSearchBackend`.**  The web-search call's prompt was
+  previously a terse 8-line instruction ("Search the web for: X.
+  Return JSON.  Keep summaries concise.").  Replaced with a
+  structured ~40-line template covering: explicit role ("web
+  research collector"), DO-NOTs (don't answer the user's
+  question, don't write a prose report), 6 source-selection
+  rules (prefer peer-reviewed / government / international
+  organizations, avoid SEO/forums/duplicates, no padding), 5
+  grounding rules (no inventing URLs/titles/dates/findings, no
+  false attribution).  Each `model_summary` now asked for
+  200–400 words instead of "concise and factual".  Adapted from
+  a ChatGPT recommendation; the "evidence card rules" pieces
+  stay in `extract_web_map_signals` (call #2) since our
+  architecture keeps search and extraction separate.
+
+  Parameters added to the OpenAI Responses-API call:
+  - `tool_choice="required"` (was `"auto"`) — forces the model
+    to invoke `web_search` rather than answering from training
+    data.  Verified against OpenAI docs.
+  - `max_output_tokens=8000` — defensive ceiling on response
+    size; configurable via `OpenAIWebSearchBackend(client=...,
+    max_output_tokens=N)`.
+
+  Default `blocked_domains` on `OpenAIWebSearchBackend` now
+  `["reddit.com", "quora.com", "pinterest.com"]` instead of
+  `None`.  Users who want everything can pass
+  `blocked_domains=[]` or supply their own list.
+
+  Also added grounding rules to `extract_web_map_signals`'s
+  user prompt (no inventing flows, no extrapolation across
+  sources).  Same content discipline as the search call.
+
+  ChatGPT also suggested `web_search_call.results` in
+  `include` and `text.verbosity="high"` — I verified neither
+  against current OpenAI docs and SKIPPED both.
+
+  Note: this bullet was originally part of PR #18 but failed to
+  reach `main` because PR #18 was merged after PR #17 had already
+  squash-merged, leaving its commits stranded on the deleted
+  PR #17 branch.  Re-landed via PR #21 as a cherry-pick.
 - **Constrained vocabulary + anti-coining rules for §5 Cross-coupling
   Interactions, plus a prose-paragraph instruction for the Coupling
   transformations bullet.**  Two related issues observed in the

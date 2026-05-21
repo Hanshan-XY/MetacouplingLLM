@@ -416,6 +416,170 @@ class TestStructuredWebMapSignals:
             "reddit.com", "quora.com",
         ]
 
+    def test_openai_backend_sends_search_context_size_high_by_default(self):
+        """search_context_size defaults to 'high' for quality-first runs."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(client=MockClient())
+        backend.search("test query", max_results=3)
+
+        tool = captured.get("tools", [{}])[0]
+        assert tool.get("search_context_size") == "high"
+        # ``return_token_budget`` defaults to the safe "default" value
+        # so callers opt into "unlimited" explicitly.
+        assert tool.get("return_token_budget") == "default"
+
+    def test_openai_backend_respects_explicit_context_and_budget_overrides(
+        self,
+    ):
+        """Both new parameters are configurable per-instance."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(
+            client=MockClient(),
+            search_context_size="medium",
+            return_token_budget="unlimited",
+        )
+        backend.search("q", max_results=1)
+
+        tool = captured.get("tools", [{}])[0]
+        assert tool.get("search_context_size") == "medium"
+        assert tool.get("return_token_budget") == "unlimited"
+
+    # --- Prompt-quality + tool_choice + max_output_tokens --------------
+
+    def test_openai_search_prompt_contains_source_selection_rules(self):
+        """The richer prompt teaches the model to prefer authoritative
+        sources and avoid SEO/forum content.  Locks in the
+        prompt-engineering improvement so regressions surface."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(client=MockClient())
+        backend.search("avocado trade Mexico", max_results=5)
+
+        prompt = captured.get("input", "")
+        assert "Source selection rules" in prompt
+        assert "peer-reviewed papers" in prompt
+        assert "Grounding rules" in prompt
+        assert "Do not invent" in prompt
+        assert "200-400 words" in prompt
+
+    def test_openai_search_prompt_includes_research_question(self):
+        """User's research question is embedded in the prompt body."""
+        from metacouplingllm.knowledge.websearch import (
+            OpenAIWebSearchBackend,
+        )
+
+        captured: dict[str, object] = {}
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class MockResponse:
+                    output_text = '{"results":[]}'
+
+                    def model_dump(self):
+                        return {"output": []}
+
+                return MockResponse()
+
+        class MockClient:
+            responses = MockResponses()
+
+        backend = OpenAIWebSearchBackend(client=MockClient())
+        backend.search("specific research query here", max_results=3)
+
+        prompt = captured.get("input", "")
+        assert "specific research query here" in prompt
+
+    def test_extract_web_map_signals_prompt_contains_grounding_rules(self):
+        """The structured extraction call also teaches grounding
+        discipline (no inventing flows, no extrapolation across sources)."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        captured_messages: list[object] = []
+
+        class MockClient:
+            def chat(self, messages, **kwargs):
+                captured_messages.extend(messages)
+                return LLMResponse(content=(
+                    '{"focal_country":"BRA","receiving_systems":[],'
+                    '"spillover_systems":[],"flows":[],'
+                    '"evidence_cards":[],"suggested_followup_queries":[]}'
+                ))
+
+        results = [{"title": "x", "model_summary": "y", "url": "u"}]
+        extract_web_map_signals(
+            "q", results, MockClient(), min_confidence=0.7,
+        )
+        # The user message is the second item in the list.
+        user_text = captured_messages[1].content
+        assert "Grounding rules" in user_text
+        assert "Do NOT invent" in user_text
+        assert "Do NOT extrapolate" in user_text
+
     def test_openai_backend_combines_allowed_and_blocked_domains(self):
         """Both allowed and blocked can coexist in the same filters dict."""
         from metacouplingllm.knowledge.websearch import (
@@ -588,11 +752,27 @@ class TestOpenAIWebSearchBackend:
             "model_summary": "Brazil exports soybeans to China.",
         }]
         assert client.responses.kwargs["model"] == "gpt-5"
-        assert client.responses.kwargs["tools"] == [{
-            "type": "web_search",
-            "external_web_access": True,
-        }]
+        # The tool dict carries all configured fields:
+        # - external_web_access (default True)
+        # - search_context_size (default "high")
+        # - return_token_budget (default "default")
+        # - filters.blocked_domains (default list of low-quality
+        #   sources: reddit.com, quora.com, pinterest.com)
+        tool = client.responses.kwargs["tools"][0]
+        assert tool["type"] == "web_search"
+        assert tool["external_web_access"] is True
+        assert tool["search_context_size"] == "high"
+        assert tool["return_token_budget"] == "default"
+        assert tool["filters"]["blocked_domains"] == [
+            "reddit.com", "quora.com", "pinterest.com",
+        ]
         assert "reasoning" not in client.responses.kwargs
+        # tool_choice is forced to "required" to ensure the model
+        # actually invokes web_search rather than answering from
+        # training data.
+        assert client.responses.kwargs["tool_choice"] == "required"
+        # Defensive max_output_tokens ceiling.
+        assert client.responses.kwargs["max_output_tokens"] == 8000
 
     def test_falls_back_to_sources_when_json_missing(self):
         class MockResponse:

@@ -25,7 +25,7 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 _QUERY_FILLER = frozenset(
@@ -112,8 +112,27 @@ class OpenAIWebSearchBackend:
     reasoning: str = "default"
     external_web_access: bool = True
     allowed_domains: list[str] | None = None
-    blocked_domains: list[str] | None = None
+    # Default blocklist for low-quality / SEO-dominant sources.
+    # Common pattern across research-quality web search workflows;
+    # users who want everything can pass ``blocked_domains=[]`` or
+    # supply their own list.
+    blocked_domains: list[str] | None = field(
+        default_factory=lambda: ["reddit.com", "quora.com", "pinterest.com"]
+    )
+    # OpenAI web_search tool config.  ``search_context_size`` controls
+    # how much context from web results is made available to the model
+    # ("low" | "medium" | "high"); default "high" maximises evidence
+    # depth at modest token cost.  ``return_token_budget`` controls the
+    # output token budget for GPT-5+ reasoning models ("default" |
+    # "unlimited"); we default to "default" so callers opt into the
+    # unbounded path explicitly.
+    search_context_size: str = "high"
+    return_token_budget: str = "default"
     user_location: dict[str, object] | None = None
+    # Defensive ceiling on the API response token count.  Strict
+    # json_schema mode keeps output compact, but a runaway model with
+    # 10+ rich evidence summaries could still grow large.
+    max_output_tokens: int = 8000
 
     def search(
         self,
@@ -126,6 +145,8 @@ class OpenAIWebSearchBackend:
         tool: dict[str, object] = {
             "type": "web_search",
             "external_web_access": self.external_web_access,
+            "search_context_size": self.search_context_size,
+            "return_token_budget": self.return_token_budget,
         }
         # OpenAI web_search tool accepts a ``filters`` object with
         # ``allowed_domains`` and ``blocked_domains``.  Mirror the
@@ -144,21 +165,59 @@ class OpenAIWebSearchBackend:
             tool["user_location"] = self.user_location
 
         prompt = (
-            f"Search the web for: {query.strip()}\n"
-            f"Return up to {max_results} highly relevant results as JSON only.\n"
-            "Schema: "
-            '{"results":[{"title":"...","url":"...","model_summary":"..."}]}\n'
-            "Rules:\n"
-            "- Use only information grounded in the web search results.\n"
-            "- Keep model_summary fields concise and factual.\n"
-            "- Do not invent URLs.\n"
-            "- Return JSON only.\n"
+            "You are a web research collector.\n\n"
+            "Your job: find authoritative, diverse, and relevant web "
+            "sources for the research question below.  A separate "
+            "downstream step will extract structured evidence cards "
+            "from your output -- your job is just to return the "
+            "sources cleanly, with model-written summaries that "
+            "capture the substance.\n\n"
+            "Do NOT answer the user's research question.\n"
+            "Do NOT write a prose report or analysis.\n"
+            "Do NOT include any information not grounded in the web "
+            "search results.\n\n"
+            "Source selection rules:\n"
+            "- Prefer primary or high-authority sources: peer-reviewed "
+            "papers, government pages, international organizations, "
+            "reputable NGOs, official datasets, and reputable "
+            "journalism.\n"
+            "- Include diverse perspectives when the question has "
+            "multiple dimensions.\n"
+            "- Avoid low-quality SEO pages, content farms, forums, "
+            "Reddit, Quora, Pinterest, and duplicated syndicated "
+            "articles.\n"
+            "- Avoid near-duplicate sources that make the same point "
+            "from the same underlying report.\n"
+            "- Prefer recent sources for current facts, but include "
+            "older foundational sources when they remain important.\n"
+            "- If fewer than the requested number of strong sources "
+            "are available, return fewer.  Do not pad the output.\n\n"
+            "Grounding rules:\n"
+            "- Use only information found through web_search.\n"
+            "- Do not invent URLs, titles, authors, publication "
+            "dates, organizations, or findings.\n"
+            "- Do not claim that a source supports something unless "
+            "the source actually supports it.\n"
+            "- Each `model_summary` should be 200-400 words: capture "
+            "the source's key findings, specific numeric facts or "
+            "quotes when relevant, and the geographic/temporal "
+            "scope.  Concise is okay for off-topic results.\n"
+            "- `model_summary` is the field name in the output "
+            "schema.  Each summary is model-written prose, NOT a "
+            "verbatim excerpt.\n\n"
+            f"Research question:\n{query.strip()}\n\n"
+            f"Return up to {max_results} highly relevant results as "
+            "JSON conforming to the provided schema."
         )
 
         kwargs: dict[str, object] = {
             "model": self.model,
             "tools": [tool],
-            "tool_choice": "auto",
+            # ``tool_choice="required"`` forces the model to invoke
+            # web_search.  Our whole purpose here IS to search; "auto"
+            # would let the model skip the tool and answer from
+            # training data, defeating the call.
+            "tool_choice": "required",
             "include": ["web_search_call.action.sources"],
             "input": prompt,
             # Strict json_schema mode: OpenAI guarantees the response
@@ -176,6 +235,9 @@ class OpenAIWebSearchBackend:
                     "schema": _OPENAI_WEB_SEARCH_RESULTS_SCHEMA,
                 },
             },
+            # Defensive ceiling on response token count.  See field
+            # docstring on the dataclass.
+            "max_output_tokens": self.max_output_tokens,
         }
         if self.reasoning and self.reasoning != "default":
             kwargs["reasoning"] = {"effort": self.reasoning}
@@ -1725,6 +1787,16 @@ def extract_web_map_signals(
     user_text = (
         f"Research query:\n{query.strip()}\n\n"
         "Extract map-ready countries and flows for a metacoupling map.\n"
+        "\n"
+        "Grounding rules (apply to EVERY field below):\n"
+        "- Use only information from the provided web results.\n"
+        "- Do NOT invent country names, ISO codes, or flows that "
+        "are not supported by at least one source.\n"
+        "- Do NOT claim a source supports a flow unless the source "
+        "actually mentions both endpoints and the flow direction.\n"
+        "- Do NOT extrapolate from one source to another -- each "
+        "evidence_cards entry must cite its own W-id.\n"
+        "\n"
         "Rules:\n"
         "- Use null or empty lists when uncertain.\n"
         "- Label items as 'proxy' when a result is broader than the focal "
