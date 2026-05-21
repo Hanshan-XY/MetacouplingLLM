@@ -4226,8 +4226,34 @@ class MetacouplingAssistant:
                     codes.add(code)
         return codes
 
-    def _structured_web_flow_dicts(self) -> list[dict[str, str]]:
-        """Return structured web-extracted flows as map-ready dicts."""
+    def _structured_web_flow_dicts(self) -> list[dict[str, object]]:
+        """Return structured web-extracted flows as map-ready dicts.
+
+        Mirrors the shape produced by Stage-3's
+        ``_extract_map_data_from_analysis`` so ``_merge_map_flows``
+        can dedupe them cleanly on ``(category, direction)``.
+
+        Preserves the optional supranational marker fields
+        (``target_supranational``, ``target_supranational_members``
+        and the source-side equivalents) that PR #24's Stage-1
+        validator stamps when an LLM-emitted receiver / flow target
+        names a union like the EU / ASEAN / USMCA / NAFTA.  Without
+        this propagation, the map renderer's
+        ``_resolve_flow_endpoints`` would try to look up "European
+        Union" in the world shapefile, fail, and silently draw no
+        arrow when the Stage-3 path didn't independently emit the
+        same flow.  Defense-in-depth: today Stage-3 reliably emits
+        these flows itself, but if it ever fails or omits the
+        union, Stage-1's repackaged flow now carries enough data
+        for the renderer to do single-region rendering on its own.
+
+        Note: source-side supranational rendering is still gated
+        on ``_resolve_flow_endpoints`` (worldmap.py) which only
+        consults ``target_supranational_members``.  We preserve
+        ``source_supranational_members`` here for data-plumbing
+        correctness so a future worldmap.py change can use it
+        without re-touching this function.
+        """
         signals = self._last_web_map_signals
         if not signals:
             return []
@@ -4236,7 +4262,7 @@ class MetacouplingAssistant:
         if not isinstance(flows, list):
             return []
 
-        result: list[dict[str, str]] = []
+        result: list[dict[str, object]] = []
         for item in flows:
             if not isinstance(item, dict):
                 continue
@@ -4246,22 +4272,57 @@ class MetacouplingAssistant:
                 continue
             if not isinstance(category, str) or not category:
                 continue
-            result.append(
-                {
-                    "category": category,
-                    "direction": direction,
-                    "description": str(item.get("description", "")).strip(),
-                }
-            )
+            entry: dict[str, object] = {
+                "category": category,
+                "direction": direction,
+                "description": str(item.get("description", "")).strip(),
+            }
+            # Preserve supranational marker fields stamped by
+            # PR #24's Stage-1 validator (websearch.py
+            # ``_normalise_flow_entry``).  Same shape as Stage-3's
+            # map_flows entries (core.py:3820-3840) so the
+            # downstream ``_merge_map_flows`` dedupe and the
+            # renderer's ``_resolve_flow_endpoints`` /
+            # ``_draw_supranational_highlight`` paths consume both
+            # sources uniformly.
+            tgt_members = item.get("target_supranational_members")
+            if isinstance(tgt_members, list) and tgt_members:
+                entry["target_supranational_members"] = list(tgt_members)
+                # ``target_country`` holds the canonical display
+                # name ("European Union") thanks to PR #24's
+                # _resolve_country_or_supranational helper.  Mirror
+                # it onto ``target_supranational`` so the
+                # highlight overlay can label the bloc.
+                tgt_name = item.get("target_country")
+                if isinstance(tgt_name, str) and tgt_name:
+                    entry["target_supranational"] = tgt_name
+            src_members = item.get("source_supranational_members")
+            if isinstance(src_members, list) and src_members:
+                entry["source_supranational_members"] = list(src_members)
+                src_name = item.get("source_country")
+                if isinstance(src_name, str) and src_name:
+                    entry["source_supranational"] = src_name
+            result.append(entry)
         return result
 
     @staticmethod
     def _merge_map_flows(
-        primary: list[dict[str, str]] | None,
-        secondary: list[dict[str, str]] | None,
-    ) -> list[dict[str, str]]:
-        """Merge map flow lists without duplicating category-direction pairs."""
-        merged: list[dict[str, str]] = []
+        primary: list[dict[str, object]] | None,
+        secondary: list[dict[str, object]] | None,
+    ) -> list[dict[str, object]]:
+        """Merge map flow lists without duplicating category-direction pairs.
+
+        Field-preservation contract: each flow dict is appended
+        verbatim without copying or filtering, so optional
+        supranational marker fields (``target_supranational``,
+        ``target_supranational_members``, etc., stamped by
+        PR #24's Stage-1 validator and PR #25's
+        ``_structured_web_flow_dicts``) survive the merge and
+        reach the renderer.  The value-type widening from ``str``
+        to ``object`` reflects that those fields are lists of
+        member ISO codes, not strings.
+        """
+        merged: list[dict[str, object]] = []
         seen: set[tuple[str, str]] = set()
         for flow_group in (primary or [], secondary or []):
             for flow in flow_group:

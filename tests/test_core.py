@@ -2494,6 +2494,194 @@ class TestStructuredMapData:
         all_codes = advisor._structured_web_country_codes()
         assert all_codes == {"BRA", "CHN", "USA"}
 
+    def test_structured_web_flow_dicts_preserves_target_supranational(self):
+        """PR #25: when a Stage-1 flow targets a supranational union,
+        the supranational marker fields must survive the repackaging
+        in _structured_web_flow_dicts() and arrive at the renderer.
+        Without this, Stage-1's web-extracted EU flow would have
+        ``target: "European Union"`` but no member list, causing the
+        renderer to look up the union name in the world shapefile,
+        fail, and silently draw no arrow."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content="ok")
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        advisor._last_web_map_signals = {
+            "focal_country": "BRA",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source_country": "BRA",
+                    "target_country": "European Union",
+                    "direction": "Brazil → European Union",
+                    "description": "soy exports",
+                    "target_supranational_members": [
+                        "AUT", "BEL", "DEU", "FRA", "ITA", "ESP",
+                    ],
+                },
+            ],
+        }
+        result = advisor._structured_web_flow_dicts()
+        assert len(result) == 1
+        flow = result[0]
+        # Core fields:
+        assert flow["category"] == "matter"
+        assert flow["direction"] == "Brazil → European Union"
+        # PR #25: supranational marker fields preserved:
+        assert flow["target_supranational"] == "European Union"
+        members = flow["target_supranational_members"]
+        assert isinstance(members, list)
+        assert set(members) == {
+            "AUT", "BEL", "DEU", "FRA", "ITA", "ESP",
+        }
+
+    def test_structured_web_flow_dicts_preserves_source_supranational(self):
+        """Symmetric: source-side supranational members are preserved
+        too (e.g., EU → Brazil capital flow).  Source-side rendering
+        in the worldmap layer is still gated on a separate change,
+        but the data plumbing is correct so a future renderer
+        update doesn't have to re-touch this function."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content="ok")
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        advisor._last_web_map_signals = {
+            "focal_country": "BRA",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [
+                {
+                    "category": "capital",
+                    "source_country": "European Union",
+                    "target_country": "BRA",
+                    "direction": "European Union → Brazil",
+                    "description": "EU payments",
+                    "source_supranational_members": [
+                        "AUT", "BEL", "DEU", "FRA",
+                    ],
+                },
+            ],
+        }
+        result = advisor._structured_web_flow_dicts()
+        assert len(result) == 1
+        flow = result[0]
+        assert flow["source_supranational"] == "European Union"
+        members = flow["source_supranational_members"]
+        assert isinstance(members, list)
+        assert set(members) == {"AUT", "BEL", "DEU", "FRA"}
+
+    def test_structured_web_flow_dicts_plain_flow_unchanged(self):
+        """Regression guard: plain Mexico → USA flow (no supranational)
+        emits the same shape it did before PR #25 — no spurious
+        supranational fields added when none are present in the
+        source data."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content="ok")
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        advisor._last_web_map_signals = {
+            "focal_country": "MEX",
+            "receiving_systems": [],
+            "spillover_systems": [],
+            "flows": [
+                {
+                    "category": "matter",
+                    "source_country": "MEX",
+                    "target_country": "USA",
+                    "direction": "Mexico → United States",
+                    "description": "avocados",
+                },
+            ],
+        }
+        result = advisor._structured_web_flow_dicts()
+        assert len(result) == 1
+        flow = result[0]
+        assert flow["category"] == "matter"
+        assert flow["direction"] == "Mexico → United States"
+        assert "target_supranational" not in flow
+        assert "target_supranational_members" not in flow
+        assert "source_supranational" not in flow
+        assert "source_supranational_members" not in flow
+
+    def test_merge_map_flows_preserves_supranational_fields(self):
+        """PR #25 audit: _merge_map_flows must NOT strip optional
+        supranational marker fields when deduping.  Defense-in-depth
+        against a scenario where Stage-3 didn't emit an EU flow but
+        Stage-1 did — the merged output should still carry the
+        member list so the renderer can use the supranational path."""
+        flows_a = [
+            {
+                "category": "matter",
+                "direction": "Brazil → European Union",
+                "description": "Stage-1 web-derived",
+                "target_supranational": "European Union",
+                "target_supranational_members": [
+                    "AUT", "BEL", "DEU", "FRA",
+                ],
+            },
+        ]
+        flows_b = []
+        merged = MetacouplingAssistant._merge_map_flows(flows_a, flows_b)
+        assert len(merged) == 1
+        flow = merged[0]
+        assert flow["target_supranational"] == "European Union"
+        members = flow["target_supranational_members"]
+        assert isinstance(members, list)
+        assert set(members) == {"AUT", "BEL", "DEU", "FRA"}
+
+    def test_merge_map_flows_dedup_keeps_first_flow_with_its_fields(self):
+        """When Stage-3 (primary) and Stage-1 (secondary) emit the
+        same (category, direction) pair, the primary's flow dict
+        wins and its fields are preserved verbatim — including any
+        supranational fields the primary carried."""
+        primary = [
+            {
+                "category": "matter",
+                "direction": "Brazil → European Union",
+                "description": "Stage-3 analysis-derived",
+                "target_supranational": "European Union",
+                "target_supranational_members": ["DEU", "FRA"],
+            },
+        ]
+        secondary = [
+            {
+                "category": "matter",
+                "direction": "Brazil → European Union",
+                "description": "Stage-1 web-derived (dedup'd out)",
+                "target_supranational": "European Union",
+                "target_supranational_members": [
+                    "AUT", "BEL", "DEU", "FRA",
+                ],
+            },
+        ]
+        merged = MetacouplingAssistant._merge_map_flows(primary, secondary)
+        # Dedup: only the primary survives.
+        assert len(merged) == 1
+        flow = merged[0]
+        assert flow["description"] == "Stage-3 analysis-derived"
+        # Primary's member list is kept (not merged with secondary's).
+        assert flow["target_supranational_members"] == ["DEU", "FRA"]
+
     def test_generate_map_excludes_spillover_from_mentioned(self, monkeypatch):
         """_generate_map() must NOT pass spillover countries to the renderer.
 
