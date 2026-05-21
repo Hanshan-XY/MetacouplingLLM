@@ -2369,6 +2369,148 @@ class TestStructuredMapData:
         assert "VALID ADM1 CODES" in user_text
         assert "BRA011=Mato Grosso" in user_text
 
+    def test_extraction_prompt_includes_full_web_summaries(self):
+        """PR #26: The Stage-3 prompt must include enough of each web
+        summary that destination names buried 200+ chars in are still
+        visible.  Previously the per-summary cut was hardcoded to 200
+        chars, which truncated UN Comtrade-style sources BEFORE any
+        country was named.  Bumped to
+        _MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT (2500)."""
+        import json
+        from metacouplingllm.core import (
+            _MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT,
+        )
+        from metacouplingllm.llm.client import LLMResponse
+        from ._helpers import make_parsed_analysis
+
+        captured_messages = []
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                captured_messages.extend(messages)
+                return LLMResponse(content=json.dumps({
+                    "focal_country": "MEX",
+                    "adm1_region": None,
+                    "receiving_countries": [],
+                    "spillover_countries": [],
+                    "flows": [],
+                }))
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        # Inject a synthetic 25-result web list where each result's
+        # summary mimics a UN Comtrade-style ordering: lots of
+        # boilerplate up front, then the per-partner country list
+        # ~400 chars in.  Pre-PR #26 the [:200] truncation would
+        # have cut off before "DEU" / "FRA" / etc. appeared; post-fix
+        # those names should be visible.
+        boilerplate = (
+            "This World Integrated Trade Solution page, drawing on "
+            "UN Comtrade trade data, is a concise official-data "
+            "source for Mexico's 2024 avocado export destinations "
+            "and values. It reports exports under HS 080440, "
+            "'Avocados, fresh or dried,' for calendar year 2024. "
+            "Mexico's total avocado exports were valued at "
+            "$3,828,209.60 thousand, "
+        )
+        # boilerplate is ~380 chars; we append a destinations sentence
+        # AFTER the legacy 200-char cut.
+        destinations_sentence = (
+            "with destinations including the United States, Canada, "
+            "Japan, El Salvador, Honduras, Spain, France, Germany, "
+            "Netherlands, United Arab Emirates, Saudi Arabia, "
+            "Kuwait, Bahrain, Hong Kong, Singapore, Malaysia."
+        )
+        full_summary = boilerplate + destinations_sentence
+        assert len(boilerplate) > 200, (
+            "boilerplate must be > 200 chars so the destinations "
+            "sentence falls outside the pre-PR #26 cut"
+        )
+
+        advisor._last_web_results = [
+            {
+                "title": "Mexico Avocados, fresh or dried exports 2024",
+                "url": "https://wits.worldbank.org/...",
+                "model_summary": full_summary,
+            }
+        ]
+
+        parsed = make_parsed_analysis(
+            coupling_classification="Mexico avocado exports",
+            systems={"sending": {"name": "Mexico"}},
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+
+        user_msgs = [m for m in captured_messages if m.role == "user"]
+        assert len(user_msgs) >= 1
+        user_text = user_msgs[0].content
+
+        # The destinations sentence must appear in the prompt; it
+        # would have been truncated under the pre-PR #26 [:200] cut.
+        assert "Germany" in user_text, (
+            "destination names beyond the 200-char mark must reach "
+            "the Stage-3 prompt; truncation cap appears too low"
+        )
+        assert "Netherlands" in user_text
+        # Sanity: the constant is set to the expected value.
+        assert _MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT == 2500
+
+    def test_extraction_prompt_caps_pathologically_long_summaries(self):
+        """Defensive ceiling: even with a 10k-char summary, the prompt
+        only carries the first 2500 chars so a runaway upstream LLM
+        can't blow up Stage-3's input."""
+        import json
+        from metacouplingllm.core import (
+            _MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT,
+        )
+        from metacouplingllm.llm.client import LLMResponse
+        from ._helpers import make_parsed_analysis
+
+        captured_messages = []
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                captured_messages.extend(messages)
+                return LLMResponse(content=json.dumps({
+                    "focal_country": "MEX",
+                    "adm1_region": None,
+                    "receiving_countries": [],
+                    "spillover_countries": [],
+                    "flows": [],
+                }))
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        # A 10k-char summary with a unique marker at the 5000-char
+        # position (well past the cap).
+        big_summary = "A" * 5000 + "UNIQUE_MARKER_BEYOND_CAP" + "Z" * 5000
+        advisor._last_web_results = [
+            {
+                "title": "huge result",
+                "url": "https://example.com/huge",
+                "model_summary": big_summary,
+            }
+        ]
+
+        parsed = make_parsed_analysis(
+            coupling_classification="x",
+            systems={"sending": {"name": "Mexico"}},
+        )
+        advisor._extract_map_data_from_analysis(parsed)
+
+        user_msgs = [m for m in captured_messages if m.role == "user"]
+        user_text = user_msgs[0].content
+        # Marker at char 5000 is past the 2500-char cap → must be
+        # absent from the prompt.
+        assert "UNIQUE_MARKER_BEYOND_CAP" not in user_text
+        # The leading "A" runs must be present (only the first 2500
+        # chars of the summary survive).
+        assert "A" * 2500 in user_text
+
     def test_structured_web_receiving_codes_excludes_spillover(self):
         """_structured_web_receiving_codes() returns only focal + receiving."""
         from metacouplingllm.llm.client import LLMResponse

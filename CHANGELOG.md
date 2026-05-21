@@ -9,6 +9,48 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Raise the per-summary truncation cap that Stage-3 sees from
+  200 to 2500 chars (new module-level constant
+  `_MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT`).**  Stage-3
+  (`_extract_map_data_from_analysis`) reads parsed analysis text
+  plus a per-result web-summary excerpt to extract structured
+  map data (`receiving_countries`, flows, etc.).  The per-result
+  excerpt was hardcoded to `summary[:200]` chars — sufficient
+  for short hand-written summaries but too short for the new
+  PR #18 / PR #24 era of 200-400 word `model_summary` blocks,
+  especially destination-list sources like UN Comtrade tables
+  where country names typically appear several hundred chars
+  into the summary after dataset / methodology boilerplate.
+
+  Concrete example from the avocado-25-results trace's W3
+  (Mexico avocado exports by partner country in 2024): the full
+  W3 summary lists 19+ destinations (USA, Canada, Japan, El
+  Salvador, Honduras, Costa Rica, Spain, UAE, Netherlands,
+  Kuwait, Guatemala, Bahrain, Hong Kong, China, Saudi Arabia,
+  France, Belize, UK, Singapore, Malaysia).  The first 200
+  chars of that summary contain only dataset-description
+  boilerplate — Stage-3 saw none of those countries via the
+  web-summary path and could only pick up destinations from the
+  parsed analysis text (which itself emphasised a subset).
+  Result: Stage-3's `receiving_countries` was `['USA', 'SLV',
+  'HND']`, dropping Canada and Japan even though Stage-1 had
+  emitted both at 0.9 confidence.
+
+  At 2500 chars the substantive content of typical
+  `model_summary` blocks survives intact, including the
+  destination-list sentences.  The cap remains as a defensive
+  ceiling against pathologically long future summaries.
+  Stage-3 still has no count cap of its own — it just gets
+  better grounding data.
+
+  Note: Stage-3's destination count is governed by LLM judgment
+  (no explicit cap in the prompt, schema, or post-extraction
+  validator).  Stage-1 retains its `max_targets=6` and
+  `min_confidence=0.7` defaults.  Relaxing Stage-1's caps was
+  considered for the same PR but the Stage-3 truncation was
+  identified as the higher-leverage bottleneck on map coverage,
+  so PR #26 ships that alone.  Stage-1 cap tuning is a separate
+  follow-up if traces still show sparse coverage.
 - **Wire Stage-1 supranational flows through to the map
   renderer (deferred piece from PR #24).**  PR #24 fixed the
   Stage-1 validator so LLM-emitted supranational receivers and
