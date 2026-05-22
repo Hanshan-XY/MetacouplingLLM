@@ -2282,6 +2282,457 @@ class TestAnthropicWebSearchBackendToolVersionAutoSelect:
         assert captured["tools"][0]["type"] == "web_search_20250305"
 
 
+# ---------------------------------------------------------------------------
+# PR #29: GeminiWebSearchBackend parity with OpenAI/Anthropic.
+# ---------------------------------------------------------------------------
+
+class TestGeminiWebSearchBackend:
+    """Tests for the PR #29-refactored GeminiWebSearchBackend.
+
+    Brings Gemini up to OpenAI (PR #18) / Anthropic (PR #28)
+    parity: rich prompt, strict structured output via the
+    response_schema + google_search combo, blocklist (post-hoc
+    client-side), max_tokens scaling, silent-fallback warning,
+    Gemini 3.1 Pro as default, thinking_level=high per user
+    preference.
+    """
+
+    @staticmethod
+    def _capturing_client(text_output: str = ""):
+        """Build a mock google.genai-shaped client that captures the
+        generate_content kwargs and returns a configurable response."""
+        captured: dict[str, object] = {}
+
+        class MockResponse:
+            text = text_output
+            candidates: list = []
+
+        class MockModels:
+            @staticmethod
+            def generate_content(**kwargs):
+                captured.update(kwargs)
+                return MockResponse()
+
+        class MockClient:
+            models = MockModels()
+
+        return MockClient(), captured
+
+    def test_default_model_is_gemini_3_1_pro_preview(self):
+        """PR #29: default bumped from gemini-2.5-flash to
+        gemini-3.1-pro-preview per user request."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        backend = GeminiWebSearchBackend(client=None)
+        assert backend.model == "gemini-3.1-pro-preview"
+
+    def test_default_blocked_domains_contains_low_quality_sites(self):
+        """PR #29: default blocklist mirrors OpenAI/Anthropic."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        backend = GeminiWebSearchBackend(client=None)
+        assert backend.blocked_domains is not None
+        assert "reddit.com" in backend.blocked_domains
+        assert "quora.com" in backend.blocked_domains
+        assert "pinterest.com" in backend.blocked_domains
+
+    def test_default_thinking_level_is_high(self):
+        """PR #29: thinking_level defaults to 'high' per user
+        memory preference ('cost is not a constraint, optimize
+        for quality')."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        backend = GeminiWebSearchBackend(client=None)
+        assert backend.thinking_level == "high"
+
+    def test_search_prompt_contains_source_selection_rules(self):
+        """PR #29: rich prompt mirroring OpenAI PR #18 -- prefers
+        peer-reviewed / government / international organizations."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search("test query")
+        prompt = captured["contents"]
+        assert "web research collector" in prompt
+        assert "peer-reviewed" in prompt
+        assert "government" in prompt
+        assert "international organizations" in prompt
+        assert "Reddit" in prompt or "reddit" in prompt
+        assert "Quora" in prompt or "quora" in prompt
+
+    def test_search_prompt_contains_grounding_rules(self):
+        """PR #29: grounding rules forbid invented URLs/titles/dates."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search("test query")
+        prompt = captured["contents"]
+        assert "Do not invent" in prompt
+        assert "Grounding rules" in prompt
+
+    def test_search_prompt_requests_200_400_word_summaries(self):
+        """PR #29: each model_summary should be 200-400 words."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search("test query")
+        prompt = captured["contents"]
+        assert "200-400 words" in prompt or "200-400" in prompt
+
+    def test_search_passes_google_search_tool(self):
+        """PR #29: tools list includes google_search."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search("test query")
+        config = captured["config"]
+        assert config["tools"] == [{"google_search": {}}]
+
+    def test_search_passes_response_schema(self):
+        """PR #29: response_mime_type + response_schema combined with
+        google_search tool (Gemini 3.x supports this combo natively)."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+            _OPENAI_WEB_SEARCH_RESULTS_SCHEMA,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search("test query")
+        config = captured["config"]
+        assert config["response_mime_type"] == "application/json"
+        # Same schema shape as OpenAI/Anthropic so downstream
+        # normaliser consumes all three identically.
+        assert config["response_schema"] == _OPENAI_WEB_SEARCH_RESULTS_SCHEMA
+
+    def test_search_passes_thinking_config_high_by_default(self):
+        """PR #29: thinking_config.thinking_level=high per user pref."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search("test query")
+        config = captured["config"]
+        assert config["thinking_config"] == {"thinking_level": "high"}
+
+    def test_search_scales_max_tokens_with_max_results(self):
+        """PR #29: max_tokens scales to max_results * 1000 (floor
+        of 12000), capped at Gemini 3.1 Pro's 64k ceiling."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search(
+            "test", max_results=25,
+        )
+        assert captured["config"]["max_output_tokens"] >= 25000
+
+    def test_search_caps_max_tokens_at_64k(self):
+        """Regression guard: even max_results=100 stays under the
+        64k Gemini 3.1 Pro output cap."""
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GeminiWebSearchBackend(client=client).search(
+            "test", max_results=100,
+        )
+        assert captured["config"]["max_output_tokens"] == 64000
+
+    def test_search_post_hoc_filters_blocked_domain_urls(self):
+        """PR #29: client-side blocklist filter on returned URLs
+        (Gemini lacks server-side domain filtering)."""
+        import json
+        from metacouplingllm.knowledge.websearch import (
+            GeminiWebSearchBackend,
+        )
+        # Mock a structured response with one blocked + one allowed URL.
+        text_output = json.dumps({
+            "results": [
+                {
+                    "title": "Reddit thread",
+                    "url": "https://reddit.com/r/foo/bar",
+                    "model_summary": "should be filtered",
+                },
+                {
+                    "title": "Government report",
+                    "url": "https://example.gov/report",
+                    "model_summary": "should survive",
+                },
+            ],
+        })
+        client, _ = self._capturing_client(text_output=text_output)
+        results = GeminiWebSearchBackend(client=client).search(
+            "test", max_results=5,
+        )
+        urls = [r["url"] for r in results]
+        assert "https://example.gov/report" in urls
+        assert not any("reddit.com" in u for u in urls)
+
+
+# ---------------------------------------------------------------------------
+# PR #29: GrokWebSearchBackend major refactor (migrate to /responses).
+# ---------------------------------------------------------------------------
+
+class TestGrokWebSearchBackend:
+    """Tests for the PR #29-refactored GrokWebSearchBackend.
+
+    Migrated from the deprecated ``chat.completions`` +
+    ``search_parameters`` API (HTTP 410 Gone since 2026-01-12) to
+    the new ``/responses`` endpoint with server-side
+    ``tools=[{"type": "web_search", ...}]``.  Brought to parity
+    with OpenAI (PR #18) / Anthropic (PR #28).
+    """
+
+    @staticmethod
+    def _capturing_client(output_text: str = "", **response_extras):
+        """Build a mock xAI client (OpenAI SDK shape) that captures
+        responses.create kwargs and returns a configurable response."""
+        captured: dict[str, object] = {}
+
+        class MockUsage:
+            web_search_count = response_extras.get(
+                "web_search_count", 1,
+            )
+
+        class MockResponse:
+            pass
+
+        # Set up the response dynamically so tests can override.
+        response = MockResponse()
+        response.output_text = output_text
+        response.server_side_tool_usage = MockUsage()
+        response.citations = response_extras.get("citations", [])
+
+        class MockResponses:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+                return response
+
+        class MockClient:
+            responses = MockResponses()
+
+        return MockClient(), captured
+
+    def test_default_model_is_grok_4_3(self):
+        """PR #29: default bumped grok-3 -> grok-4.3 per user request."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        backend = GrokWebSearchBackend(client=None)
+        assert backend.model == "grok-4.3"
+
+    def test_default_excluded_domains_contains_low_quality_sites(self):
+        """PR #29: default excluded_domains mirrors OpenAI/Anthropic."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        backend = GrokWebSearchBackend(client=None)
+        assert backend.excluded_domains is not None
+        assert "reddit.com" in backend.excluded_domains
+        assert "quora.com" in backend.excluded_domains
+        assert "pinterest.com" in backend.excluded_domains
+
+    def test_default_reasoning_effort_is_high(self):
+        """PR #29: reasoning_effort defaults to 'high' per user
+        memory preference ('cost is not a constraint, optimize
+        for quality')."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        backend = GrokWebSearchBackend(client=None)
+        assert backend.reasoning_effort == "high"
+
+    def test_search_uses_responses_endpoint_not_chat_completions(self):
+        """PR #29: MAJOR migration -- the old chat.completions +
+        search_parameters API is HTTP 410 Gone since 2026-01-12.
+        The backend MUST call client.responses.create(), NOT
+        client.chat.completions.create()."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        # Build a stub that BLOWS UP if chat.completions is touched.
+        captured: dict[str, object] = {}
+
+        class _ChatCompletionsExploder:
+            @staticmethod
+            def create(**kwargs):
+                raise AssertionError(
+                    "GrokWebSearchBackend must NOT call "
+                    "chat.completions.create() -- the deprecated "
+                    "search_parameters API is gone.  Use "
+                    "responses.create() instead."
+                )
+
+        class _ChatStub:
+            completions = _ChatCompletionsExploder()
+
+        class _ResponsesStub:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+
+                class _R:
+                    output_text = ""
+                    server_side_tool_usage = type(
+                        "U", (), {"web_search_count": 1},
+                    )()
+                    citations = []
+
+                return _R()
+
+        class _Client:
+            chat = _ChatStub()
+            responses = _ResponsesStub()
+
+        GrokWebSearchBackend(client=_Client()).search("test")
+        # If we got here without AssertionError, responses.create was
+        # the path taken.  Sanity-check captured kwargs.
+        assert "tools" in captured
+        assert captured["tools"][0]["type"] == "web_search"
+
+    def test_search_includes_web_search_tool_with_excluded_domains(self):
+        """PR #29: tools list includes web_search with excluded_domains
+        from the backend's default blocklist."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(client=client).search("test")
+        tools = captured["tools"]
+        assert len(tools) == 1
+        web_search = tools[0]
+        assert web_search["type"] == "web_search"
+        assert set(web_search["excluded_domains"]) == {
+            "reddit.com", "quora.com", "pinterest.com",
+        }
+
+    def test_search_caps_excluded_domains_at_5(self):
+        """xAI's web_search tool allows at most 5 domains per
+        allowed/excluded list.  Backend must silently truncate."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        backend = GrokWebSearchBackend(
+            client=client,
+            excluded_domains=["a.com", "b.com", "c.com", "d.com",
+                              "e.com", "f.com", "g.com"],
+        )
+        backend.search("test")
+        excluded = captured["tools"][0]["excluded_domains"]
+        assert len(excluded) == 5
+
+    def test_search_prompt_contains_source_selection_rules(self):
+        """PR #29: rich prompt mirroring OpenAI PR #18."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(client=client).search("test")
+        prompt = captured["input"]
+        assert "web research collector" in prompt
+        assert "peer-reviewed" in prompt
+        assert "government" in prompt
+        assert "Reddit" in prompt or "reddit" in prompt
+
+    def test_search_prompt_contains_grounding_rules(self):
+        """PR #29: grounding rules forbid invented URLs/titles/dates."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(client=client).search("test")
+        prompt = captured["input"]
+        assert "Do not invent" in prompt
+        assert "Grounding rules" in prompt
+
+    def test_search_prompt_emphasises_required_web_search(self):
+        """PR #29: since xAI has no tool_choice='required' analogue,
+        forced-search is expressed via prompt language.  The prompt
+        must contain an imperative 'you MUST use the web_search
+        tool'-style instruction."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(client=client).search("test")
+        prompt = captured["input"]
+        assert "REQUIRED" in prompt
+        assert "MUST use the web_search" in prompt
+
+    def test_search_passes_strict_json_schema_response_format(self):
+        """PR #29: response_format includes strict json_schema with
+        the Grok-specific schema (evidence_urls field)."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+            _GROK_WEB_SEARCH_RESULTS_SCHEMA,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(client=client).search("test")
+        rf = captured["response_format"]
+        assert rf["type"] == "json_schema"
+        assert rf["json_schema"]["strict"] is True
+        assert rf["json_schema"]["schema"] == _GROK_WEB_SEARCH_RESULTS_SCHEMA
+
+    def test_search_passes_reasoning_effort_and_max_turns(self):
+        """PR #29: reasoning_effort + max_turns are forwarded."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(client=client).search("test")
+        assert captured["reasoning_effort"] == "high"
+        assert captured["max_turns"] == 5
+
+    def test_search_scales_max_output_tokens_with_max_results(self):
+        """PR #29: max_output_tokens scales to max_results * 1000."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(client=client).search(
+            "test", max_results=25,
+        )
+        assert captured["max_output_tokens"] >= 25000
+
+    def test_search_warns_when_web_search_not_invoked(self, capsys):
+        """PR #29: silent-fallback warning when the model returned
+        no parsed results AND server_side_tool_usage shows zero
+        web_search invocations (model answered from training data)."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, _ = self._capturing_client(
+            output_text="", web_search_count=0,
+        )
+        GrokWebSearchBackend(client=client).search("test")
+        out = capsys.readouterr().out
+        assert "web_search was NOT invoked" in out
+        assert "REQUIRED-tool instruction" in out
+
+    def test_search_warns_when_structured_output_empty(self, capsys):
+        """PR #29: different warning when web_search WAS invoked
+        but the structured response was empty/malformed."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, _ = self._capturing_client(
+            output_text="", web_search_count=3,
+        )
+        GrokWebSearchBackend(client=client).search("test")
+        out = capsys.readouterr().out
+        assert "web_search ran" in out
+        assert "3 call(s)" in out
+        assert "structured output was empty" in out
+
+
 class TestSearchWeb:
     def test_returns_list(self):
         results = search_web("metacoupling framework", max_results=2)

@@ -6,12 +6,19 @@ Covers:
   empty-response safety
 - GrokAdapter: passes messages through to OpenAI-shaped chat API,
   uses configured Grok model, raw_client property
-- GeminiWebSearchBackend: parses JSON from response.text, falls back
-  to grounding_metadata.grounding_chunks, handles errors, caps results
-- GrokWebSearchBackend: passes search_parameters via extra_body, parses
-  JSON from message content, falls back to response.citations
+- GeminiWebSearchBackend (legacy parser surface only): parses JSON
+  from response.text, falls back to grounding_metadata.grounding_chunks,
+  handles errors, caps results.  The PR #29 rewrite's request-shape
+  / strict-output / blocklist / scaling tests live in
+  ``test_websearch.py::TestGeminiWebSearchBackend``.
 - Auto-wiring: isinstance dispatch in MetacouplingAssistant routes to
   the right backend based on the adapter type
+
+Note: PR #29 migrated GrokWebSearchBackend off the deprecated
+``chat.completions`` + ``search_parameters`` API onto xAI's
+``/responses`` endpoint with built-in tools.  The full test class
+for the new surface lives in
+``test_websearch.py::TestGrokWebSearchBackend`` (14 cases).
 """
 
 from __future__ import annotations
@@ -301,57 +308,16 @@ class TestGeminiWebSearchBackend:
 # ---------------------------------------------------------------------------
 # GrokWebSearchBackend
 # ---------------------------------------------------------------------------
-
-
-class TestGrokWebSearchBackend:
-    def test_search_passes_search_parameters_to_xai_api(self):
-        client = _RecordingOpenAIClient(content='{"results":[]}')
-        backend = GrokWebSearchBackend(client=client, model="grok-3")
-        backend.search("metacoupling", max_results=5)
-
-        assert "extra_body" in client.calls[0]
-        params = client.calls[0]["extra_body"]["search_parameters"]
-        assert params["mode"] == "auto"
-        assert params["max_search_results"] == 15
-        assert {"type": "web"} in params["sources"]
-        assert {"type": "x"} in params["sources"]
-
-    def test_search_returns_results_from_json_response(self):
-        json_text = '''
-        {"results":[
-            {"title":"R1","url":"https://r1.x","model_summary":"s1"}
-        ]}
-        '''
-        client = _RecordingOpenAIClient(content=json_text)
-        backend = GrokWebSearchBackend(client=client)
-        results = backend.search("query", max_results=5)
-        assert len(results) == 1
-        assert results[0]["url"] == "https://r1.x"
-
-    def test_search_falls_back_to_citations_when_json_invalid(self):
-        # Plain text response + URL strings as citations
-        client = _RecordingOpenAIClient(
-            content="freeform text, no JSON here",
-            citations=["https://cite1.x", "https://cite2.x"],
-        )
-        backend = GrokWebSearchBackend(client=client)
-        results = backend.search("query", max_results=5)
-        assert len(results) == 2
-        urls = [r["url"] for r in results]
-        assert urls == ["https://cite1.x", "https://cite2.x"]
-
-    def test_search_returns_empty_list_on_exception(self):
-        class _BrokenClient:
-            chat = SimpleNamespace(
-                completions=SimpleNamespace(
-                    create=lambda **kw: (_ for _ in ()).throw(
-                        RuntimeError("xAI down")
-                    )
-                )
-            )
-
-        backend = GrokWebSearchBackend(client=_BrokenClient())
-        assert backend.search("anything", max_results=5) == []
+#
+# PR #29 migrated GrokWebSearchBackend off the deprecated
+# ``chat.completions`` + ``search_parameters`` API (HTTP 410 Gone
+# since 2026-01-12) onto xAI's ``/responses`` endpoint with built-in
+# ``tools=[{"type": "web_search", ...}]``.  The full test class for
+# the new surface (14 cases covering endpoint, tool spec, strict
+# json_schema, scaling, blocklist, prompt content, silent-fallback
+# warnings) lives in ``test_websearch.py::TestGrokWebSearchBackend``.
+# The legacy tests that lived here against the old API surface have
+# been removed because they test API parameters that no longer exist.
 
 
 # ---------------------------------------------------------------------------

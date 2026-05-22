@@ -140,6 +140,48 @@ _ANTHROPIC_WEB_SEARCH_SUBMIT_RESULTS_TOOL: dict[str, object] = {
 }
 
 
+# PR #29: schema used by GrokWebSearchBackend's strict json_schema
+# response_format.  xAI's /responses endpoint does NOT return
+# server_side tool result blocks separately (web_search runs
+# server-side and only the final assistant message is returned),
+# so citations must be embedded in the structured response itself.
+# That's the difference vs the OpenAI / Anthropic shape: Grok
+# requires an evidence_urls field on each result (the URLs the
+# model used to write the model_summary), enabling caller-side
+# citation tracking without a separate parser.
+_GROK_WEB_SEARCH_RESULTS_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "results": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                    "model_summary": {"type": "string"},
+                    # PR #29 -- Grok-specific: per-result citation
+                    # URLs the model consulted when writing the
+                    # summary.  Empty list when the result was
+                    # synthesised from a single source (the result's
+                    # own ``url``).
+                    "evidence_urls": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+                "required": [
+                    "title", "url", "model_summary", "evidence_urls",
+                ],
+            },
+        },
+    },
+    "required": ["results"],
+}
+
+
 @dataclass
 class OpenAIWebSearchBackend:
     """Web-search backend powered by OpenAI Responses API ``web_search``.
@@ -704,28 +746,73 @@ class AnthropicWebSearchBackend:
 class GeminiWebSearchBackend:
     """Web-search backend powered by Google Gemini's grounding tool.
 
-    Built against the new ``google.genai`` SDK. Calls
-    ``client.models.generate_content`` with the ``google_search`` tool
-    enabled (Gemini 2.x grounding). The model performs the search and
-    synthesises results; we parse the response for a JSON list of
-    ``title``/``model_summary``/``url`` items, falling back to
-    ``grounding_metadata.grounding_chunks`` for URL+title recovery if
-    JSON parsing fails.
+    PR #29: brought to parity with OpenAI (PRs #17/#18/#24) and
+    Anthropic (PR #28) -- rich prompt, strict structured output,
+    blocklist (client-side post-hoc), max_tokens scaling,
+    silent-fallback warning, Gemini 3.1 Pro as default.
+
+    Built against the new ``google.genai`` SDK.  Calls
+    ``client.models.generate_content`` with both the ``google_search``
+    tool AND a strict ``response_schema`` (Gemini natively supports
+    combining grounding + structured output in one call; no
+    submit_results dance like Anthropic).  Model performs the search,
+    synthesises 200-400 word per-source summaries, and emits a
+    schema-conformant JSON object.  ``_extract_gemini_grounding_results``
+    is kept as a fallback parser for grounding metadata when the
+    structured response is empty or malformed.
 
     Parameters
     ----------
     client:
         A ``google.genai.Client`` instance.
     model:
-        Gemini model identifier supporting grounding (e.g.
-        ``"gemini-2.5-flash"`` or ``"gemini-2.5-pro"``).
+        Gemini model identifier supporting grounding (default
+        ``"gemini-3.1-pro-preview"``; still in preview per Google's
+        official changelog as of mid-2026 -- switch to
+        ``"gemini-3.1-pro"`` when GA lands).  Other 3.x variants:
+        ``"gemini-3.1-flash-lite"`` (cheaper, less reasoning).
+    allowed_domains / blocked_domains:
+        Post-hoc URL filters on the structured response.  Gemini's
+        ``google_search`` tool does NOT support server-side domain
+        filtering (could not confirm any 2026 addition from docs);
+        we apply the filter client-side as a parity belt against
+        the OpenAI / Anthropic backends.  Default blocked_domains
+        mirror OpenAIWebSearchBackend (PR #18).
+    thinking_level:
+        Gemini 3.1 Pro forces extended thinking ON regardless of
+        client config; this parameter controls the *budget*.  Values:
+        ``"minimal" | "low" | "medium" | "high"``.  Default
+        ``"high"`` per user preference (cost is not a constraint;
+        optimise for quality).
     max_tokens:
-        Output budget for the search-and-summarise call.
+        Output budget for the search-and-summarise call.  Acts as a
+        floor; ``search()`` raises it to ``max_results * 1000``
+        when more results are requested, capped at Gemini 3.1 Pro's
+        64k output ceiling.
     """
 
     client: Any
-    model: str = "gemini-2.5-flash"
-    max_tokens: int = 8192
+    # PR #29: default bumped from gemini-2.5-flash to
+    # gemini-3.1-pro-preview per user request ("latest Gemini 3.1
+    # pro").  Still preview per Google's official changelog as of
+    # 2026-05; switch to "gemini-3.1-pro" once GA confirmed.
+    model: str = "gemini-3.1-pro-preview"
+    # PR #29: parity defaults mirroring OpenAI/Anthropic.
+    allowed_domains: list[str] | None = None
+    blocked_domains: list[str] | None = field(
+        default_factory=lambda: ["reddit.com", "quora.com", "pinterest.com"]
+    )
+    # PR #29: thinking budget.  Gemini 3.1 Pro can't be made to
+    # skip thinking entirely; this controls how many thinking
+    # tokens the model spends.  "high" per user memory preference.
+    thinking_level: str = "high"
+    # PR #29: bumped 8192 -> 12000 to match OpenAI/Anthropic.
+    # Acts as a floor; per-call scales to ``max_results * 1000``
+    # capped at Gemini 3.1 Pro's 64k output ceiling.
+    max_tokens: int = 12000
+
+    # PR #29: Gemini 3.1 Pro's hard output cap.
+    _MAX_OUTPUT_TOKENS_CEILING: int = 64000
 
     def search(
         self,
@@ -735,30 +822,92 @@ class GeminiWebSearchBackend:
         if not query.strip() or max_results <= 0:
             return []
 
+        # PR #29: rich prompt template mirroring OpenAI PR #18.
+        # Same role / DO-NOTs / source-selection / grounding rules.
+        # Closing instruction adapted from OpenAI's "Return JSON
+        # conforming to the provided schema" to match Gemini's
+        # native response_schema enforcement (no separate
+        # submit_tool needed -- Gemini supports schema + grounding
+        # in one call per
+        # https://ai.google.dev/gemini-api/docs/structured-output).
         prompt = (
-            f"Search the web for: {query.strip()}\n"
-            f"Return up to {max_results} highly relevant results as JSON only.\n"
-            "Schema: "
-            '{"results":[{"title":"...","url":"...","model_summary":"..."}]}\n'
-            "Rules:\n"
-            "- Use only information grounded in the web search results.\n"
-            "- Keep model_summary fields concise and factual.\n"
-            "- Do not invent URLs.\n"
-            "- Return JSON only.\n"
+            "You are a web research collector.\n\n"
+            "Your job: find authoritative, diverse, and relevant web "
+            "sources for the research question below.  A separate "
+            "downstream step will extract structured evidence cards "
+            "from your output -- your job is just to return the "
+            "sources cleanly, with model-written summaries that "
+            "capture the substance.\n\n"
+            "Do NOT answer the user's research question.\n"
+            "Do NOT write a prose report or analysis.\n"
+            "Do NOT include any information not grounded in the "
+            "google_search results.\n\n"
+            "Source selection rules:\n"
+            "- Prefer primary or high-authority sources: peer-reviewed "
+            "papers, government pages, international organizations, "
+            "reputable NGOs, official datasets, and reputable "
+            "journalism.\n"
+            "- Include diverse perspectives when the question has "
+            "multiple dimensions.\n"
+            "- Avoid low-quality SEO pages, content farms, forums, "
+            "Reddit, Quora, Pinterest, and duplicated syndicated "
+            "articles.\n"
+            "- Avoid near-duplicate sources that make the same point "
+            "from the same underlying report.\n"
+            "- Prefer recent sources for current facts, but include "
+            "older foundational sources when they remain important.\n"
+            "- If fewer than the requested number of strong sources "
+            "are available, return fewer.  Do not pad the output.\n\n"
+            "Grounding rules:\n"
+            "- Use only information found through google_search.\n"
+            "- Do not invent URLs, titles, authors, publication "
+            "dates, organizations, or findings.\n"
+            "- Do not claim that a source supports something unless "
+            "the source actually supports it.\n"
+            "- Each `model_summary` should be 200-400 words: capture "
+            "the source's key findings, specific numeric facts or "
+            "quotes when relevant, and the geographic/temporal "
+            "scope.  Concise is okay for off-topic results.\n"
+            "- `model_summary` is the field name in the output "
+            "schema.  Each summary is model-written prose, NOT a "
+            "verbatim excerpt.\n\n"
+            f"Research question:\n{query.strip()}\n\n"
+            f"Return up to {max_results} highly relevant results as "
+            "JSON conforming to the provided response schema."
         )
 
+        # PR #29: scale output budget with max_results, capped at
+        # Gemini 3.1 Pro's 64k hard ceiling.
+        effective_max_tokens = min(
+            max(self.max_tokens, max_results * 1000),
+            self._MAX_OUTPUT_TOKENS_CEILING,
+        )
+
+        # PR #29: combined google_search + structured response_schema
+        # is documented to work together on Gemini 3.x.  Same
+        # ``_OPENAI_WEB_SEARCH_RESULTS_SCHEMA`` shape so downstream
+        # ``_normalise_backend_results`` consumes all three backends
+        # identically.
+        config: dict[str, object] = {
+            "max_output_tokens": effective_max_tokens,
+            "tools": [{"google_search": {}}],
+            "response_mime_type": "application/json",
+            "response_schema": _OPENAI_WEB_SEARCH_RESULTS_SCHEMA,
+            "thinking_config": {"thinking_level": self.thinking_level},
+        }
+
         try:
-            # google.genai 1.x: tools accept a list of dicts; the
-            # google_search tool is enabled with an empty config.
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
-                config={
-                    "max_output_tokens": self.max_tokens,
-                    "tools": [{"google_search": {}}],
-                },
+                config=config,
             )
-        except Exception:
+        except Exception as exc:
+            print(
+                "[GeminiWebSearchBackend] Warning: generate_content "
+                f"failed ({type(exc).__name__}: {exc}); returning empty "
+                "result list."
+            )
             return []
 
         # Pull the model's text (may raise if blocked).
@@ -775,10 +924,27 @@ class GeminiWebSearchBackend:
                 max_results=max_results,
             )
 
-        # Fallback: walk grounding_metadata.grounding_chunks for url + title.
+        # PR #29: post-hoc domain filter (Gemini lacks server-side
+        # blocked_domains for google_search; we filter client-side
+        # as a parity belt).
+        parsed_results = self._apply_domain_filters(parsed_results)
+
+        # Fallback: walk grounding_metadata.grounding_chunks for
+        # url + title.  Used when the structured response is
+        # missing / malformed.
         grounding_results = _extract_gemini_grounding_results(
             response, max_results
         )
+        grounding_results = self._apply_domain_filters(grounding_results)
+
+        if not parsed_results and grounding_results:
+            print(
+                "[GeminiWebSearchBackend] Warning: structured "
+                "response was empty / malformed; falling back to "
+                "grounding-metadata extraction (title + url only, "
+                "no model_summary)."
+            )
+
         if parsed_results:
             merged: list[dict[str, str]] = []
             seen: set[tuple[str, str]] = set()
@@ -797,16 +963,64 @@ class GeminiWebSearchBackend:
             return merged[:max_results]
         return grounding_results[:max_results]
 
+    def _apply_domain_filters(
+        self, results: list[dict[str, str]],
+    ) -> list[dict[str, str]]:
+        """Post-hoc client-side blocked_domains / allowed_domains
+        filter on result URLs.  PR #29 parity belt for Gemini
+        which lacks server-side domain filtering."""
+        if not (self.allowed_domains or self.blocked_domains):
+            return results
+        filtered: list[dict[str, str]] = []
+        for item in results:
+            url = str(item.get("url", "")).lower()
+            if not url:
+                continue
+            if self.blocked_domains and any(
+                blocked in url for blocked in self.blocked_domains
+            ):
+                continue
+            if self.allowed_domains and not any(
+                allowed in url for allowed in self.allowed_domains
+            ):
+                continue
+            filtered.append(item)
+        return filtered
+
 
 @dataclass
 class GrokWebSearchBackend:
-    """Web-search backend powered by xAI Grok's Live Search tool.
+    """Web-search backend powered by xAI Grok's Built-in Tools.
 
-    Live Search is invoked by passing ``extra_body={"search_parameters":
-    {...}}`` to a chat-completions call. The response includes
-    ``citations`` (a list of URLs) plus the assistant message with
-    inline citations. We ask the model to return JSON; if that fails,
-    we fall back to ``response.citations`` for URL recovery.
+    PR #29 (MAJOR REFACTOR): migrated from the deprecated
+    ``chat.completions`` + ``search_parameters`` API (HTTP 410 Gone
+    since 2026-01-12) to the new ``/responses`` endpoint with
+    server-side ``tools=[{"type": "web_search", ...}]``.  The old
+    Live Search API parameters (``search_mode``, ``max_search_results``,
+    ``sources``, ``country``, ``language``, ``from_date``, ``to_date``)
+    are GONE for web_search and have no replacements.
+
+    Brought to parity with OpenAI (PRs #17/#18/#24) and Anthropic
+    (PR #28): rich prompt, strict json_schema response_format,
+    excluded_domains (capped at 5 per xAI API), max_tokens scaling,
+    silent-fallback warning, Grok 4.3 as default,
+    reasoning_effort="high" per user preference.
+
+    Architecture difference vs OpenAI / Anthropic: xAI's
+    ``/responses`` server-side tool path does NOT return separate
+    tool_result blocks; the model runs the search loop internally
+    and returns one final assistant message containing the
+    structured JSON.  Citations are required as an ``evidence_urls``
+    schema field (see ``_GROK_WEB_SEARCH_RESULTS_SCHEMA``) because
+    there's no separate citation parser path.
+
+    Known parity gaps documented:
+    - **No ``tool_choice`` forcing analogue**: xAI's ``/responses``
+      endpoint doesn't expose one.  Forced-search is expressed via
+      prompt language only ("**REQUIRED**: you MUST use the
+      web_search tool").
+    - **No per-source max_results**: ``max_turns`` caps invocations
+      (1-2 quick / 3-5 balanced / 10+ deep).
 
     Parameters
     ----------
@@ -814,26 +1028,51 @@ class GrokWebSearchBackend:
         An ``openai.OpenAI`` instance configured with
         ``base_url="https://api.x.ai/v1"``.
     model:
-        Grok model identifier (e.g., ``"grok-3"``, ``"grok-2"``).
-    search_mode:
-        xAI's ``mode`` for Live Search: ``"auto"`` (default — model
-        decides), ``"on"`` (always search), or ``"off"`` (no search).
-    max_search_results:
-        Upper bound on internal search calls per request (xAI default
-        is 15).
-    sources:
-        Override the default Live Search sources. Default is
-        ``[{"type": "web"}, {"type": "x"}]`` — web + Twitter/X.
+        Grok model identifier (default ``"grok-4.3"``).  Other
+        variants: ``"grok-4.1-fast"`` (cheaper, 2M ctx).
+    excluded_domains / allowed_domains:
+        xAI's ``/responses`` ``web_search`` tool accepts up to 5
+        domains in each list (mutually exclusive).  Default
+        ``excluded_domains`` mirrors OpenAIWebSearchBackend (PR #18).
+    reasoning_effort:
+        ``"none" | "low" | "medium" | "high"``.  Applies to Grok 4.3.
+        Default ``"high"`` per user memory preference.
+    max_turns:
+        Server-side tool-invocation budget for the search loop
+        (1-2 quick / 3-5 balanced / 10+ deep).  Default 5
+        (balanced).
+    enable_image_understanding:
+        Whether the web_search tool should also fetch and process
+        images from results.  Default False (text-only, faster).
     max_tokens:
-        Output budget for the search-and-summarise call.
+        Output budget for the search-and-summarise call.  Acts as
+        a floor; ``search()`` scales to ``max_results * 1000``.
     """
 
     client: Any
-    model: str = "grok-3"
-    search_mode: str = "auto"
-    max_search_results: int = 15
-    sources: list[dict[str, object]] | None = None
-    max_tokens: int = 8192
+    # PR #29: default bumped grok-3 -> grok-4.3 per user request.
+    # Aliases: grok-4.3-latest, grok-latest.
+    model: str = "grok-4.3"
+    # PR #29: parity defaults.  xAI's web_search tool caps each
+    # domain list at 5 entries; the OpenAI/Anthropic 3-entry
+    # default fits comfortably.
+    allowed_domains: list[str] | None = None
+    excluded_domains: list[str] | None = field(
+        default_factory=lambda: ["reddit.com", "quora.com", "pinterest.com"]
+    )
+    # PR #29: "high" per user memory preference (cost is not a
+    # constraint; optimise for quality).
+    reasoning_effort: str = "high"
+    # PR #29: xAI's "balanced" deep-search cap (3-5).
+    max_turns: int = 5
+    enable_image_understanding: bool = False
+    # PR #29: bumped 8192 -> 12000 to match OpenAI/Anthropic.
+    # Acts as a floor; per-call scales to ``max_results * 1000``.
+    max_tokens: int = 12000
+
+    # PR #29: xAI's web_search tool API hard limit (≤5 domains per
+    # allowed/excluded list).  Source: docs.x.ai/developers/tools/web-search.
+    _MAX_DOMAIN_LIST_SIZE: int = 5
 
     def search(
         self,
@@ -843,43 +1082,123 @@ class GrokWebSearchBackend:
         if not query.strip() or max_results <= 0:
             return []
 
+        # PR #29: rich prompt template mirroring OpenAI PR #18.
+        # Stronger language ("**REQUIRED**: you MUST use the
+        # web_search tool") because xAI has no tool_choice="required"
+        # analogue -- forcing happens via prompt only.  Closing
+        # instruction matches the strict json_schema response_format
+        # below.
         prompt = (
-            f"Search the web for: {query.strip()}\n"
-            f"Return up to {max_results} highly relevant results as JSON only.\n"
-            "Schema: "
-            '{"results":[{"title":"...","url":"...","model_summary":"..."}]}\n'
-            "Rules:\n"
-            "- Use only information grounded in your live search results.\n"
-            "- Keep model_summary fields concise and factual.\n"
-            "- Do not invent URLs.\n"
-            "- Return JSON only.\n"
+            "You are a web research collector.\n\n"
+            "Your job: find authoritative, diverse, and relevant web "
+            "sources for the research question below.  A separate "
+            "downstream step will extract structured evidence cards "
+            "from your output -- your job is just to return the "
+            "sources cleanly, with model-written summaries that "
+            "capture the substance.\n\n"
+            "Do NOT answer the user's research question.\n"
+            "Do NOT write a prose report or analysis.\n"
+            "Do NOT include any information not grounded in the "
+            "web_search tool's results.\n"
+            "**REQUIRED**: you MUST use the web_search tool to "
+            "gather sources; do not answer from training data.\n\n"
+            "Source selection rules:\n"
+            "- Prefer primary or high-authority sources: peer-reviewed "
+            "papers, government pages, international organizations, "
+            "reputable NGOs, official datasets, and reputable "
+            "journalism.\n"
+            "- Include diverse perspectives when the question has "
+            "multiple dimensions.\n"
+            "- Avoid low-quality SEO pages, content farms, forums, "
+            "Reddit, Quora, Pinterest, and duplicated syndicated "
+            "articles.\n"
+            "- Avoid near-duplicate sources that make the same point "
+            "from the same underlying report.\n"
+            "- Prefer recent sources for current facts, but include "
+            "older foundational sources when they remain important.\n"
+            "- If fewer than the requested number of strong sources "
+            "are available, return fewer.  Do not pad the output.\n\n"
+            "Grounding rules:\n"
+            "- Use only information found through web_search.\n"
+            "- Do not invent URLs, titles, authors, publication "
+            "dates, organizations, or findings.\n"
+            "- Do not claim that a source supports something unless "
+            "the source actually supports it.\n"
+            "- Each `model_summary` should be 200-400 words: capture "
+            "the source's key findings, specific numeric facts or "
+            "quotes when relevant, and the geographic/temporal "
+            "scope.  Concise is okay for off-topic results.\n"
+            "- `model_summary` is the field name in the output "
+            "schema.  Each summary is model-written prose, NOT a "
+            "verbatim excerpt.\n"
+            "- `evidence_urls` lists the URLs you actually used to "
+            "write each `model_summary` -- typically just the "
+            "result's own URL, but include any additional URLs "
+            "consulted via web_search for that summary.\n\n"
+            f"Research question:\n{query.strip()}\n\n"
+            f"Return up to {max_results} highly relevant results "
+            "conforming exactly to the provided JSON schema."
         )
 
-        sources = self.sources or [{"type": "web"}, {"type": "x"}]
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=self.max_tokens,
-                extra_body={
-                    "search_parameters": {
-                        "mode": self.search_mode,
-                        "max_search_results": self.max_search_results,
-                        "sources": sources,
-                    },
+        # PR #29: scale output budget with max_results (Grok 4.3
+        # has no documented hard ceiling).
+        effective_max_tokens = max(self.max_tokens, max_results * 1000)
+
+        # PR #29: build the web_search tool spec.  excluded_domains
+        # and allowed_domains are capped at 5 per xAI API; we
+        # silently truncate if the user passed more.
+        web_search_tool: dict[str, object] = {
+            "type": "web_search",
+            "enable_image_understanding": (
+                self.enable_image_understanding
+            ),
+        }
+        if self.excluded_domains:
+            web_search_tool["excluded_domains"] = list(
+                self.excluded_domains
+            )[: self._MAX_DOMAIN_LIST_SIZE]
+        if self.allowed_domains:
+            web_search_tool["allowed_domains"] = list(
+                self.allowed_domains
+            )[: self._MAX_DOMAIN_LIST_SIZE]
+
+        # PR #29: strict json_schema response_format combined with
+        # web_search tool (explicitly documented to work together
+        # at https://docs.x.ai/docs/guides/structured-outputs).
+        request_kwargs: dict[str, object] = {
+            "model": self.model,
+            "input": prompt,
+            "max_output_tokens": effective_max_tokens,
+            "tools": [web_search_tool],
+            "max_turns": self.max_turns,
+            "reasoning_effort": self.reasoning_effort,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "web_search_results",
+                    "strict": True,
+                    "schema": _GROK_WEB_SEARCH_RESULTS_SCHEMA,
                 },
+            },
+        }
+
+        try:
+            response = self.client.responses.create(**request_kwargs)
+        except Exception as exc:
+            print(
+                "[GrokWebSearchBackend] Warning: responses.create "
+                f"failed ({type(exc).__name__}: {exc}); returning "
+                "empty result list."
             )
-        except Exception:
             return []
 
-        message_text = ""
-        if getattr(response, "choices", None):
-            choice = response.choices[0]
-            message = getattr(choice, "message", None)
-            if message is not None:
-                message_text = getattr(message, "content", "") or ""
+        # PR #29: pull the structured output text from the response.
+        # /responses returns ``output_text`` (concatenated assistant
+        # text) when response_format is json_schema, similar to
+        # OpenAI's Responses API.
+        output_text = getattr(response, "output_text", "") or ""
+        raw_obj = _extract_json_object(output_text)
 
-        raw_obj = _extract_json_object(message_text)
         parsed_results: list[dict[str, str]] = []
         if isinstance(raw_obj, dict):
             parsed_results = _normalise_backend_results(
@@ -887,7 +1206,39 @@ class GrokWebSearchBackend:
                 max_results=max_results,
             )
 
-        # Fallback: harvest citations (URLs) when JSON parsing fails.
+        # PR #29: silent-fallback warning -- if no parsed results
+        # came back, the model likely either didn't call web_search
+        # (no tool_choice forcing available; prompt is our only
+        # lever) or returned a structured output that broke the
+        # schema.  Diagnostic parity with OpenAI PR #24 and
+        # Anthropic PR #28.
+        if not parsed_results:
+            # Try to detect whether web_search was even invoked, to
+            # give a more actionable warning.
+            tool_usage = getattr(response, "server_side_tool_usage", None)
+            web_search_calls = 0
+            if tool_usage is not None:
+                web_search_calls = getattr(
+                    tool_usage, "web_search_count", 0,
+                ) or 0
+            if web_search_calls == 0:
+                print(
+                    "[GrokWebSearchBackend] Warning: web_search was "
+                    "NOT invoked (server_side_tool_usage."
+                    "web_search_count == 0); model answered from "
+                    "training data.  Strengthen the prompt's "
+                    "REQUIRED-tool instruction."
+                )
+            else:
+                print(
+                    "[GrokWebSearchBackend] Warning: web_search ran "
+                    f"({web_search_calls} call(s)) but structured "
+                    "output was empty/malformed; falling through to "
+                    "empty result list."
+                )
+
+        # Fallback: harvest citations from response.citations if
+        # present (older xAI clients still expose this field).
         citation_results = _extract_grok_citation_results(
             response, max_results
         )
