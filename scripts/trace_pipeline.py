@@ -44,7 +44,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-OUT_DIR = Path("runs/avocado_2026-05-21_pr22_supranationals")
+OUT_DIR = Path("runs/avocado_2026-05-21_pr28_anthropic")
 MODEL = "gpt-5.5"
 API_KEY_PATH = Path(
     r"D:\Onedrive\OneDrive - Michigan State University\Desktop\api.env"
@@ -56,7 +56,11 @@ API_KEY_PATH = Path(
 # ---------------------------------------------------------------------------
 
 def load_api_key() -> None:
-    """Read OPENAI_API_KEY from the configured .env file and inject into env."""
+    """Read API key from the configured .env file and inject into env.
+
+    Accepts either OPENAI_API_KEY or ANTHROPIC_API_KEY in the file
+    (whichever the configured MODEL targets).
+    """
     if not API_KEY_PATH.exists():
         sys.exit(f"ERROR: API key file not found at {API_KEY_PATH}")
     for raw in API_KEY_PATH.read_text(encoding="utf-8").splitlines():
@@ -67,8 +71,13 @@ def load_api_key() -> None:
             continue
         key, _, value = line.partition("=")
         os.environ[key.strip()] = value.strip()
-    if not os.environ.get("OPENAI_API_KEY"):
-        sys.exit("ERROR: OPENAI_API_KEY not found in api.env")
+    have_openai = bool(os.environ.get("OPENAI_API_KEY"))
+    have_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    if not (have_openai or have_anthropic):
+        sys.exit(
+            "ERROR: neither OPENAI_API_KEY nor ANTHROPIC_API_KEY found "
+            f"in {API_KEY_PATH}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +144,79 @@ def build_logging_adapter():
             return response
 
     return LoggingOpenAIAdapter
+
+
+def build_logging_anthropic_adapter():
+    """Return a LoggingAnthropicAdapter class bound to the project's
+    AnthropicAdapter.
+
+    PR #28: parallel to ``LoggingOpenAIAdapter`` so trace runs can
+    exercise the Claude API end-to-end.  Captures the same artifact
+    shape as the OpenAI logger -- messages, temperature, max_tokens,
+    extra kwargs, response content, usage, duration -- plus the
+    ``tool_uses`` field (populated when Stage-1 dispatches the
+    submit_web_map_signals tool pattern to Claude).
+    """
+    from metacouplingllm.llm.client import (
+        AnthropicAdapter,
+        LLMResponse,
+        Message,
+    )
+
+    class LoggingAnthropicAdapter(AnthropicAdapter):
+        """AnthropicAdapter that records every chat() call for later dumping."""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.captured_calls: list[dict[str, Any]] = []
+
+        def chat(
+            self,
+            messages: list[Message],
+            temperature: float = 0.7,
+            max_tokens: int | None = None,
+            **kwargs: Any,
+        ) -> LLMResponse:
+            # ``**kwargs`` carries Anthropic-specific forwarded kwargs
+            # (tools, tool_choice) that PR #28 added to the adapter
+            # signature.  Pass them through unchanged.
+            t0 = time.perf_counter()
+            response = super().chat(
+                messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs,
+            )
+            duration = time.perf_counter() - t0
+            self.captured_calls.append({
+                "n": len(self.captured_calls) + 1,
+                "messages": [
+                    {"role": m.role, "content": m.content} for m in messages
+                ],
+                "requested_temperature": temperature,
+                "effective_temperature": temperature,
+                "max_tokens": max_tokens,
+                # Record forward-compat kwargs (e.g. tools,
+                # tool_choice) so artifacts show which calls used
+                # the submit_results pattern vs plain chat.
+                "extra_kwargs": dict(kwargs),
+                "response_content": response.content,
+                # PR #28: Anthropic adapter exposes structured
+                # output via response.tool_uses for the
+                # submit_results pattern.  Capture so trace
+                # artifacts show the full structured payload.
+                "response_tool_uses": (
+                    list(response.tool_uses)
+                    if response.tool_uses
+                    else None
+                ),
+                "usage": dict(response.usage) if response.usage else {},
+                "duration_s": round(duration, 2),
+            })
+            return response
+
+    return LoggingAnthropicAdapter
+
 
 
 # ---------------------------------------------------------------------------
@@ -533,9 +615,7 @@ def write_artifacts(
 
 def main() -> int:
     load_api_key()
-    LoggingOpenAIAdapter = build_logging_adapter()
 
-    from openai import OpenAI
     from metacouplingllm import MetacouplingAssistant
 
     print("=" * 60)
@@ -546,14 +626,26 @@ def main() -> int:
     print(f"  Out:    {OUT_DIR}")
     print()
 
-    client = OpenAI()
-    llm = LoggingOpenAIAdapter(client, model=MODEL)
+    # PR #28: swap between OpenAI and Anthropic by branching on the
+    # MODEL string.  Both adapters wrap their respective SDK clients
+    # and capture every chat() call's artifacts.
+    if MODEL.startswith("claude"):
+        LoggingAnthropicAdapter = build_logging_anthropic_adapter()
+        import anthropic
+        client = anthropic.Anthropic()
+        llm = LoggingAnthropicAdapter(client, model=MODEL)
+    else:
+        LoggingOpenAIAdapter = build_logging_adapter()
+        from openai import OpenAI
+        client = OpenAI()
+        llm = LoggingOpenAIAdapter(client, model=MODEL)
 
     assistant = MetacouplingAssistant(
         llm_client=llm,
         rag_corpus="bundled",
         rag_max_chunks_per_paper=5,
         web_search=True,
+        web_search_max_results=25,
         auto_map=True,
         verbose=True,
         coupling_analysis=True,

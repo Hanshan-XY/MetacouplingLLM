@@ -98,6 +98,48 @@ _OPENAI_WEB_SEARCH_RESULTS_SCHEMA: dict[str, object] = {
 }
 
 
+# PR #28: user-defined tool used by AnthropicWebSearchBackend to coax
+# Claude into returning a strict-JSON result list AFTER it finishes
+# its web_search invocations.  Anthropic docs don't show an
+# end-to-end example of ``output_config.format`` json_schema combined
+# with a server tool like ``web_search``, so the canonical pattern
+# is to define a user-defined tool with ``strict: True`` and instruct
+# the model to call it as its final action of the turn.  The schema
+# mirrors ``_OPENAI_WEB_SEARCH_RESULTS_SCHEMA`` so both backends
+# produce the same downstream shape.
+_ANTHROPIC_WEB_SEARCH_SUBMIT_RESULTS_TOOL: dict[str, object] = {
+    "name": "submit_results",
+    "description": (
+        "Submit the final structured list of web search results.  "
+        "Call this tool AFTER you have completed all the web_search "
+        "invocations needed for the research question.  Each result "
+        "must include `title`, `url`, and a 200-400 word "
+        "`model_summary` grounded in the actual web search results."
+    ),
+    "input_schema": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "results": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "title": {"type": "string"},
+                        "url": {"type": "string"},
+                        "model_summary": {"type": "string"},
+                    },
+                    "required": ["title", "url", "model_summary"],
+                },
+            },
+        },
+        "required": ["results"],
+    },
+    "strict": True,
+}
+
+
 @dataclass
 class OpenAIWebSearchBackend:
     """Web-search backend powered by OpenAI Responses API ``web_search``.
@@ -366,9 +408,9 @@ class AnthropicWebSearchBackend:
     ==========================  ==========================
     Model                       tool_version
     ==========================  ==========================
-    claude-opus-4-7 (default)   web_search_20260209
+    claude-sonnet-4-6 (default) web_search_20260209
+    claude-opus-4-7             web_search_20260209
     claude-opus-4-6             web_search_20260209
-    claude-sonnet-4-6           web_search_20260209
     claude-opus-4-5 / 4-1 / 4-0 web_search_20250305
     claude-sonnet-4-5 / 4-0     web_search_20250305
     claude-haiku-4-5            web_search_20250305
@@ -378,25 +420,48 @@ class AnthropicWebSearchBackend:
     Pass an explicit ``tool_version`` to override (useful when a new model
     ships before the lookup table is updated).
 
-    Snippets are pulled from citations on Claude's text blocks (each citation
-    carries ``url``, ``title``, and up to 150 chars of ``cited_text``). If
-    Claude returns no citations, the backend falls back to the raw
-    ``web_search_tool_result`` blocks for ``url`` + ``title`` + ``page_age``
-    (the underlying ``encrypted_content`` is opaque to callers by design).
+    Result extraction (PR #28): the primary path is the
+    ``submit_results`` user-defined tool -- the system prompt asks
+    Claude to call this tool with a structured list of
+    ``title``/``url``/``model_summary`` entries as the final action
+    of its turn.  ``_extract_anthropic_submit_results_tool_use``
+    walks the response for that tool_use block.  When Claude
+    ignores the instruction (rare), the backend logs a warning and
+    falls back to ``_extract_anthropic_web_results`` which mines
+    citations on text blocks (each citation carries ``url``,
+    ``title``, and up to 150 chars of ``cited_text``) and then the
+    raw ``web_search_tool_result`` blocks for ``url`` + ``title``
+    + ``page_age`` (``encrypted_content`` is opaque to callers by
+    design).
 
     Prompt caching is intentionally not used: a web-search call's cacheable
-    prefix (tool definition plus short user prompt) is well under Opus
-    4.7's 4096-token minimum, so caching would silently no-op.
+    prefix (tool definition plus short user prompt) is well under the
+    Sonnet 4.6 / Opus 4.6+ 4096-token minimum, so caching would
+    silently no-op.
     """
 
     client: Any
-    model: str = "claude-opus-4-7"
+    # PR #28: default bumped from claude-opus-4-7 to claude-sonnet-4-6
+    # for cost.  Sonnet 4.6 still supports web_search_20260209
+    # (dynamic filtering) per Anthropic docs.  Pricing: $3/$15 per
+    # MTok vs Opus 4.7's $5/$25.  Override via the ``model`` kwarg
+    # if you need Opus.
+    model: str = "claude-sonnet-4-6"
     tool_version: str | None = None   # None = auto-select from model
     max_uses: int = 5
     allowed_domains: list[str] | None = None
-    blocked_domains: list[str] | None = None
+    # PR #28: default blocklist mirrors OpenAIWebSearchBackend (PR #18).
+    # Users who want everything can pass ``blocked_domains=[]`` or
+    # supply their own list.
+    blocked_domains: list[str] | None = field(
+        default_factory=lambda: ["reddit.com", "quora.com", "pinterest.com"]
+    )
     user_location: dict[str, object] | None = None
-    max_tokens: int = 8192
+    # PR #28: bumped 8192 -> 12000 to match OpenAIWebSearchBackend
+    # (PR #24).  Acts as a *floor* -- ``search()`` raises it to
+    # ``max_results * 1000`` when more results are requested so the
+    # model has room for 25+ rich summaries without truncation.
+    max_tokens: int = 12000
 
     def search(
         self,
@@ -406,10 +471,22 @@ class AnthropicWebSearchBackend:
         if not query.strip() or max_results <= 0:
             return []
 
-        tool_version = (
-            self.tool_version
-            or _infer_web_search_tool_version(self.model)
-        )
+        # PR #28: default to BASIC ``web_search_20250305`` instead of
+        # auto-inferring from the model.  The dynamic-filtering tool
+        # (``web_search_20260209``) requires pairing with
+        # ``code_execution``, and the combination caused Claude to
+        # bypass our ``submit_results`` tool in the live avocado-25
+        # trace -- the bypass degrades output from rich 200-400 word
+        # ``model_summary`` blocks to bare title+url+page_age strings.
+        # Basic web_search lets Claude either call submit_results
+        # naturally OR write text with citations (~150 chars each),
+        # both significantly richer than the dynamic-filtering
+        # fallback path.  Users who need dynamic filtering can opt
+        # in explicitly by passing
+        # ``tool_version="web_search_20260209"`` to the constructor
+        # (the ``_infer_web_search_tool_version`` lookup helper is
+        # retained for that case).
+        tool_version = self.tool_version or "web_search_20250305"
         tool: dict[str, object] = {
             "type": tool_version,
             "name": "web_search",
@@ -422,20 +499,204 @@ class AnthropicWebSearchBackend:
         if self.user_location:
             tool["user_location"] = self.user_location
 
+        # PR #28: tools list = web_search + submit_results.  When the
+        # caller explicitly opts in to dynamic filtering by passing
+        # tool_version="web_search_20260209", we also include the
+        # code_execution_20260120 tool that Anthropic requires for
+        # that mode.  Default path uses basic web_search only and
+        # skips code_execution entirely.
+        tools_list: list[dict[str, object]] = [
+            tool,
+            _ANTHROPIC_WEB_SEARCH_SUBMIT_RESULTS_TOOL,
+        ]
+        has_dynamic_filtering = tool_version == "web_search_20260209"
+        if has_dynamic_filtering:
+            tools_list.append({
+                "type": "code_execution_20260120",
+                "name": "code_execution",
+            })
+
+        # PR #28: rich prompt template mirroring OpenAI PR #18.
+        # Same role / DO-NOTs / source-selection / grounding rules.
+        # Closing instruction adapted from OpenAI's "Return JSON
+        # conforming to the schema" to "Call the submit_results
+        # tool" since Claude returns structured data via tool_use
+        # rather than json_schema'd text.
         prompt = (
-            f"Search the web for: {query.strip()}\n"
-            f"Return up to {max_results} highly relevant sources. "
-            "Cite every factual statement you make inline so that every "
-            "source you used appears in a citation."
+            "You are a web research collector.\n\n"
+            "Your job: find authoritative, diverse, and relevant web "
+            "sources for the research question below.  A separate "
+            "downstream step will extract structured evidence cards "
+            "from your output -- your job is just to return the "
+            "sources cleanly, with model-written summaries that "
+            "capture the substance.\n\n"
+            "Do NOT answer the user's research question.\n"
+            "Do NOT write a prose report or analysis.\n"
+            "Do NOT include any information not grounded in the web "
+            "search results.\n\n"
+            "Source selection rules:\n"
+            "- Prefer primary or high-authority sources: peer-reviewed "
+            "papers, government pages, international organizations, "
+            "reputable NGOs, official datasets, and reputable "
+            "journalism.\n"
+            "- Include diverse perspectives when the question has "
+            "multiple dimensions.\n"
+            "- Avoid low-quality SEO pages, content farms, forums, "
+            "Reddit, Quora, Pinterest, and duplicated syndicated "
+            "articles.\n"
+            "- Avoid near-duplicate sources that make the same point "
+            "from the same underlying report.\n"
+            "- Prefer recent sources for current facts, but include "
+            "older foundational sources when they remain important.\n"
+            "- If fewer than the requested number of strong sources "
+            "are available, return fewer.  Do not pad the output.\n\n"
+            "Grounding rules:\n"
+            "- Use only information found through web_search.\n"
+            "- Do not invent URLs, titles, authors, publication "
+            "dates, organizations, or findings.\n"
+            "- Do not claim that a source supports something unless "
+            "the source actually supports it.\n"
+            "- Each `model_summary` should be 200-400 words: capture "
+            "the source's key findings, specific numeric facts or "
+            "quotes when relevant, and the geographic/temporal "
+            "scope.  Concise is okay for off-topic results.\n"
+            "- `model_summary` is the field name in the "
+            "submit_results tool's input schema.  Each summary is "
+            "model-written prose, NOT a verbatim excerpt.\n\n"
+            f"Research question:\n{query.strip()}\n\n"
+            f"Return up to {max_results} highly relevant results.\n\n"
+            "**REQUIRED FINAL ACTION**: After completing your "
+            "web_search invocations, you MUST call the "
+            "`submit_results` tool with the structured findings.  "
+            "Do NOT end your turn with just text or tool_results -- "
+            "the only valid way to complete this task is to call "
+            "submit_results.  If you have finished searching, call "
+            "submit_results NOW; do not stop without calling it."
         )
 
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=self.max_tokens,
-            tools=[tool],
-            messages=[{"role": "user", "content": prompt}],
-        )
+        # PR #28: scale the model's output budget with max_results
+        # (same formula as OpenAI PR #24).  1000 tokens/result is a
+        # generous margin for a 400-word summary plus structure
+        # overhead.
+        effective_max_tokens = max(self.max_tokens, max_results * 1000)
 
+        # PR #28: force the first turn to actually invoke web
+        # research rather than answering from training data
+        # (Anthropic analogue of OpenAI's tool_choice="required").
+        # When dynamic filtering is on, web_search_20260209 is NOT
+        # directly callable by the model -- it can only be invoked
+        # from inside code_execution.  The live trace surfaced this
+        # via an API 400: "tool_choice.name 'web_search' cannot be
+        # used because this tool only allows calls from
+        # ['code_execution_20260120']".  In that mode we tool_choice
+        # code_execution instead; on the basic web_search_20250305
+        # (no dynamic filtering) the model calls web_search
+        # directly.
+        if has_dynamic_filtering:
+            forced_tool_name = "code_execution"
+        else:
+            forced_tool_name = "web_search"
+
+        # PR #28: ALWAYS stream for web search.  Anthropic's SDK
+        # refuses non-streaming requests whose estimated generation
+        # time would exceed 10 minutes, but the upfront refusal is
+        # calibrated only to ``max_tokens`` -- it can't see the
+        # wall-clock cost of server-side web_search + code_execution
+        # sub-calls.  Even small max_tokens calls can take >10 min
+        # when Claude dispatches multiple sub-searches with dynamic
+        # filtering, in which case non-streaming would hang or
+        # error mid-call.  Streaming is the same price, and
+        # ``messages.stream(...).get_final_message()`` returns the
+        # same ``Message`` shape as ``messages.create()``, so the
+        # downstream parsing path is unchanged regardless of
+        # request size.  The threshold-based pattern from
+        # ``AnthropicAdapter`` (text-only chat) doesn't transfer
+        # here because plain chat has predictable max_tokens-bound
+        # wall-clock while server tools don't.
+        request_kwargs: dict[str, object] = {
+            "model": self.model,
+            "max_tokens": effective_max_tokens,
+            "tools": tools_list,
+            "tool_choice": {"type": "tool", "name": forced_tool_name},
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        # PR #28: retry on transient streaming-connection failures.
+        # Anthropic's SDK does NOT retry streaming requests
+        # automatically (unlike messages.create()), so a single
+        # network blip or server-side timeout closes the chunked
+        # connection mid-stream and surfaces as a "peer closed
+        # connection without sending complete message body" /
+        # "incomplete chunked read" / APIConnectionError /
+        # RemoteProtocolError.  The 5-probe diagnostic at
+        # scripts/diagnose_anthropic_web_search.py confirmed the
+        # PR #28 config (web_search_20260209 + code_execution +
+        # submit_results + max_tokens=25000 + max_uses=5) is
+        # structurally correct -- failures observed in the live
+        # avocado trace were transient.  Try up to 3 times with
+        # exponential backoff (2s, 4s) before propagating.
+        import time as _time
+        _import_failed = False
+        try:
+            import anthropic as _anthropic
+            import httpx as _httpx
+            _transient_exc_types: tuple[type[Exception], ...] = (
+                _anthropic.APIConnectionError,
+                _httpx.ReadError,
+                _httpx.RemoteProtocolError,
+            )
+        except Exception:
+            # Defensive: if anthropic/httpx imports fail at runtime
+            # for some test stub reason, fall back to catching any
+            # IOError-style exception so retries still run.
+            _transient_exc_types = (OSError,)
+            _import_failed = True
+
+        last_exc: Exception | None = None
+        response = None
+        for attempt in range(3):
+            try:
+                with self.client.messages.stream(**request_kwargs) as stream:
+                    response = stream.get_final_message()
+                break
+            except _transient_exc_types as exc:
+                last_exc = exc
+                if attempt < 2:
+                    print(
+                        "[AnthropicWebSearchBackend] Warning: streaming "
+                        f"connection failed ({type(exc).__name__}); "
+                        f"retrying in {2 * (2 ** attempt)}s "
+                        f"({attempt + 1}/3)..."
+                    )
+                    _time.sleep(2 * (2 ** attempt))
+                    continue
+                # All retries exhausted -- propagate so the upstream
+                # MetacouplingAssistant catches it and falls back to
+                # DuckDuckGo (existing behaviour).
+                raise
+        if response is None:  # pragma: no cover -- defensive
+            if last_exc is not None:
+                raise last_exc
+            raise RuntimeError(
+                "AnthropicWebSearchBackend: stream returned no response"
+            )
+
+        # PR #28: try the strict-JSON submit_results path first.
+        # When Claude obeys the instruction and calls the tool, the
+        # results come back fully structured.  When it doesn't, fall
+        # back to the citation/tool_result parser and print a
+        # diagnostic warning (silent-fallback parity with OpenAI's
+        # PR #24).
+        submit_results = _extract_anthropic_submit_results_tool_use(
+            response, max_results,
+        )
+        if submit_results:
+            return submit_results
+
+        print(
+            "[AnthropicWebSearchBackend] Warning: Claude did not call "
+            "submit_results; falling back to citation-based result "
+            "extraction (structured output may be incomplete)."
+        )
         return _extract_anthropic_web_results(response, max_results)
 
 
@@ -978,6 +1239,65 @@ def _extract_openai_source_results(
 
     _walk(raw)
     return found[:max_results]
+
+
+def _extract_anthropic_submit_results_tool_use(
+    response: object,
+    max_results: int,
+) -> list[dict[str, str]]:
+    """Extract structured results from Claude's ``submit_results`` tool_use.
+
+    PR #28: when ``AnthropicWebSearchBackend`` includes the
+    ``submit_results`` user-defined tool in its tools list and
+    instructs Claude to call it after web_search, the structured
+    results land in a ``tool_use`` block with
+    ``name == "submit_results"``.  This helper walks the response
+    content blocks, finds that tool_use, and normalises its
+    ``input.results`` array into the standard
+    ``title``/``model_summary``/``url`` shape.
+
+    Returns an empty list when no ``submit_results`` tool_use is
+    found -- the caller then falls back to
+    ``_extract_anthropic_web_results`` (citation-based parser) and
+    logs a diagnostic warning.
+    """
+    raw: object
+    if hasattr(response, "model_dump"):
+        try:
+            raw = response.model_dump()
+        except Exception:
+            raw = None
+    elif isinstance(response, dict):
+        raw = response
+    else:
+        raw = None
+
+    if not isinstance(raw, dict):
+        return []
+
+    content = raw.get("content")
+    if not isinstance(content, list):
+        return []
+
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        if block.get("type") != "tool_use":
+            continue
+        if block.get("name") != "submit_results":
+            continue
+        block_input = block.get("input")
+        if not isinstance(block_input, dict):
+            continue
+        results = block_input.get("results")
+        if not isinstance(results, list):
+            continue
+        # Hand off to the same normalisation path used by the
+        # OpenAI backend -- enforces title/model_summary/url shape,
+        # dedupes empty URLs, applies the max_results cap.
+        return _normalise_backend_results(results, max_results=max_results)
+
+    return []
 
 
 def _extract_anthropic_web_results(
@@ -1739,6 +2059,27 @@ _WEB_MAP_SIGNALS_SCHEMA: dict[str, object] = {
 }
 
 
+# PR #28: Anthropic submit-tool wrapping _WEB_MAP_SIGNALS_SCHEMA.
+# Used by extract_web_map_signals when the llm_client is an
+# AnthropicAdapter -- Claude returns the structured signals via a
+# tool_use block (input matches the schema) instead of the strict
+# json_schema text output that OpenAI provides.  Same canonical
+# schema is wrapped in both code paths so the downstream
+# normaliser sees identical structure regardless of provider.
+_ANTHROPIC_WEB_MAP_SIGNALS_SUBMIT_TOOL: dict[str, object] = {
+    "name": "submit_web_map_signals",
+    "description": (
+        "Submit the conservative, map-ready metacoupling signals "
+        "extracted from the web search results.  Call this tool "
+        "exactly once as the final action of your turn.  All "
+        "fields are required; use null or empty lists when the "
+        "results don't support a value."
+    ),
+    "input_schema": _WEB_MAP_SIGNALS_SCHEMA,
+    "strict": True,
+}
+
+
 def extract_web_map_signals(
     query: str,
     results: list[dict[str, str]],
@@ -1914,18 +2255,24 @@ def extract_web_map_signals(
         f"{chr(10).join(result_lines)}"
     )
 
-    # Pass response_format only when the client is an OpenAIAdapter
-    # (or subclass).  Other adapters' chat() signatures don't accept
-    # the kwarg; the JSON schema example embedded in the user_text
-    # above continues to teach them the expected shape, and the
-    # ``_extract_json_object`` fallback below recovers the JSON from
-    # whatever text they emit.
+    # Pass strict-output dispatch only for adapters that support it.
+    # - OpenAIAdapter: response_format=json_schema (PR #17/#21).
+    # - AnthropicAdapter: submit_web_map_signals tool + tool_choice
+    #   forcing (PR #28).  Claude returns the structured signals via
+    #   a tool_use block instead of JSON text.
+    # Other adapters (Gemini, Grok, etc.) fall through to the prompt-
+    # based JSON path; ``_extract_json_object`` recovers the JSON
+    # from whatever text they emit.
     chat_kwargs: dict[str, object] = {
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    is_anthropic_dispatch = False
     try:
         from metacouplingllm.llm.client import OpenAIAdapter as _OpenAIAdapter
+        from metacouplingllm.llm.client import (
+            AnthropicAdapter as _AnthropicAdapter,
+        )
         if isinstance(llm_client, _OpenAIAdapter):
             chat_kwargs["response_format"] = {
                 "type": "json_schema",
@@ -1935,6 +2282,15 @@ def extract_web_map_signals(
                     "schema": _WEB_MAP_SIGNALS_SCHEMA,
                 },
             }
+        elif isinstance(llm_client, _AnthropicAdapter):
+            chat_kwargs["tools"] = [
+                _ANTHROPIC_WEB_MAP_SIGNALS_SUBMIT_TOOL,
+            ]
+            chat_kwargs["tool_choice"] = {
+                "type": "tool",
+                "name": "submit_web_map_signals",
+            }
+            is_anthropic_dispatch = True
     except Exception:
         # If the adapter import fails for any reason, fall through to
         # the prompt-based JSON path.
@@ -1947,7 +2303,24 @@ def extract_web_map_signals(
         ],
         **chat_kwargs,
     )
-    raw_obj = _extract_json_object(response.content)
+
+    # PR #28: Anthropic strict-output path -- Claude's structured
+    # signals live in a ``submit_web_map_signals`` tool_use block,
+    # not in the text content.  Try the tool path first; on failure
+    # (no tool_use, or the tool_use input is malformed) fall through
+    # to ``_extract_json_object`` so we still recover whatever JSON
+    # Claude may have emitted as text.
+    raw_obj: dict[str, object] | None = None
+    if is_anthropic_dispatch and response.tool_uses:
+        for tool_use in response.tool_uses:
+            if tool_use.get("name") != "submit_web_map_signals":
+                continue
+            tool_input = tool_use.get("input")
+            if isinstance(tool_input, dict):
+                raw_obj = tool_input
+                break
+    if raw_obj is None:
+        raw_obj = _extract_json_object(response.content)
     if raw_obj is None:
         return None
 

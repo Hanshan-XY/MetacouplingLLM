@@ -2,6 +2,8 @@
 
 from unittest.mock import patch
 
+import pytest
+
 from metacouplingllm.knowledge.websearch import (
     _DuckDuckGoLiteParser,
     _build_search_queries,
@@ -945,6 +947,183 @@ class TestStructuredWebMapSignals:
         )
         assert signals["receiving_systems"] == []
 
+    # ------------------------------------------------------------------
+    # PR #28: Stage-1 Anthropic strict-output dispatch.  When the
+    # llm_client is an AnthropicAdapter, extract_web_map_signals
+    # passes a ``submit_web_map_signals`` tool + ``tool_choice``
+    # forcing instead of the OpenAI ``response_format``.  Claude's
+    # structured signals land in a tool_use block on the response,
+    # not in the text content -- the extractor reads them from
+    # ``response.tool_uses`` first and falls back to
+    # ``_extract_json_object`` only when no tool_use is present.
+    # ------------------------------------------------------------------
+
+    def test_extract_signals_dispatches_anthropic_to_submit_tool(self):
+        """When the LLM client is an AnthropicAdapter, the chat call
+        must pass ``tools=[submit_web_map_signals_tool]`` and
+        ``tool_choice={'type':'tool','name':'submit_web_map_signals'}``
+        -- the Anthropic analogue of OpenAI's response_format."""
+        from metacouplingllm.llm.client import AnthropicAdapter, LLMResponse
+
+        captured_kwargs: dict[str, object] = {}
+
+        class _ToolUseBlock:
+            type = "tool_use"
+            id = "tu_1"
+            name = "submit_web_map_signals"
+            input = {
+                "focal_country": "BRA",
+                "receiving_systems": [],
+                "spillover_systems": [],
+                "flows": [],
+                "evidence_cards": [],
+                "suggested_followup_queries": [],
+            }
+
+        class _FakeUsage:
+            input_tokens = 5
+            output_tokens = 3
+
+        class _FakeResponse:
+            content = [_ToolUseBlock()]
+            usage = _FakeUsage()
+
+        class _FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                captured_kwargs.update(kwargs)
+                return _FakeResponse()
+
+        class _FakeAnthropic:
+            messages = _FakeMessages()
+
+        adapter = AnthropicAdapter(
+            _FakeAnthropic(), model="claude-sonnet-4-6",
+        )
+        extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            adapter, min_confidence=0.7,
+        )
+        # Tools list must include exactly one submit_web_map_signals tool.
+        tools = captured_kwargs["tools"]
+        assert len(tools) == 1
+        submit_tool = tools[0]
+        assert submit_tool["name"] == "submit_web_map_signals"
+        assert submit_tool["strict"] is True
+        # tool_choice forces Claude to call the submit tool.
+        assert captured_kwargs["tool_choice"] == {
+            "type": "tool",
+            "name": "submit_web_map_signals",
+        }
+
+    def test_extract_signals_parses_anthropic_tool_use_response(self):
+        """When AnthropicAdapter returns a tool_use block with the
+        signals dict as ``input``, the extractor reads that path
+        directly (no JSON-text reparse)."""
+        from metacouplingllm.llm.client import AnthropicAdapter
+
+        class _ToolUseBlock:
+            type = "tool_use"
+            id = "tu_1"
+            name = "submit_web_map_signals"
+            input = {
+                "focal_country": "Brazil",
+                "receiving_systems": [
+                    {
+                        "country": "China",
+                        "kind": "direct",
+                        "confidence": 0.96,
+                        "evidence": ["W1"],
+                        "reason": "Brazil soy export destination",
+                    },
+                ],
+                "spillover_systems": [],
+                "flows": [],
+                "evidence_cards": [],
+                "suggested_followup_queries": [],
+            }
+
+        class _FakeUsage:
+            input_tokens = 10
+            output_tokens = 8
+
+        class _FakeResponse:
+            content = [_ToolUseBlock()]
+            usage = _FakeUsage()
+
+        class _FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                return _FakeResponse()
+
+        class _FakeAnthropic:
+            messages = _FakeMessages()
+
+        adapter = AnthropicAdapter(
+            _FakeAnthropic(), model="claude-sonnet-4-6",
+        )
+        signals = extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            adapter, min_confidence=0.7,
+        )
+        # The tool_use path returned structured signals end-to-end.
+        assert signals is not None
+        assert signals["focal_country"] == "BRA"
+        assert len(signals["receiving_systems"]) == 1
+        assert signals["receiving_systems"][0]["country"] == "CHN"
+
+    def test_extract_signals_anthropic_falls_back_to_text_when_no_tool_use(
+        self,
+    ):
+        """When Claude responds without a submit_web_map_signals
+        tool_use, extract_web_map_signals falls back to
+        ``_extract_json_object(response.content)`` -- graceful
+        degradation when Claude ignores the tool_choice instruction."""
+        from metacouplingllm.llm.client import AnthropicAdapter
+
+        class _TextBlock:
+            type = "text"
+
+            def __init__(self, text):
+                self.text = text
+
+        class _FakeUsage:
+            input_tokens = 5
+            output_tokens = 3
+
+        class _FakeResponse:
+            # Text content only -- no tool_use block.  The text
+            # happens to be valid JSON, which the fallback path
+            # extracts.
+            content = [_TextBlock(
+                '{"focal_country":"Brazil",'
+                '"receiving_systems":[],'
+                '"spillover_systems":[],'
+                '"flows":[],'
+                '"evidence_cards":[],'
+                '"suggested_followup_queries":[]}'
+            )]
+            usage = _FakeUsage()
+
+        class _FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                return _FakeResponse()
+
+        class _FakeAnthropic:
+            messages = _FakeMessages()
+
+        adapter = AnthropicAdapter(
+            _FakeAnthropic(), model="claude-sonnet-4-6",
+        )
+        signals = extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            adapter, min_confidence=0.7,
+        )
+        # Fallback path still recovers the JSON from text content.
+        assert signals is not None
+        assert signals["focal_country"] == "BRA"
+
 
 # ---------------------------------------------------------------------------
 # search_web (live test — only runs if network is available)
@@ -1210,6 +1389,22 @@ class TestAnthropicWebSearchBackend:
                 self.kwargs = kwargs
                 return MockResponse()
 
+            def stream(self, **kwargs):
+                self.kwargs = kwargs
+                outer = self
+
+                class _CM:
+                    def __enter__(self_inner):
+                        return self_inner
+
+                    def __exit__(self_inner, *args):
+                        return False
+
+                    def get_final_message(self_inner):
+                        return MockResponse()
+
+                return _CM()
+
         class MockClient:
             def __init__(self):
                 self.messages = MockMessages()
@@ -1225,13 +1420,25 @@ class TestAnthropicWebSearchBackend:
             "url": "https://example.com/brazil",
             "model_summary": "Brazil exported 100M tons of soybeans in 2025.",
         }]
-        # Verify the tool was configured correctly
+        # Verify the tool was configured correctly.  PR #28 final
+        # design: default to BASIC web_search_20250305 (no dynamic
+        # filtering) even on Opus 4.7, because the dynamic-filtering
+        # tool caused Claude to bypass submit_results in the live
+        # avocado trace.  The tools list now has 2 entries
+        # (web_search + submit_results) -- code_execution is only
+        # added when the caller explicitly opts in via
+        # tool_version="web_search_20260209".
         assert client.messages.kwargs["model"] == "claude-opus-4-7"
-        assert client.messages.kwargs["tools"] == [{
-            "type": "web_search_20260209",
+        tools = client.messages.kwargs["tools"]
+        web_search_tool = next(
+            (t for t in tools if t.get("name") == "web_search"), None,
+        )
+        assert web_search_tool == {
+            "type": "web_search_20250305",
             "name": "web_search",
             "max_uses": 3,
-        }]
+            "blocked_domains": ["reddit.com", "quora.com", "pinterest.com"],
+        }
 
     def test_falls_back_to_tool_result_when_no_citations(self):
         """Fallback: no citations → walk web_search_tool_result blocks."""
@@ -1267,6 +1474,19 @@ class TestAnthropicWebSearchBackend:
         class MockMessages:
             def create(self, **kwargs):
                 return MockResponse()
+
+            def stream(self, **kwargs):
+                class _CM:
+                    def __enter__(self_inner):
+                        return self_inner
+
+                    def __exit__(self_inner, *args):
+                        return False
+
+                    def get_final_message(self_inner):
+                        return MockResponse()
+
+                return _CM()
 
         class MockClient:
             def __init__(self):
@@ -1332,6 +1552,19 @@ class TestAnthropicWebSearchBackend:
             def create(self, **kwargs):
                 return MockResponse()
 
+            def stream(self, **kwargs):
+                class _CM:
+                    def __enter__(self_inner):
+                        return self_inner
+
+                    def __exit__(self_inner, *args):
+                        return False
+
+                    def get_final_message(self_inner):
+                        return MockResponse()
+
+                return _CM()
+
         class MockClient:
             def __init__(self):
                 self.messages = MockMessages()
@@ -1371,6 +1604,19 @@ class TestAnthropicWebSearchBackend:
             def create(self, **kwargs):
                 return MockResponse()
 
+            def stream(self, **kwargs):
+                class _CM:
+                    def __enter__(self_inner):
+                        return self_inner
+
+                    def __exit__(self_inner, *args):
+                        return False
+
+                    def get_final_message(self_inner):
+                        return MockResponse()
+
+                return _CM()
+
         class MockClient:
             def __init__(self):
                 self.messages = MockMessages()
@@ -1407,6 +1653,21 @@ class TestAnthropicWebSearchBackend:
                 captured.update(kwargs)
                 return MockResponse()
 
+            def stream(self, **kwargs):
+                captured.update(kwargs)
+
+                class _CM:
+                    def __enter__(self_inner):
+                        return self_inner
+
+                    def __exit__(self_inner, *args):
+                        return False
+
+                    def get_final_message(self_inner):
+                        return MockResponse()
+
+                return _CM()
+
         class MockClient:
             def __init__(self):
                 self.messages = MockMessages()
@@ -1426,9 +1687,483 @@ class TestAnthropicWebSearchBackend:
         assert tool["blocked_domains"] == ["spam.com"]
         assert tool["user_location"] == {"type": "approximate", "country": "US"}
 
+    # ------------------------------------------------------------------
+    # PR #28: parity with OpenAIWebSearchBackend (PRs #17/#18/#21/#24).
+    # ------------------------------------------------------------------
+
+    def _capturing_client_with_response(self, response_content: list):
+        """Helper: build a mock Anthropic client that captures kwargs
+        AND returns a configurable response.  Used by the PR #28 tests
+        that need to assert on both request shape and response handling.
+
+        PR #28: now exposes BOTH ``messages.create`` and
+        ``messages.stream`` because ``AnthropicWebSearchBackend.search()``
+        switches to streaming when ``max_tokens > 16384`` (mirrors
+        ``AnthropicAdapter._STREAMING_MAX_TOKENS_THRESHOLD``).  Both
+        paths route to the same captured kwargs dict so existing
+        tests can keep asserting on ``captured["tools"]`` etc.
+        regardless of which path was taken.
+        """
+        captured: dict[str, object] = {}
+
+        class MockResponse:
+            def model_dump(self):
+                return {"content": response_content}
+
+        class MockStreamCM:
+            def __init__(self, kwargs):
+                self.kwargs = kwargs
+
+            def __enter__(self):
+                captured.update(self.kwargs)
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def get_final_message(self):
+                return MockResponse()
+
+        class MockMessages:
+            def create(self, **kwargs):
+                captured.update(kwargs)
+                return MockResponse()
+
+            def stream(self, **kwargs):
+                return MockStreamCM(kwargs)
+
+        class MockClient:
+            def __init__(self):
+                self.messages = MockMessages()
+
+        return MockClient(), captured
+
+    def test_default_model_is_sonnet_4_6(self):
+        """PR #28: default model bumped from claude-opus-4-7 to
+        claude-sonnet-4-6 for cost (Sonnet still gets dynamic
+        filtering via web_search_20260209)."""
+        backend = AnthropicWebSearchBackend(client=None)
+        assert backend.model == "claude-sonnet-4-6"
+
+    def test_default_blocked_domains_contains_low_quality_sites(self):
+        """PR #28: default blocklist mirrors OpenAIWebSearchBackend
+        (PR #18) -- reddit, quora, pinterest blocked by default."""
+        backend = AnthropicWebSearchBackend(client=None)
+        assert backend.blocked_domains is not None
+        assert "reddit.com" in backend.blocked_domains
+        assert "quora.com" in backend.blocked_domains
+        assert "pinterest.com" in backend.blocked_domains
+
+    def test_search_prompt_contains_source_selection_rules(self):
+        """PR #28: rich prompt mirroring OpenAI PR #18 -- prefers
+        peer-reviewed / government / international organizations."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(client=client)
+        backend.search("test query")
+        prompt = captured["messages"][0]["content"]
+        assert "web research collector" in prompt
+        assert "peer-reviewed" in prompt
+        assert "government" in prompt
+        assert "international organizations" in prompt
+        assert "Reddit" in prompt or "reddit" in prompt
+        assert "Quora" in prompt or "quora" in prompt
+
+    def test_search_prompt_contains_grounding_rules(self):
+        """PR #28: grounding rules forbid invented URLs / titles /
+        dates / findings (mirrors OpenAI PR #18)."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(client=client)
+        backend.search("test query")
+        prompt = captured["messages"][0]["content"]
+        assert "Do not invent" in prompt
+        assert "Grounding rules" in prompt
+
+    def test_search_prompt_requests_200_400_word_summaries(self):
+        """PR #28: each model_summary should be 200-400 words
+        (Anthropic has no native per-result word-count parameter,
+        so the prompt is the only lever)."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(client=client)
+        backend.search("test query")
+        prompt = captured["messages"][0]["content"]
+        assert "200-400 words" in prompt or "200-400" in prompt
+
+    def test_search_includes_submit_results_tool(self):
+        """PR #28: submit_results user-defined tool with strict=True
+        is included in the tools list so Claude can return
+        structured JSON via tool_use rather than free-form text."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(client=client)
+        backend.search("test query")
+        tools = captured["tools"]
+        submit_tool = next(
+            (t for t in tools if t.get("name") == "submit_results"), None,
+        )
+        assert submit_tool is not None
+        assert submit_tool.get("strict") is True
+        # Schema must have results -> array of {title, url, model_summary}
+        input_schema = submit_tool["input_schema"]
+        results_prop = input_schema["properties"]["results"]
+        assert results_prop["type"] == "array"
+        item_required = set(results_prop["items"]["required"])
+        assert item_required == {"title", "url", "model_summary"}
+
+    def test_search_forces_first_turn_with_tool_choice_dynamic_filtering(self):
+        """When the caller explicitly opts in to dynamic-filtering
+        web_search_20260209, tool_choice must force the
+        ``code_execution`` tool -- NOT ``web_search`` directly.
+        Anthropic's API rejects tool_choice={'name':'web_search'}
+        when web_search_20260209 is paired with code_execution
+        because the web_search tool is only callable from inside
+        code_execution in that mode (surfaced as 400 "tool_choice
+        .name 'web_search' cannot be used because this tool only
+        allows calls from ['code_execution_20260120']" during the
+        live trace)."""
+        client, captured = self._capturing_client_with_response([])
+        # Explicit opt-in to dynamic filtering -- the default would
+        # otherwise pick basic web_search_20250305.
+        backend = AnthropicWebSearchBackend(
+            client=client, tool_version="web_search_20260209",
+        )
+        backend.search("test query")
+        assert captured["tool_choice"] == {
+            "type": "tool",
+            "name": "code_execution",
+        }
+
+    def test_search_forces_first_turn_with_tool_choice_basic_search(self):
+        """When the older web_search_20250305 (no dynamic filtering)
+        is selected, tool_choice forces the web_search tool
+        directly -- the basic version doesn't go through
+        code_execution."""
+        client, captured = self._capturing_client_with_response([])
+        # Sonnet 4.5 -> web_search_20250305 -> direct web_search.
+        backend = AnthropicWebSearchBackend(
+            client=client, model="claude-sonnet-4-5",
+        )
+        backend.search("test query")
+        assert captured["tool_choice"] == {
+            "type": "tool",
+            "name": "web_search",
+        }
+
+    def test_search_scales_max_tokens_with_max_results(self):
+        """PR #28: max_tokens scales as max(self.max_tokens,
+        max_results * 1000) per call -- same formula as OpenAI
+        PR #24.  max_results=25 -> max_tokens >= 25000."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(client=client)
+        backend.search("test query", max_results=25)
+        assert captured["max_tokens"] >= 25000
+
+    def test_search_keeps_default_max_tokens_floor_for_small_max_results(self):
+        """Regression guard: max_results=5 -> max_tokens stays at the
+        dataclass floor of 12000 (5 * 1000 = 5000 < 12000)."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(client=client)
+        backend.search("test query", max_results=5)
+        assert captured["max_tokens"] == 12000
+
+    def test_search_includes_code_execution_when_dynamic_tool_explicit(self):
+        """PR #28: when the caller explicitly opts in to
+        web_search_20260209 (dynamic filtering), the code_execution
+        tool MUST also be in the tools list per Anthropic's docs.
+        Note: the default path now uses BASIC web_search_20250305
+        (see PR #28 design notes), so dynamic filtering is only
+        engaged when the user explicitly passes
+        tool_version='web_search_20260209'."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(
+            client=client,
+            model="claude-sonnet-4-6",
+            tool_version="web_search_20260209",
+        )
+        backend.search("test query")
+        tools = captured["tools"]
+        code_exec = next(
+            (t for t in tools if t.get("name") == "code_execution"), None,
+        )
+        assert code_exec is not None
+        assert code_exec["type"].startswith("code_execution_")
+
+    def test_search_default_uses_basic_web_search_no_code_execution(self):
+        """PR #28 final design: even on Sonnet 4.6 (which CAN use
+        web_search_20260209), the default search() call uses BASIC
+        web_search_20250305 and skips code_execution.  Avoids the
+        Claude-bypasses-submit_results failure mode observed in the
+        live avocado-25 trace."""
+        client, captured = self._capturing_client_with_response([])
+        backend = AnthropicWebSearchBackend(
+            client=client, model="claude-sonnet-4-6",
+        )
+        backend.search("test query")
+        tools = captured["tools"]
+        web_search_tool = next(
+            (t for t in tools if t.get("name") == "web_search"), None,
+        )
+        assert web_search_tool["type"] == "web_search_20250305"
+        # No code_execution in default path.
+        names = {t.get("name") for t in tools}
+        assert "code_execution" not in names
+
+    def test_search_omits_code_execution_when_basic_tool_selected(self):
+        """Regression guard: when web_search_20250305 (basic, no
+        dynamic filtering) is selected, the code_execution tool
+        is NOT added -- only needed for the dynamic-filtering
+        version."""
+        client, captured = self._capturing_client_with_response([])
+        # Sonnet 4.5 -> web_search_20250305 -> no code_execution.
+        backend = AnthropicWebSearchBackend(
+            client=client, model="claude-sonnet-4-5",
+        )
+        backend.search("test query")
+        tools = captured["tools"]
+        names = {t.get("name") for t in tools}
+        assert "code_execution" not in names
+
+    def test_search_uses_submit_results_when_claude_calls_it(self):
+        """PR #28: when Claude calls submit_results with structured
+        data, the backend returns those results directly (strict
+        JSON path) and DOES NOT fall back to the citation parser."""
+        response_content = [
+            {
+                "type": "tool_use",
+                "id": "tu_1",
+                "name": "submit_results",
+                "input": {
+                    "results": [
+                        {
+                            "title": "Brazil soybean exports",
+                            "url": "https://example.com/brazil",
+                            "model_summary": (
+                                "Brazil exported 100M tons of "
+                                "soybeans in 2025."
+                            ),
+                        },
+                    ],
+                },
+            },
+        ]
+        client, _ = self._capturing_client_with_response(response_content)
+        backend = AnthropicWebSearchBackend(client=client)
+        results = backend.search("test query", max_results=5)
+        assert results == [{
+            "title": "Brazil soybean exports",
+            "url": "https://example.com/brazil",
+            "model_summary": "Brazil exported 100M tons of soybeans in 2025.",
+        }]
+
+    def test_search_always_uses_streaming(self):
+        """PR #28: web search ALWAYS streams regardless of
+        max_results.  Wall-clock of server-side web_search +
+        code_execution sub-calls is unpredictable and can exceed
+        10 minutes even with small max_tokens, in which case the
+        non-streaming SDK would hang or error mid-call.  Streaming
+        is the same price and ``stream(...).get_final_message()``
+        returns the same Message shape as ``create()``."""
+        captured: dict[str, object] = {}
+        stream_used = {"value": False}
+        create_used = {"value": False}
+
+        class MockResponse:
+            def model_dump(self):
+                return {"content": []}
+
+        class MockStreamCM:
+            def __init__(self, kwargs):
+                self.kwargs = kwargs
+
+            def __enter__(self):
+                stream_used["value"] = True
+                captured.update(self.kwargs)
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def get_final_message(self):
+                return MockResponse()
+
+        class MockMessages:
+            @staticmethod
+            def create(**kwargs):
+                create_used["value"] = True
+                captured.update(kwargs)
+                return MockResponse()
+
+            @staticmethod
+            def stream(**kwargs):
+                return MockStreamCM(kwargs)
+
+        class MockClient:
+            def __init__(self):
+                self.messages = MockMessages()
+
+        # Large max_results (25) -- streaming path.
+        backend = AnthropicWebSearchBackend(client=MockClient())
+        backend.search("test", max_results=25)
+        assert stream_used["value"] is True
+        assert create_used["value"] is False
+        assert captured["max_tokens"] >= 25000
+
+        # Also test small max_results (5) -- still streaming.
+        captured.clear()
+        stream_used["value"] = False
+        backend.search("test small", max_results=5)
+        assert stream_used["value"] is True
+        assert create_used["value"] is False
+
+    def test_search_retries_on_transient_streaming_failure(self, capsys):
+        """PR #28: streaming connection failures get up to 2 retries
+        before propagating.  Anthropic's SDK doesn't auto-retry
+        streaming requests, so a single network blip or server-side
+        timeout would otherwise kill the call -- which is exactly
+        what the live avocado-25 trace hit with 'peer closed
+        connection without sending complete message body'.  The
+        5-probe diagnostic confirmed the same config is otherwise
+        structurally fine; retrying handles the transient noise."""
+        import httpx
+
+        attempts = {"count": 0}
+
+        class MockResponse:
+            def model_dump(self):
+                return {"content": []}
+
+        class MockStreamCM:
+            def __init__(self, kwargs):
+                self.kwargs = kwargs
+
+            def __enter__(self):
+                attempts["count"] += 1
+                # Fail the first two attempts, succeed on the third.
+                if attempts["count"] < 3:
+                    raise httpx.RemoteProtocolError(
+                        "peer closed connection without sending "
+                        "complete message body"
+                    )
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def get_final_message(self):
+                return MockResponse()
+
+        class MockMessages:
+            def stream(self, **kwargs):
+                return MockStreamCM(kwargs)
+
+            def create(self, **kwargs):
+                # Unused -- search() always streams now.
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self):
+                self.messages = MockMessages()
+
+        backend = AnthropicWebSearchBackend(client=MockClient())
+        # Patch time.sleep to keep the test fast.
+        import time
+        original_sleep = time.sleep
+        time.sleep = lambda _: None
+        try:
+            backend.search("test query", max_results=5)
+        finally:
+            time.sleep = original_sleep
+
+        # Three attempts total (initial + 2 retries) -- last succeeded.
+        assert attempts["count"] == 3
+        # Each retry prints a warning.
+        out = capsys.readouterr().out
+        assert "streaming connection failed" in out
+        assert "RemoteProtocolError" in out
+
+    def test_search_raises_after_all_retries_exhausted(self):
+        """When all 3 attempts fail with transient errors, the
+        exception propagates so the upstream MetacouplingAssistant
+        can fall back to DuckDuckGo (existing behaviour)."""
+        import httpx
+
+        class MockStreamCM:
+            def __init__(self, kwargs):
+                pass
+
+            def __enter__(self):
+                raise httpx.RemoteProtocolError("persistent failure")
+
+            def __exit__(self, *args):
+                return False
+
+        class MockMessages:
+            def stream(self, **kwargs):
+                return MockStreamCM(kwargs)
+
+            def create(self, **kwargs):
+                class _R:
+                    def model_dump(self):
+                        return {"content": []}
+                return _R()
+
+        class MockClient:
+            def __init__(self):
+                self.messages = MockMessages()
+
+        backend = AnthropicWebSearchBackend(client=MockClient())
+        # Patch time.sleep for speed.
+        import time
+        original_sleep = time.sleep
+        time.sleep = lambda _: None
+        try:
+            with pytest.raises(httpx.RemoteProtocolError):
+                backend.search("test query", max_results=5)
+        finally:
+            time.sleep = original_sleep
+
+    def test_search_warns_when_submit_results_not_called(self, capsys):
+        """PR #28: silent-fallback warning when Claude responds but
+        doesn't call submit_results.  Catches the 'Claude obeyed
+        the search but ignored the structured-output instruction'
+        failure mode (mirror of OpenAI PR #24's silent-fallback
+        warning)."""
+        response_content = [
+            # No submit_results tool_use; just a text block with
+            # a citation so the fallback parser returns something.
+            {
+                "type": "text",
+                "text": "Brazil exports a lot of soybeans.",
+                "citations": [
+                    {
+                        "type": "web_search_result_location",
+                        "url": "https://example.com/brazil",
+                        "title": "Brazil exports",
+                        "cited_text": "Brazil exported 100M tons.",
+                    },
+                ],
+            },
+        ]
+        client, _ = self._capturing_client_with_response(response_content)
+        backend = AnthropicWebSearchBackend(client=client)
+        results = backend.search("test query", max_results=5)
+        # Fallback still recovers a result from citations.
+        assert len(results) == 1
+        assert results[0]["url"] == "https://example.com/brazil"
+        # Warning printed on stdout.
+        captured = capsys.readouterr()
+        assert "did not call submit_results" in captured.out
+
 
 class TestAnthropicWebSearchBackendToolVersionAutoSelect:
-    """Tests for auto-selection of tool_version based on model."""
+    """Tests for the model -> tool_version lookup helper.
+
+    PR #28 final design: the BACKEND's default path no longer calls
+    this helper -- it defaults to basic ``web_search_20250305``
+    unconditionally to avoid the Claude-bypasses-submit_results
+    failure mode on dynamic-filtering.  The helper is still tested
+    here because callers who explicitly opt in to dynamic filtering
+    (``tool_version="web_search_20260209"``) can use it to discover
+    which version their model supports.
+    """
 
     @staticmethod
     def _capturing_client():
@@ -1438,10 +2173,27 @@ class TestAnthropicWebSearchBackendToolVersionAutoSelect:
             def model_dump(self):
                 return {"content": []}
 
+        class MockStreamCM:
+            def __init__(self, kwargs):
+                self.kwargs = kwargs
+
+            def __enter__(self):
+                captured.update(self.kwargs)
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def get_final_message(self):
+                return MockResponse()
+
         class MockMessages:
             def create(self, **kwargs):
                 captured.update(kwargs)
                 return MockResponse()
+
+            def stream(self, **kwargs):
+                return MockStreamCM(kwargs)
 
         class MockClient:
             def __init__(self):
@@ -1449,43 +2201,74 @@ class TestAnthropicWebSearchBackendToolVersionAutoSelect:
 
         return MockClient(), captured
 
-    def test_auto_selects_20260209_for_opus_4_7(self):
-        client, captured = self._capturing_client()
-        AnthropicWebSearchBackend(client=client, model="claude-opus-4-7").search("x")
-        assert captured["tools"][0]["type"] == "web_search_20260209"
+    def test_helper_returns_20260209_for_opus_4_7(self):
+        from metacouplingllm.knowledge.websearch import (
+            _infer_web_search_tool_version,
+        )
+        assert _infer_web_search_tool_version("claude-opus-4-7") == (
+            "web_search_20260209"
+        )
 
-    def test_auto_selects_20260209_for_opus_4_6(self):
-        client, captured = self._capturing_client()
-        AnthropicWebSearchBackend(client=client, model="claude-opus-4-6").search("x")
-        assert captured["tools"][0]["type"] == "web_search_20260209"
+    def test_helper_returns_20260209_for_opus_4_6(self):
+        from metacouplingllm.knowledge.websearch import (
+            _infer_web_search_tool_version,
+        )
+        assert _infer_web_search_tool_version("claude-opus-4-6") == (
+            "web_search_20260209"
+        )
 
-    def test_auto_selects_20260209_for_sonnet_4_6(self):
-        client, captured = self._capturing_client()
-        AnthropicWebSearchBackend(client=client, model="claude-sonnet-4-6").search("x")
-        assert captured["tools"][0]["type"] == "web_search_20260209"
+    def test_helper_returns_20260209_for_sonnet_4_6(self):
+        from metacouplingllm.knowledge.websearch import (
+            _infer_web_search_tool_version,
+        )
+        assert _infer_web_search_tool_version("claude-sonnet-4-6") == (
+            "web_search_20260209"
+        )
 
-    def test_auto_selects_20250305_for_older_opus(self):
-        client, captured = self._capturing_client()
-        AnthropicWebSearchBackend(client=client, model="claude-opus-4-5").search("x")
-        assert captured["tools"][0]["type"] == "web_search_20250305"
+    def test_helper_returns_20250305_for_older_opus(self):
+        from metacouplingllm.knowledge.websearch import (
+            _infer_web_search_tool_version,
+        )
+        assert _infer_web_search_tool_version("claude-opus-4-5") == (
+            "web_search_20250305"
+        )
 
-    def test_auto_selects_20250305_for_older_sonnet(self):
-        client, captured = self._capturing_client()
-        AnthropicWebSearchBackend(client=client, model="claude-sonnet-4-5").search("x")
-        assert captured["tools"][0]["type"] == "web_search_20250305"
+    def test_helper_returns_20250305_for_older_sonnet(self):
+        from metacouplingllm.knowledge.websearch import (
+            _infer_web_search_tool_version,
+        )
+        assert _infer_web_search_tool_version("claude-sonnet-4-5") == (
+            "web_search_20250305"
+        )
 
-    def test_auto_selects_20250305_for_haiku(self):
-        client, captured = self._capturing_client()
-        AnthropicWebSearchBackend(client=client, model="claude-haiku-4-5").search("x")
-        assert captured["tools"][0]["type"] == "web_search_20250305"
+    def test_helper_returns_20250305_for_haiku(self):
+        from metacouplingllm.knowledge.websearch import (
+            _infer_web_search_tool_version,
+        )
+        assert _infer_web_search_tool_version("claude-haiku-4-5") == (
+            "web_search_20250305"
+        )
 
-    def test_unknown_model_defaults_to_newer_version(self):
+    def test_helper_unknown_model_returns_newer_version(self):
         """Forward-compat: unknown model IDs get the newer tool version."""
+        from metacouplingllm.knowledge.websearch import (
+            _infer_web_search_tool_version,
+        )
+        assert _infer_web_search_tool_version(
+            "claude-opus-5-0-hypothetical"
+        ) == "web_search_20260209"
+
+    def test_backend_default_path_skips_helper_uses_basic(self):
+        """PR #28 final design: even on Sonnet 4.6 (which the helper
+        would map to 20260209), the BACKEND default uses basic
+        web_search_20250305.  This is the production-path
+        invariant -- callers who want dynamic filtering must opt in
+        explicitly via tool_version=..."""
         client, captured = self._capturing_client()
         AnthropicWebSearchBackend(
-            client=client, model="claude-opus-5-0-hypothetical",
+            client=client, model="claude-sonnet-4-6",
         ).search("x")
-        assert captured["tools"][0]["type"] == "web_search_20260209"
+        assert captured["tools"][0]["type"] == "web_search_20250305"
 
     def test_explicit_tool_version_overrides_auto(self):
         """Explicit tool_version wins over the model-based lookup."""
