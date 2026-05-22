@@ -7,7 +7,93 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
-### Changed
+### Fixed
+
+- **Defensive renderer fix for fragmented parser output in
+  Markdown / Word exports.**  Scholar opened the PR #32 live
+  trace docx and the structure of §2.2 Flows and §2.4 Causes /
+  §2.5 Effects was unreadable.  Root cause turned out to be in
+  `llm/parser.py` (not the renderer):
+
+  - **Flows fragmented into 3 entries per logical flow** — the
+    LLM emits each flow as a 3-line block (category header,
+    direction, description) but the parser stored each line as
+    its own dict.  PR #32's per-category grouping then put the
+    orphan "Matter flow" / "Capital flow" placeholders in
+    canonical groups (1 item each) and dumped all 12 real
+    flow descriptions into a §2.2.7 Unspecified mega-list.
+  - **Causes / Effects collapsed under one "General" key** —
+    the LLM emits a 2-level hierarchy (`General: → Economic
+    → Strong U.S. demand...`) but the parser flattened to
+    `{"General": ["Economic", "Strong U.S. demand...", ...]}`,
+    losing the nested structure.  The real category names
+    (Economic, Political / Institutional, Hydrological, …)
+    ended up as siblings of the actual cause prose.
+
+  Per the parser-fix-deferred decision, PR #33 ships a
+  **defensive renderer fix** (workarounds in
+  `output/export.py::_build_sections`) so scholars get a
+  usable docx today.  PR #34 will fix the parser properly,
+  at which point these helpers become no-ops and can be
+  removed.  Both helpers are **idempotent**: clean parser
+  output passes through unchanged.
+
+  Two new helpers in `src/metacouplingllm/output/export.py`:
+
+  1. **`_merge_fragmented_flows(flows)`** — walks the flows
+     list and stitches header-direction-description triples
+     back into single logical flow dicts.  A flow is a
+     "header" when its category is in
+     `_CANONICAL_FLOW_CATEGORY_ORDER` AND it has no real
+     direction OR its description matches the
+     `"{Category} flow"` placeholder.  Subsequent
+     unspecified-category flows get their direction +
+     description merged into the current header until the
+     next canonical header.
+  2. **`_split_collapsed_causes_effects(items_dict)`** —
+     detects the single-key dict pattern (commonly
+     `"General"`) and splits items by inline Liu framework
+     category names sourced from `prompts/templates.py`
+     (Economic, Political / Institutional, Ecological /
+     Biological, Technological / Infrastructural, Cultural /
+     Social / Demographic, Hydrological, Climatic /
+     Atmospheric, Geological / Geomorphological).  Safety
+     belt: requires ≥2 inline category names to trigger, so a
+     legitimate single-category dict that happens to contain
+     one Liu category word passes through unchanged.
+
+  Also fixed two smaller render-side issues spotted during the
+  same scholar review:
+
+  - **§1 Coupling Classification in docx** now renders as
+    List Bullet paragraphs when the LLM emits `- Intracoupling
+    ... \n- Pericoupling ... \n- Telecoupling ...` (was one
+    Normal-paragraph block in docx).  Markdown was already
+    fine.
+  - **§N.1 Systems role lines** (`Focal: ...`, `Sending: ...`,
+    `Receiving: ...`) promoted to Heading 3 subsections
+    (§N.1.K), parallel to the §N.2.K Flows / §N.4.K Causes
+    treatment.  Each system now shows up in Word's navigation
+    pane.
+
+  15 new tests in `tests/test_output.py`:
+  - `TestMergeFragmentedFlows` (5 cases): 3-entry merge, multi-
+    category merge, idempotence on clean input, empty input,
+    orphan sub-flow without header
+  - `TestSplitCollapsedCausesEffects` (4 cases): General →
+    real-categories split, idempotence on multi-key input,
+    safety belt when <2 inline categories, empty input
+  - `TestBrokenParserResultRendering` (4 cases): end-to-end
+    Markdown rendering against a new `broken_parser_result`
+    fixture modeling the real Mexico avocado trace's parser
+    output — verifies the symptoms the scholar reported are
+    gone (real flow content under each canonical category, no
+    placeholder-only items, no §2.2.7 Unspecified mega-list,
+    Causes split into real categories)
+  - `TestDocxClassificationBullets` (2 cases): docx multi-
+    bullet split + single-paragraph fallback
+
+  Verified end-to-end via live OpenAI GPT-5 retrace.
 
 - **Polish rendering of Markdown / Word exports for scholar
   review.**  After PR #31 shipped the export feature, scholar

@@ -65,12 +65,23 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
     def _section_to_dict(section: Any) -> dict[str, Any] | None:
         if section is None or getattr(section, "is_empty", True):
             return None
+        raw_section_flows = list(getattr(section, "flows", []) or [])
+        # PR #33: each CouplingSection's flows also benefit from the
+        # fragment-merge pass (the renderer's _md_coupling_section
+        # reads section["flows"] directly when rendering per-coupling
+        # §N.2 Flows subsections).
         return {
             "systems": list(getattr(section, "systems", []) or []),
-            "flows": list(getattr(section, "flows", []) or []),
+            "flows": _merge_fragmented_flows(raw_section_flows),
             "agents": list(getattr(section, "agents", []) or []),
-            "causes": dict(getattr(section, "causes", {}) or {}),
-            "effects": dict(getattr(section, "effects", {}) or {}),
+            # PR #33: detect the parser's "everything-under-General"
+            # pattern and split into real Liu framework categories.
+            "causes": _split_collapsed_causes_effects(
+                dict(getattr(section, "causes", {}) or {})
+            ),
+            "effects": _split_collapsed_causes_effects(
+                dict(getattr(section, "effects", {}) or {})
+            ),
         }
 
     # Flows table: prefer Stage-3 structured map_data; fall back to
@@ -91,9 +102,11 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
                     "description": str(flow.get("description", "")).strip(),
                 })
     if not flows:
-        # Fallback: walk the parsed CouplingSection prose flows.  These
-        # don't have ISO codes, just direction strings, but at least
-        # something renders in the table.
+        # Fallback: walk the parsed CouplingSection prose flows.
+        # PR #33: keep direction and description as SEPARATE fields
+        # so _merge_fragmented_flows can recognise the LLM's 3-entry
+        # header / direction / description pattern.  The merge runs
+        # AFTER this transformation; clean inputs pass through.
         for section_name in ("intracoupling", "pericoupling", "telecoupling"):
             section = getattr(parsed, section_name, None)
             if section is None:
@@ -106,13 +119,12 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
                     "source": "",
                     "target": "",
                     "bidirectional": False,
-                    "description": str(flow.get("direction", "")).strip()
-                    + (
-                        (" — " + str(flow.get("description", "")).strip())
-                        if flow.get("description")
-                        else ""
-                    ),
+                    "direction": str(flow.get("direction", "")).strip(),
+                    "description": str(flow.get("description", "")).strip(),
                 })
+        # PR #33: stitch fragmented flows back into single logical
+        # flow dicts before they reach the renderer.
+        flows = _merge_fragmented_flows(flows)
 
     # Web sources: pull from result.web_map_signals or the assistant's
     # _last_web_results if surfaced.  Use the raw evidence list when
@@ -239,6 +251,163 @@ _CANONICAL_FLOW_CATEGORY_ORDER: tuple[str, ...] = (
 )
 
 
+# PR #33: defensive helpers for fragmented parser output.
+#
+# Background: ``llm/parser.py`` mis-handles two LLM-emitted shapes:
+#
+# (A) FLOWS: each logical flow becomes 3 separate flow dicts -- a
+#     category header (e.g., ``{"category": "matter", "direction":
+#     "Unspecified", "description": "Matter flow"}``), then a
+#     direction line (``{"category": "unspecified", "direction":
+#     "Orchards -> Packinghouses", "description": ""}``), then a
+#     description line (``{"category": "unspecified", "direction":
+#     "Unspecified", "description": "Harvested Hass avocados..."}``).
+#     ``_merge_fragmented_flows`` stitches the three back into one.
+#
+# (B) CAUSES / EFFECTS: the LLM emits ``General:\n  - Economic\n  -
+#     Strong demand...\n  - Political / Institutional\n  -
+#     Phytosanitary...`` but the parser flattens to
+#     ``{"General": ["Economic", "Strong demand...", "Political /
+#     Institutional", "Phytosanitary...", ...]}`` -- category names
+#     end up as siblings of the actual cause prose under one bogus
+#     "General" key.  ``_split_collapsed_causes_effects`` detects
+#     the inline category names and rebuilds the real per-category
+#     buckets.
+#
+# Both helpers are idempotent: clean parser output passes through
+# unchanged.  When PR #34 fixes the parser, these helpers become
+# no-ops and can be removed without behaviour change.
+
+# Canonical Liu 2017 framework cause/effect category names.  Sourced
+# from ``prompts/templates.py:121-129``; duplicated here to avoid
+# coupling the presentation layer to prompt strings.  Lowercased
+# for case-insensitive matching against parser output.
+_LIU_CAUSE_EFFECT_CATEGORIES: frozenset[str] = frozenset({
+    "economic",
+    "political / institutional",
+    "ecological / biological",
+    "technological / infrastructural",
+    "cultural / social / demographic",
+    "hydrological",
+    "climatic / atmospheric",
+    "geological / geomorphological",
+})
+
+
+def _merge_fragmented_flows(
+    flows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """PR #33: stitch the parser's 3-entry fragmented-flow pattern
+    back into single logical flow dicts.
+
+    Idempotent: a flow with a canonical category AND a real
+    direction (anything other than empty / "Unspecified") AND a
+    description that isn't the "{Category} flow" placeholder passes
+    through unchanged because ``is_header`` returns False.
+    """
+    if not flows:
+        return flows
+
+    merged: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+
+    for flow in flows:
+        category = str(flow.get("category", "")).lower().strip()
+        direction = str(flow.get("direction", "")).strip()
+        description = str(flow.get("description", "")).strip()
+        # Header marker: canonical category + no real direction OR
+        # description equals "{Category} flow" (the LLM's placeholder).
+        is_header = (
+            category in _CANONICAL_FLOW_CATEGORY_ORDER
+            and (
+                direction in ("", "Unspecified")
+                or description.lower() == f"{category} flow"
+            )
+        )
+        if is_header:
+            if current is not None:
+                merged.append(current)
+            current = {
+                "category": category,
+                "source": flow.get("source", ""),
+                "target": flow.get("target", ""),
+                "bidirectional": flow.get("bidirectional", False),
+                "direction": "",
+                "description": "",
+            }
+            continue
+        # Sub-flow under the current header: merge in direction +
+        # description.  Skip the literal "Unspecified" placeholder.
+        if category in ("", "unspecified") and current is not None:
+            if direction and direction != "Unspecified":
+                current["direction"] = (
+                    direction
+                    if not current["direction"]
+                    else current["direction"] + " | " + direction
+                )
+            if description and description != "Unspecified":
+                current["description"] = (
+                    description
+                    if not current["description"]
+                    else current["description"] + " " + description
+                )
+            continue
+        # Anything else (non-canonical category, or canonical
+        # category with already-complete shape) passes through.
+        if current is not None:
+            merged.append(current)
+            current = None
+        merged.append(flow)
+
+    if current is not None:
+        merged.append(current)
+    return merged
+
+
+def _split_collapsed_causes_effects(
+    items_dict: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    """PR #33: detect the parser's flatten-everything-under-General
+    pattern and split items by inline Liu framework category names.
+
+    Triggers on a single-key dict whose items contain >=2 known
+    category names (Economic, Political / Institutional, ...).  The
+    category names act as section dividers; items between them
+    belong to that category.
+
+    Idempotent: multi-key input passes through unchanged.
+    """
+    if not items_dict or len(items_dict) > 1:
+        return items_dict
+    only_key = next(iter(items_dict))
+    items = items_dict.get(only_key) or []
+    inline_count = sum(
+        1
+        for item in items
+        if str(item).strip().lower() in _LIU_CAUSE_EFFECT_CATEGORIES
+    )
+    # Safety belt: require >=2 inline category names so the heuristic
+    # doesn't mis-fire on legitimate single-category content that
+    # happens to contain one Liu category word.
+    if inline_count < 2:
+        return items_dict
+
+    split: dict[str, list[str]] = {}
+    current_bucket = only_key  # fallback for items before the first category
+    for item in items:
+        text = str(item).strip()
+        if text.lower() in _LIU_CAUSE_EFFECT_CATEGORIES:
+            current_bucket = text  # preserve LLM's display casing
+            split.setdefault(current_bucket, [])
+        else:
+            split.setdefault(current_bucket, []).append(text)
+    # Drop the fallback "General"-style bucket when it has no items
+    # (everything was split out into real categories).
+    if not split.get(only_key):
+        split.pop(only_key, None)
+    return split or items_dict
+
+
 def _group_flows_by_category(
     flows: list[dict[str, Any]],
 ) -> list[tuple[str, list[dict[str, Any]]]]:
@@ -298,10 +467,19 @@ def _md_coupling_section(
 
     if section["systems"]:
         parts.append(f"### {number}.1 Systems")
-        for entry in section["systems"]:
+        parts.append("")
+        # PR #33: promote the role line to a §N.1.K subheading
+        # (parallel to §N.2.K Flows / §N.4.K Causes treatment) so
+        # each system is visually distinct.
+        for sys_idx, entry in enumerate(section["systems"], 1):
             role = str(entry.get("role", "system")).title()
             name = str(entry.get("name", "")).strip()
-            parts.append(f"- **{role}**" + (f": {name}" if name else ""))
+            heading = (
+                f"#### {number}.1.{sys_idx} {role}: {name}"
+                if name
+                else f"#### {number}.1.{sys_idx} {role}"
+            )
+            parts.append(heading)
             for key in (
                 "human_subsystem", "natural_subsystem",
                 "geographic_scope", "description",
@@ -310,8 +488,8 @@ def _md_coupling_section(
                 if val:
                     label = key.replace("_", " ").capitalize()
                     # PR #32: bold (was italic).
-                    parts.append(f"  - **{label}**: {val}")
-        parts.append("")
+                    parts.append(f"- **{label}**: {val}")
+            parts.append("")
 
     if section["flows"]:
         parts.append(f"### {number}.2 Flows")
@@ -557,7 +735,26 @@ def render_docx(
     # §1 Classification
     if s["coupling_classification"]:
         doc.add_heading("1. Coupling Classification", level=1)
-        doc.add_paragraph(s["coupling_classification"])
+        # PR #33: detect multi-bullet classifications ("- Intracoupling
+        # ...\n- Pericoupling ...\n- Telecoupling ...") and render each
+        # as its own List Bullet paragraph instead of one giant block.
+        cls_text = s["coupling_classification"]
+        lines = [ln for ln in cls_text.splitlines() if ln.strip()]
+        is_bulleted = (
+            len(lines) >= 2
+            and sum(1 for ln in lines if ln.lstrip().startswith("- ")) >= 2
+        )
+        if is_bulleted:
+            for ln in lines:
+                stripped = ln.lstrip()
+                if stripped.startswith("- "):
+                    doc.add_paragraph(stripped[2:], style="List Bullet")
+                else:
+                    # Non-bullet line within the block: keep as plain
+                    # paragraph (rare; preserves whatever the LLM emitted).
+                    doc.add_paragraph(stripped)
+        else:
+            doc.add_paragraph(cls_text)
 
     # §2-§4 Coupling sections
     for number, title, section in (
@@ -570,14 +767,21 @@ def render_docx(
         doc.add_heading(f"{number}. {title}", level=1)
         if section["systems"]:
             doc.add_heading(f"{number}.1 Systems", level=2)
-            for entry in section["systems"]:
+            for sys_idx, entry in enumerate(section["systems"], 1):
                 role = str(entry.get("role", "system")).title()
                 name = str(entry.get("name", "")).strip()
-                p = doc.add_paragraph()
-                run = p.add_run(role)
-                run.bold = True
-                if name:
-                    p.add_run(f": {name}")
+                # PR #33: promote the system role line ("Focal: ...",
+                # "Sending: ...", "Receiving: ...") to Heading 3 so each
+                # system shows up in Word's navigation pane and visually
+                # nests under §N.1 Systems instead of reading as a flat
+                # paragraph.  Number them §N.1.K to match the §N.2.K
+                # Flows / §N.4.K Causes pattern.
+                heading_text = (
+                    f"{number}.1.{sys_idx} {role}: {name}"
+                    if name
+                    else f"{number}.1.{sys_idx} {role}"
+                )
+                doc.add_heading(heading_text, level=3)
                 for key in (
                     "human_subsystem", "natural_subsystem",
                     "geographic_scope", "description",
