@@ -27,6 +27,25 @@ from ._helpers import make_parsed_analysis
 # ---------------------------------------------------------------------------
 
 
+def _fake_rag_hit(
+    title: str, authors: str, year: int, section: str, text: str, score: float,
+):
+    """Build a fake RetrievalResult-shaped object for tests without
+    importing the real class (keeps test isolated from RAG internals)."""
+    from types import SimpleNamespace
+
+    chunk = SimpleNamespace(
+        paper_key=title.lower().replace(" ", "_"),
+        paper_title=title,
+        authors=authors,
+        year=year,
+        section=section,
+        text=text,
+        chunk_index=0,
+    )
+    return SimpleNamespace(chunk=chunk, score=score)
+
+
 @pytest.fixture
 def minimal_result() -> AnalysisResult:
     """An AnalysisResult with just enough content for the renderers."""
@@ -113,6 +132,35 @@ def minimal_result() -> AnalysisResult:
             "url": "https://usda.gov/avocado-imports",
             "model_summary": "USDA records the breakdown by destination state.",
         },
+    ]
+    # PR #31 follow-up: RAG hits attached the same way.  Real pipeline
+    # attaches result._rag_hits_for_export = list(self._last_rag_hits).
+    result._rag_hits_for_export = [
+        _fake_rag_hit(
+            title="Mexico's avocado industry and global trade",
+            authors="Garcia, M. and Hernandez, L.",
+            year=2023,
+            section="DISCUSSION",
+            text=(
+                "Jalisco's accession to the USDA Systems Approach in 2022 "
+                "represents a structural shift in the bi-national avocado "
+                "supply chain, with cold-chain logistics concentrated at "
+                "the Laredo, TX corridor."
+            ),
+            score=0.82,
+        ),
+        _fake_rag_hit(
+            title="Telecoupled agricultural systems",
+            authors="Liu, J. et al.",
+            year=2013,
+            section="INTRODUCTION",
+            text=(
+                "Telecoupling links distant systems through flows of "
+                "matter, capital, information, energy, people, and "
+                "organisms."
+            ),
+            score=0.74,
+        ),
     ]
     return result
 
@@ -212,6 +260,34 @@ class TestBuildSections:
         assert s["telecoupling"] is None
         assert s["flows"] == []
         assert s["web_sources"] == []
+        assert s["rag_hits"] == []
+
+    # PR #31 follow-up: RAG hits in the sections dict.
+
+    def test_pulls_rag_hits_with_turn_scoped_ids(self, minimal_result):
+        s = _build_sections(minimal_result)
+        assert len(s["rag_hits"]) == 2
+        # IDs follow the turn-scoped citation grammar [T<turn>:<idx>]
+        # matching the inline citations in result.formatted.
+        assert s["rag_hits"][0]["id"] == "T1:1"
+        assert s["rag_hits"][1]["id"] == "T1:2"
+        assert s["rag_hits"][0]["paper_title"].startswith("Mexico's avocado")
+        assert s["rag_hits"][0]["year"] == "2023"
+        assert s["rag_hits"][0]["score"] == pytest.approx(0.82)
+
+    def test_rag_text_truncated_at_600_chars(self):
+        long_text = "X" * 1200
+        result = AnalysisResult(
+            parsed=ParsedAnalysis(),
+            formatted="", raw="", turn_number=1,
+        )
+        result._rag_hits_for_export = [
+            _fake_rag_hit("T", "A", 2024, "S", long_text, 0.9),
+        ]
+        s = _build_sections(result)
+        # Truncation cap is 600 chars + "..." suffix.
+        assert len(s["rag_hits"][0]["text"]) <= 603
+        assert s["rag_hits"][0]["text"].endswith("...")
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +367,32 @@ class TestRenderMarkdown:
         md_direct = render_markdown(minimal_result)
         md_method = minimal_result.to_markdown()
         assert md_direct == md_method
+
+    # PR #31 follow-up: Evidence from Literature rendering.
+
+    def test_includes_rag_evidence_section_when_hits_present(
+        self, minimal_result,
+    ):
+        md = render_markdown(minimal_result)
+        assert "## Evidence from Literature" in md
+        # Each hit gets its own ### heading with the turn-scoped ID.
+        assert "### [T1:1]" in md
+        assert "### [T1:2]" in md
+        # Paper title visible.
+        assert "Mexico's avocado industry and global trade" in md
+        # Author/year line.
+        assert "Garcia, M. and Hernandez, L." in md
+        assert "2023" in md
+        # Excerpt rendered as a blockquote (> prefix).
+        assert "> Jalisco's accession" in md
+
+    def test_skips_rag_section_when_no_hits(self):
+        result = AnalysisResult(
+            parsed=ParsedAnalysis(),
+            formatted="", raw="", turn_number=1,
+        )
+        md = render_markdown(result)
+        assert "## Evidence from Literature" not in md
 
 
 # ---------------------------------------------------------------------------
@@ -374,3 +476,31 @@ class TestRenderDocx:
         path = minimal_result.to_docx(out)
         assert path == out
         assert out.exists()
+
+    # PR #31 follow-up: RAG evidence rendering in docx.
+
+    def test_contains_rag_evidence_headings(self, minimal_result, tmp_path):
+        from docx import Document
+
+        out = tmp_path / "rag.docx"
+        render_docx(minimal_result, path=out)
+        doc = Document(str(out))
+        headings = [
+            p.text for p in doc.paragraphs
+            if p.style.name.startswith("Heading")
+        ]
+        # Section heading + per-hit subheading.
+        assert any("Evidence from Literature" in h for h in headings)
+        assert any("[T1:1]" in h for h in headings)
+        assert any("Mexico's avocado industry" in h for h in headings)
+
+    def test_rag_excerpt_text_present_in_docx(self, minimal_result, tmp_path):
+        from docx import Document
+
+        out = tmp_path / "rag_text.docx"
+        render_docx(minimal_result, path=out)
+        doc = Document(str(out))
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Jalisco's accession" in all_text
+        # Author/year line rendered.
+        assert "Garcia, M. and Hernandez, L." in all_text

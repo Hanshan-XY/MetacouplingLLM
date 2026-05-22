@@ -61,6 +61,20 @@ file. The format is loosely based on
   `result._web_sources_for_export` attribute that `_build_result()`
   attaches when the pipeline ran web search.
 
+  The exporters also render a **"Evidence from Literature"** section
+  when the pipeline ran with an RAG engine in `pre_retrieval` mode:
+  `_build_result()` attaches `result._rag_hits_for_export` (a list
+  of `RetrievalResult` objects) the same way it attaches the web
+  sources.  Markdown renders one `### [Tk:N]` subheading per hit
+  with the paper title, an italic author / year line, the section
+  heading, and the excerpt as a blockquote.  Word renders the same
+  shape with Heading 2 + italic citation + Quote-style paragraph.
+  Excerpts truncated at 600 chars for readability.  Known
+  limitation: `post_hoc` RAG mode retrieves AFTER the LLM call and
+  writes evidence directly to `formatted` without keeping the hits
+  in an attribute, so post_hoc exports won't show the RAG section
+  today.
+
   **Out of scope per the PR scope discussion** -- deliberately
   deferred to keep the change small:
   - Map auto-caption generation
@@ -73,13 +87,18 @@ file. The format is loosely based on
   - Promoting the internal `_build_sections` to a public API
 
   Verified end-to-end via live OpenAI GPT-5 trace on a Mexico
-  avocado exports query (`scripts/test_pr31_export.py`).
+  avocado exports query with the existing Papers/ corpus
+  (262 markdown files indexed, 8 RAG passages retrieved per turn);
+  the resulting docx surfaces both Web Sources and Evidence from
+  Literature sections with proper headings and excerpts.
 
-  26 new tests in `tests/test_output.py` (`TestAbstractField`,
+  32 new tests in `tests/test_output.py` (`TestAbstractField`,
   `TestBuildSections`, `TestRenderMarkdown`, `TestRenderDocx`)
   covering field defaults, section extraction, table rendering,
-  file write, method delegation, and headings / tables in the
-  produced Word document.  Tests for the docx path skip
+  file write, method delegation, headings / tables in the
+  produced Word document, RAG hit shape (turn-scoped IDs, 600-char
+  excerpt cap), and the new "Evidence from Literature" section in
+  both Markdown and docx outputs.  Tests for the docx path skip
   automatically when `python-docx` isn't installed.
 
 - **Stage-1 strict-output dispatch for Gemini and Grok in

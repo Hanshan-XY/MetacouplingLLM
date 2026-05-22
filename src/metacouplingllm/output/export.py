@@ -144,6 +144,34 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
         if isinstance(fc, str) and fc.strip():
             focal_country = fc.strip()
 
+    # PR #31: RAG retrieval hits.  Populated by ``_build_result()``
+    # when the pipeline ran with an RAG engine in pre_retrieval mode.
+    # Each entry becomes a row in the "Evidence from Literature"
+    # section.  Empty when the run had no RAG engine or post_hoc
+    # mode (which doesn't attach hits to the result).
+    rag_hits: list[dict[str, Any]] = []
+    raw_rag = getattr(result, "_rag_hits_for_export", None)
+    if isinstance(raw_rag, list):
+        for idx, hit in enumerate(raw_rag, 1):
+            chunk = getattr(hit, "chunk", None)
+            if chunk is None:
+                continue
+            # Use the existing display-path excerpt cap (~300 chars)
+            # so the docx / markdown shows what scholars see in the
+            # text formatter, not the full chunk.
+            text = str(getattr(chunk, "text", "")).strip()
+            if len(text) > 600:
+                text = text[:600].rstrip() + "..."
+            rag_hits.append({
+                "id": f"T{result.turn_number}:{idx}",
+                "paper_title": str(getattr(chunk, "paper_title", "")).strip(),
+                "authors": str(getattr(chunk, "authors", "")).strip(),
+                "year": str(getattr(chunk, "year", "") or "").strip(),
+                "section": str(getattr(chunk, "section", "")).strip(),
+                "score": float(getattr(hit, "score", 0.0) or 0.0),
+                "text": text,
+            })
+
     # Topic heuristic: first 80 chars of coupling_classification, or
     # fallback to a generic label.  Used only in the document title.
     topic = ""
@@ -176,6 +204,7 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
         ),
         "flows": flows,
         "web_sources": web_sources,
+        "rag_hits": rag_hits,
         "focal_country": focal_country,
         "topic": topic,
     }
@@ -325,6 +354,30 @@ def render_markdown(
             desc = desc.replace("|", "\\|")
             parts.append(f"| {cat} | {src} | {tgt} | {bi} | {desc} |")
         parts.append("")
+
+    # Evidence from Literature (RAG passages, when present)
+    if s["rag_hits"]:
+        parts.append("## Evidence from Literature")
+        parts.append("")
+        for hit in s["rag_hits"]:
+            title = hit["paper_title"] or "(untitled paper)"
+            citation_bits: list[str] = []
+            if hit["authors"]:
+                citation_bits.append(hit["authors"])
+            if hit["year"]:
+                citation_bits.append(str(hit["year"]))
+            citation = ", ".join(citation_bits)
+            parts.append(f"### [{hit['id']}] {title}")
+            if citation:
+                parts.append(f"*{citation}*")
+            if hit["section"]:
+                parts.append(f"Section: {hit['section']}")
+            if hit["text"]:
+                parts.append("")
+                # Use blockquote so excerpts stand out from prose.
+                for line in hit["text"].splitlines():
+                    parts.append(f"> {line}")
+            parts.append("")
 
     # Web sources
     if s["web_sources"]:
@@ -508,6 +561,35 @@ def render_docx(
             row[2].text = flow["target"] or "—"
             row[3].text = "Yes" if flow["bidirectional"] else "No"
             row[4].text = flow["description"] or ""
+
+    # Evidence from Literature (RAG passages, when present).  Rendered
+    # before the Web Sources table so the document flows
+    # literature → web → map, matching scholar expectations.
+    if s["rag_hits"]:
+        doc.add_heading("Evidence from Literature", level=1)
+        for hit in s["rag_hits"]:
+            title = hit["paper_title"] or "(untitled paper)"
+            doc.add_heading(f"[{hit['id']}] {title}", level=2)
+            # Author / year line in italics.
+            citation_bits: list[str] = []
+            if hit["authors"]:
+                citation_bits.append(hit["authors"])
+            if hit["year"]:
+                citation_bits.append(str(hit["year"]))
+            if citation_bits:
+                p = doc.add_paragraph()
+                run = p.add_run(", ".join(citation_bits))
+                run.italic = True
+            if hit["section"]:
+                doc.add_paragraph(f"Section: {hit['section']}")
+            if hit["text"]:
+                # Use the Quote style so the excerpt visually
+                # separates from prose; falls back to a regular
+                # paragraph on templates without Quote.
+                try:
+                    doc.add_paragraph(hit["text"], style="Quote")
+                except KeyError:
+                    doc.add_paragraph(hit["text"])
 
     # Web sources table
     if s["web_sources"]:

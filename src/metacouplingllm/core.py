@@ -4934,6 +4934,18 @@ class MetacouplingAssistant:
         # is not necessary") -- exposed via the rendered exports.
         if self._last_web_results:
             result._web_sources_for_export = list(self._last_web_results)
+        # PR #31: attach RAG retrieval hits the same way so the
+        # exporters can render an "Evidence from Literature" section
+        # mirroring the existing ``format_evidence`` text block.
+        # ``_last_rag_hits`` is populated in pre_retrieval mode (set
+        # at analyze() / refine() time and reused across the result
+        # assembly).  The post_hoc legacy mode re-retrieves AFTER
+        # the LLM call inside ``_build_result`` and writes the
+        # evidence block directly to ``formatted`` without keeping
+        # the hits in an attribute -- so post_hoc exports will not
+        # show RAG evidence today.  Documented as a known limitation.
+        if self._last_rag_hits:
+            result._rag_hits_for_export = list(self._last_rag_hits)
         return result
 
     def _generate_abstract(self, formatted_analysis: str) -> str:
