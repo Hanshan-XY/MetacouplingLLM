@@ -9,6 +9,82 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **Parser-level fix for fragmented LLM output patterns.**  PR #33
+  shipped a defensive renderer-side workaround for two real bugs in
+  `llm/parser.py` that left scholar docx exports unreadable.  PR #34
+  fixes the parser itself so the broken intermediate shape never
+  reaches the export layer.  PR #33's defensive helpers
+  (`_merge_fragmented_flows`, `_split_collapsed_causes_effects`)
+  become idempotent no-ops on the now-clean parser output and can
+  be removed in a follow-up cleanup PR.
+
+  **Two coordinated changes in `src/metacouplingllm/llm/parser.py`:**
+
+  1. **New `_merge_fragmented_flow_entries()` helper** runs as a
+     post-processing pass at the end of `_parse_flows()`.  The LLM
+     sometimes emits each logical flow as 3 lines wrapped in
+     top-level bullets:
+
+     ```
+     - Matter Flow
+       - Direction: Orchards -> Packinghouses
+       - Description: Avocados moved locally [T1:W3].
+     ```
+
+     Without the merge, the parser produced 3 separate flow dicts
+     per logical flow (one header with `{category: matter,
+     description: "Matter Flow"}`, then direction-only and
+     description-only dicts with no category).  The merge
+     recognises canonical-category header dicts (description
+     matches the `"{Category} Flow"` placeholder OR no direction
+     at all) and merges subsequent uncategorised entries into them
+     until the next canonical header.  Idempotent: well-formed
+     flows pass through unchanged.
+
+  2. **`_extract_categorized_bullets()` now recognises plain-text
+     category names** as section dividers, not just bold headings.
+     The LLM sometimes emits unbold category names:
+
+     ```
+     General:
+     - Economic
+     - Strong U.S. demand and price incentives.
+     - Political / Institutional
+     - Phytosanitary requirements from SENASICA.
+     - Hydrological
+     - Local water availability conditioning yields.
+     ```
+
+     Previously the parser collapsed every cause/effect under one
+     `"general"` key, with real category names ending up as
+     siblings of the actual content under that key.  Now a bullet
+     whose entire text matches a known Liu framework category name
+     (looked up via the existing `_CAUSE_EFFECT_CATEGORY_ALIASES`
+     table — including short forms like "Political" or "Cultural")
+     is treated as a section divider, splitting subsequent items
+     into proper per-category buckets.  Existing bold-heading
+     format is unchanged.
+
+  Both fixes are **strictly additive**: existing parser tests
+  (53 cases across `TestMultilineFlows`, `TestNumberedFlows`,
+  `TestNestedSystems`, `TestParseAnalysis`, `TestParsedAnalysis`,
+  `TestGPT51SystemParsing`) all pass without modification.
+
+  9 new tests in `tests/test_parser.py`:
+  - `TestParseFragmentedFlows` (4): fragmented-block merge into one
+    flow per logical entry, idempotence on clean input, orphan
+    sub-entry without header, empty input
+  - `TestParseUnboldCauseEffectCategories` (5): plain-text category
+    split into real buckets, bold-heading backward compatibility,
+    short-form alias normalisation ("Political" → "political /
+    institutional"), non-category bullets stay as content items,
+    fallback "general" bucket kept when no inline categories
+
+  **Local: 62/62 parser tests pass** (53 prior + 9 new).
+
+  See PR #33 for the original scholar-review issue and the
+  defensive renderer-side workaround.
+
 - **Defensive renderer fix for fragmented parser output in
   Markdown / Word exports.**  Scholar opened the PR #32 live
   trace docx and the structure of §2.2 Flows and §2.4 Causes /
@@ -94,6 +170,8 @@ file. The format is loosely based on
     bullet split + single-paragraph fallback
 
   Verified end-to-end via live OpenAI GPT-5 retrace.
+
+### Changed
 
 - **Polish rendering of Markdown / Word exports for scholar
   review.**  After PR #31 shipped the export feature, scholar
