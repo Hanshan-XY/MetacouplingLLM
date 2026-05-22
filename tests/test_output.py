@@ -15,6 +15,8 @@ from metacouplingllm.core import AnalysisResult
 from metacouplingllm.llm.parser import ParsedAnalysis
 from metacouplingllm.output.export import (
     _build_sections,
+    _merge_fragmented_flows,
+    _split_collapsed_causes_effects,
     render_docx,
     render_markdown,
 )
@@ -746,4 +748,318 @@ class TestRenderDocx:
         ]
         assert any(
             "Rising US demand for avocados." in t for t in bullet_texts
+        )
+
+
+# ---------------------------------------------------------------------------
+# PR #33: defensive helpers for fragmented parser output.
+# ---------------------------------------------------------------------------
+
+
+class TestMergeFragmentedFlows:
+    """``_merge_fragmented_flows`` stitches the parser's 3-entry
+    header / direction / description pattern back into single flow
+    dicts.  Modelled on the real Mexico avocado trace at
+    runs/pr31_export_2026-05-22_105728/formatted.txt lines 23-52."""
+
+    def test_merges_3entry_pattern_into_single_flow(self):
+        # Pattern observed in the live trace:
+        #   Header (canonical category, direction="Unspecified",
+        #           description="Matter flow")
+        #   Direction-only (category="unspecified", direction="X→Y",
+        #                   description="")
+        #   Description-only (category="unspecified",
+        #                     direction="Unspecified",
+        #                     description="actual prose...")
+        fragmented = [
+            {"category": "matter", "direction": "Unspecified",
+             "description": "Matter flow"},
+            {"category": "unspecified",
+             "direction": "Orchards → Packinghouses (within Jalisco)",
+             "description": ""},
+            {"category": "unspecified", "direction": "Unspecified",
+             "description": "Harvested Hass avocados moved locally."},
+        ]
+        merged = _merge_fragmented_flows(fragmented)
+        assert len(merged) == 1
+        assert merged[0]["category"] == "matter"
+        assert merged[0]["direction"] == (
+            "Orchards → Packinghouses (within Jalisco)"
+        )
+        assert "Harvested Hass avocados" in merged[0]["description"]
+
+    def test_merges_multiple_categories_independently(self):
+        """Matter and Capital each have their own 3-entry block;
+        merge produces 2 final flows in canonical order."""
+        fragmented = [
+            {"category": "matter", "direction": "Unspecified",
+             "description": "Matter flow"},
+            {"category": "unspecified", "direction": "A → B",
+             "description": ""},
+            {"category": "capital", "direction": "Unspecified",
+             "description": "Capital flow"},
+            {"category": "unspecified", "direction": "B → A",
+             "description": "Payments"},
+        ]
+        merged = _merge_fragmented_flows(fragmented)
+        assert len(merged) == 2
+        assert merged[0]["category"] == "matter"
+        assert merged[0]["direction"] == "A → B"
+        assert merged[1]["category"] == "capital"
+        assert merged[1]["direction"] == "B → A"
+        assert merged[1]["description"] == "Payments"
+
+    def test_idempotent_on_clean_flows(self):
+        """Clean flows (canonical category + real direction +
+        non-placeholder description) pass through unchanged."""
+        clean = [
+            {"category": "matter", "direction": "Mexico → USA",
+             "description": "Fresh avocados", "source": "MEX",
+             "target": "USA", "bidirectional": False},
+            {"category": "capital", "direction": "USA → Mexico",
+             "description": "Payments", "source": "USA",
+             "target": "MEX", "bidirectional": False},
+        ]
+        merged = _merge_fragmented_flows(clean)
+        assert merged == clean
+
+    def test_empty_input_returns_empty(self):
+        assert _merge_fragmented_flows([]) == []
+
+    def test_orphan_unspecified_without_header_passes_through(self):
+        """A sub-flow without a preceding canonical header still
+        gets emitted (otherwise we'd silently drop data)."""
+        orphan = [
+            {"category": "unspecified",
+             "direction": "Orphan direction",
+             "description": "no header above me"},
+        ]
+        merged = _merge_fragmented_flows(orphan)
+        assert merged == orphan
+
+
+class TestSplitCollapsedCausesEffects:
+    """``_split_collapsed_causes_effects`` detects the parser's
+    everything-under-General pattern and splits by inline Liu
+    framework category names."""
+
+    def test_splits_general_into_real_categories(self):
+        collapsed = {
+            "General": [
+                "Economic",
+                "Strong U.S. demand and price incentives.",
+                "Anticipated revenue from market access.",
+                "Political / Institutional",
+                "Phytosanitary requirements from SENASICA.",
+                "Hydrological",
+                "Local water availability conditioning yields.",
+            ]
+        }
+        split = _split_collapsed_causes_effects(collapsed)
+        # Three real categories, not the bogus "General" key.
+        assert "General" not in split
+        assert set(split.keys()) == {
+            "Economic", "Political / Institutional", "Hydrological",
+        }
+        assert len(split["Economic"]) == 2
+        assert split["Hydrological"] == [
+            "Local water availability conditioning yields."
+        ]
+
+    def test_idempotent_on_multi_key_input(self):
+        """A dict already keyed by real categories passes through
+        unchanged (parser worked correctly)."""
+        clean = {
+            "Economic": ["Strong demand."],
+            "Political / Institutional": ["Regulatory protocol."],
+        }
+        assert _split_collapsed_causes_effects(clean) == clean
+
+    def test_safety_belt_skips_when_under_two_categories(self):
+        """If items contain <2 known category names, leave the
+        dict alone (heuristic mis-fire protection)."""
+        only_one_cat = {
+            "General": [
+                "Economic",  # just one category-shaped item
+                "Strong U.S. demand and price incentives.",
+                "Some other item without category shape.",
+            ]
+        }
+        assert _split_collapsed_causes_effects(only_one_cat) == only_one_cat
+
+    def test_empty_input_returns_unchanged(self):
+        assert _split_collapsed_causes_effects({}) == {}
+
+
+# ---------------------------------------------------------------------------
+# PR #33: end-to-end Markdown rendering against a broken-parser fixture.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def broken_parser_result() -> AnalysisResult:
+    """A fixture matching the actual Mexico avocado trace's parser
+    output: fragmented flows + flattened General-keyed causes.
+    Verifies that the new helpers turn the broken shape into a
+    clean rendering."""
+    parsed = make_parsed_analysis(
+        coupling_classification=(
+            "- Intracoupling — within Jalisco's coupled human-natural system.\n"
+            "- Pericoupling — Jalisco is adjacent to Michoacán.\n"
+            "- Telecoupling — Exports from Jalisco to the United States."
+        ),
+        systems={
+            "focal": {
+                "name": "Avocado production region of Jalisco, Mexico",
+                "human_subsystem": "Smallholder growers; packinghouses.",
+                "natural_subsystem": "Pine-oak ecosystems; soils.",
+                "geographic_scope": "Avocado-producing municipalities.",
+            },
+        },
+        flows=[
+            # Fragmented Matter block (3 entries)
+            {"category": "matter", "direction": "Unspecified",
+             "description": "Matter flow"},
+            {"category": "unspecified",
+             "direction": "Orchards → Packinghouses (within Jalisco)",
+             "description": ""},
+            {"category": "unspecified", "direction": "Unspecified",
+             "description": "Harvested Hass avocados moved locally [T1:W8]."},
+            # Fragmented Capital block (3 entries)
+            {"category": "capital", "direction": "Unspecified",
+             "description": "Capital flow"},
+            {"category": "unspecified",
+             "direction": "Exporter financing → Orchards",
+             "description": ""},
+            {"category": "unspecified", "direction": "Unspecified",
+             "description": "Investments in compliance [T1:W3]."},
+        ],
+        causes={
+            # Flattened parser output: all categories + items under "General"
+            "General": [
+                "Economic",
+                "Strong U.S. demand and price incentives [T1:W7].",
+                "Anticipated revenue from market access [T1:W3].",
+                "Political / Institutional",
+                "Phytosanitary requirements from SENASICA [T1:W8].",
+                "Hydrological",
+                "Local water availability conditioning yields [T1:W2].",
+            ],
+        },
+        coupling_type="intracoupling",
+    )
+    return AnalysisResult(
+        parsed=parsed, formatted="", raw="", turn_number=1,
+    )
+
+
+class TestBrokenParserResultRendering:
+    """End-to-end: render the broken-parser fixture and verify the
+    output looks clean (the symptoms the user reported are gone)."""
+
+    def test_markdown_flows_have_real_direction_and_description(
+        self, broken_parser_result,
+    ):
+        md = render_markdown(broken_parser_result)
+        # §2.2.1 Matter has the merged direction + description.
+        assert "#### 2.2.1 Matter" in md
+        assert "Orchards → Packinghouses" in md
+        assert "Harvested Hass avocados" in md
+        # §2.2.2 Capital likewise.
+        assert "#### 2.2.2 Capital" in md
+        assert "Exporter financing → Orchards" in md
+        assert "Investments in compliance" in md
+
+    def test_markdown_no_placeholder_only_flow_items(
+        self, broken_parser_result,
+    ):
+        """The 'Matter flow' / 'Capital flow' placeholder items
+        from the parser must NOT appear as standalone numbered
+        list items in the rendered output."""
+        md = render_markdown(broken_parser_result)
+        # The merged flow uses its real direction + description,
+        # not the placeholder description.
+        for placeholder in (
+            "1. Matter flow", "1. Capital flow",
+            "1. Information flow", "1. Energy flow",
+            "1. People flow", "1. Organism flow",
+        ):
+            assert placeholder not in md, (
+                f"placeholder {placeholder!r} should not appear in output"
+            )
+
+    def test_markdown_no_unspecified_mega_list(
+        self, broken_parser_result,
+    ):
+        """The §2.2.7 Unspecified mega-list should not appear --
+        all flows merged into their canonical categories."""
+        md = render_markdown(broken_parser_result)
+        assert "#### 2.2.7 Unspecified" not in md
+
+    def test_markdown_causes_split_into_real_categories(
+        self, broken_parser_result,
+    ):
+        md = render_markdown(broken_parser_result)
+        # Real categories appear as §2.4.K subsections.
+        assert "#### 2.4.1 Economic" in md
+        assert "#### 2.4.2 Political / Institutional" in md
+        assert "#### 2.4.3 Hydrological" in md
+        # The bogus "General" key is gone.
+        assert "#### 2.4.1 General" not in md
+
+
+class TestDocxClassificationBullets:
+    """PR #33: §1 Coupling Classification with `- Intra / Peri / Tele`
+    bullets renders as 3 List Bullet paragraphs in docx (not one
+    giant Normal paragraph)."""
+
+    def test_classification_bullets_render_as_list_bullets(
+        self, broken_parser_result, tmp_path,
+    ):
+        from docx import Document
+
+        out = tmp_path / "cls_bullets.docx"
+        render_docx(broken_parser_result, path=out)
+        doc = Document(str(out))
+        # After §1 heading, expect 3 List Bullet paragraphs (one per
+        # coupling type) -- not a single Normal block.
+        bullet_texts = [
+            p.text for p in doc.paragraphs
+            if p.style.name == "List Bullet"
+        ]
+        # The 3 classification bullets should be among them.
+        assert any(
+            t.startswith("Intracoupling") for t in bullet_texts
+        )
+        assert any(
+            t.startswith("Pericoupling") for t in bullet_texts
+        )
+        assert any(
+            t.startswith("Telecoupling") for t in bullet_texts
+        )
+
+    def test_classification_single_paragraph_falls_back(self, tmp_path):
+        """When classification is a single non-bulleted string, the
+        docx still renders it as a regular paragraph (no spurious
+        bullet split)."""
+        from docx import Document
+
+        parsed = make_parsed_analysis(
+            coupling_classification="A single classification sentence.",
+            coupling_type="telecoupling",
+        )
+        result = AnalysisResult(
+            parsed=parsed, formatted="", raw="", turn_number=1,
+        )
+        out = tmp_path / "cls_single.docx"
+        render_docx(result, path=out)
+        doc = Document(str(out))
+        # Look for the classification text in any Normal paragraph.
+        normal_texts = [
+            p.text for p in doc.paragraphs
+            if p.style.name == "Normal"
+        ]
+        assert any(
+            "A single classification sentence." in t
+            for t in normal_texts
         )
