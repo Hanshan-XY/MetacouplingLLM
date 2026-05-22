@@ -4946,6 +4946,15 @@ class MetacouplingAssistant:
         # show RAG evidence today.  Documented as a known limitation.
         if self._last_rag_hits:
             result._rag_hits_for_export = list(self._last_rag_hits)
+        # PR #32: attach the user's original query so the exporters
+        # can use it as the document title instead of the previous
+        # heuristic (first 80 chars of coupling_classification, which
+        # often started with the LLM's bullet markers).
+        # ``self._original_query`` is set in ``analyze()`` regardless
+        # of RAG mode (line ~1356), so this works in both
+        # pre_retrieval and post_hoc paths.
+        if self._original_query:
+            result._original_query_for_export = self._original_query
         return result
 
     def _generate_abstract(self, formatted_analysis: str) -> str:

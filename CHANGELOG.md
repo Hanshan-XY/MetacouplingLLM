@@ -9,6 +9,78 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Polish rendering of Markdown / Word exports for scholar
+  review.**  After PR #31 shipped the export feature, scholar
+  spot-check of the live trace docx surfaced four concrete
+  readability gaps.  This PR polishes them.
+
+  1. **Title uses the user's original query.**  Was
+     `# Metacoupling Analysis — Case: - Intracoupling — present.
+     Within Jalisco's coupled human–natural system, avocad…` (the
+     first 80 chars of `coupling_classification`, which often
+     starts with bullet markers and reads like garbage).  Now
+     `# Metacoupling Analysis: {user_query}` so the document
+     describes itself when filed away.  `_build_result()` attaches
+     `result._original_query_for_export` (mirroring the existing
+     `_web_sources_for_export` / `_rag_hits_for_export` private-
+     attribute pattern); the renderers prefer it over the old
+     `{focal}: {topic}` heuristic, which stays as a fallback for
+     test code that builds `AnalysisResult` outside the
+     `analyze()` pipeline.
+
+  2. **Sub-field labels are bolded** in both §N.1 Systems
+     (`Human subsystem`, `Natural subsystem`, `Geographic scope`,
+     `Description`) and §N.3 Agents (level prefix:
+     `Individuals / Households`, `Firms / Traders / Corporations`,
+     etc.).  Was italic — too weak for scholars scanning a long
+     document.  In docx, label runs use `bold=True`; in Markdown,
+     `*Label*` → `**Label**`.
+
+  3. **§N.2 Flows grouped into per-category subsections.**  Was
+     one flat numbered list 1.-15. across all 6 categories,
+     making category boundaries invisible.  Now Flows are split
+     by canonical Liu 2017 category order
+     (`matter, capital, information, energy, people, organisms`,
+     unknowns last) into `### N.2.K {Category}` (Markdown) /
+     Heading 3 (Word) subsections.  Numbering restarts inside
+     each subsection.  New `_group_flows_by_category()` helper
+     shared by both renderers.
+
+  4. **§N.4 Causes / §N.5 Effects categories rendered as
+     separate subsections.**  In docx the old code rendered
+     each category as one paragraph
+     `Category: item1; item2; item3` with semicolon-separated
+     items; with 4-6 categories per CouplingSection scholars
+     saw a wall of semicolons.  Now each category becomes its
+     own Heading 3 (`### N.4.K {Category}` / `### N.5.K
+     {Category}`) followed by one bullet per item.  Markdown
+     also moves to nested `####` subsections for visual
+     consistency with the new Flows treatment.
+
+  No new LLM calls, no schema changes, no new dependencies.
+  Categories within Causes / Effects preserve LLM emission
+  order (Python 3.7+ dict insertion order).
+
+  12 new tests in `tests/test_output.py` covering:
+  - Title uses original query when attached; falls back to the
+    `{focal}: {topic}` heuristic otherwise
+  - Systems sub-field labels are bold (Markdown `**…**` + docx
+    bold runs)
+  - Agents level labels are bold
+  - Flows grouped by canonical category order (Matter, Capital,
+    Information, …) with `#### N.2.K` Markdown subsections / docx
+    Heading 3
+  - Flows preserves canonical order even when LLM emits
+    categories out of order
+  - Causes / Effects rendered as per-category subsections with
+    bullets per item (not jammed into one paragraph)
+
+  Existing `minimal_result` fixture extended to cover the new
+  paths (added agents, causes, effects entries +
+  `_original_query_for_export`).
+
+  Verified end-to-end via live OpenAI GPT-5 retrace.
+
 - **Scholar-friendly output: `result.abstract` + `result.to_markdown()`
   + `result.to_docx()`.**  The package's analysis output was rich
   (a `result.formatted` text + a `result.map` matplotlib Figure) but
