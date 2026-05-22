@@ -1,5 +1,7 @@
 """Tests for llm/client.py — Protocol, Message, LLMResponse, and adapters."""
 
+import pytest
+
 from metacouplingllm.llm.client import (
     AnthropicAdapter,
     LLMClient,
@@ -848,3 +850,205 @@ class TestAnthropicAdapter:
         assert captured_kwargs["max_tokens"] == 32000
         assert stream_entered and stream_exited
         assert FakeMessages.create_called is False
+
+    # ------------------------------------------------------------------
+    # PR #28: kwargs forwarding + tool_use extraction.  Stage-1
+    # ``extract_web_map_signals`` now dispatches the submit_results
+    # tool pattern to Claude (instead of OpenAI's strict json_schema),
+    # which means the adapter must (a) accept ``tools`` /
+    # ``tool_choice`` kwargs and forward them to ``messages.create()``,
+    # and (b) extract ``tool_use`` blocks from the response so call
+    # sites can read structured output without re-parsing the raw
+    # provider response.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _build_capturing_anthropic(response_blocks: list):
+        """Helper: a FakeAnthropic that captures kwargs AND returns a
+        configurable response content list."""
+        captured: dict[str, object] = {}
+
+        class FakeUsage:
+            input_tokens = 10
+            output_tokens = 5
+
+        class FakeResponse:
+            content = response_blocks
+            usage = FakeUsage()
+
+        class FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                captured.update(kwargs)
+                return FakeResponse()
+
+        class FakeAnthropic:
+            messages = FakeMessages()
+
+        return FakeAnthropic(), captured
+
+    def test_chat_forwards_tools_kwarg_to_messages_create(self):
+        """PR #28: ``tools`` kwarg passes through to messages.create()
+        unchanged.  Needed for the submit_results pattern at Stage-1."""
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        fake_anthropic, captured = self._build_capturing_anthropic(
+            [FakeTextBlock("ok")],
+        )
+        adapter = AnthropicAdapter(fake_anthropic, model="claude-sonnet-4-6")
+        tools_def = [{"name": "submit_results", "input_schema": {"type": "object"}}]
+        adapter.chat(
+            [Message(role="user", content="x")],
+            tools=tools_def,
+        )
+        assert captured["tools"] == tools_def
+
+    def test_chat_forwards_tool_choice_kwarg_to_messages_create(self):
+        """PR #28: ``tool_choice`` kwarg passes through unchanged."""
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        fake_anthropic, captured = self._build_capturing_anthropic(
+            [FakeTextBlock("ok")],
+        )
+        adapter = AnthropicAdapter(fake_anthropic, model="claude-sonnet-4-6")
+        tool_choice = {"type": "tool", "name": "submit_results"}
+        adapter.chat(
+            [Message(role="user", content="x")],
+            tool_choice=tool_choice,
+        )
+        assert captured["tool_choice"] == tool_choice
+
+    def test_chat_rejects_unknown_kwargs(self):
+        """PR #28: kwargs whitelist -- typos in call-site kwargs raise
+        TypeError instead of being silently swallowed."""
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        fake_anthropic, _ = self._build_capturing_anthropic(
+            [FakeTextBlock("ok")],
+        )
+        adapter = AnthropicAdapter(fake_anthropic, model="claude-sonnet-4-6")
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            adapter.chat(
+                [Message(role="user", content="x")],
+                response_format="json_schema",  # OpenAI kwarg, not Anthropic
+            )
+
+    def test_chat_response_exposes_tool_uses_when_claude_calls_tool(self):
+        """PR #28: tool_use blocks in Claude's response are exposed
+        on ``LLMResponse.tool_uses`` so call sites can read structured
+        output without re-parsing the raw provider response."""
+
+        class FakeToolUseBlock:
+            type = "tool_use"
+            id = "tu_1"
+            name = "submit_web_map_signals"
+            input = {
+                "focal_country": "BRA",
+                "receiving_systems": [{"country": "CHN"}],
+            }
+
+        class FakeUsage:
+            input_tokens = 20
+            output_tokens = 15
+
+        class FakeResponse:
+            content = [FakeToolUseBlock()]
+            usage = FakeUsage()
+
+        class FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                return FakeResponse()
+
+        class FakeAnthropic:
+            messages = FakeMessages()
+
+        adapter = AnthropicAdapter(FakeAnthropic(), model="claude-sonnet-4-6")
+        result = adapter.chat([Message(role="user", content="x")])
+        assert result.tool_uses is not None
+        assert len(result.tool_uses) == 1
+        tool_use = result.tool_uses[0]
+        assert tool_use["name"] == "submit_web_map_signals"
+        assert tool_use["input"]["focal_country"] == "BRA"
+
+    def test_extended_thinking_off_by_default_no_thinking_kwarg(self):
+        """PR #28 defensive belt: by default we do NOT send the
+        ``thinking`` parameter to messages.create(), so Anthropic's
+        documented default (extended thinking disabled) applies.
+        Regression guard: a future code change can't accidentally
+        turn extended thinking on without an explicit
+        ``extended_thinking=...`` constructor arg."""
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        fake_anthropic, captured = self._build_capturing_anthropic(
+            [FakeTextBlock("ok")],
+        )
+        # Default constructor -- no extended_thinking opt-in.
+        adapter = AnthropicAdapter(fake_anthropic, model="claude-sonnet-4-6")
+        adapter.chat([Message(role="user", content="x")])
+        # The ``thinking`` kwarg MUST NOT appear in the request.
+        assert "thinking" not in captured, (
+            "extended thinking must stay OFF by default; the "
+            "``thinking`` kwarg leaked into the request"
+        )
+
+    def test_extended_thinking_passes_through_when_explicitly_set(self):
+        """When a caller opts in to extended thinking, the
+        configuration is forwarded verbatim to messages.create()."""
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        fake_anthropic, captured = self._build_capturing_anthropic(
+            [FakeTextBlock("ok")],
+        )
+        thinking_config = {"type": "enabled", "budget_tokens": 10000}
+        adapter = AnthropicAdapter(
+            fake_anthropic,
+            model="claude-sonnet-4-6",
+            extended_thinking=thinking_config,
+        )
+        adapter.chat([Message(role="user", content="x")])
+        assert captured.get("thinking") == thinking_config
+
+    def test_chat_response_tool_uses_stays_none_when_no_tool_blocks(self):
+        """Regression guard: plain text-only response leaves tool_uses
+        as None (backward compat with existing consumers)."""
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        class FakeUsage:
+            input_tokens = 5
+            output_tokens = 3
+
+        class FakeResponse:
+            content = [FakeTextBlock("Just text, no tools.")]
+            usage = FakeUsage()
+
+        class FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                return FakeResponse()
+
+        class FakeAnthropic:
+            messages = FakeMessages()
+
+        adapter = AnthropicAdapter(FakeAnthropic(), model="claude-sonnet-4-6")
+        result = adapter.chat([Message(role="user", content="x")])
+        assert result.content == "Just text, no tools."
+        assert result.tool_uses is None

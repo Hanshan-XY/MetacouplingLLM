@@ -34,6 +34,14 @@ class LLMResponse:
 
     content: str
     usage: dict[str, int] = field(default_factory=dict)
+    # PR #28: when the backend returned tool_use blocks (Anthropic's
+    # tools-API output for the submit_results / submit_web_map_signals
+    # pattern), they're exposed here so call sites can extract
+    # structured data without re-parsing the raw provider response.
+    # Stays None for backends that don't use this pattern -- OpenAI's
+    # strict json_schema mode returns JSON in ``content`` instead, and
+    # plain chat() calls (no tools) also leave this None.
+    tool_uses: list[dict[str, object]] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -337,9 +345,29 @@ class AnthropicAdapter:
     # safe margin.
     _STREAMING_MAX_TOKENS_THRESHOLD: int = 16384
 
-    def __init__(self, client: Any, model: str = "claude-sonnet-4-20250514") -> None:
+    def __init__(
+        self,
+        client: Any,
+        model: str = "claude-sonnet-4-20250514",
+        extended_thinking: dict[str, object] | None = None,
+    ) -> None:
         self._client = client
         self._model = model
+        # PR #28: explicit control over Anthropic's extended-thinking
+        # (visible Chain-of-Thought) feature.  Defaults to ``None``,
+        # which means we do NOT send the ``thinking`` parameter to
+        # ``messages.create()``.  Anthropic's documented default for
+        # an absent ``thinking`` parameter is "extended thinking
+        # disabled", so by default our calls bypass the slow CoT path
+        # and only pay for direct response tokens.  Callers who WANT
+        # extended thinking can pass e.g.
+        # ``extended_thinking={"type": "enabled", "budget_tokens": 10000}``
+        # to opt in.  Stored verbatim and forwarded as the
+        # ``thinking`` kwarg when non-None -- defence-in-depth against
+        # any future Anthropic default change that might silently turn
+        # extended thinking on (which would balloon wall-clock for
+        # long-context calls like the Stage-2 main analysis).
+        self._extended_thinking = extended_thinking
 
     @property
     def raw_client(self) -> Any:
@@ -351,13 +379,41 @@ class AnthropicAdapter:
         """Return the configured model identifier."""
         return self._model
 
+    # PR #28: forward-compat kwargs that the AnthropicAdapter passes
+    # through to ``messages.create()``.  Whitelisted to avoid silently
+    # forwarding typos.  Extend the set when new Anthropic-specific
+    # kwargs are needed by call sites.
+    _ALLOWED_FORWARDED_KWARGS: frozenset[str] = frozenset({
+        "tools",
+        "tool_choice",
+    })
+
     def chat(
         self,
         messages: list[Message],
         temperature: float = 0.7,
         max_tokens: int | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
-        """Send messages via the Anthropic Messages API."""
+        """Send messages via the Anthropic Messages API.
+
+        PR #28: accepts ``**kwargs`` for forward-compatible passthrough
+        of Anthropic-specific request parameters like ``tools`` and
+        ``tool_choice`` (used by the submit_results pattern in Stage-1
+        web extraction).  Only kwargs in ``_ALLOWED_FORWARDED_KWARGS``
+        are forwarded; unknown kwargs raise immediately so typos surface
+        at the call site rather than silently dropping.
+        """
+        # Reject unknown kwargs at the boundary -- prevents typos in
+        # call-site kwargs from being silently swallowed.
+        unknown = set(kwargs) - self._ALLOWED_FORWARDED_KWARGS
+        if unknown:
+            raise TypeError(
+                f"AnthropicAdapter.chat() got unexpected keyword "
+                f"argument(s): {sorted(unknown)}.  Allowed forwarded "
+                f"kwargs: {sorted(self._ALLOWED_FORWARDED_KWARGS)}"
+            )
+
         # Extract system messages (combine if multiple are present)
         system_parts: list[str] = []
         conversation: list[dict[str, str]] = []
@@ -373,16 +429,32 @@ class AnthropicAdapter:
         # Anthropic requires a positive max_tokens value
         effective_max = max_tokens if max_tokens and max_tokens > 0 else 4096
 
-        kwargs: dict[str, Any] = {
+        request_kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": conversation,
             "max_tokens": effective_max,
         }
         # Skip temperature for models that have removed it (Opus 4.7+).
         if self._model not in self._MODELS_WITHOUT_TEMPERATURE:
-            kwargs["temperature"] = temperature
+            request_kwargs["temperature"] = temperature
         if system_text:
-            kwargs["system"] = system_text
+            request_kwargs["system"] = system_text
+        # PR #28: forward whitelisted kwargs (tools, tool_choice) to
+        # the Anthropic SDK.
+        for key in self._ALLOWED_FORWARDED_KWARGS:
+            if key in kwargs:
+                request_kwargs[key] = kwargs[key]
+        # PR #28: defensive belt -- explicitly forward the
+        # extended_thinking configuration if set.  When None
+        # (default), the ``thinking`` kwarg is omitted and Anthropic
+        # uses its documented default behaviour (extended thinking
+        # disabled).  Locks in the OFF state against any future
+        # Anthropic default change.
+        if self._extended_thinking is not None:
+            request_kwargs["thinking"] = self._extended_thinking
+        # Local alias used by the retry block below (keeps the rest of
+        # this method unchanged from its original form).
+        kwargs = request_kwargs
 
         # Retry with exponential backoff for rate-limit / transient errors,
         # with a one-shot retry-without-temperature fallback for unknown
@@ -418,9 +490,20 @@ class AnthropicAdapter:
 
         # Extract text content from response blocks
         content_text = ""
+        # PR #28: also collect tool_use blocks so call sites (e.g.,
+        # extract_web_map_signals when dispatching the submit_results
+        # pattern to Claude) can read structured output without
+        # re-parsing the raw provider response.
+        tool_uses: list[dict[str, object]] = []
         for block in response.content:
             if hasattr(block, "text"):
                 content_text += block.text
+            if getattr(block, "type", None) == "tool_use":
+                tool_uses.append({
+                    "id": getattr(block, "id", None),
+                    "name": getattr(block, "name", None),
+                    "input": getattr(block, "input", None),
+                })
 
         usage_data: dict[str, int] = {}
         if response.usage:
@@ -429,7 +512,11 @@ class AnthropicAdapter:
                 "output_tokens": response.usage.output_tokens,
             }
 
-        return LLMResponse(content=content_text, usage=usage_data)
+        return LLMResponse(
+            content=content_text,
+            usage=usage_data,
+            tool_uses=tool_uses or None,
+        )
 
     @staticmethod
     def _is_temperature_deprecated_error(exc: Exception) -> bool:

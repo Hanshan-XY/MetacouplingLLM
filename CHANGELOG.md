@@ -9,6 +9,217 @@ file. The format is loosely based on
 
 ### Changed
 
+- **End-to-end Claude API support across the pipeline (Stream B:
+  pipeline strict-output).**  Stream A of this PR brings
+  `AnthropicWebSearchBackend` to web-search-backend parity with
+  OpenAI; this stream extends Claude support up the pipeline so
+  that `AnthropicAdapter` can replace `OpenAIAdapter` for Stage-1
+  web extraction without losing the strict-structured-output
+  rigor that OpenAI gets via `response_format=json_schema`.
+
+  Three coordinated changes in `src/metacouplingllm/llm/client.py`:
+
+  1. **New optional field `LLMResponse.tool_uses`** (`list[dict]
+     | None = None`).  Backward compatible -- consumers that
+     only read `.content` and `.usage` continue to work.  When a
+     Claude response contains `tool_use` blocks, the adapter
+     populates this field so call sites can read structured
+     output without re-parsing the raw provider response.
+
+  2. **`AnthropicAdapter.chat()` opened for kwargs forwarding**
+     via `**kwargs: Any` with a whitelist
+     (`_ALLOWED_FORWARDED_KWARGS = {"tools", "tool_choice"}`).
+     Unknown kwargs raise `TypeError` at the boundary so typos
+     surface immediately rather than being silently swallowed.
+
+  3. **Anthropic response extraction collects `tool_use` blocks**
+     in addition to text blocks, populating
+     `LLMResponse.tool_uses` when present.
+
+  4. **Defensive belt against extended-thinking default drift**:
+     new `AnthropicAdapter(extended_thinking=...)` constructor
+     arg.  Defaults to `None` -> we do NOT send the `thinking`
+     parameter -> Anthropic's documented default (extended
+     thinking disabled) applies.  Callers who want extended
+     thinking opt in explicitly with
+     `extended_thinking={"type": "enabled", "budget_tokens": N}`.
+     This locks in the current OFF behaviour against any future
+     Anthropic API default change that could silently turn
+     extended thinking on, which would balloon wall-clock for
+     long-context calls (Stage-2's 63k-char system prompt would
+     be especially sensitive).  Two new tests in
+     `TestAnthropicAdapter` regression-guard both paths.
+
+     Note: the 62-minute avocado-25 trace at
+     `runs/avocado_2026-05-21_pr28_claude_25results_v4_retries/`
+     was NOT caused by extended thinking (it was already off);
+     it's just Sonnet 4.6's base latency on a 63k-char system
+     prompt.  This belt is preventative, not remediation.
+
+  Stage-1 extraction (`extract_web_map_signals` in
+  `websearch.py`) gets a new Anthropic dispatch branch parallel
+  to the existing OpenAI one.  When the LLM client is an
+  `AnthropicAdapter`, the chat call now passes a new
+  `_ANTHROPIC_WEB_MAP_SIGNALS_SUBMIT_TOOL` (wrapping the
+  existing `_WEB_MAP_SIGNALS_SCHEMA`) via `tools=[...]` plus
+  `tool_choice={"type":"tool","name":"submit_web_map_signals"}`
+  to force Claude to call the submit tool.  The response parser
+  now checks `response.tool_uses` first; on miss it falls back
+  to `_extract_json_object(response.content)` for graceful
+  degradation when Claude ignores the tool_choice.
+
+  `scripts/trace_pipeline.py` gains a `LoggingAnthropicAdapter`
+  class parallel to the existing `LoggingOpenAIAdapter`, so
+  users who want to run end-to-end traces through Claude can
+  swap adapters in `main()`.  Captures all the same artifact
+  fields as the OpenAI logger, plus `response_tool_uses` for
+  inspecting Claude's structured outputs.
+
+  **Stage-2 (main framework analysis) and Stage-3
+  (`_extract_map_data_from_analysis`) are unchanged.**  They
+  already work today with `AnthropicAdapter` because neither has
+  any backend-specific strict-mode dispatch -- both use plain
+  chat with prompt-based JSON instructions.  Promoting Stage-3
+  to strict mode for both backends would be a separable PR.
+
+- **Bring `AnthropicWebSearchBackend` to parity with
+  `OpenAIWebSearchBackend` after PRs #17 / #18 / #21 / #24.**
+  Before this PR the Anthropic backend was significantly behind:
+  a 3-line minimal prompt vs OpenAI's 45-line structured
+  template, no default blocklist, no `tool_choice` forcing, no
+  output-token scaling, no structured-JSON enforcement, no
+  silent-fallback diagnostic, and `claude-opus-4-7` as the
+  default model (expensive).  Eight changes brought it level:
+
+  1. **Default model** bumped from `claude-opus-4-7` to
+     `claude-sonnet-4-6` (~1.7-5× cheaper depending on
+     input/output mix; Sonnet 4.6 still gets dynamic-filtering
+     `web_search_20260209` via the existing
+     `_WEB_SEARCH_MODEL_VERSIONS` table).
+  2. **Rich prompt template** copied from OpenAI PR #18:
+     "web research collector" role, DO-NOT clauses for
+     prose/off-topic answering, 6 source-selection rules
+     (peer-reviewed / government / international organizations
+     preferred, avoid SEO/forums/duplicates, no padding), 5
+     grounding rules (no inventing URLs / titles / dates /
+     findings), and a 200-400 word `model_summary`
+     requirement.
+  3. **`submit_results` user-defined tool with `strict: True`**
+     so Claude returns structured JSON via `tool_use` rather
+     than free-form text.  Chosen over `output_config.format`
+     json_schema directly because Anthropic's docs don't show
+     an end-to-end example of strict-output mode combined with
+     a server tool like `web_search`.  The tool schema mirrors
+     `_OPENAI_WEB_SEARCH_RESULTS_SCHEMA` so both backends
+     produce identical downstream shape.
+  4. **`tool_choice = {"type": "tool", "name": "web_search"}`**
+     forces the first turn to actually call `web_search`
+     rather than answering from training data.  Anthropic
+     analogue of OpenAI's `tool_choice="required"` (PR #18).
+  5. **`max_tokens` scaling**: dataclass default bumped
+     8192 → 12000 (matches OpenAI PR #24); per-call computes
+     `effective_max_tokens = max(self.max_tokens,
+     max_results * 1000)` so the model has room for 25+ rich
+     summaries without truncation.
+  6. **Default `blocked_domains`** = `["reddit.com",
+     "quora.com", "pinterest.com"]` (mirrors OpenAI PR #18).
+     Users who want everything can pass `blocked_domains=[]`.
+  7. **Auto-include `code_execution` tool** when
+     `web_search_20260209` is selected -- Anthropic
+     requires the code execution tool to be enabled for
+     dynamic filtering (per
+     https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool).
+     Conditional on the resolved tool version; older
+     `web_search_20250305` does not need it.
+  8. **Silent-fallback diagnostic warning** when Claude
+     responds without calling `submit_results`.  Falls
+     through to the existing citation-based parser
+     (`_extract_anthropic_web_results`) so the call still
+     returns something useful, but prints a warning so the
+     "Claude obeyed search but ignored structured-output
+     instruction" failure mode never goes silent.  Mirror of
+     OpenAI PR #24's silent-fallback warnings.
+  9. **Default to BASIC `web_search_20250305` instead of auto-
+     inferring from the model.**  The live avocado-25 trace at
+     `runs/avocado_2026-05-21_pr28_claude_25results_v4_retries/`
+     showed Claude bypassing `submit_results` when the dynamic-
+     filtering tool (`web_search_20260209` + `code_execution`)
+     was in use, causing the structured-output path to fall
+     through to bare title+url+page_age strings (each
+     `model_summary` was just `(page age: <date>)`).  The
+     dynamic-filtering combination forces `tool_choice` to
+     `code_execution`, and Claude's turn effectively ends after
+     code_execution returns -- so submit_results never gets
+     called and citations never get written either.
+
+     Basic `web_search_20250305` lets Claude call submit_results
+     naturally OR write text with citations (~150 chars each),
+     both significantly richer than the dynamic-filtering
+     fallback.  Auto-inference (`_infer_web_search_tool_version`)
+     is retained for callers who explicitly opt in via
+     `tool_version="web_search_20260209"`.
+
+     Also strengthened the prompt's submit_results instruction:
+     "**REQUIRED FINAL ACTION**: After completing your web_search
+     invocations, you MUST call the `submit_results` tool ... Do
+     NOT end your turn with just text or tool_results."  Recency-
+     bias plus imperative language reduces the bypass rate even
+     in edge cases.
+  10. **Always stream `messages.stream()` for web search**, not
+      `messages.create()`.  Anthropic's SDK refuses non-streaming
+     requests whose estimated generation time would exceed 10
+     minutes ("Streaming is required for operations that may
+     take longer than 10 minutes"), but the upfront refusal is
+     calibrated only to `max_tokens` -- it can't see the
+     wall-clock cost of server-side `web_search` +
+     `code_execution` sub-calls.  Even small `max_tokens` calls
+     can exceed 10 minutes when Claude dispatches multiple
+     sub-searches with dynamic filtering, in which case the
+     non-streaming connection would hang / error mid-call.
+     Surfaced in the live avocado-25 trace at
+     `runs/avocado_2026-05-21_pr28_claude_25results/` where
+     `AnthropicWebSearchBackend.search()` was rejected upfront
+     by the SDK.  `messages.stream(...).get_final_message()`
+     returns the same `Message` shape so the downstream parsing
+     path is unchanged regardless of request size.  The
+     threshold pattern from `AnthropicAdapter` (text-only chat)
+     doesn't transfer here because plain chat has predictable
+     `max_tokens`-bound wall-clock while server tools don't.
+
+  Two live-trace-surfaced bugs also fixed alongside (8) and (9):
+
+  - **Wrong `code_execution` tool version**: `code_execution_20250522`
+    was incorrect; the version Anthropic actually pairs with
+    `web_search_20260209` is `code_execution_20260120`.  The
+    API rejected the call with a 400 listing the correct version.
+  - **Wrong `tool_choice` routing for dynamic filtering**: when
+    `web_search_20260209` is in the tools list,
+    `web_search` is NOT directly callable by the model -- it
+    can only be invoked from inside `code_execution`.
+    `tool_choice` now routes to `code_execution` when dynamic
+    filtering is on (`web_search_20260209`) and stays on
+    `web_search` for the basic `web_search_20250305`.
+
+  New module-level constant
+  `_ANTHROPIC_WEB_SEARCH_SUBMIT_RESULTS_TOOL` holds the tool
+  definition; new helper
+  `_extract_anthropic_submit_results_tool_use` parses
+  Claude's `tool_use` block with `name == "submit_results"`
+  and hands the results off to the existing
+  `_normalise_backend_results` normaliser.
+
+  **Breaking change for direct consumers**: `model` default
+  changed from `claude-opus-4-7` to `claude-sonnet-4-6`.  Pass
+  `model="claude-opus-4-7"` explicitly if you need Opus for
+  quality reasons.  Also: `blocked_domains` default changed
+  from `None` to `["reddit.com", "quora.com", "pinterest.com"]`.
+  Pass `blocked_domains=[]` to restore the prior unfiltered
+  behavior.
+
+  11 new tests in `TestAnthropicWebSearchBackend` covering
+  each axis above.  Pre-existing tests updated to handle the
+  new 2-3-tool structure (web_search + submit_results +
+  optional code_execution) in the captured tools list.
 - **Raise the per-summary truncation cap that Stage-3 sees from
   200 to 2500 chars (new module-level constant
   `_MAX_WEB_SUMMARY_CHARS_IN_MAP_PROMPT`).**  Stage-3
