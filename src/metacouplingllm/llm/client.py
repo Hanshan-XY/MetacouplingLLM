@@ -605,8 +605,26 @@ class GeminiAdapter:
         messages: list[Message],
         temperature: float = 0.7,
         max_tokens: int | None = None,
+        response_schema: dict | None = None,
+        response_mime_type: str | None = None,
     ) -> LLMResponse:
-        """Send messages via the Gemini ``models.generate_content`` API."""
+        """Send messages via the Gemini ``models.generate_content`` API.
+
+        Parameters
+        ----------
+        response_schema:
+            Optional JSON schema for Gemini's native strict-output
+            mode (PR #30, Stage-1 dispatch in
+            ``extract_web_map_signals``).  Merged into the
+            ``config=`` dict under the ``response_schema`` key.
+            Always paired with ``response_mime_type="application/json"``
+            in practice -- both are passed together by call sites
+            that want strict JSON output.
+        response_mime_type:
+            Optional MIME type for the response.  Pass
+            ``"application/json"`` together with ``response_schema``
+            to force Gemini into structured-output mode.
+        """
         # Gemini handles system separately (like Anthropic).
         system_parts: list[str] = []
         contents: list[dict[str, Any]] = []
@@ -632,6 +650,14 @@ class GeminiAdapter:
             config["max_output_tokens"] = max_tokens
         if system_instruction is not None:
             config["system_instruction"] = system_instruction
+        # PR #30: Gemini's native strict-output combo (Stage-1
+        # dispatch from ``extract_web_map_signals``).  Omit these
+        # keys when callers don't supply them -- passing
+        # ``response_schema=None`` would be rejected by the SDK.
+        if response_schema is not None:
+            config["response_schema"] = response_schema
+        if response_mime_type is not None:
+            config["response_mime_type"] = response_mime_type
 
         response = self._client.models.generate_content(
             model=self._model,
@@ -702,25 +728,60 @@ class GrokAdapter:
         """Return the configured model identifier."""
         return self._model
 
+    # PR #30: forward-compat kwargs that the GrokAdapter passes
+    # through to ``chat.completions.create()``.  Whitelisted to
+    # avoid silently forwarding typos -- the OpenAI SDK Grok uses
+    # would happily accept arbitrary unknown kwargs and we'd lose
+    # the typo at the API boundary.  Extend the set when new
+    # xAI-specific kwargs are needed by call sites.
+    _ALLOWED_FORWARDED_KWARGS: frozenset[str] = frozenset({
+        "response_format",
+    })
+
     def chat(
         self,
         messages: list[Message],
         temperature: float = 0.7,
         max_tokens: int | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
-        """Send messages via xAI's chat-completions API (OpenAI-shaped)."""
+        """Send messages via xAI's chat-completions API (OpenAI-shaped).
+
+        PR #30: accepts ``**kwargs`` for forward-compatible
+        passthrough of xAI-specific request parameters like
+        ``response_format`` (used by the Stage-1 strict-output
+        dispatch in ``extract_web_map_signals``).  Only kwargs in
+        ``_ALLOWED_FORWARDED_KWARGS`` are forwarded; unknown
+        kwargs raise immediately so typos surface at the call
+        site rather than silently dropping.
+        """
+        # Reject unknown kwargs at the boundary -- prevents typos in
+        # call-site kwargs from being silently swallowed.
+        unknown = set(kwargs) - self._ALLOWED_FORWARDED_KWARGS
+        if unknown:
+            raise TypeError(
+                f"GrokAdapter.chat() got unexpected keyword "
+                f"argument(s): {sorted(unknown)}.  Allowed forwarded "
+                f"kwargs: {sorted(self._ALLOWED_FORWARDED_KWARGS)}"
+            )
+
         api_messages = [
             {"role": msg.role, "content": msg.content} for msg in messages
         ]
-        kwargs: dict[str, Any] = {
+        request_kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": api_messages,
             "temperature": temperature,
         }
         if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
+            request_kwargs["max_tokens"] = max_tokens
+        # PR #30: forward whitelisted kwargs (response_format) to
+        # the xAI / OpenAI-SDK chat.completions endpoint.
+        for key in self._ALLOWED_FORWARDED_KWARGS:
+            if key in kwargs:
+                request_kwargs[key] = kwargs[key]
 
-        response = self._client.chat.completions.create(**kwargs)
+        response = self._client.chat.completions.create(**request_kwargs)
 
         if not response.choices:
             return LLMResponse(content="", usage={})

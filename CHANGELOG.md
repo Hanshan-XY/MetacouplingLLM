@@ -9,6 +9,106 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Stage-1 strict-output dispatch for Gemini and Grok in
+  `extract_web_map_signals`.**  After PR #29 brought the
+  `GeminiWebSearchBackend` and `GrokWebSearchBackend` themselves
+  to parity with the OpenAI/Anthropic web-search templates,
+  Stage-1 (the structured-extraction call in `websearch.py`
+  that converts raw web results into typed map signals) was
+  still only dispatching strict-output kwargs to OpenAI
+  (`response_format=json_schema`, PR #17/#21) and Anthropic
+  (`submit_web_map_signals` tool + `tool_choice` forcing,
+  PR #28).  `GeminiAdapter` and `GrokAdapter` fell through to
+  the prompt-based JSON path, leaving `_extract_json_object` to
+  do best-effort recovery from whatever free text the model
+  emitted.  This was wasted capability -- both APIs natively
+  support strict JSON output, and when the prompt-based path
+  failed (markdown-fenced JSON, prose preamble, mid-call
+  truncation), Stage-1 returned `None` and Stage-3 had no
+  signals to build the map from.
+
+  Two coordinated changes:
+
+  1. **`GrokAdapter.chat()` -- whitelist + `**kwargs` pattern**
+     mirroring `AnthropicAdapter` (PR #28).  New
+     `_ALLOWED_FORWARDED_KWARGS = frozenset({"response_format"})`;
+     `chat()` accepts `**kwargs` and raises `TypeError` on
+     anything outside the whitelist so typos surface at the
+     call site rather than being silently dropped by the
+     underlying OpenAI SDK passthrough.  Whitelisted kwargs are
+     merged into the request dict before
+     `client.chat.completions.create(**request_kwargs)`.
+  2. **`GeminiAdapter.chat()` -- named-parameter pattern**
+     mirroring `OpenAIAdapter`.  Two new optional kwargs --
+     `response_schema: dict | None = None` and
+     `response_mime_type: str | None = None` -- that always
+     travel as a pair in practice.  Both are merged into the
+     `config=` dict the adapter already builds before
+     `client.models.generate_content(config=config)`.  When
+     either is `None`, the corresponding key is omitted from
+     the config (Gemini's SDK would reject
+     `response_schema=None`).
+
+  The Stage-1 dispatch in
+  `extract_web_map_signals` (`websearch.py:2627-2680`) gains
+  two new `elif` branches in the existing `isinstance` chain:
+
+  - **Gemini**: `chat_kwargs["response_schema"] =
+    _WEB_MAP_SIGNALS_SCHEMA` and
+    `chat_kwargs["response_mime_type"] = "application/json"`.
+    The schema is verified compatible with Gemini's
+    `response_schema` subset (no `oneOf`/`anyOf`/`allOf`, uses
+    `{"type": ["string", "null"]}` nullable syntax which
+    Gemini accepts).
+  - **Grok**: `chat_kwargs["response_format"] = {"type":
+    "json_schema", "json_schema": {"name": "web_map_signals",
+    "strict": True, "schema": _WEB_MAP_SIGNALS_SCHEMA}}` --
+    same shape as the existing OpenAI dispatch.
+
+  **No response-parsing changes needed.**  Both strict modes
+  return the structured JSON as text in `response.content`, so
+  the existing `_extract_json_object(response.content)` path
+  recovers it identically to the OpenAI strict-text path.  The
+  fallback path also runs unconditionally after the strict path
+  for refusal / malformed-output resilience -- mirroring
+  PR #28's Anthropic dispatch design.
+
+  **Mixed adapter pattern, per user choice**: whitelist for
+  Grok (Grok runs on the OpenAI SDK which passes arbitrary
+  kwargs through, so a whitelist is the right typo safety
+  belt), named-parameter for Gemini (the paired strict kwargs
+  fit the config-dict assembly pattern already in
+  `GeminiAdapter.chat()`).
+
+  **Out of scope** for this PR, all deferred to separate
+  follow-ups:
+  - **Stage-2 (main framework analysis) and Stage-3
+    (`_extract_map_data_from_analysis`)** still use the
+    prompt-based JSON path for all four adapters.  Stage-3
+    promotion has real trade-offs -- refusal risk on
+    `required: [bidirectional]`, supranational-shorthand
+    (`'European Union'` / `'EU'` etc.) vs strict enum
+    tension, schema lowest-common-denominator across four
+    backends (Gemini's `response_schema` doesn't support
+    `oneOf`/`anyOf`), ~15-20 existing `test_core.py` tests
+    to update.  Stage-2 promotion is a wrong-tool issue --
+    its output is structured prose parsed by `ParsedAnalysis`
+    heuristics, not JSON.
+  - **Harmonising `OpenAIAdapter` to the whitelist pattern**
+    (would be a minor breaking change if any caller passes
+    `response_format=` positionally).
+
+  11 new tests in `tests/test_gemini_grok_support.py` (4
+  Gemini + 3 Grok in `TestGeminiAdapter` / `TestGrokAdapter`)
+  + `tests/test_websearch.py` (2 Gemini dispatch + 2 Grok
+  dispatch in `TestStructuredWebMapSignals`).  The Grok
+  adapter class includes a critical regression guard
+  `test_chat_raises_typeerror_on_unknown_kwarg` that locks
+  in the typo-safety property.
+
+  Live trace validation deferred until user provides
+  `GEMINI_API_KEY` / `XAI_API_KEY` (same deferral as PR #29).
+
 - **Gemini 3.1 Pro + Grok 4.3 web-search backend parity.**  After
   PR #28 brought `AnthropicWebSearchBackend` level with the OpenAI
   template (PRs #17 / #18 / #21 / #24), the two remaining

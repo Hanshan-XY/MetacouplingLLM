@@ -202,6 +202,65 @@ class TestGeminiAdapter:
         assert result.content == ""
         assert result.usage["input_tokens"] == 5
 
+    # ------------------------------------------------------------------
+    # PR #30: response_schema / response_mime_type kwarg forwarding
+    # (named-parameter pattern, merged into the `config=` dict).
+    # ------------------------------------------------------------------
+
+    def test_chat_accepts_response_schema_kwarg(self):
+        """PR #30: GeminiAdapter.chat() accepts response_schema
+        as a named parameter and merges it into the config dict."""
+        client = _RecordingGeminiClient(response_text='{"ok": true}')
+        adapter = GeminiAdapter(client, model="gemini-3.1-pro-preview")
+        schema = {"type": "object", "properties": {"ok": {"type": "boolean"}}}
+        adapter.chat(
+            [Message(role="user", content="x")],
+            response_schema=schema,
+        )
+        assert client.calls[0]["config"]["response_schema"] == schema
+
+    def test_chat_accepts_response_mime_type_kwarg(self):
+        """PR #30: GeminiAdapter.chat() accepts response_mime_type
+        as a named parameter and merges it into the config dict."""
+        client = _RecordingGeminiClient(response_text='{"ok": true}')
+        adapter = GeminiAdapter(client, model="gemini-3.1-pro-preview")
+        adapter.chat(
+            [Message(role="user", content="x")],
+            response_mime_type="application/json",
+        )
+        assert (
+            client.calls[0]["config"]["response_mime_type"]
+            == "application/json"
+        )
+
+    def test_chat_merges_both_strict_output_kwargs(self):
+        """PR #30: when both response_schema and response_mime_type
+        are passed (the practical Stage-1 dispatch case), both end
+        up in the config dict."""
+        client = _RecordingGeminiClient(response_text='{"ok": true}')
+        adapter = GeminiAdapter(client, model="gemini-3.1-pro-preview")
+        schema = {"type": "object"}
+        adapter.chat(
+            [Message(role="user", content="x")],
+            response_schema=schema,
+            response_mime_type="application/json",
+        )
+        cfg = client.calls[0]["config"]
+        assert cfg["response_schema"] == schema
+        assert cfg["response_mime_type"] == "application/json"
+
+    def test_chat_omits_strict_output_keys_when_none(self):
+        """PR #30: when callers don't pass strict-output kwargs (the
+        non-Stage-1 case), the config dict must not contain the
+        keys at all -- passing response_schema=None would be
+        rejected by Gemini's SDK."""
+        client = _RecordingGeminiClient(response_text="plain text")
+        adapter = GeminiAdapter(client, model="gemini-3.1-pro-preview")
+        adapter.chat([Message(role="user", content="x")])
+        cfg = client.calls[0]["config"]
+        assert "response_schema" not in cfg
+        assert "response_mime_type" not in cfg
+
 
 # ---------------------------------------------------------------------------
 # GrokAdapter
@@ -237,6 +296,57 @@ class TestGrokAdapter:
         adapter = GrokAdapter(client, model="grok-3")
         assert adapter.raw_client is client
         assert adapter.model == "grok-3"
+
+    # ------------------------------------------------------------------
+    # PR #30: response_format kwarg forwarding (whitelist pattern)
+    # ------------------------------------------------------------------
+
+    def test_chat_accepts_response_format_kwarg(self):
+        """PR #30: GrokAdapter.chat() accepts response_format kwarg
+        via the new _ALLOWED_FORWARDED_KWARGS whitelist."""
+        client = _RecordingOpenAIClient(content='{"ok": true}')
+        adapter = GrokAdapter(client, model="grok-4.3")
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "demo", "strict": True,
+                "schema": {"type": "object"},
+            },
+        }
+        # Should not raise.
+        adapter.chat(
+            [Message(role="user", content="x")],
+            response_format=response_format,
+        )
+
+    def test_chat_forwards_response_format_to_openai_sdk(self):
+        """PR #30: response_format kwarg must reach
+        chat.completions.create() so xAI receives it."""
+        client = _RecordingOpenAIClient(content='{"ok": true}')
+        adapter = GrokAdapter(client, model="grok-4.3")
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "demo", "strict": True,
+                "schema": {"type": "object"},
+            },
+        }
+        adapter.chat(
+            [Message(role="user", content="x")],
+            response_format=response_format,
+        )
+        assert client.calls[0]["response_format"] == response_format
+
+    def test_chat_raises_typeerror_on_unknown_kwarg(self):
+        """PR #30: unknown kwargs raise at the boundary so typos
+        surface immediately instead of being silently dropped."""
+        client = _RecordingOpenAIClient(content="ok")
+        adapter = GrokAdapter(client, model="grok-4.3")
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            adapter.chat(
+                [Message(role="user", content="x")],
+                response_formatt="typo",  # intentional typo
+            )
 
 
 # ---------------------------------------------------------------------------

@@ -2611,9 +2611,16 @@ def extract_web_map_signals(
     # - AnthropicAdapter: submit_web_map_signals tool + tool_choice
     #   forcing (PR #28).  Claude returns the structured signals via
     #   a tool_use block instead of JSON text.
-    # Other adapters (Gemini, Grok, etc.) fall through to the prompt-
-    # based JSON path; ``_extract_json_object`` recovers the JSON
-    # from whatever text they emit.
+    # - GeminiAdapter: native response_schema + response_mime_type
+    #   combo (PR #30).  Gemini 3.x supports schema-constrained JSON
+    #   output natively in one call.
+    # - GrokAdapter: response_format=json_schema (PR #30).  Same
+    #   shape as OpenAI's strict mode; xAI documents strict
+    #   structured output at docs.x.ai/docs/guides/structured-outputs.
+    # Other adapters fall through to the prompt-based JSON path;
+    # ``_extract_json_object`` recovers the JSON from whatever
+    # text they emit.  The fallback path also runs unconditionally
+    # after the strict path for refusal / malformed-output resilience.
     chat_kwargs: dict[str, object] = {
         "temperature": temperature,
         "max_tokens": max_tokens,
@@ -2624,6 +2631,8 @@ def extract_web_map_signals(
         from metacouplingllm.llm.client import (
             AnthropicAdapter as _AnthropicAdapter,
         )
+        from metacouplingllm.llm.client import GeminiAdapter as _GeminiAdapter
+        from metacouplingllm.llm.client import GrokAdapter as _GrokAdapter
         if isinstance(llm_client, _OpenAIAdapter):
             chat_kwargs["response_format"] = {
                 "type": "json_schema",
@@ -2642,6 +2651,25 @@ def extract_web_map_signals(
                 "name": "submit_web_map_signals",
             }
             is_anthropic_dispatch = True
+        elif isinstance(llm_client, _GeminiAdapter):
+            # PR #30: Gemini's native strict-output combo.  Schema
+            # is verified compatible with Gemini's response_schema
+            # subset (no oneOf/anyOf, uses
+            # ``{"type": ["string", "null"]}`` nullable form which
+            # Gemini accepts).
+            chat_kwargs["response_schema"] = _WEB_MAP_SIGNALS_SCHEMA
+            chat_kwargs["response_mime_type"] = "application/json"
+        elif isinstance(llm_client, _GrokAdapter):
+            # PR #30: Grok's strict json_schema mode (same shape as
+            # OpenAI's response_format above).
+            chat_kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "web_map_signals",
+                    "strict": True,
+                    "schema": _WEB_MAP_SIGNALS_SCHEMA,
+                },
+            }
     except Exception:
         # If the adapter import fails for any reason, fall through to
         # the prompt-based JSON path.

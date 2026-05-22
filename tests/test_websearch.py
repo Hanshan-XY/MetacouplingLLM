@@ -1124,6 +1124,217 @@ class TestStructuredWebMapSignals:
         assert signals is not None
         assert signals["focal_country"] == "BRA"
 
+    # ------------------------------------------------------------------
+    # PR #30: Stage-1 Gemini / Grok strict-output dispatch.  When the
+    # llm_client is a GeminiAdapter or GrokAdapter,
+    # extract_web_map_signals must pass the right strict-output
+    # kwargs (Gemini: response_schema + response_mime_type ;
+    # Grok: response_format=json_schema strict) instead of leaving
+    # the model to emit JSON in free text.  Response parsing reuses
+    # the existing _extract_json_object path because both providers
+    # return the structured JSON as text in response.content.
+    # ------------------------------------------------------------------
+
+    def test_extract_signals_dispatches_gemini_to_response_schema(self):
+        """When the LLM client is a GeminiAdapter, the chat call must
+        pass response_schema=_WEB_MAP_SIGNALS_SCHEMA and
+        response_mime_type='application/json' into Gemini's config
+        dict.  Verifies the new PR #30 dispatch branch routes
+        correctly via isinstance check."""
+        from types import SimpleNamespace
+        from metacouplingllm.llm.client import GeminiAdapter
+        from metacouplingllm.knowledge.websearch import (
+            _WEB_MAP_SIGNALS_SCHEMA,
+        )
+
+        captured: dict[str, object] = {}
+
+        def _fake_generate(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                text=(
+                    '{"focal_country":"BRA",'
+                    '"receiving_systems":[],'
+                    '"spillover_systems":[],'
+                    '"flows":[],'
+                    '"evidence_cards":[],'
+                    '"suggested_followup_queries":[]}'
+                ),
+                usage_metadata=SimpleNamespace(
+                    prompt_token_count=10,
+                    candidates_token_count=5,
+                    total_token_count=15,
+                ),
+                candidates=[],
+            )
+
+        class _FakeGemini:
+            models = SimpleNamespace(generate_content=_fake_generate)
+
+        adapter = GeminiAdapter(
+            _FakeGemini(), model="gemini-3.1-pro-preview",
+        )
+        extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            adapter, min_confidence=0.7,
+        )
+        config = captured.get("config", {})
+        assert config.get("response_schema") is _WEB_MAP_SIGNALS_SCHEMA
+        assert config.get("response_mime_type") == "application/json"
+
+    def test_extract_signals_gemini_recovers_json_from_response_text(self):
+        """When Gemini's strict mode returns valid JSON in
+        response.text, the existing _extract_json_object path
+        recovers it without any Gemini-specific parsing branch."""
+        from types import SimpleNamespace
+        from metacouplingllm.llm.client import GeminiAdapter
+
+        def _fake_generate(**kwargs):
+            return SimpleNamespace(
+                text=(
+                    '{"focal_country":"Brazil",'
+                    '"receiving_systems":[{"country":"China",'
+                    '"kind":"direct","confidence":0.95,'
+                    '"evidence":["W1"],'
+                    '"reason":"primary soy export destination"}],'
+                    '"spillover_systems":[],'
+                    '"flows":[],'
+                    '"evidence_cards":[],'
+                    '"suggested_followup_queries":[]}'
+                ),
+                usage_metadata=SimpleNamespace(
+                    prompt_token_count=10,
+                    candidates_token_count=8,
+                    total_token_count=18,
+                ),
+                candidates=[],
+            )
+
+        class _FakeGemini:
+            models = SimpleNamespace(generate_content=_fake_generate)
+
+        adapter = GeminiAdapter(
+            _FakeGemini(), model="gemini-3.1-pro-preview",
+        )
+        signals = extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            adapter, min_confidence=0.7,
+        )
+        assert signals is not None
+        assert signals["focal_country"] == "BRA"
+        assert len(signals["receiving_systems"]) == 1
+        assert signals["receiving_systems"][0]["country"] == "CHN"
+
+    def test_extract_signals_dispatches_grok_to_response_format(self):
+        """When the LLM client is a GrokAdapter, the chat call must
+        pass response_format={'type':'json_schema',
+        'json_schema':{'name':'web_map_signals','strict':True,...}} to
+        the xAI chat.completions endpoint.  Verifies the new PR #30
+        dispatch branch routes correctly via isinstance check."""
+        from metacouplingllm.llm.client import GrokAdapter
+        from metacouplingllm.knowledge.websearch import (
+            _WEB_MAP_SIGNALS_SCHEMA,
+        )
+
+        captured: dict[str, object] = {}
+
+        def _fake_create(**kwargs):
+            captured.update(kwargs)
+
+            class _Msg:
+                content = (
+                    '{"focal_country":"BRA",'
+                    '"receiving_systems":[],'
+                    '"spillover_systems":[],'
+                    '"flows":[],'
+                    '"evidence_cards":[],'
+                    '"suggested_followup_queries":[]}'
+                )
+
+            class _Choice:
+                message = _Msg()
+
+            class _Usage:
+                prompt_tokens = 5
+                completion_tokens = 3
+                total_tokens = 8
+
+            class _Resp:
+                choices = [_Choice()]
+                usage = _Usage()
+
+            return _Resp()
+
+        class _Completions:
+            create = staticmethod(_fake_create)
+
+        class _FakeOpenAI:
+            chat = type("Chat", (), {"completions": _Completions()})()
+
+        adapter = GrokAdapter(_FakeOpenAI(), model="grok-4.3")
+        extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            adapter, min_confidence=0.7,
+        )
+        assert "response_format" in captured
+        rf = captured["response_format"]
+        assert rf["type"] == "json_schema"
+        js = rf["json_schema"]
+        assert js["name"] == "web_map_signals"
+        assert js["strict"] is True
+        assert js["schema"] is _WEB_MAP_SIGNALS_SCHEMA
+
+    def test_extract_signals_grok_recovers_json_from_message_content(self):
+        """When Grok's strict mode returns valid JSON in
+        choices[0].message.content, the existing _extract_json_object
+        path recovers it -- same as the OpenAI path because Grok's
+        adapter wraps the OpenAI SDK."""
+        from metacouplingllm.llm.client import GrokAdapter
+
+        def _fake_create(**kwargs):
+            class _Msg:
+                content = (
+                    '{"focal_country":"Mexico",'
+                    '"receiving_systems":[{"country":"USA",'
+                    '"kind":"direct","confidence":0.98,'
+                    '"evidence":["W1"],'
+                    '"reason":"primary avocado importer"}],'
+                    '"spillover_systems":[],'
+                    '"flows":[],'
+                    '"evidence_cards":[],'
+                    '"suggested_followup_queries":[]}'
+                )
+
+            class _Choice:
+                message = _Msg()
+
+            class _Usage:
+                prompt_tokens = 5
+                completion_tokens = 3
+                total_tokens = 8
+
+            class _Resp:
+                choices = [_Choice()]
+                usage = _Usage()
+
+            return _Resp()
+
+        class _Completions:
+            create = staticmethod(_fake_create)
+
+        class _FakeOpenAI:
+            chat = type("Chat", (), {"completions": _Completions()})()
+
+        adapter = GrokAdapter(_FakeOpenAI(), model="grok-4.3")
+        signals = extract_web_map_signals(
+            "x", [{"title": "x", "model_summary": "y", "url": "u"}],
+            adapter, min_confidence=0.7,
+        )
+        assert signals is not None
+        assert signals["focal_country"] == "MEX"
+        assert len(signals["receiving_systems"]) == 1
+        assert signals["receiving_systems"][0]["country"] == "USA"
+
 
 # ---------------------------------------------------------------------------
 # search_web (live test — only runs if network is available)
