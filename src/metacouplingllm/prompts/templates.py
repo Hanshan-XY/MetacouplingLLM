@@ -663,3 +663,57 @@ on the **{focus_component}** component specifically.
 
 {additional_info}\
 """
+
+
+# ---------------------------------------------------------------------------
+# Abstract generation (PR #31)
+# ---------------------------------------------------------------------------
+#
+# Run as a small dedicated LLM call after the main analysis + map data +
+# RAG/web evidence assembly are complete.  Takes the assembled
+# ``formatted`` text as input and produces a 150-250 word paragraph
+# suitable for the introduction of a metacoupling paper.  Surfaced on
+# ``AnalysisResult.abstract`` and rendered at the top of both
+# ``to_markdown()`` and ``to_docx()`` exports.
+#
+# The prompt asks for a Liu 2017-style paragraph: focal system,
+# coupling type(s), key flows + their geographic destinations, and the
+# headline finding / research-gap takeaway.  Kept narrow on purpose --
+# this is for scholars dropping the summary into a paper introduction
+# or grant proposal, not a marketing blurb.
+
+ABSTRACT_GENERATION_SYSTEM = """\
+You are a research assistant writing a one-paragraph abstract for a \
+metacoupling-framework paper.  Your output will be dropped directly into \
+a scholar's paper introduction or grant proposal -- write in formal \
+academic prose, no marketing language, no bullet points, no headers.\
+"""
+
+ABSTRACT_GENERATION_USER = """\
+Below is the full metacoupling analysis for a research case.  Write a \
+SINGLE paragraph of 150-250 words that summarises the analysis for a \
+paper introduction.
+
+The paragraph should cover, in this order, only what the analysis \
+actually contains (omit a topic if the analysis doesn't address it):
+
+1. The focal system being studied (location, scale, the human-natural \
+coupling at its core).
+2. The coupling type(s) classification (intracoupling / pericoupling / \
+telecoupling) and the active flows that justify the classification.
+3. The key receiving / spillover systems and the geographic destinations \
+of the dominant flows.
+4. One sentence on the headline finding OR the most important research \
+gap surfaced by the analysis.
+
+Hard rules:
+- 150-250 words, ONE paragraph.
+- Formal academic prose.  No first-person, no bullets, no headers.
+- Do NOT invent details not present in the analysis below.  If the \
+analysis is sparse on a topic, say less.
+- Do NOT cite the source markers like [W1] / [T1:1] from the analysis \
+in your output -- the abstract is standalone.
+
+Analysis:
+{analysis_text}\
+"""

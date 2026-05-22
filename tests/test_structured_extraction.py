@@ -103,7 +103,7 @@ _VALID_SUPPLEMENT_JSON = json.dumps(
 class TestStructuredExtractionDefault:
     def test_default_is_false(self, mock_llm_client):
         advisor = MetacouplingAssistant(
-            llm_client=mock_llm_client, max_examples=0,
+            llm_client=mock_llm_client, max_examples=0, generate_abstract=False,
         )
         assert advisor._rag_structured_extraction is False
 
@@ -119,6 +119,7 @@ class TestStructuredExtractionDefault:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             # rag_structured_extraction defaults to False
         )
@@ -146,6 +147,7 @@ class TestStructuredExtractionEnabled:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -163,6 +165,7 @@ class TestStructuredExtractionEnabled:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -200,6 +203,7 @@ class TestStructuredExtractionEnabled:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -227,6 +231,7 @@ class TestStructuredExtractionEnabled:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -253,6 +258,7 @@ class TestStructuredExtractionEnabled:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -290,6 +296,7 @@ class TestStructuredExtractionFallbacks:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -328,6 +335,7 @@ class TestStructuredExtractionFallbacks:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -348,6 +356,7 @@ class TestStructuredExtractionFallbacks:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -368,6 +377,7 @@ class TestStructuredExtractionFallbacks:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="post_hoc",
             rag_structured_extraction=True,
         )
@@ -424,6 +434,7 @@ class TestStructuredExtractionValidation:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -486,6 +497,7 @@ class TestStructuredExtractionValidation:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
@@ -567,7 +579,7 @@ class TestStructuredExtractionNoTruncation:
         })
         client = _RecordingMockLLMClient(responses=[draft, empty_supp])
         advisor = MetacouplingAssistant(
-            llm_client=client, max_examples=0,
+            llm_client=client, max_examples=0, generate_abstract=False,
             rag_mode="pre_retrieval", rag_structured_extraction=True,
         )
         advisor._rag_engine = engine
@@ -638,7 +650,7 @@ class TestSupplementIntoMapBridge:
 
     def _advisor(self, mock_llm_client):
         return MetacouplingAssistant(
-            llm_client=mock_llm_client, max_examples=0,
+            llm_client=mock_llm_client, max_examples=0, generate_abstract=False,
             rag_mode="pre_retrieval", rag_structured_extraction=True,
         )
 
@@ -851,6 +863,7 @@ class TestStructuredExtractionDraftCaps:
         advisor = MetacouplingAssistant(
             llm_client=client,
             max_examples=0,
+            generate_abstract=False,
             rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
