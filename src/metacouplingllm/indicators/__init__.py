@@ -42,11 +42,34 @@ from metacouplingllm.indicators.core import (
     compute_mfe,
     summarize_metacoupling,
 )
+# PR #36: optional LLM-assisted helpers.  Re-exported here so
+# users can `from metacouplingllm.indicators import define_study`
+# instead of digging into the `llm` submodule path.  Each helper
+# takes any LLMClient (OpenAIAdapter / AnthropicAdapter /
+# GeminiAdapter / GrokAdapter) and returns a (result, trace)
+# tuple.  The trace is an LLMTrace dataclass with prompt /
+# response / timestamp / model for reproducibility per spec §15.4.
+from metacouplingllm.indicators.llm import (
+    LLMTrace,
+    check_inputs,
+    classify_ambiguous_edges,
+    define_study,
+    interpret_results,
+    write_methods,
+)
 
 __all__ = [
+    # PR #35 deterministic core
     "classify_coupling",
     "compute_flow_shares",
     "compute_mfe",
     "compute_mfci",
     "summarize_metacoupling",
+    # PR #36 LLM-assisted helpers
+    "LLMTrace",
+    "define_study",
+    "check_inputs",
+    "classify_ambiguous_edges",
+    "interpret_results",
+    "write_methods",
 ]
