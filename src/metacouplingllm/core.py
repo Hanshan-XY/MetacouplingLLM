@@ -298,6 +298,62 @@ class AnalysisResult:
     # discussed in ``evidence_coverage_note`` instead).  Empty
     # list when no web search ran or no queries were suggested.
     suggested_followup_queries: list[str] = field(default_factory=list)
+    # PR #31: one-paragraph (150-250 word) summary of the analysis
+    # suitable for a paper introduction or grant proposal.  Generated
+    # by a small dedicated LLM call after the main analysis +
+    # map-data + RAG/web evidence assembly are complete, using the
+    # fully-assembled ``formatted`` text as input.  Empty string when
+    # the abstract call failed or was skipped (e.g., minimal
+    # AnalysisResult constructed in tests without going through
+    # ``_build_result``).  Rendered at the top of both
+    # ``to_markdown()`` and ``to_docx()`` exports.
+    abstract: str = ""
+
+    def to_markdown(self, path: str | Path | None = None) -> str:
+        """Render this result as scholar-friendly Markdown.
+
+        PR #31: produces a single Markdown string with §1-§7 headings,
+        flows table, evidence sources, and the map embedded as
+        ``![map](map.png)`` (only when ``path`` is given, so the PNG
+        gets saved alongside the .md file).  When ``path`` is None,
+        returns the rendered Markdown text without writing anything.
+
+        Parameters
+        ----------
+        path:
+            Optional file path for the Markdown file.  When given, the
+            map (if any) is saved as ``<stem>_map.png`` in the same
+            directory and referenced from the Markdown.
+        """
+        # Imported lazily to avoid pulling output/export.py at module
+        # import time -- keeps the import chain lean for callers who
+        # never export.
+        from metacouplingllm.output.export import render_markdown
+
+        return render_markdown(self, path=path)
+
+    def to_docx(self, path: str | Path | None = None) -> "Path":
+        """Render this result as a Word document (.docx).
+
+        PR #31: produces a Word document with §1-§7 headings, Word
+        tables for flows + evidence sources, and the map embedded as
+        a figure.  Requires the optional ``python-docx`` dependency
+        (install with ``pip install metacouplingllm[export]``).
+
+        Parameters
+        ----------
+        path:
+            Output file path.  Defaults to
+            ``"metacoupling_report.docx"`` in the current directory
+            when None.
+
+        Returns
+        -------
+        ``pathlib.Path`` to the written .docx file.
+        """
+        from metacouplingllm.output.export import render_docx
+
+        return render_docx(self, path=path)
 
     def __repr__(self) -> str:
         parts = [f"turn={self.turn_number}"]
@@ -738,6 +794,11 @@ class MetacouplingAssistant:
         web_structured_max_targets: int = 6,
         rag_min_score: float | None = None,
         coupling_analysis: bool = True,
+        # PR #31: opt out of the dedicated abstract LLM call.  Defaults
+        # to True so scholars get ``result.abstract`` for free; set to
+        # False in unit tests / batch jobs that need to count calls
+        # exactly or skip the small extra LLM cost.
+        generate_abstract: bool = True,
     ) -> None:
         if rag_mode not in _VALID_RAG_MODES:
             raise ValueError(
@@ -768,6 +829,7 @@ class MetacouplingAssistant:
         self._web_structured_min_confidence = web_structured_min_confidence
         self._web_structured_max_targets = web_structured_max_targets
         self._rag_min_score = rag_min_score
+        self._generate_abstract_enabled = generate_abstract
         self._last_web_results: list[dict[str, str]] = []
         self._last_web_map_signals: dict[str, object] | None = None
         self._last_map_notice: str | None = None
@@ -4834,7 +4896,23 @@ class MetacouplingAssistant:
             )
             formatted += "\n" + "\n".join(footer)
 
-        return AnalysisResult(
+        # PR #31: one extra LLM call producing a 150-250 word abstract
+        # for paper introductions / grant proposals.  Runs AFTER the
+        # full ``formatted`` text is assembled so the LLM sees the
+        # complete analysis (incl. RAG evidence, web sources,
+        # pericoupling validation, map notice).  Gated by
+        # ``generate_abstract`` constructor flag (default True) so
+        # tests / batch jobs that need exact call counts can opt out.
+        # Non-fatal on LLM failure: the field is left as the empty
+        # string so existing call sites that don't read ``.abstract``
+        # are unaffected.
+        abstract = (
+            self._generate_abstract(formatted)
+            if self._generate_abstract_enabled
+            else ""
+        )
+
+        result = AnalysisResult(
             parsed=parsed,
             formatted=formatted,
             raw=response.content,
@@ -4847,7 +4925,114 @@ class MetacouplingAssistant:
             flow_parse_warnings=list(self._last_flow_parse_warnings),
             evidence_coverage_note=parsed.evidence_coverage_note,
             suggested_followup_queries=followup_queries,
+            abstract=abstract,
         )
+        # PR #31: attach the raw web-results list as a private
+        # attribute so ``output/export.py`` can render the Web
+        # Sources table in to_markdown() / to_docx().  Not a public
+        # field on AnalysisResult per the PR scope ("most extra work
+        # is not necessary") -- exposed via the rendered exports.
+        if self._last_web_results:
+            result._web_sources_for_export = list(self._last_web_results)
+        # PR #31: attach RAG retrieval hits the same way so the
+        # exporters can render an "Evidence from Literature" section
+        # mirroring the existing ``format_evidence`` text block.
+        # ``_last_rag_hits`` is populated in pre_retrieval mode (set
+        # at analyze() / refine() time and reused across the result
+        # assembly).  The post_hoc legacy mode re-retrieves AFTER
+        # the LLM call inside ``_build_result`` and writes the
+        # evidence block directly to ``formatted`` without keeping
+        # the hits in an attribute -- so post_hoc exports will not
+        # show RAG evidence today.  Documented as a known limitation.
+        if self._last_rag_hits:
+            result._rag_hits_for_export = list(self._last_rag_hits)
+        return result
+
+    def _generate_abstract(self, formatted_analysis: str) -> str:
+        """PR #31: produce a 150-250 word paper-introduction summary.
+
+        Runs a small dedicated LLM call against
+        ``self._client.chat()`` using the
+        ``ABSTRACT_GENERATION_SYSTEM`` /
+        ``ABSTRACT_GENERATION_USER`` templates.  Failures are
+        swallowed -- the abstract is a convenience field, not
+        analysis-critical, so a network blip or rate-limit shouldn't
+        fail the whole ``analyze()`` call.
+
+        Uses ``temperature=1.0`` (the GPT-5 family's only accepted
+        value, also fine for prose generation on every other
+        provider) to avoid the adapter's single-shot retry
+        limitation: when both temperature AND max_tokens are
+        rejected in one call, the adapter only fixes one per retry,
+        so the second attempt fails on the unfixed parameter.
+        Sidestepping the temperature mismatch keeps the abstract
+        call working on GPT-5.
+        """
+        if not formatted_analysis or not formatted_analysis.strip():
+            return ""
+
+        try:
+            from metacouplingllm.prompts.templates import (
+                ABSTRACT_GENERATION_SYSTEM,
+                ABSTRACT_GENERATION_USER,
+            )
+
+            user_text = ABSTRACT_GENERATION_USER.format(
+                analysis_text=formatted_analysis,
+            )
+            if self._verbose:
+                print(
+                    "[MetacouplingAssistant] Generating abstract "
+                    f"({len(formatted_analysis)}-char analysis input)..."
+                )
+            response = self._client.chat(
+                messages=[
+                    Message(role="system", content=ABSTRACT_GENERATION_SYSTEM),
+                    Message(role="user", content=user_text),
+                ],
+                # 1.0 is GPT-5's only supported temperature and the
+                # OpenAI default for every other model -- the OpenAI
+                # adapter explicitly short-circuits the
+                # retry-without-temperature path when temperature
+                # equals 1.  Prose generation isn't sensitive to a
+                # slightly higher temperature.
+                temperature=1.0,
+                # GPT-5-family bills against ``max_completion_tokens``
+                # which includes the (sometimes substantial) hidden
+                # reasoning tokens.  A 600-token budget can be
+                # entirely consumed by reasoning, leaving an empty
+                # visible response.  4096 is generous enough to cover
+                # reasoning + a 150-250 word visible abstract on any
+                # current GPT-5 / Claude / Gemini / Grok model.  The
+                # adapter retries max_tokens -> max_completion_tokens
+                # for GPT-5 transparently.
+                max_tokens=4096,
+            )
+            text = (response.content or "").strip()
+            # Strip accidental leading/trailing fence markers some
+            # models add even with formal-prose instructions.
+            if text.startswith("```") and text.endswith("```"):
+                text = text.strip("`").strip()
+            if self._verbose:
+                if text:
+                    print(
+                        f"[MetacouplingAssistant] Abstract generated "
+                        f"({len(text)} chars, {len(text.split())} words)."
+                    )
+                else:
+                    print(
+                        "[MetacouplingAssistant] Abstract LLM call "
+                        "returned empty content (likely consumed by "
+                        "reasoning tokens). Returning empty abstract."
+                    )
+            return text
+        except Exception as exc:
+            if self._verbose:
+                print(
+                    f"[MetacouplingAssistant] Abstract generation "
+                    f"failed: {exc}.  Returning empty abstract."
+                )
+            return ""
 
     @staticmethod
     def _validate_adm1_pericoupling(parsed: ParsedAnalysis) -> bool:

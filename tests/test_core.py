@@ -110,6 +110,11 @@ class TestMetacouplingAdvisor:
             max_tokens=2000,
             max_examples=2,
             verbose=False,
+            # PR #31: tests in this class inspect ``last_messages`` of
+            # the most recent LLM call.  The new abstract LLM call would
+            # become the "last" one and overwrite the main-analysis
+            # messages the assertions depend on.  Opt out here.
+            generate_abstract=False,
         )
 
     def test_analyze_returns_result(self):
@@ -252,6 +257,40 @@ class TestAnalysisResult:
             turn_number=1,
         )
         assert result.map_notice is None
+
+    # PR #31: abstract field defaults to empty string; to_markdown /
+    # to_docx methods exist on the dataclass (delegated to
+    # output/export.py).
+    def test_abstract_default_empty_string(self):
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        result = AnalysisResult(
+            parsed=ParsedAnalysis(),
+            formatted="", raw="", turn_number=1,
+        )
+        assert result.abstract == ""
+
+    def test_to_markdown_method_exists(self):
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        result = AnalysisResult(
+            parsed=ParsedAnalysis(),
+            formatted="", raw="", turn_number=1,
+        )
+        # Calling with default args produces a string (empty parsed →
+        # mostly title-only Markdown).
+        md = result.to_markdown()
+        assert isinstance(md, str)
+        assert md.startswith("# Metacoupling Analysis")
+
+    def test_to_docx_method_exists(self):
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        # python-docx may not be installed; the method should still
+        # exist on the dataclass and raise ImportError cleanly when
+        # the dep is missing.  Just verify it's callable here.
+        result = AnalysisResult(
+            parsed=ParsedAnalysis(),
+            formatted="", raw="", turn_number=1,
+        )
+        assert callable(result.to_docx)
 
     def test_flow_parse_warnings_default_empty(self):
         from metacouplingllm.llm.parser import ParsedAnalysis

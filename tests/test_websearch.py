@@ -3685,6 +3685,10 @@ class TestAdvisorWebSearch:
             llm_client=client,
             web_search=True,
             web_structured_extraction=True,
+            # PR #31: test reads client.last_messages from the main
+            # analysis call.  The new abstract LLM call would overwrite
+            # last_messages.  Opt out.
+            generate_abstract=False,
         )
 
         result = advisor.analyze("Brazil soybean exports")
