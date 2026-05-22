@@ -74,7 +74,42 @@ def minimal_result() -> AnalysisResult:
                 "direction": "USA → Mexico",
                 "description": "Payments for produce",
             },
+            {
+                "category": "information",
+                "direction": "USDA → SENASICA",
+                "description": "Phytosanitary protocols",
+            },
         ],
+        agents=[
+            {
+                "level": "Individuals / Households",
+                "name": "Smallholder growers",
+                "description": "Manage orchards.",
+            },
+            {
+                "level": "Firms / Traders / Corporations",
+                "name": "Packhouses / exporters",
+                "description": "Cold-chain logistics.",
+            },
+        ],
+        causes={
+            "Economic": [
+                "Rising US demand for avocados.",
+                "Favorable export prices.",
+            ],
+            "Political / Institutional": [
+                "APHIS-SENASICA bilateral protocol (2022).",
+            ],
+        },
+        effects={
+            "Economic": [
+                "Reinvestment in orchard expansion.",
+            ],
+            "Environmental": [
+                "Deforestation pressure in highland forests.",
+                "Increased irrigation demand.",
+            ],
+        },
         coupling_type="telecoupling",
         raw_text="Avocado telecoupling analysis.",
     )
@@ -118,6 +153,12 @@ def minimal_result() -> AnalysisResult:
             "consumers in exchange for capital. Key findings include "
             "tariff feedback effects on producer prices."
         ),
+    )
+    # PR #32: attach the user's original query so the exporters use
+    # it as the document title.
+    result._original_query_for_export = (
+        "Mexico avocado exports to the United States, focusing on "
+        "the Jalisco production region"
     )
     # Mock web sources via the assistant-side attribute used by the
     # builder.  Real pipeline populates this from _last_web_results.
@@ -301,7 +342,10 @@ class TestRenderMarkdown:
         # Title line starts with single `# `.
         first_line = md.splitlines()[0]
         assert first_line.startswith("# Metacoupling Analysis")
-        assert "MEX" in first_line
+        # PR #32: title contains the user's original query verbatim
+        # (the fixture sets _original_query_for_export to a Jalisco
+        # avocado prompt).
+        assert "Mexico avocado exports" in first_line
 
     def test_includes_abstract_section(self, minimal_result):
         md = render_markdown(minimal_result)
@@ -393,6 +437,112 @@ class TestRenderMarkdown:
         )
         md = render_markdown(result)
         assert "## Evidence from Literature" not in md
+
+    # ------------------------------------------------------------------
+    # PR #32: polish changes.
+    # ------------------------------------------------------------------
+
+    def test_title_uses_original_query_when_available(self, minimal_result):
+        md = render_markdown(minimal_result)
+        first_line = md.splitlines()[0]
+        # The fixture sets _original_query_for_export = "Mexico
+        # avocado exports to the United States, focusing on the
+        # Jalisco production region".
+        assert first_line == (
+            "# Metacoupling Analysis: Mexico avocado exports to the "
+            "United States, focusing on the Jalisco production region"
+        )
+
+    def test_title_falls_back_to_topic_when_no_original_query(self):
+        """When _original_query_for_export is not attached, the
+        title falls back to the older `{focal}: {topic}` heuristic
+        so unit tests building AnalysisResult directly still get a
+        sensible title."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="Telecoupling case.",
+            coupling_type="telecoupling",
+        )
+        result = AnalysisResult(
+            parsed=parsed, formatted="", raw="", turn_number=1,
+        )
+        md = render_markdown(result)
+        first_line = md.splitlines()[0]
+        # Fallback shape: "Metacoupling Analysis — Case: ..."
+        assert "Metacoupling Analysis" in first_line
+        assert "—" in first_line  # the em-dash divider of the fallback
+
+    def test_systems_subfield_labels_are_bold(self, minimal_result):
+        md = render_markdown(minimal_result)
+        # Bold (`**Label**:`), not italic (`*Label*:`).
+        assert "**Human subsystem**:" in md or "**Geographic scope**:" in md
+        # Quick negative check: no italic-form sub-labels remain.
+        assert "*Geographic scope*:" not in md
+        assert "*Description*:" not in md
+
+    def test_agents_level_label_is_bold(self, minimal_result):
+        md = render_markdown(minimal_result)
+        # The fixture has "Individuals / Households" and "Firms /
+        # Traders / Corporations" levels.  Bold not italic.
+        assert "**Individuals / Households**" in md
+        assert "**Firms / Traders / Corporations**" in md
+        # Italic form should NOT be present.
+        assert "*Individuals / Households*" not in md.replace(
+            "**Individuals / Households**", ""
+        )
+
+    def test_flows_grouped_by_category_with_subsections(self, minimal_result):
+        md = render_markdown(minimal_result)
+        # The fixture flows are matter + capital + information.
+        # PR #32 renders these as #### subsections under §4.2 Flows.
+        assert "#### 4.2.1 Matter" in md
+        assert "#### 4.2.2 Capital" in md
+        assert "#### 4.2.3 Information" in md
+        # The OLD flat shape ("1. **[Matter]**") should be gone.
+        assert "**[Matter]**" not in md
+
+    def test_flows_preserves_canonical_category_order(self):
+        """Matter, Capital, Information come in that order even
+        when the LLM emits them out of order."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            flows=[
+                {"category": "information", "direction": "A → B",
+                 "description": ""},
+                {"category": "capital", "direction": "B → A",
+                 "description": ""},
+                {"category": "matter", "direction": "A → B",
+                 "description": ""},
+            ],
+            coupling_type="telecoupling",
+        )
+        parsed.map_data = None  # force fallback to CouplingSection flows
+        result = AnalysisResult(
+            parsed=parsed, formatted="", raw="", turn_number=1,
+        )
+        md = render_markdown(result)
+        # Find each category heading's position.
+        matter_pos = md.find("4.2.1 Matter")
+        capital_pos = md.find("4.2.2 Capital")
+        information_pos = md.find("4.2.3 Information")
+        assert 0 < matter_pos < capital_pos < information_pos
+
+    def test_causes_categories_are_separate_subsections(self, minimal_result):
+        md = render_markdown(minimal_result)
+        # Fixture causes: "Economic" + "Political / Institutional".
+        assert "#### 4.4.1 Economic" in md
+        assert "#### 4.4.2 Political / Institutional" in md
+        # Each item is its own bullet (not jammed into one paragraph
+        # like the old docx behavior).
+        assert "- Rising US demand for avocados." in md
+
+    def test_effects_categories_are_separate_subsections(self, minimal_result):
+        md = render_markdown(minimal_result)
+        assert "#### 4.5.1 Economic" in md
+        assert "#### 4.5.2 Environmental" in md
+        assert "- Deforestation pressure in highland forests." in md
 
 
 # ---------------------------------------------------------------------------
@@ -504,3 +654,96 @@ class TestRenderDocx:
         assert "Jalisco's accession" in all_text
         # Author/year line rendered.
         assert "Garcia, M. and Hernandez, L." in all_text
+
+    # ------------------------------------------------------------------
+    # PR #32: polish changes in docx.
+    # ------------------------------------------------------------------
+
+    def test_title_uses_original_query(self, minimal_result, tmp_path):
+        from docx import Document
+
+        out = tmp_path / "polish_title.docx"
+        render_docx(minimal_result, path=out)
+        doc = Document(str(out))
+        # Heading 0 (Title) paragraph should contain the user's query.
+        title_paragraphs = [
+            p for p in doc.paragraphs if p.style.name == "Title"
+        ]
+        assert title_paragraphs, "no Title-styled paragraph found"
+        title_text = title_paragraphs[0].text
+        assert "Metacoupling Analysis" in title_text
+        assert "Mexico avocado exports" in title_text
+
+    def test_systems_subfield_labels_use_bold_runs(
+        self, minimal_result, tmp_path,
+    ):
+        from docx import Document
+
+        out = tmp_path / "polish_systems.docx"
+        render_docx(minimal_result, path=out)
+        doc = Document(str(out))
+        # Find a sub-field paragraph (style "List Bullet") whose first
+        # run is bold (e.g., "Geographic scope: ").
+        found_bold_label = False
+        for p in doc.paragraphs:
+            if p.style.name != "List Bullet" or not p.runs:
+                continue
+            first_run = p.runs[0]
+            if (
+                first_run.bold
+                and first_run.text.rstrip().endswith(":")
+                and any(label in first_run.text for label in (
+                    "Human subsystem", "Natural subsystem",
+                    "Geographic scope", "Description",
+                ))
+            ):
+                found_bold_label = True
+                break
+        assert found_bold_label, (
+            "expected a bold-prefix sub-field label in §N.1 Systems"
+        )
+
+    def test_flows_have_per_category_h3_headings(
+        self, minimal_result, tmp_path,
+    ):
+        from docx import Document
+
+        out = tmp_path / "polish_flows.docx"
+        render_docx(minimal_result, path=out)
+        doc = Document(str(out))
+        h3_texts = [
+            p.text for p in doc.paragraphs
+            if p.style.name == "Heading 3"
+        ]
+        # Fixture flows have matter + capital + information, rendered
+        # in §4 (Telecoupling).
+        assert any("4.2.1 Matter" in t for t in h3_texts)
+        assert any("4.2.2 Capital" in t for t in h3_texts)
+        assert any("4.2.3 Information" in t for t in h3_texts)
+
+    def test_causes_have_per_category_h3_headings(
+        self, minimal_result, tmp_path,
+    ):
+        from docx import Document
+
+        out = tmp_path / "polish_causes.docx"
+        render_docx(minimal_result, path=out)
+        doc = Document(str(out))
+        h3_texts = [
+            p.text for p in doc.paragraphs
+            if p.style.name == "Heading 3"
+        ]
+        # Causes: Economic, Political / Institutional.
+        assert any("4.4.1 Economic" in t for t in h3_texts)
+        assert any(
+            "4.4.2 Political / Institutional" in t for t in h3_texts
+        )
+        # Each item is its own List Bullet paragraph (not jammed
+        # into one semicolon paragraph as before).
+        bullet_texts = [
+            p.text for p in doc.paragraphs
+            if p.style.name == "List Bullet"
+        ]
+        assert any(
+            "Rising US demand for avocados." in t for t in bullet_texts
+        )

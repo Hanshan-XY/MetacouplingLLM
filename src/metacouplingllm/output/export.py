@@ -172,8 +172,16 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
                 "text": text,
             })
 
-    # Topic heuristic: first 80 chars of coupling_classification, or
-    # fallback to a generic label.  Used only in the document title.
+    # PR #32: prefer the user's original query for the title.  Falls
+    # back to the coupling_classification-derived "topic" heuristic
+    # only for results constructed outside the analyze() pipeline
+    # (e.g., direct AnalysisResult(...) calls in unit tests).
+    original_query = (
+        getattr(result, "_original_query_for_export", "") or ""
+    ).strip()
+
+    # Topic heuristic (fallback): first 80 chars of
+    # coupling_classification, or a generic label.
     topic = ""
     if parsed.coupling_classification:
         first = parsed.coupling_classification.split("\n")[0].strip()
@@ -207,7 +215,61 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
         "rag_hits": rag_hits,
         "focal_country": focal_country,
         "topic": topic,
+        "original_query": original_query,
     }
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared by both renderers
+# ---------------------------------------------------------------------------
+
+# PR #32: canonical Liu 2017 flow-category order, used to group §N.2
+# Flows into per-category subsections (§N.2.1 Matter, §N.2.2 Capital,
+# etc.).  Mirrors ``_CANONICAL_FLOW_CATEGORIES`` in core.py but
+# preserves the canonical *order* (frozenset there is unordered).
+# Unknown categories the LLM emits get appended last under their
+# original label.
+_CANONICAL_FLOW_CATEGORY_ORDER: tuple[str, ...] = (
+    "matter",
+    "capital",
+    "information",
+    "energy",
+    "people",
+    "organisms",
+)
+
+
+def _group_flows_by_category(
+    flows: list[dict[str, Any]],
+) -> list[tuple[str, list[dict[str, Any]]]]:
+    """Group a flat flows list by category, preserving canonical
+    Liu 2017 order.  Unknown categories appended last in
+    insertion order.  Returns ``[(display_category, flows_in_group),
+    ...]`` skipping empty groups.
+
+    The display category is title-cased (``"matter"`` → ``"Matter"``)
+    to match the existing AnalysisFormatter convention.
+    """
+    by_cat: dict[str, list[dict[str, Any]]] = {}
+    unknown_order: list[str] = []  # preserve LLM emission order
+    for flow in flows:
+        raw = str(flow.get("category", "")).strip().lower()
+        if not raw:
+            raw = "unspecified"
+        if raw not in by_cat:
+            if raw not in _CANONICAL_FLOW_CATEGORY_ORDER:
+                unknown_order.append(raw)
+            by_cat[raw] = []
+        by_cat[raw].append(flow)
+
+    grouped: list[tuple[str, list[dict[str, Any]]]] = []
+    for cat in _CANONICAL_FLOW_CATEGORY_ORDER:
+        if cat in by_cat and by_cat[cat]:
+            grouped.append((cat.title(), by_cat[cat]))
+    for cat in unknown_order:
+        if by_cat[cat]:
+            grouped.append((cat.title(), by_cat[cat]))
+    return grouped
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +280,17 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
 def _md_coupling_section(
     parts: list[str], number: int, title: str, section: dict[str, Any] | None,
 ) -> None:
-    """Render one coupling section as Markdown subsections."""
+    """Render one coupling section as Markdown subsections.
+
+    PR #32 polish changes applied here:
+    - §N.1 Systems sub-field labels (Human subsystem, etc.) are
+      bold (was italic).
+    - §N.2 Flows grouped by canonical Liu 2017 category into
+      §N.2.K subsections instead of one flat numbered list.
+    - §N.3 Agents level prefix bold (was italic).
+    - §N.4 Causes / §N.5 Effects categories rendered as
+      §N.4.K / §N.5.K subsections instead of inline bullet blocks.
+    """
     if section is None:
         return
     parts.append(f"## {number}. {title}")
@@ -237,22 +309,32 @@ def _md_coupling_section(
                 val = str(entry.get(key, "")).strip()
                 if val:
                     label = key.replace("_", " ").capitalize()
-                    parts.append(f"  - *{label}*: {val}")
+                    # PR #32: bold (was italic).
+                    parts.append(f"  - **{label}**: {val}")
         parts.append("")
 
     if section["flows"]:
         parts.append(f"### {number}.2 Flows")
-        for idx, flow in enumerate(section["flows"], 1):
-            category = str(flow.get("category", "unspecified")).title()
-            direction = str(flow.get("direction", "")).strip()
-            description = str(flow.get("description", "")).strip()
-            line = f"{idx}. **[{category}]**"
-            if direction:
-                line += f" {direction}"
-            if description:
-                line += f" — {description}"
-            parts.append(line)
         parts.append("")
+        # PR #32: group by category with §N.2.K subsections.
+        groups = _group_flows_by_category(section["flows"])
+        for sub_idx, (category, group_flows) in enumerate(groups, 1):
+            parts.append(f"#### {number}.2.{sub_idx} {category}")
+            for idx, flow in enumerate(group_flows, 1):
+                direction = str(flow.get("direction", "")).strip()
+                description = str(flow.get("description", "")).strip()
+                line = f"{idx}."
+                if direction:
+                    line += f" {direction}"
+                if description:
+                    if direction:
+                        line += f" — {description}"
+                    else:
+                        line += f" {description}"
+                if not direction and not description:
+                    line += " (no details)"
+                parts.append(line)
+            parts.append("")
 
     if section["agents"]:
         parts.append(f"### {number}.3 Agents")
@@ -260,11 +342,15 @@ def _md_coupling_section(
             level = str(agent.get("level", "")).title()
             name = str(agent.get("name", "")).strip()
             desc = str(agent.get("description", "")).strip()
-            prefix = f"*{level}* " if level else ""
+            # PR #32: bold (was italic).
+            prefix = f"**{level}** " if level else ""
             suffix = f" — {desc}" if desc else ""
             parts.append(f"- {prefix}{name}{suffix}")
         parts.append("")
 
+    # PR #32: per-category §N.4.K / §N.5.K subsections instead of
+    # inline `- **Category**:` bullets.  Matches the Flows treatment
+    # and visually separates each category in both Markdown and docx.
     for sub_idx, key, label in (
         (4, "causes", "Causes"),
         (5, "effects", "Effects"),
@@ -273,11 +359,14 @@ def _md_coupling_section(
         if not items:
             continue
         parts.append(f"### {number}.{sub_idx} {label}")
-        for category, entries in items.items():
-            parts.append(f"- **{category.title()}**:")
-            for entry in entries:
-                parts.append(f"  - {entry}")
         parts.append("")
+        for cat_idx, (category, entries) in enumerate(items.items(), 1):
+            parts.append(
+                f"#### {number}.{sub_idx}.{cat_idx} {category.title()}"
+            )
+            for entry in entries:
+                parts.append(f"- {entry}")
+            parts.append("")
 
 
 def render_markdown(
@@ -288,9 +377,15 @@ def render_markdown(
     s = _build_sections(result)
     parts: list[str] = []
 
-    # Title
-    focal = s["focal_country"] or "Case"
-    parts.append(f"# Metacoupling Analysis — {focal}: {s['topic']}")
+    # PR #32: title is "Metacoupling Analysis: {user query}".  Falls
+    # back to the older "{focal}: {topic}" heuristic only when no
+    # original_query is attached (e.g., direct AnalysisResult(...)
+    # construction in tests).
+    if s["original_query"]:
+        parts.append(f"# Metacoupling Analysis: {s['original_query']}")
+    else:
+        focal = s["focal_country"] or "Case"
+        parts.append(f"# Metacoupling Analysis — {focal}: {s['topic']}")
     parts.append("")
 
     # Abstract
@@ -445,11 +540,14 @@ def render_docx(
 
     doc = Document()
 
-    # Title
-    focal = s["focal_country"] or "Case"
-    doc.add_heading(
-        f"Metacoupling Analysis — {focal}: {s['topic']}", level=0,
-    )
+    # PR #32: title is "Metacoupling Analysis: {user query}" (see
+    # _build_sections for fallback).
+    if s["original_query"]:
+        title_text = f"Metacoupling Analysis: {s['original_query']}"
+    else:
+        focal = s["focal_country"] or "Case"
+        title_text = f"Metacoupling Analysis — {focal}: {s['topic']}"
+    doc.add_heading(title_text, level=0)
 
     # Abstract
     if s["abstract"]:
@@ -487,31 +585,55 @@ def render_docx(
                     val = str(entry.get(key, "")).strip()
                     if val:
                         label = key.replace("_", " ").capitalize()
-                        doc.add_paragraph(
-                            f"{label}: {val}", style="List Bullet",
-                        )
+                        # PR #32: bold the sub-field label (was a
+                        # plain non-bold paragraph) so scholars can
+                        # scan the document fast.
+                        bp = doc.add_paragraph(style="List Bullet")
+                        brun = bp.add_run(f"{label}: ")
+                        brun.bold = True
+                        bp.add_run(val)
         if section["flows"]:
             doc.add_heading(f"{number}.2 Flows", level=2)
-            for flow in section["flows"]:
-                category = str(flow.get("category", "unspecified")).title()
-                direction = str(flow.get("direction", "")).strip()
-                description = str(flow.get("description", "")).strip()
-                text = f"[{category}]"
-                if direction:
-                    text += f" {direction}"
-                if description:
-                    text += f" — {description}"
-                doc.add_paragraph(text, style="List Number")
+            # PR #32: per-category §N.2.K subsections instead of one
+            # flat numbered list.  Avoids the visual mess of 15+
+            # mixed-category flows.
+            groups = _group_flows_by_category(section["flows"])
+            for sub_idx, (category, group_flows) in enumerate(groups, 1):
+                doc.add_heading(
+                    f"{number}.2.{sub_idx} {category}", level=3,
+                )
+                for flow in group_flows:
+                    direction = str(flow.get("direction", "")).strip()
+                    description = str(flow.get("description", "")).strip()
+                    text = ""
+                    if direction:
+                        text += direction
+                    if description:
+                        text += (f" — {description}" if direction
+                                 else description)
+                    if not text:
+                        text = "(no details)"
+                    doc.add_paragraph(text, style="List Number")
         if section["agents"]:
             doc.add_heading(f"{number}.3 Agents", level=2)
             for agent in section["agents"]:
                 level = str(agent.get("level", "")).title()
                 name = str(agent.get("name", "")).strip()
                 desc = str(agent.get("description", "")).strip()
-                text = f"{level + ' ' if level else ''}{name}"
+                # PR #32: bold the level label (e.g.,
+                # "Individuals / Households", "Firms / Traders /
+                # Corporations") so scholars can scan the document
+                # by agent class.
+                p = doc.add_paragraph(style="List Bullet")
+                if level:
+                    lrun = p.add_run(f"{level} ")
+                    lrun.bold = True
+                p.add_run(name)
                 if desc:
-                    text += f" — {desc}"
-                doc.add_paragraph(text, style="List Bullet")
+                    p.add_run(f" — {desc}")
+        # PR #32: per-category §N.4.K / §N.5.K subsections (Heading
+        # 3) instead of one paragraph per category with semicolon-
+        # joined items.  Each item becomes its own bullet.
         for sub_idx, key, label in (
             (4, "causes", "Causes"),
             (5, "effects", "Effects"),
@@ -520,11 +642,13 @@ def render_docx(
             if not items:
                 continue
             doc.add_heading(f"{number}.{sub_idx} {label}", level=2)
-            for category, entries in items.items():
-                p = doc.add_paragraph()
-                run = p.add_run(f"{category.title()}: ")
-                run.bold = True
-                p.add_run("; ".join(entries))
+            for cat_idx, (category, entries) in enumerate(items.items(), 1):
+                doc.add_heading(
+                    f"{number}.{sub_idx}.{cat_idx} {category.title()}",
+                    level=3,
+                )
+                for entry in entries:
+                    doc.add_paragraph(entry, style="List Bullet")
 
     # §5 Cross-coupling
     if s["cross_coupling_interactions"]:
