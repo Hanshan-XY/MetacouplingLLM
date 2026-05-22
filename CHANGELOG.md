@@ -9,6 +9,178 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Gemini 3.1 Pro + Grok 4.3 web-search backend parity.**  After
+  PR #28 brought `AnthropicWebSearchBackend` level with the OpenAI
+  template (PRs #17 / #18 / #21 / #24), the two remaining
+  backends were still on the pre-PR #18 baseline (3-line minimal
+  prompt, no blocklist, no strict structured output, no token
+  scaling).  On top of that, `GrokWebSearchBackend` was BROKEN
+  in production: the prior code called `chat.completions.create`
+  with a `search_parameters` body, which xAI started returning
+  HTTP 410 Gone for on 2026-01-12 (deprecation of the legacy
+  Live Search API).  Every Grok web-search call against the
+  live xAI API failed until this PR.  Bundled into one PR per
+  the user request; the two streams share the same parity
+  template but differ in API mechanics.
+
+  **Stream A -- `GeminiWebSearchBackend` rewrite**
+  (`src/metacouplingllm/knowledge/websearch.py`):
+
+  1. **Default model** bumped from `gemini-2.5-flash` to
+     `gemini-3.1-pro-preview` per user request ("latest Gemini
+     3.1 pro").  Per stored memory preference (cost is not a
+     constraint; optimise for quality), Pro is preferred over
+     Flash.  The earlier `gemini-3-pro-preview` was discontinued
+     2026-03-09 and now redirects to 3.1 Pro per Google's
+     official changelog, so 3.1 Pro is the safe default.
+     Switch to `gemini-3.1-pro` (no `-preview` suffix) when GA
+     lands.
+  2. **Rich prompt template** copying OpenAI PR #18 verbatim:
+     "web research collector" role, DO-NOTs for prose / off-topic
+     answering, 6 source-selection rules, 5 grounding rules, and
+     a 200-400 word `model_summary` requirement.  Closing
+     instruction adapted to Gemini's native combined
+     grounding + structured output (no submit_results dance like
+     Anthropic).
+  3. **Strict structured output via native combined config**:
+     `tools=[{"google_search": {}}]` plus
+     `response_mime_type="application/json"` and
+     `response_schema=_OPENAI_WEB_SEARCH_RESULTS_SCHEMA` in one
+     call.  Gemini 3.x supports schema + grounding in a single
+     request (per the structured-output docs at
+     `https://ai.google.dev/gemini-api/docs/structured-output`),
+     so we re-use the same schema OpenAI uses and downstream
+     `_normalise_backend_results` consumes both identically.
+  4. **`thinking_config={"thinking_level": "high"}`** per user
+     memory preference.  Gemini 3.1 Pro forces extended thinking
+     ON regardless of caller config; this parameter controls
+     the budget (`minimal` | `low` | `medium` | `high`).
+  5. **Default `blocked_domains`** = `["reddit.com",
+     "quora.com", "pinterest.com"]` (mirrors OpenAI PR #18 and
+     Anthropic PR #28).  Applied as a post-hoc client-side
+     filter via the new `_apply_domain_filters` method: Gemini's
+     `google_search` tool does NOT expose server-side domain
+     filtering, so we filter the structured response after the
+     fact as a parity belt against the other two backends.
+     Documented as a known parity gap in the docstring.
+  6. **`max_output_tokens` scaling**: dataclass default bumped
+     8192 → 12000 (matches OpenAI PR #24 and Anthropic PR #28);
+     per-call computes `min(max(self.max_tokens,
+     max_results * 1000), 64000)`.  The 64000 cap is Gemini 3.1
+     Pro's hard output ceiling.
+  7. **Silent-fallback warning** when the structured response is
+     empty / malformed; backend then falls through to
+     `_extract_gemini_grounding_results` (title + url only, no
+     `model_summary`) so the call still returns something useful
+     but the failure mode never goes silent.  Mirror of
+     OpenAI PR #24 and Anthropic PR #28 diagnostics.
+
+  **Stream B -- `GrokWebSearchBackend` MAJOR rewrite**
+  (same file):
+
+  1. **Endpoint migration**: `client.chat.completions.create(...)`
+     → `client.responses.create(...)`.  xAI returned HTTP 410
+     Gone for the prior endpoint since 2026-01-12; this was a
+     production bug, not just a deprecation warning.  Still uses
+     the OpenAI SDK with
+     `base_url="https://api.x.ai/v1"` (no dedicated xAI SDK).
+  2. **Default model** bumped from `grok-3` to `grok-4.3` per
+     user request.
+  3. **Dropped deprecated dataclass fields**: `search_mode`,
+     `max_search_results`, `sources` (parameters of the legacy
+     Live Search API, gone with the endpoint migration).
+  4. **New built-in `web_search` tool spec**:
+     `{"type": "web_search", "excluded_domains": [...],
+     "enable_image_understanding": False}`.  xAI's `/responses`
+     endpoint runs the search loop server-side and returns one
+     final assistant message; no separate `tool_result` blocks
+     are surfaced to the client.
+  5. **Rich prompt template** copying OpenAI PR #18 verbatim,
+     adapted with stronger language: `**REQUIRED**: you MUST
+     use the web_search tool to gather sources; do not answer
+     from training data.`  xAI's `/responses` endpoint does NOT
+     expose a `tool_choice="required"` analogue (documented as
+     a known parity gap), so prompt language is the only lever
+     for forcing tool use.
+  6. **Strict json_schema `response_format`** combined with the
+     `web_search` tool (per
+     `https://docs.x.ai/docs/guides/structured-outputs`).  Uses
+     a new module-level constant
+     `_GROK_WEB_SEARCH_RESULTS_SCHEMA` that mirrors the OpenAI
+     schema PLUS a required `evidence_urls: string[]` field per
+     result -- because xAI doesn't return separate tool_result
+     blocks, citations must live inside the structured response
+     itself.  `_normalise_backend_results` ignores the extra
+     field gracefully.
+  7. **New `reasoning_effort="high"`** field per user memory
+     preference (`none | low | medium | high`; applies to Grok
+     4.3).  **New `max_turns=5`** field (xAI's "balanced"
+     deep-search cap; 1-2 quick / 3-5 balanced / 10+ deep).
+     **New `enable_image_understanding=False`** field (default
+     off for speed; text-only).
+  8. **Default `excluded_domains`** = `["reddit.com",
+     "quora.com", "pinterest.com"]` (mirrors OpenAI PR #18).
+     xAI's API caps each domain list at 5 entries; the
+     3-entry default fits comfortably, and the backend silently
+     truncates to 5 if more are passed.  New constant
+     `_MAX_DOMAIN_LIST_SIZE = 5` documents the limit.
+  9. **`max_output_tokens` scaling**: dataclass default bumped
+     8192 → 12000 (matches OpenAI PR #24, Anthropic PR #28,
+     Gemini Stream A above); per-call computes
+     `max(self.max_tokens, max_results * 1000)`.  Grok 4.3 has
+     no documented hard ceiling.
+  10. **Two-variant silent-fallback warning** distinguishing
+      "web_search NOT invoked (model answered from training
+      data; strengthen prompt)" from "web_search ran but
+      structured output was empty / malformed".  Reads
+      `response.server_side_tool_usage.web_search_count` to tell
+      the two cases apart, then falls through to
+      `_extract_grok_citation_results` if older xAI clients
+      still surface a `citations` field.
+
+  **Breaking changes for direct consumers** of either backend:
+  - `GeminiWebSearchBackend(model=...)` default changed from
+    `gemini-2.5-flash` to `gemini-3.1-pro-preview`.  Pin
+    `model="gemini-2.5-flash"` explicitly if you need the
+    cheaper / faster model.
+  - `GrokWebSearchBackend(model=...)` default changed from
+    `grok-3` to `grok-4.3`.  Pin `model="grok-3"` explicitly
+    if you need it (though `chat.completions` Live Search is
+    gone regardless, so most callers are effectively forced
+    onto 4.3 + `/responses`).
+  - Both backends now default to the
+    `["reddit.com", "quora.com", "pinterest.com"]` blocklist.
+    Pass an empty list to restore the prior unfiltered
+    behaviour.
+  - `GrokWebSearchBackend` dataclass fields `search_mode`,
+    `max_search_results`, and `sources` are GONE.  Callers
+    using them will get a `TypeError` at construction.
+
+  **Live trace validation deferred** until the user provides
+  `GEMINI_API_KEY` / `XAI_API_KEY` per their message ("I will
+  attach related api when you finish this revision").  The
+  PR #28 diagnostic pattern (`scripts/diagnose_anthropic_web_search.py`)
+  can be adapted as `scripts/diagnose_gemini_web_search.py` /
+  `scripts/diagnose_grok_web_search.py` for live bisecting
+  when keys arrive.
+
+  26 new tests in `TestGeminiWebSearchBackend` (12 cases) and
+  `TestGrokWebSearchBackend` (14 cases) covering each axis
+  above.  The Grok class includes a critical regression guard
+  -- `test_search_uses_responses_endpoint_not_chat_completions`
+  -- that uses a `_ChatCompletionsExploder` stub which raises
+  `AssertionError` if the old endpoint is touched.
+
+  Also deleted the 4 pre-existing
+  `TestGrokWebSearchBackend` tests in
+  `tests/test_gemini_grok_support.py` because they asserted
+  parameters of the gone Live Search API (`extra_body`,
+  `search_parameters.mode`, `search_parameters.max_search_results`,
+  `search_parameters.sources`).  The new test class in
+  `test_websearch.py` provides stricter coverage of the
+  modern surface.  Module docstring updated to point readers
+  to the new location.
+
 - **End-to-end Claude API support across the pipeline (Stream B:
   pipeline strict-output).**  Stream A of this PR brings
   `AnthropicWebSearchBackend` to web-search-backend parity with
