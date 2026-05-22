@@ -424,7 +424,15 @@ def _extract_bullets(text: str) -> list[str]:
 
 
 def _extract_categorized_bullets(text: str) -> dict[str, list[str]]:
-    """Extract bullets grouped under bold headings."""
+    """Extract bullets grouped under bold headings.
+
+    PR #34: also recognises PLAIN-TEXT category names (Economic,
+    Political / Institutional, …) as section dividers even when the
+    LLM doesn't bold them.  Without this, the parser collapsed every
+    cause/effect under one ``"general"`` key when the LLM emitted
+    ``General:`` then unbold category names followed by bulleted
+    items (the Mexico avocado trace 2026-05-22 pattern).
+    """
     result: dict[str, list[str]] = {}
     current_category = "general"
     for line in text.splitlines():
@@ -440,8 +448,31 @@ def _extract_categorized_bullets(text: str) -> dict[str, list[str]]:
             continue
         if _BULLET_RE.match(stripped):
             clean = _BULLET_RE.sub("", stripped).strip()
-            if clean:
-                result.setdefault(current_category, []).append(clean)
+            if not clean:
+                continue
+            # PR #34: bullet whose entire text matches a known Liu
+            # cause/effect category name → treat as section divider,
+            # not as an item.  Uses the existing alias table so
+            # variants ("Political", "Political / Institutional",
+            # "political/institutional") all normalise.  Trailing
+            # colon tolerated.
+            bullet_text = clean.rstrip(":").strip()
+            normalised = (
+                bullet_text.lower()
+                .replace(" / ", " / ")  # no-op, keep for readability
+            )
+            normalised = re.sub(r"\s+", " ", normalised)
+            if normalised in _CAUSE_EFFECT_CATEGORY_ALIASES:
+                current_category = _CAUSE_EFFECT_CATEGORY_ALIASES[
+                    normalised
+                ]
+                continue
+            result.setdefault(current_category, []).append(clean)
+    # PR #34: if we created a "general" bucket but ALSO discovered
+    # real categories along the way, drop "general" iff it's empty
+    # (defensive; the loop above never adds to it once a real
+    # category fires).  Concretely: when no items appear before the
+    # first inline category, "general" never gets added.
     return result
 
 
@@ -799,6 +830,87 @@ def _parse_multiline_flows(text: str) -> list[dict[str, str]]:
     return flows
 
 
+def _merge_fragmented_flow_entries(
+    flows: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """PR #34: stitch the LLM's 3-entry fragmented-flow pattern back
+    into single logical flow dicts.
+
+    Observed pattern in production (Mexico avocado trace 2026-05-22):
+    the LLM emits a flow as a category header line ("Matter Flow")
+    followed by a Direction line and a Description line.  When wrapped
+    inside top-level bullets each line gets its own flow dict:
+
+      {"category": "matter", "description": "Matter Flow"}  <- header
+      {"direction": "Orchards -> Packinghouses"}            <- direction
+      {"description": "Harvested Hass avocados..."}         <- description
+
+    This helper recognises a "header" dict (canonical category + a
+    description matching ``"{Category} Flow"`` placeholder OR no
+    direction at all) and merges subsequent category-less dicts into
+    it until the next header.
+
+    Idempotent: well-formed flows pass through unchanged because
+    a canonical-category flow WITH a real direction AND a non-
+    placeholder description never matches the header heuristic.
+    """
+    if not flows:
+        return flows
+
+    merged: list[dict[str, str]] = []
+    current: dict[str, str] | None = None
+
+    for flow in flows:
+        category = (flow.get("category") or "").lower().strip()
+        direction = (flow.get("direction") or "").strip()
+        description = (flow.get("description") or "").strip()
+        # Canonical category + placeholder description "{Cat} Flow"
+        # OR canonical category + no direction = header marker.
+        is_header = bool(
+            category
+            and category in _FLOW_CATEGORIES
+            and (
+                not direction
+                or re.fullmatch(
+                    rf"\[?{re.escape(category)}\]?\s*flows?",
+                    description,
+                    re.IGNORECASE,
+                )
+            )
+        )
+        if is_header:
+            if current is not None:
+                merged.append(current)
+            current = {"category": category}
+            continue
+        # Sub-entry with no category but real direction/description
+        # belongs to the current header, if any.
+        if not category and current is not None:
+            if direction:
+                current["direction"] = (
+                    direction
+                    if not current.get("direction")
+                    else current["direction"] + " | " + direction
+                )
+            if description:
+                current["description"] = (
+                    description
+                    if not current.get("description")
+                    else current["description"] + " " + description
+                )
+            continue
+        # Anything else (non-canonical category, or canonical-but-
+        # complete flow) closes the current header and passes through.
+        if current is not None:
+            merged.append(current)
+            current = None
+        merged.append(flow)
+
+    if current is not None:
+        merged.append(current)
+    return merged
+
+
 def _parse_flows(text: str) -> list[dict[str, str]]:
     """Parse a flow-analysis block into flow-entry dicts."""
     multiline = _parse_multiline_flows(text)
@@ -839,7 +951,12 @@ def _parse_flows(text: str) -> list[dict[str, str]]:
             flow.setdefault("description", item)
         if flow:
             flows.append(flow)
-    return flows
+
+    # PR #34: stitch fragmented header/direction/description triples
+    # back into single logical flow dicts.  Idempotent on well-formed
+    # input so this doesn't regress existing parser tests that emit
+    # clean one-line-per-flow shapes.
+    return _merge_fragmented_flow_entries(flows)
 
 
 def _parse_coupling_section(text: str) -> CouplingSection | None:

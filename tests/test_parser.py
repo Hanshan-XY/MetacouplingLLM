@@ -648,3 +648,184 @@ class TestGPT51SystemParsing:
         categories = {f.get("category", "") for f in legacy_flows(result)}
         assert "matter" in categories
         assert "capital" in categories
+
+
+# ---------------------------------------------------------------------------
+# PR #34: parser fixes for the fragmented LLM output patterns that
+# surfaced in the Mexico avocado live trace (2026-05-22).
+# ---------------------------------------------------------------------------
+
+
+class TestParseFragmentedFlows:
+    """The LLM sometimes emits each logical flow as 3 lines (header,
+    direction, description) wrapped in top-level bullets.  Without
+    PR #34's ``_merge_fragmented_flow_entries`` pass, the parser
+    would produce 3 separate flow dicts per logical flow."""
+
+    def test_fragmented_flow_block_merges_into_one_dict(self):
+        from metacouplingllm.llm.parser import _parse_flows
+
+        # Format observed in the live Mexico avocado trace.
+        text = (
+            "- Matter Flow\n"
+            "  - Direction: Orchards → Packinghouses\n"
+            "  - Description: Avocados moved locally [T1:W3].\n"
+            "- Capital Flow\n"
+            "  - Direction: Exporter financing → Orchards\n"
+            "  - Description: Investments in compliance [T1:W2].\n"
+        )
+        flows = _parse_flows(text)
+        # Two logical flows after merge.
+        assert len(flows) == 2
+        assert flows[0]["category"] == "matter"
+        assert "Orchards → Packinghouses" in flows[0]["direction"]
+        assert "Avocados moved locally" in flows[0]["description"]
+        assert flows[1]["category"] == "capital"
+        assert "Exporter financing" in flows[1]["direction"]
+        assert "Investments in compliance" in flows[1]["description"]
+
+    def test_already_clean_flows_pass_through_unchanged(self):
+        """Idempotence: well-formed flow blocks must not be
+        mis-merged."""
+        from metacouplingllm.llm.parser import _parse_flows
+
+        text = (
+            "**1. Matter Flow**\n"
+            "- **Direction**: A → B\n"
+            "- **Description**: Clean test.\n"
+            "\n"
+            "**2. Capital Flow**\n"
+            "- **Direction**: B → A\n"
+            "- **Description**: Payments.\n"
+        )
+        flows = _parse_flows(text)
+        assert len(flows) == 2
+        assert flows[0]["category"] == "matter"
+        assert flows[0]["direction"] == "A → B"
+        assert flows[1]["category"] == "capital"
+
+    def test_orphan_subentry_without_header_passes_through(self):
+        """A direction/description with no preceding canonical
+        header still gets emitted (don't silently drop data)."""
+        from metacouplingllm.llm.parser import (
+            _merge_fragmented_flow_entries,
+        )
+
+        orphan = [
+            {"direction": "X → Y", "description": "no header above"}
+        ]
+        merged = _merge_fragmented_flow_entries(orphan)
+        assert merged == orphan
+
+    def test_empty_flows_returns_empty(self):
+        from metacouplingllm.llm.parser import (
+            _merge_fragmented_flow_entries,
+        )
+
+        assert _merge_fragmented_flow_entries([]) == []
+
+
+class TestParseUnboldCauseEffectCategories:
+    """The LLM sometimes emits cause/effect categories as PLAIN-TEXT
+    bullets ("- Economic\\n- Strong demand...") instead of bold
+    headings.  PR #34 teaches ``_extract_categorized_bullets`` to
+    recognise those as section dividers via the existing
+    ``_CAUSE_EFFECT_CATEGORY_ALIASES`` table."""
+
+    def test_unbold_categories_split_into_real_buckets(self):
+        from metacouplingllm.llm.parser import (
+            _extract_categorized_bullets,
+        )
+
+        text = (
+            "General:\n"
+            "- Economic\n"
+            "- Strong U.S. demand and price incentives.\n"
+            "- Anticipated revenue from market access.\n"
+            "- Political / Institutional\n"
+            "- Phytosanitary requirements from SENASICA.\n"
+            "- Hydrological\n"
+            "- Local water availability conditioning yields.\n"
+        )
+        result = _extract_categorized_bullets(text)
+        # The bogus "general" bucket should be gone.
+        assert "general" not in result
+        # Real categories present with their items.
+        assert "economic" in result
+        assert len(result["economic"]) == 2
+        assert "Strong U.S. demand" in result["economic"][0]
+        assert "political / institutional" in result
+        assert "Phytosanitary requirements" in result[
+            "political / institutional"
+        ][0]
+        assert "hydrological" in result
+        assert (
+            "Local water availability"
+            in result["hydrological"][0]
+        )
+
+    def test_bold_categories_still_work(self):
+        """Existing bold-heading format is unchanged."""
+        from metacouplingllm.llm.parser import (
+            _extract_categorized_bullets,
+        )
+
+        text = (
+            "**Proximate causes**\n"
+            "- Economic incentives.\n"
+            "**Distal causes**\n"
+            "- Climate change.\n"
+        )
+        result = _extract_categorized_bullets(text)
+        assert "proximate causes" in result
+        assert "distal causes" in result
+
+    def test_unbold_category_alias_normalises(self):
+        """Common short forms ("Political", "Cultural") normalise
+        to the full canonical name via the alias table."""
+        from metacouplingllm.llm.parser import (
+            _extract_categorized_bullets,
+        )
+
+        text = (
+            "- Political\n"
+            "- A political cause.\n"
+            "- Cultural\n"
+            "- A cultural cause.\n"
+        )
+        result = _extract_categorized_bullets(text)
+        # Both short forms normalise to their canonical labels.
+        assert "political / institutional" in result
+        assert "cultural / social / demographic" in result
+
+    def test_non_category_bullets_remain_as_items(self):
+        """A bullet whose text doesn't match any known category
+        stays as a content item under the current bucket."""
+        from metacouplingllm.llm.parser import (
+            _extract_categorized_bullets,
+        )
+
+        text = (
+            "- Economic\n"
+            "- This isn't a category name, just prose.\n"
+            "- Another item under Economic.\n"
+        )
+        result = _extract_categorized_bullets(text)
+        assert "economic" in result
+        assert len(result["economic"]) == 2
+
+    def test_general_bucket_kept_when_no_inline_categories(self):
+        """Defensive: when items have NO inline category names,
+        the parser still groups them under the default "general"
+        key (the old behaviour stays unchanged for this case)."""
+        from metacouplingllm.llm.parser import (
+            _extract_categorized_bullets,
+        )
+
+        text = (
+            "- Just some generic cause.\n"
+            "- Another generic cause without category labels.\n"
+        )
+        result = _extract_categorized_bullets(text)
+        assert "general" in result
+        assert len(result["general"]) == 2
