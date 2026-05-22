@@ -7,6 +7,125 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Added
+
+- **Quantitative metacoupling indicators submodule
+  (`metacouplingllm.indicators`).**  Three indicator families
+  from the established metacoupling literature, implemented as
+  deterministic Python functions (no LLM calls in the calculation
+  path):
+
+  1. **Metacoupling Flow Shares** (`compute_flow_shares`) -- IFS,
+     PFS, TFS.  Relative size of intra-, peri-, and telecoupled
+     flows, per Liu (2017) framework + spec §6.
+  2. **Metacoupling Flow Evenness** (`compute_mfe`) -- normalised
+     Shannon (1948) entropy across the three coupling-type shares.
+     Uses the standard `0·ln(0) = 0` convention.  Returns 1 when
+     shares are perfectly balanced, 0 when one type dominates.
+  3. **Metacoupling Flow Concentration Index**
+     (`compute_mfci`) -- normalised Herfindahl-Hirschman Index
+     within each coupling type (Cracau & Lima 2016), producing
+     IFCI, PFCI, TFCI.  Returns 0 for perfectly distributed
+     partners, 1 for single-partner concentration.
+
+  Plus two utilities:
+
+  - `classify_coupling(edges, focal_id, adjacency)` -- assigns
+    I/P/T to each flow edge from a user-supplied adjacency table
+    (no hardcoded geography per spec §4).  Self-loops classify
+    as intracoupling without needing adjacency; cross-system
+    edges require an adjacency DataFrame or raise `ValueError`.
+  - `summarize_metacoupling()` -- one-shot combined indicator
+    table per spec §12.5 with columns
+    `[focal_system_id, *group_cols, F_I, F_P, F_T, F_total,
+    IFS, PFS, TFS, MFE, IFCI, PFCI, TFCI, m_I, m_P, m_T,
+    ENP_I, ENP_P, ENP_T]`.
+
+  **Pandas is an OPTIONAL dependency.**  Base install
+  (`pip install metacouplingllm`) stays lean (numpy + fastembed
+  only).  Users opt in with
+  `pip install metacouplingllm[indicators]`.  When pandas is
+  missing, calling any indicator function raises an `ImportError`
+  with the install command in the message.  The submodule itself
+  imports cleanly without pandas thanks to lazy imports + a
+  `TYPE_CHECKING` guard.
+
+  **Design principles documented in
+  `src/metacouplingllm/indicators/__init__.py`:**
+  - Deterministic-first: indicator math never calls an LLM
+  - Established statistics, not invented indices (Shannon entropy
+    + normalised HHI sourced from Shannon 1948 / Hirschman 1945 /
+    Cracau & Lima 2016)
+  - User supplies adjacency: no hardcoded geography
+  - **Intracoupling data is required**: when `F_I = 0` but other
+    coupling types are non-zero, the package emits a
+    `UserWarning` so users don't misread missing-data as
+    "no intracoupling".  This is a deliberate guardrail per the
+    PR #35 scope discussion.
+
+  **Flow type vs coupling type are orthogonal dimensions.**  The
+  Liu 2017 framework distinguishes flow TYPES (matter / capital /
+  information / energy / people / organisms) from COUPLING TYPES
+  (intra / peri / tele).  These are orthogonal: a flow can be
+  `(matter, telecoupling)` or `(information, intracoupling)`.  The
+  schema supports both: pass `group_cols=["flow_type"]` (or
+  whatever you name the column) and all indicators compute
+  per-(focal × flow_type) automatically via pandas groupby.  No
+  special-case code; just documentation.
+
+  **Edge cases handled per spec §8/§13:**
+  - `F_total == 0`: shares = NaN + `UserWarning`
+  - `F_ic == 0`: `MFCI = NaN` + `UserWarning`
+  - `m_ic == 1`: `MFCI = 1` by convention + `UserWarning`
+    (intracoupling self-loop case explicitly flagged via the
+    spec §14.6 wording about needing internal subunits for
+    meaningful intracoupling concentration)
+  - Unrecognised `coupling_type` labels: dropped from totals +
+    one-shot `UserWarning` listing how many edges were excluded
+  - Negative or non-numeric `flow_value`: dropped + `UserWarning`
+
+  **End-to-end Brazil-soybean example reproduced exactly** (spec
+  §11): IFS=0.10, PFS=0.20, TFS=0.70, MFE≈0.730, TFCI≈0.617,
+  ENP_T≈1.34.  Lives as `test_brazil_soybean_end_to_end` in the
+  test suite.
+
+  **19 new tests in `tests/test_indicators.py`** covering all
+  7 worked test cases from spec §20 + the Brazil end-to-end +
+  pandas-optional gating:
+  - `TestFlowShares` (4): spec test 1, sum-to-one, zero-flow,
+    multi-system batch
+  - `TestMFE` (4): spec tests 2-4, `0·ln(0) = 0` convention
+  - `TestMFCI` (4): spec tests 5-7, ENP = 1/HHI_raw companion
+  - `TestClassifyCoupling` (4): self-loop intracoupling,
+    adjacent → P, non-adjacent → T, missing adjacency raises
+  - `TestSummarizeMetacoupling` (2): end-to-end + grouped-by-year
+  - `TestPandasOptional` (1): ImportError message contains
+    install hint when pandas is missing
+
+  **Submodule layout** (`src/metacouplingllm/indicators/`):
+  - `__init__.py` -- public API exports
+  - `_math.py` -- shannon_entropy_normalised, normalised_hhi,
+    raw_hhi (pure numpy, no pandas)
+  - `core.py` -- compute_flow_shares, compute_mfe, compute_mfci,
+    summarize_metacoupling
+  - `classify.py` -- classify_coupling
+
+  Access via `from metacouplingllm import indicators` then
+  `indicators.compute_flow_shares(df, ...)`.  We deliberately do
+  NOT re-export individual indicator functions to the top-level
+  namespace -- keeps the top namespace focused on the LLM
+  analysis API and signals that the quantitative side is a
+  separate, opt-in part of the package.
+
+  **PR #36 (planned)** will add five optional LLM-assisted
+  helpers (`mc_llm_define_study`, `mc_llm_check_inputs`,
+  `mc_llm_classify_ambiguous_edges`, `mc_llm_interpret_results`,
+  `mc_llm_write_methods`) that reuse the existing
+  `metacouplingllm.llm.client.LLMClient` adapters.  Guardrails
+  per spec §15.4: LLM never invents numerical flow values;
+  structured JSON for classifier + data-check responses;
+  prompt/model/timestamp/response logged for reproducibility.
+
 ### Fixed
 
 - **Parser-level fix for fragmented LLM output patterns.**  PR #33

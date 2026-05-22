@@ -64,7 +64,11 @@ search = ["ddgs>=6.0"]
 # PR #31: AnalysisResult.to_docx() requires python-docx.
 # to_markdown() has no extra deps.
 export = ["python-docx>=1.1"]
-all = ["openai>=1.0", "anthropic>=0.18", "google-genai>=1.0", "geopandas>=0.14", "matplotlib>=3.7", "ddgs>=6.0", "python-docx>=1.1"]
+# PR #35: metacouplingllm.indicators submodule requires pandas for
+# the DataFrame-in / DataFrame-out indicator functions.  Base install
+# stays lean; users opt in with `pip install metacouplingllm[indicators]`.
+indicators = ["pandas>=2.0"]
+all = ["openai>=1.0", "anthropic>=0.18", "google-genai>=1.0", "geopandas>=0.14", "matplotlib>=3.7", "ddgs>=6.0", "python-docx>=1.1", "pandas>=2.0"]
 dev = ["pytest>=7.0", "pytest-cov>=4.0"]
 
 [project.urls]

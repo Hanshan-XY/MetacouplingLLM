@@ -101,6 +101,26 @@ __version__ = "0.1.0"
 
 
 # ---------------------------------------------------------------------------
+# Quantitative indicators (requires metacouplingllm[indicators]).
+#
+# PR #35: ``metacouplingllm.indicators`` submodule, lazy-imported so
+# users who don't pip install [indicators] (pandas) still get the
+# package working for the LLM-driven qualitative analysis path.
+# Access the indicator functions via:
+#
+#     from metacouplingllm import indicators
+#     indicators.compute_flow_shares(df, ...)
+#
+# We deliberately do NOT re-export the indicator functions into the
+# top-level namespace: this keeps the top namespace focused on the
+# LLM analysis API and signals that the quantitative side is a
+# separate, opt-in part of the package.
+# ---------------------------------------------------------------------------
+
+from metacouplingllm import indicators  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
 # Lazy-import wrappers for visualization (requires metacoupling[viz])
 # ---------------------------------------------------------------------------
 
