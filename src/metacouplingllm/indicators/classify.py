@@ -33,6 +33,15 @@ def classify_coupling(
     adjacency_origin_col: str = "origin_id",
     adjacency_destination_col: str = "destination_id",
     adjacency_flag_col: str = "adjacent",
+    *,
+    # PR #36 (Option A integration): when an llm_client is supplied
+    # AND the deterministic pass leaves some edges as NaN, the
+    # function automatically calls classify_ambiguous_edges() on
+    # just those rows and merges results back.  Backwards-compat:
+    # omit these kwargs to get exact PR #35 behaviour.
+    llm_client: "Any | None" = None,
+    study_config: dict | None = None,
+    model: str | None = None,
 ) -> "pd.DataFrame":
     """Add a coupling-type column to an edge table.
 
@@ -125,13 +134,14 @@ def classify_coupling(
             unclassifiable_count += 1
 
     if unclassifiable_count > 0:
-        if adjacency is None:
+        if adjacency is None and llm_client is None:
             raise ValueError(
                 f"classify_coupling: {unclassifiable_count} cross-system "
                 "edge(s) cannot be classified because no adjacency table "
                 "was provided.  Pass an adjacency DataFrame with columns "
                 f"[{adjacency_origin_col!r}, {adjacency_destination_col!r}, "
-                f"{adjacency_flag_col!r}]."
+                f"{adjacency_flag_col!r}], or pass an llm_client to ask "
+                "an LLM to classify ambiguous edges."
             )
         warnings.warn(
             f"classify_coupling: {unclassifiable_count} edge(s) had "
@@ -141,6 +151,39 @@ def classify_coupling(
         )
 
     out[coupling_col_out] = coupling_values
+
+    # PR #36 (Option A): when an llm_client is supplied AND the
+    # deterministic pass left some edges as NaN, call the LLM
+    # helper to resolve them.  Lazy import avoids loading the LLM
+    # module at import time for users who never opt in.
+    if llm_client is not None:
+        nan_mask = out[coupling_col_out].isna()
+        if nan_mask.any():
+            from metacouplingllm.indicators.llm import (
+                classify_ambiguous_edges,
+            )
+
+            unresolved = out.loc[nan_mask].copy()
+            resolved, trace = classify_ambiguous_edges(
+                unresolved,
+                study_config or {},
+                llm_client=llm_client,
+                model=model,
+                origin_col=origin_col,
+                destination_col=destination_col,
+            )
+            # Merge resolved suggestions back into out by index.
+            # When the LLM returned "unknown", leave the NaN so
+            # downstream code can see the gap (per spec §16 item 3:
+            # never let the LLM invent adjacency facts silently).
+            for idx, row in resolved.iterrows():
+                suggestion = row.get("suggested_coupling_type", "unknown")
+                if suggestion in ("I", "P", "T"):
+                    out.at[idx, coupling_col_out] = suggestion
+            # Surface the trace via pandas attrs so users can access
+            # it without us having to change the return type.
+            out.attrs["llm_classify_trace"] = trace
+
     return out
 
 

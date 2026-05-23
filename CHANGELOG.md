@@ -9,6 +9,114 @@ file. The format is loosely based on
 
 ### Added
 
+- **Optional LLM-assisted helpers for the indicators submodule
+  (`metacouplingllm.indicators.llm`).**  PR #35 shipped the
+  deterministic indicator core; PR #36 adds five optional LLM
+  helpers covering the workflow steps where natural-language
+  judgment helps (study setup, data validation, ambiguous
+  classification, interpretation, writing).  Each helper takes
+  any existing `LLMClient` from `metacouplingllm.llm.client`
+  (OpenAI / Anthropic / Gemini / Grok adapters) and returns a
+  `(result, trace)` tuple per spec §15.4 reproducibility rule.
+
+  **Five public helpers:**
+
+  | Function | What it does |
+  |---|---|
+  | `define_study(description, *, llm_client)` | Natural-language description → structured study config dict (focal_system, flow_unit, intracoupling/peri/tele rules, required columns, warnings) |
+  | `check_inputs(data_summary, sample_rows, *, llm_client)` | Validate user data: which indicator families can be computed, what's missing, unit / intracoupling-self-loop warnings |
+  | `classify_ambiguous_edges(edges, study_config, *, llm_client)` | Classify edges deterministic rules couldn't resolve.  Returns DataFrame with `suggested_coupling_type` (`"I"` / `"P"` / `"T"` / `"unknown"`), `confidence`, `reason`, `needs_user_confirmation` |
+  | `interpret_results(results, *, llm_client, audience)` | Plain-language interpretation of a computed indicator table.  Audience presets: `"academic"` / `"general"` / `"policy"` |
+  | `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Cracau & Lima 2016, Liu 2017) |
+
+  **Option A integration with `classify_coupling()`:** the PR #35
+  `classify_coupling()` gains three new kwargs (`llm_client`,
+  `study_config`, `model`).  When `llm_client` is supplied AND
+  the deterministic pass leaves some edges as `NaN`, the function
+  automatically calls `classify_ambiguous_edges()` on just those
+  rows and merges results back.  When the LLM returns `"unknown"`,
+  the row stays `NaN` (per spec §16 item 3: the package never lets
+  the LLM invent adjacency facts silently).  The LLM trace is
+  surfaced via pandas `out.attrs["llm_classify_trace"]` so the
+  function signature doesn't change.  **Backwards-compat:** omitting
+  the new kwargs preserves PR #35 behaviour exactly; all 19 PR #35
+  tests still pass without modification.
+
+  **Strict structured JSON output** for the three helpers that
+  return structured data (`define_study`, `check_inputs`,
+  `classify_ambiguous_edges`).  Reuses the adapter-dispatch
+  pattern from PR #28 (Anthropic) + PR #30 (Gemini / Grok) via a
+  shared `_call_with_strict_json` private helper.  Each adapter
+  gets its native strict-output mode:
+  - OpenAI / Grok: `response_format = {"type": "json_schema", ...}`
+  - Anthropic: `tools = [submit_tool]` + `tool_choice` (the same
+    submit-tool pattern used by `extract_web_map_signals`)
+  - Gemini: `response_schema` + `response_mime_type="application/json"`
+
+  Falls back to `_extract_json_object` parsing when the strict
+  path returns malformed output.  Raises `RuntimeError` only when
+  both paths fail to produce a dict.
+
+  **Reproducibility via `LLMTrace` dataclass** (per spec §15.4
+  item 7): every helper returns an `LLMTrace` alongside the
+  result, carrying `timestamp_utc` (ISO 8601 with Z suffix),
+  `model`, `prompt_version` (e.g., `"define_study_v1"`),
+  `system_prompt`, `user_prompt`, `raw_response`, and `usage`.
+  Users save the trace however they like — the package doesn't
+  make filesystem assumptions.
+
+  **Guardrails per spec §15.4 baked into every prompt:**
+  - LLM MUST NOT invent numerical flow values
+  - LLM MUST NOT calculate final indicator values (deterministic
+    code does that)
+  - LLM MUST say "unknown" / surface gaps rather than guess
+  - All output is structured JSON (no markdown fences, no prose
+    commentary) for the three JSON-output helpers
+
+  **No new required dependencies.**  Pandas remains optional under
+  the existing `metacouplingllm[indicators]` extra from PR #35.
+
+  **18 new tests** in `tests/test_indicators_llm.py`:
+  - `TestDefineStudy` (3): structured output parsed; empty input
+    rejected; unparseable response raises `RuntimeError`
+  - `TestCheckInputs` (3): can-compute-all case; missing partner
+    data blocks MFCI; self-loop intracoupling warning surfaced
+  - `TestClassifyAmbiguousEdges` (4): high-confidence classification;
+    `"unknown"` for insufficient info; multi-row batch;
+    preserves input DataFrame index for downstream merge
+  - `TestInterpretResults` (2): academic-audience system prompt
+    selected; invalid audience raises `ValueError`
+  - `TestWriteMethods` (1): output prose contains framework terms;
+    `LLMTrace` returned
+  - `TestClassifyCouplingIntegration` (3): `llm_client=None`
+    preserves PR #35 behaviour; `llm_client=mock` resolves NaN
+    edges and attaches trace via `attrs`; `"unknown"` LLM
+    suggestion leaves the row as `NaN` (no silent fabrication)
+  - `TestLLMTrace` (2): all fields populated; timestamp matches
+    ISO 8601 Z-suffix format
+
+  **Combined indicators suite: 37/37 pass** (19 PR #35 + 18 PR #36).
+
+  **New private modules** factored out for testability:
+  - `src/metacouplingllm/indicators/_schemas.py` — JSON schemas for
+    the three structured-output helpers
+  - `src/metacouplingllm/indicators/_prompts.py` — system + user
+    prompt templates with `*_PROMPT_VERSION` constants so old
+    `LLMTrace` records stay attributable when prompt wording
+    evolves
+  - `src/metacouplingllm/indicators/llm.py` — the five public
+    helpers + `LLMTrace` + the two `_call_with_*` dispatch helpers
+
+  **Out of scope** (deferred):
+  - Async / batch / streaming LLM modes
+  - `LLMTrace.to_json(path)` persistence helper (trivial follow-up)
+  - Multi-turn refinement (e.g., "the LLM's classification looks
+    wrong, ask it to reconsider")
+  - CLI for the helpers
+  - Vignette / sample-data integration showing the full
+    `define_study → check_inputs → classify → summarize →
+    interpret → write_methods` workflow end-to-end
+
 - **Quantitative metacoupling indicators submodule
   (`metacouplingllm.indicators`).**  Three indicator families
   from the established metacoupling literature, implemented as
