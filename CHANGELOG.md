@@ -7,7 +7,49 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
-### Added
+### Documentation
+
+- **Sweeping refresh of README.md, MANUAL.md, INTRODUCTION.md
+  covering all 20 PRs shipped since PR #16 (PR #37).**  Until
+  this PR the three user-facing doc files were frozen at roughly
+  PR #16: indicator submodule, scholar export, LLM-assisted
+  helpers, Anthropic / Gemini / Grok web-search backends,
+  supranational handling, dual pericoupling, and the §7 Evidence
+  Coverage note were all invisible to anyone reading the docs.
+
+  - **README.md** — install extras refresh (`[indicators]`,
+    `[export]`, `[anthropic]`, `[gemini]`, `[grok]`), two-track
+    Quick Start (qualitative LLM analysis with scholar export +
+    quantitative Brazil-soybean indicator one-liner), refreshed
+    Core Capabilities pitch grouped by track, install name typo
+    fix (`metacoupling` → `metacouplingllm`).
+  - **MANUAL.md** — surgical edits to §1 (install extras +
+    package name fix), §4 (web-search auto-wiring matrix), §7
+    (`result.abstract`, `result.to_markdown`, `result.to_docx`,
+    `evidence_coverage_note`), §11 (combining qualitative +
+    quantitative analysis), §12 (API ref additions for
+    exporters, adapters, web-search backends, indicator
+    functions, LLM helpers), §13 (new ImportError entries for
+    pandas / docx).  Four new sections appended: §14 Web Search
+    & Web-Sourced Evidence, §15 Scholar Export, §16 Quantitative
+    Indicators (with Brazil-soybean worked example), §17
+    LLM-Assisted Indicator Helpers (with the end-to-end
+    `define_study → check_inputs → classify → summarize →
+    interpret → write_methods` workflow).  References renumbered
+    to §18 and Shannon / Hirschman / Cracau-Lima added.
+  - **INTRODUCTION.md** — "Two complementary tracks" paragraph
+    added to §1, indicators side-track diagram added to §3
+    Architecture, §4.4 web-search section refreshed with native
+    backend auto-wiring + evidence coverage + supranational
+    handling, §4.8 LLM client abstraction refreshed with Gemini
+    + Grok adapters, three new subsections §4.9 (Scholar
+    Export), §4.10 (Quantitative Indicators), §4.11
+    (LLM-Assisted Helpers), Step 7 added to §5 Operation
+    Procedure with Brazil-soybean indicator one-liner, new §7
+    "Deterministic-first for quantitative analysis" design
+    principle added.
+
+  **No code changes.**  Docs only.
 
 - **Optional LLM-assisted helpers for the indicators submodule
   (`metacouplingllm.indicators.llm`).**  PR #35 shipped the

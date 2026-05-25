@@ -16,22 +16,31 @@
 - Automated map generation at both country and subnational levels
 - Support for OpenAI, Anthropic, **Google Gemini**, **xAI Grok**, or any custom LLM backend (each with native web-search auto-wiring)
 
-**Requirements:** Python 3.10+, no hard runtime dependencies. Optional extras: `openai`, `anthropic`, `geopandas`+`matplotlib` (visualization), `ddgs` (web search).
+**Requirements:** Python 3.10+, no hard runtime dependencies. Optional extras: `openai`, `anthropic`, `gemini`, `grok`, `geopandas`+`matplotlib` (visualization), `ddgs` (web search), `pandas` (quantitative indicators), `python-docx` (Word export).
+
+### Two complementary tracks
+
+The package exposes two complementary analysis tracks that can be used independently or combined:
+
+1. **Qualitative LLM-driven case-study analysis** via `MetacouplingAssistant` — produces a structured, framework-compliant report with citations, optional maps, and scholar-ready Markdown / Word export.
+2. **Quantitative deterministic indicators** via the `metacouplingllm.indicators` submodule — computes flow-share / evenness / concentration indicators on user-supplied flow data. Five optional LLM-assisted helpers (`define_study`, `check_inputs`, `classify_ambiguous_edges`, `interpret_results`, `write_methods`) wrap natural-language judgment tasks around the deterministic core.
 
 ### Quick Install
 
 ```bash
-pip install metacoupling
-pip install "metacoupling[openai]"
-pip install "metacoupling[anthropic]"
-pip install "metacoupling[gemini]"
-pip install "metacoupling[grok]"
-pip install "metacoupling[search]"
-pip install "metacoupling[viz]"
-pip install "metacoupling[all]"
+pip install metacouplingllm
+pip install "metacouplingllm[openai]"
+pip install "metacouplingllm[anthropic]"
+pip install "metacouplingllm[gemini]"
+pip install "metacouplingllm[grok]"
+pip install "metacouplingllm[search]"
+pip install "metacouplingllm[viz]"
+pip install "metacouplingllm[indicators]"   # PR #35 quantitative indicators (pandas)
+pip install "metacouplingllm[export]"       # PR #31/#32 scholar export (python-docx)
+pip install "metacouplingllm[all]"
 ```
 
-If you want to use the built-in OpenAI example below, install `metacoupling[openai]`.
+If you want to use the built-in OpenAI example below, install `metacouplingllm[openai]`.
 
 ### What Users Get
 
@@ -107,9 +116,43 @@ The package encodes 14 telecoupling categories from the literature (trade, migra
                     |   AnalysisResult   |
                     |  .parsed           |
                     |  .formatted        |
+                    |  .abstract         |   (PR #31)
+                    |  .to_markdown()    |   (PR #31)
+                    |  .to_docx()        |   (PR #31, #32)
                     |  .map              |
                     +--------------------+
 ```
+
+**Quantitative indicators side-track** (PR #35 + #36):
+
+```
+       User-supplied flow DataFrame + adjacency
+                       |
+            +----------v-----------+
+            |  classify_coupling   |  ← assigns I / P / T
+            |  (optional LLM       |     to each edge
+            |   fallback)          |
+            +----------+-----------+
+                       |
+            +----------v-----------+
+            |  compute_flow_shares |  ← IFS / PFS / TFS
+            |  compute_mfe         |  ← Shannon evenness
+            |  compute_mfci        |  ← normalised HHI
+            |  summarize_metacoupling
+            +----------+-----------+
+                       |
+            +----------v-----------+
+            |  LLM helpers (PR #36)|  ← define_study,
+            |  optional; each      |     check_inputs,
+            |  returns (result,    |     interpret_results,
+            |   LLMTrace)          |     write_methods
+            +----------------------+
+```
+
+Indicator math never calls an LLM (deterministic-first per PR #35
+design). The LLM helpers are scoped to natural-language tasks only
+(study setup, validation, interpretation, methods drafting) and
+always pair their output with an `LLMTrace` for reproducibility.
 
 ---
 
@@ -183,10 +226,12 @@ The RAG engine provides evidence grounding from 262 full-text telecoupling and m
 
 Web search injects current, real-world context (trade data, policies, recent events) that may not be in the LLM's training data:
 
-- Three fallback backends: `ddgs` -> `duckduckgo_search` -> stdlib (`urllib` + `html.parser`)
-- Works on Google Colab without any extra packages (stdlib fallback)
+- **Native auto-wiring** when `web_search=True`: each adapter routes to its own backend — `OpenAIWebSearchBackend` (PR #17), `AnthropicWebSearchBackend` (PR #28), `GeminiWebSearchBackend` (Google Search grounding, PR #29), `GrokWebSearchBackend` (xAI Live Search incl. X/Twitter, PR #29). Custom clients fall back to `DuckDuckGoBackend`.
+- DuckDuckGo backend has three fallback layers: `ddgs` -> `duckduckgo_search` -> stdlib (`urllib` + `html.parser`); works on Google Colab without any extra packages.
 - Results cited as `[Tk:W1]`, `[Tk:W2]`, ... -- the `W` prefix distinguishes web sources from literature `[Tk:1]`, `[Tk:2]`. `k` is the turn index, so prior-turn web references stay stable across `refine()` calls.
-- Recommended default for web-grounded maps: `web_structured_extraction=True` runs a second LLM pass over the web snippets and validates map-ready countries and flows before using them in auto-maps
+- Recommended default for web-grounded maps: `web_structured_extraction=True` runs a second LLM pass (strict JSON / tool-output across all four providers, PR #28-#30) over the web snippets and validates map-ready countries and flows before using them in auto-maps.
+- `evidence_coverage_note` (PR #20) is a one-paragraph LLM self-assessment that summarises what kinds of web sources were available, what coverage gaps remain, and whether the analysis fell back to training memory — surfaced on `result.parsed.evidence_coverage_note`.
+- Supranational unions (EU / ASEAN / USMCA / NAFTA) are handled end-to-end: prompt teaches the LLM to keep the union label + list members (PR #22), Stage-3 web-summary buffer is bumped to 2500 chars (PR #26), and the map renderer dissolves union borders and colours member states by their relationship to the focal country (PR #23, #25).
 
 ### 4.5 Pericoupling Databases
 
@@ -221,14 +266,64 @@ The package uses a protocol-based design that supports any LLM backend:
 
 ```python
 # Built-in adapters
-OpenAIAdapter(client, model="gpt-4o")
+OpenAIAdapter(client, model="gpt-5.2")
 AnthropicAdapter(client, model="claude-sonnet-4-20250514")
+GeminiAdapter(client, model="gemini-2.5-flash")
+GrokAdapter(client, model="grok-3")     # OpenAI-protocol-compatible
 
 # Any custom client with a chat() method also works
 class MyClient:
     def chat(self, messages, temperature=0.7, max_tokens=None):
         return LLMResponse(content="...")
 ```
+
+Each built-in adapter auto-wires its native web-search backend when `web_search=True`; custom clients fall back to DuckDuckGo.
+
+### 4.9 Scholar Export (PR #31, #32)
+
+`AnalysisResult` exposes three exporter surfaces so users can turn an LLM analysis into something a co-author or reviewer can read:
+
+| Surface | Description | Install needed |
+|---|---|---|
+| `result.abstract` | One-paragraph scholar abstract from a second, conservative LLM pass | none |
+| `result.to_markdown(path=None)` | Manuscript-ready Markdown with auto-derived title, bold sub-field labels, per-category Flows / Causes / Effects subsections, RAG + web evidence blocks, classification bullets | none |
+| `result.to_docx(path)` | Word document with the same structure as the Markdown export | `metacouplingllm[export]` (python-docx) |
+
+PR #32 added the auto-derived title, bold sub-field labels, and per-category flow / cause / effect subsections; PR #33 added classification bullets at the top of every system role section.
+
+### 4.10 Quantitative Indicators (PR #35)
+
+The `metacouplingllm.indicators` submodule computes deterministic metacoupling indicators on user-supplied flow data:
+
+| Function | What it does |
+|---|---|
+| `classify_coupling(edges, focal_id, adjacency, ...)` | Add `coupling_type` (I / P / T) to an edge table using a user-supplied adjacency table. |
+| `compute_flow_shares(data, ...)` | Intracoupled / Pericoupled / Telecoupled Flow Shares (IFS / PFS / TFS) per focal system. |
+| `compute_mfe(data, ...)` | Metacoupling Flow Evenness — normalised Shannon entropy across coupling types. |
+| `compute_mfci(data, ...)` | Metacoupling Flow Concentration Index — normalised HHI (IFCI / PFCI / TFCI) within each coupling type. |
+| `summarize_metacoupling(data, ...)` | One-shot combined indicator table. |
+
+Built on established statistics (Shannon 1948 entropy, Hirschman 1945 / Cracau & Lima 2016 normalised HHI), not invented indices. Brazil-soybean worked example: IFS = 0.10, PFS = 0.20, TFS = 0.70, MFE ≈ 0.73, TFCI ≈ 0.62. See MANUAL §16 for the full math + code.
+
+Pandas is the only added dependency; install via `pip install "metacouplingllm[indicators]"`.
+
+### 4.11 LLM-Assisted Indicator Helpers (PR #36)
+
+Five optional helpers in `metacouplingllm.indicators` wrap natural-language judgment tasks around the deterministic indicator core. Each returns `(result, LLMTrace)` for reproducibility per spec §15.4:
+
+| Helper | What it does |
+|---|---|
+| `define_study(description, *, llm_client)` | Natural-language description → structured study config dict. |
+| `check_inputs(data_summary, sample_rows, *, llm_client)` | Validate user data; flag missing inputs, unit issues, self-loop intracoupling. |
+| `classify_ambiguous_edges(edges, study_config, *, llm_client)` | Classify edges the deterministic pass couldn't resolve; returns `"I"` / `"P"` / `"T"` / `"unknown"` per edge with confidence and reason. |
+| `interpret_results(results, *, llm_client, audience)` | Plain-language interpretation of an indicator table; audience presets `"academic"` / `"general"` / `"policy"`. |
+| `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Cracau & Lima 2016, Liu 2017). |
+
+The `LLMTrace` dataclass carries `timestamp_utc`, `model`, `prompt_version`, `system_prompt`, `user_prompt`, `raw_response`, `usage` so old traces stay attributable when prompt wording evolves.
+
+**Option A integration with `classify_coupling()`:** pass `llm_client=` (plus optional `study_config=` and `model=`) and the function automatically calls `classify_ambiguous_edges()` on any rows the deterministic pass left as `NaN`, merging suggestions back. When the LLM returns `"unknown"`, the row stays `NaN` — the package never lets the LLM invent adjacency facts silently.
+
+All five helpers work across OpenAI / Anthropic / Gemini / Grok adapters and use each provider's native strict-JSON / tool-output mode for the structured-output helpers.
 
 ---
 
@@ -237,12 +332,16 @@ class MyClient:
 ### Step 1: Install
 
 ```bash
-pip install metacoupling[all]   # full installation
+pip install "metacouplingllm[all]"          # full installation
 # or selectively:
-pip install metacoupling[openai]      # OpenAI support
-pip install metacoupling[anthropic]   # Anthropic support
-pip install metacoupling[viz]         # maps (geopandas + matplotlib)
-pip install metacoupling[search]      # web search (ddgs)
+pip install "metacouplingllm[openai]"       # OpenAI support
+pip install "metacouplingllm[anthropic]"    # Anthropic support
+pip install "metacouplingllm[gemini]"       # Google Gemini support
+pip install "metacouplingllm[grok]"         # xAI Grok support
+pip install "metacouplingllm[viz]"          # maps (geopandas + matplotlib)
+pip install "metacouplingllm[search]"       # web search (ddgs)
+pip install "metacouplingllm[indicators]"   # pandas-based quantitative indicators
+pip install "metacouplingllm[export]"       # python-docx scholar export
 ```
 
 ### Step 2: Initialize
@@ -337,13 +436,51 @@ local Admin 1 file and then auto-download the hosted `Admin 1.gpkg` mirror.
 # Structured access to parsed analysis
 p = result.parsed
 print(p.coupling_classification)
-print(p.systems)      # dict of sending/receiving/spillover
-print(p.flows)        # list of flow dicts
-print(p.agents)       # list of agent dicts
-print(p.causes)       # dict of cause categories
-print(p.effects)      # dict of effect categories
-print(p.suggestions)  # list of research gap strings
+print(p.systems)              # dict of sending/receiving/spillover
+print(p.flows)                # list of flow dicts
+print(p.agents)               # list of agent dicts
+print(p.causes)               # dict of cause categories
+print(p.effects)              # dict of effect categories
+print(p.suggestions)          # list of research gap strings
+print(p.evidence_coverage_note)  # PR #20 — reviewer-facing evidence audit
 ```
+
+Or hand the result to the scholar exporters (PR #31, #32):
+
+```python
+print(result.abstract)                # one-paragraph scholar abstract
+result.to_markdown("brazil_soybean.md")
+result.to_docx("brazil_soybean.docx") # requires metacouplingllm[export]
+```
+
+### Step 7 (optional): Compute Quantitative Indicators
+
+When you have your own flow data, plug it into `metacouplingllm.indicators` (PR #35) for deterministic indicator math:
+
+```python
+import pandas as pd
+from metacouplingllm.indicators import classify_coupling, summarize_metacoupling
+
+edges = pd.DataFrame({
+    "focal_system_id":   ["Brazil"] * 6,
+    "origin_id":         ["Brazil"] * 6,
+    "destination_id":    ["Brazil", "Argentina", "Paraguay", "China", "EU", "USA"],
+    "flow_value":        [10.0, 5.0, 15.0, 50.0, 12.0, 8.0],   # million tonnes
+})
+adjacency = pd.DataFrame({
+    "origin_id":      ["Brazil", "Brazil"],
+    "destination_id": ["Argentina", "Paraguay"],
+    "adjacent":       [1, 1],
+})
+
+classified = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
+summary    = summarize_metacoupling(classified)
+print(summary)
+#    focal_system_id   IFS   PFS   TFS   MFE   IFCI   PFCI   TFCI
+# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.36   0.62
+```
+
+The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `define_study`, `check_inputs`, `interpret_results`, `write_methods` — for natural-language study setup, validation, interpretation, and manuscript prose around the deterministic numbers. Install via `pip install "metacouplingllm[indicators]"`.
 
 ---
 
@@ -361,12 +498,13 @@ print(p.suggestions)  # list of research gap strings
 
 ## 7. Design Principles
 
-- **Lean dependencies** -- Core analysis works with only `numpy`, `fastembed`, and an LLM client; visualization and web search are optional extras
-- **Graceful degradation** -- Each optional feature (RAG, web search, maps, literature) can be independently enabled or disabled; RAG transparently falls back from embeddings to TF-IDF when `fastembed` is unavailable
+- **Lean dependencies** -- Core analysis works with only `numpy`, `fastembed`, and an LLM client; visualization, web search, quantitative indicators, and scholar export are optional extras
+- **Graceful degradation** -- Each optional feature (RAG, web search, maps, literature, indicators, export) can be independently enabled or disabled; RAG transparently falls back from embeddings to TF-IDF when `fastembed` is unavailable
 - **Protocol-based extensibility** -- Any object with a `chat()` method works as an LLM client
 - **Pre-LLM knowledge injection** -- Pericoupling validation, web search, and example selection all happen before the LLM call, reducing hallucination
 - **Semantic RAG** -- Pre-computed BGE-small embeddings shipped with the package; semantic matching catches synonyms and paraphrases that TF-IDF misses. TF-IDF remains available as a fallback.
 - **Colab-compatible** -- Web search includes a zero-dependency stdlib fallback for restricted environments
+- **Deterministic-first for quantitative analysis (PR #35, #36)** -- The `metacouplingllm.indicators` math never calls an LLM; numbers are reproducible from the input DataFrame alone. The five LLM-assisted helpers are explicitly scoped to natural-language tasks (study setup, validation, interpretation, methods drafting) and always pair their output with an `LLMTrace` record. When the LLM is uncertain, it returns `"unknown"` rather than guess; the package never lets the LLM invent adjacency facts or flow values silently.
 
 ---
 
