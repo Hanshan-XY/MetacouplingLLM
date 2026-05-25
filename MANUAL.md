@@ -371,11 +371,68 @@ advisor = MetacouplingAssistant(
 When a RAG corpus is configured, the package retrieves corpus passages
 from the research description **before** calling the LLM, embeds them
 in the user message as a `<retrieved_literature turn="k">` XML block,
-and instructs the LLM to cite them inline as `[Tk:N]` — turn-scoped
-so the same token never changes meaning across follow-ups. After the
-LLM responds, any invalid citation tokens (e.g., `[T1:99]` when only
-8 passages were retrieved, or forward references like `[T9:1]` before
-turn 9 exists) are stripped with a logged warning.
+and instructs the LLM (via a citation-rules layer in the system
+prompt) to cite them inline as `[Tk:N]` — turn-scoped so the same
+token never changes meaning across follow-ups.
+
+**What the LLM sees.** Each user message includes a labelled XML
+block with the top-k retrieved passages numbered 1..N:
+
+```xml
+<retrieved_literature turn="1">
+  <passage turn="1" id="1" paper_key="liu_2017_metacoupling"
+           title="Integration across a metacoupled world"
+           authors="Liu, J." year="2017" section="Results">
+    Brazilian soybean exports to China are primarily destined for
+    the swine and poultry feed industry, with a fivefold increase
+    in shipment volume between 2000 and 2015...
+  </passage>
+  <passage turn="1" id="2" paper_key="fearnside_2001_amazon"
+           title="Soybean cultivation as a threat to the environment"
+           authors="Fearnside, P." year="2001" section="Discussion">
+    Cerrado-to-cropland conversion accounts for the bulk of
+    deforestation associated with soybean expansion...
+  </passage>
+</retrieved_literature>
+```
+
+An empty `<retrieved_literature turn="k"/>` self-closing tag means
+retrieval ran but found nothing — the LLM is instructed to emit no
+new current-turn citations rather than guess.
+
+**What the LLM writes.** The LLM cites the numbered passages inline
+as it writes:
+
+```text
+Brazil's soybean exports to China are dominated by feed-industry
+demand [T1:1]. The land-use footprint of this trade is concentrated
+in Cerrado-to-cropland conversion [T1:2], with secondary effects
+on Amazon deforestation reported in recent satellite analyses
+[T1:W2].
+```
+
+After the analysis, the package appends a `SUPPORTING EVIDENCE FROM
+LITERATURE (turn k)` block that resolves each `[Tk:N]` marker back
+to its source paper. Web sources use the `[Tk:Wn]` variant and are
+rendered in a separate `WEB SOURCES (turn k)` block.
+
+**What the sanitizer enforces.** After the LLM responds,
+`sanitize_turn_citations` (in
+`metacouplingllm.knowledge.citations`) scans the response and
+strips any citation token the LLM should not have emitted:
+
+- **Out-of-range tokens** — e.g. `[T1:99]` when only 8 passages
+  were retrieved this turn
+- **Forward references** — e.g. `[T9:1]` in turn 2 (no such turn
+  has happened yet)
+- **Bare legacy tokens** — `[N]` or `[W1]` without the `Tk:`
+  prefix (a pre-2026 grammar)
+
+Each strip triggers a `MetacouplingAssistant sanitized N invalid
+citation token(s)` warning in the logger so the gap is auditable.
+Prior-turn back-references (e.g. `[T1:3]` appearing in a turn-2
+answer) are **kept** verbatim — the LLM is encouraged to
+back-reference earlier evidence by copying the original token.
 
 `refine()` always re-retrieves using a labeled merged query that
 combines the **original** research description with the new

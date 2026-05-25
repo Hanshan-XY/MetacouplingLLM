@@ -126,11 +126,8 @@ class TestPromptBuilder:
         main analysis LLM must self-assess where the analysis is
         well-grounded vs thin across all evidence streams.
 
-        The instruction deliberately AVOIDS literal XML tag names
-        (``<retrieved_literature>`` / ``<web_search_results>``) so
-        post-hoc-RAG-mode tests can still use "no literal tag in
-        history" as a proxy for "no literature was injected"; the
-        instruction refers to evidence streams by name instead.
+        The instruction refers to evidence streams by name (literature,
+        web search results) rather than by XML tag.
         """
         prompt = self.builder.build_system_prompt()
         assert "Evidence Coverage" in prompt
@@ -139,12 +136,6 @@ class TestPromptBuilder:
         # instruction mentions BOTH evidence streams by name.
         assert "literature" in prompt.lower()
         assert "web search results" in prompt.lower()
-        # Defensive: the instruction MUST NOT put literal XML tag
-        # names in the system prompt; that would break
-        # post-hoc-mode tests asserting the history never carries
-        # injected literature blocks.
-        assert "<retrieved_literature>" not in prompt
-        assert "<web_search_results>" not in prompt
 
 
 class TestBuildInitialMessage:
