@@ -157,10 +157,9 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
             focal_country = fc.strip()
 
     # PR #31: RAG retrieval hits.  Populated by ``_build_result()``
-    # when the pipeline ran with an RAG engine in pre_retrieval mode.
-    # Each entry becomes a row in the "Evidence from Literature"
-    # section.  Empty when the run had no RAG engine or post_hoc
-    # mode (which doesn't attach hits to the result).
+    # when the pipeline ran with a RAG engine configured.  Each entry
+    # becomes a row in the "Evidence from Literature" section.  Empty
+    # when the run had no RAG engine.
     rag_hits: list[dict[str, Any]] = []
     raw_rag = getattr(result, "_rag_hits_for_export", None)
     if isinstance(raw_rag, list):

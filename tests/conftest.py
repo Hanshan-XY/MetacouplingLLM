@@ -234,29 +234,12 @@ def advisor_pre_retrieval(
     mock_llm_client: _RecordingMockLLMClient,
     mock_rag_engine: _RecordingMockRagEngine,
 ) -> MetacouplingAssistant:
-    """A MetacouplingAssistant in pre_retrieval mode with the mock engine injected."""
+    """A MetacouplingAssistant with the mock RAG engine injected."""
     advisor = MetacouplingAssistant(
         llm_client=mock_llm_client,
         max_examples=0,
         verbose=False,
-        rag_mode="pre_retrieval",
     )
     # Inject the mock engine directly — bypasses the file-system loader.
-    advisor._rag_engine = mock_rag_engine
-    return advisor
-
-
-@pytest.fixture
-def advisor_post_hoc(
-    mock_llm_client: _RecordingMockLLMClient,
-    mock_rag_engine: _RecordingMockRagEngine,
-) -> MetacouplingAssistant:
-    """A MetacouplingAssistant in post_hoc mode with the mock engine injected."""
-    advisor = MetacouplingAssistant(
-        llm_client=mock_llm_client,
-        max_examples=0,
-        verbose=False,
-        rag_mode="post_hoc",
-    )
     advisor._rag_engine = mock_rag_engine
     return advisor

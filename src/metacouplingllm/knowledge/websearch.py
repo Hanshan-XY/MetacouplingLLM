@@ -3065,10 +3065,9 @@ def annotate_web_citations(
     """Add inline turn-scoped ``[Tk:Wn]`` citations to formatted
     analysis lines.
 
-    Works the same way as the literature ``annotate_citations`` but
-    uses web-search results and emits ``[Tk:W1]``, ``[Tk:W2]``, …
-    so web and literature references are visually distinct while
-    sharing the turn-scoped grammar.
+    Uses web-search results and emits ``[Tk:W1]``, ``[Tk:W2]``, …
+    so web references are visually distinct from literature
+    citations ``[Tk:N]`` while sharing the turn-scoped grammar.
 
     Parameters
     ----------

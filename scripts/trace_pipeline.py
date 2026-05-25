@@ -342,7 +342,6 @@ def write_artifacts(
         "rag_top_k": assistant._rag_top_k,
         "rag_max_chunks_per_paper": assistant._rag_max_chunks_per_paper,
         "rag_backend": assistant._rag_backend,
-        "rag_mode": assistant._rag_mode,
         "rag_structured_extraction": assistant._rag_structured_extraction,
         "web_search": assistant._web_search,
         "web_search_max_results": assistant._web_search_max_results,
