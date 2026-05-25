@@ -66,7 +66,6 @@ from metacouplingllm.knowledge.rag import (
     RAGEngine,
     RetrievalResult,
     TextChunk,
-    annotate_citations,
     format_evidence,
 )
 from metacouplingllm.knowledge.websearch import (
@@ -208,7 +207,6 @@ __all__ = [
     "RetrievalResult",
     "TextChunk",
     "format_evidence",
-    "annotate_citations",
     # Citation sanitization (turn-scoped, pre-retrieval RAG)
     "TURN_CITATION_PATTERN",
     "sanitize_turn_citations",

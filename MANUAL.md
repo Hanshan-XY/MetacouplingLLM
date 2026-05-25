@@ -362,41 +362,24 @@ advisor = MetacouplingAssistant(
     verbose=False,             # Print diagnostic info during execution
     recommend_papers=False,    # Auto-append literature recommendations
     max_recommendations=5,     # Number of papers to recommend
-    rag_mode="pre_retrieval",  # see "RAG modes" below
     rag_top_k=8,               # passages retrieved per query
 )
 ```
 
-### RAG modes (`rag_mode`)
+### How RAG citations work
 
-The package supports two RAG integration modes:
+When a RAG corpus is configured, the package retrieves corpus passages
+from the research description **before** calling the LLM, embeds them
+in the user message as a `<retrieved_literature turn="k">` XML block,
+and instructs the LLM to cite them inline as `[Tk:N]` — turn-scoped
+so the same token never changes meaning across follow-ups. After the
+LLM responds, any invalid citation tokens (e.g., `[T1:99]` when only
+8 passages were retrieved, or forward references like `[T9:1]` before
+turn 9 exists) are stripped with a logged warning.
 
-- **`"pre_retrieval"` (default).** Retrieves corpus passages from the
-  research description **before** calling the LLM, embeds them in the
-  user message as a `<retrieved_literature turn="k">` XML block, and
-  instructs the LLM to cite them inline as `[Tk:N]` — turn-scoped so
-  the same token never changes meaning across follow-ups. This is the
-  standard RAG pattern and gives the LLM literature to ground its
-  analysis in rather than relying purely on training memory. After
-  the LLM responds, any invalid citation tokens (e.g., `[T1:99]` when
-  only 8 passages were retrieved, or forward references like `[T9:1]`
-  before turn 9 exists) are stripped with a logged warning.
-- **`"post_hoc"` (alternative).** Generates the analysis from training
-  memory first, then runs a keyword-overlap pass to stamp `[Tk:N]`
-  citations onto sentences that match retrieved passages. Use this
-  mode when downstream tooling expects citations to be assigned by
-  post-hoc keyword matching rather than inline by the LLM:
-  ```python
-  advisor = MetacouplingAssistant(
-      adapter,
-      rag_corpus="journal_articles_2025",
-      rag_mode="post_hoc",
-  )
-  ```
-
-In pre_retrieval mode, `refine()` always re-retrieves using a labeled
-merged query that combines the **original** research description with
-the new refinement text:
+`refine()` always re-retrieves using a labeled merged query that
+combines the **original** research description with the new
+refinement text:
 
 ```text
 Original research question:

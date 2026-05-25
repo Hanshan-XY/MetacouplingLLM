@@ -120,7 +120,6 @@ class TestStructuredExtractionDefault:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             # rag_structured_extraction defaults to False
         )
         advisor._rag_engine = mock_rag_engine
@@ -148,7 +147,6 @@ class TestStructuredExtractionEnabled:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -166,7 +164,6 @@ class TestStructuredExtractionEnabled:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -204,7 +201,6 @@ class TestStructuredExtractionEnabled:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -232,7 +228,6 @@ class TestStructuredExtractionEnabled:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -259,7 +254,6 @@ class TestStructuredExtractionEnabled:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -297,7 +291,6 @@ class TestStructuredExtractionFallbacks:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -336,7 +329,6 @@ class TestStructuredExtractionFallbacks:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -357,7 +349,6 @@ class TestStructuredExtractionFallbacks:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = empty_engine
@@ -366,27 +357,6 @@ class TestStructuredExtractionFallbacks:
         # Only one LLM call happened (the main analysis)
         assert client.call_count == 1
         assert result.structured_supplement is None
-
-    def test_post_hoc_mode_does_not_run_supplement(self, mock_rag_engine):
-        """Structured extraction is gated on pre_retrieval mode because
-        the supplement uses ``self._last_rag_hits`` which is populated
-        only in that mode."""
-        from tests.conftest import _RecordingMockLLMClient
-
-        client = _RecordingMockLLMClient(responses=[_DRAFT_ANALYSIS])
-        advisor = MetacouplingAssistant(
-            llm_client=client,
-            max_examples=0,
-            generate_abstract=False,
-            rag_mode="post_hoc",
-            rag_structured_extraction=True,
-        )
-        advisor._rag_engine = mock_rag_engine
-
-        result = advisor.analyze("Impact of feed barley supply in the UK")
-        assert client.call_count == 1
-        assert result.structured_supplement is None
-
 
 # ---------------------------------------------------------------------------
 # Validation / normalisation in _structured_extract_supplement
@@ -435,7 +405,6 @@ class TestStructuredExtractionValidation:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -498,7 +467,6 @@ class TestStructuredExtractionValidation:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = mock_rag_engine
@@ -580,7 +548,7 @@ class TestStructuredExtractionNoTruncation:
         client = _RecordingMockLLMClient(responses=[draft, empty_supp])
         advisor = MetacouplingAssistant(
             llm_client=client, max_examples=0, generate_abstract=False,
-            rag_mode="pre_retrieval", rag_structured_extraction=True,
+            rag_structured_extraction=True,
         )
         advisor._rag_engine = engine
 
@@ -651,7 +619,7 @@ class TestSupplementIntoMapBridge:
     def _advisor(self, mock_llm_client):
         return MetacouplingAssistant(
             llm_client=mock_llm_client, max_examples=0, generate_abstract=False,
-            rag_mode="pre_retrieval", rag_structured_extraction=True,
+            rag_structured_extraction=True,
         )
 
     def test_receiving_countries_merged(self, mock_llm_client):
@@ -864,7 +832,6 @@ class TestStructuredExtractionDraftCaps:
             llm_client=client,
             max_examples=0,
             generate_abstract=False,
-            rag_mode="pre_retrieval",
             rag_structured_extraction=True,
         )
         advisor._rag_engine = engine

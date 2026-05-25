@@ -7,6 +7,48 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Removed
+
+- **Legacy `post_hoc` RAG mode and the public `annotate_citations`
+  function (PR #38).**  The `post_hoc` mode generated the analysis
+  blind to the corpus and then stamped `[Tk:N]` citations on by
+  surface-level keyword overlap (>=3 shared tokens + >=20% overlap)
+  -- a 1990s information-retrieval technique that catches
+  paraphrases badly and gets fooled by topically-adjacent-but-
+  irrelevant content.  The mode was internally labelled "legacy"
+  in two `core.py` comments and carried a known unfixed
+  limitation (post_hoc runs silently dropped RAG evidence from
+  `result.to_markdown()` / `result.to_docx()` exports).
+  `pre_retrieval` -- where the LLM sees the retrieved passages
+  and cites them inline as it writes -- has always been the
+  default and is now the only mode.
+
+  **Breaking changes** (pre-1.0 cleanup; per the in-tree
+  versioning rule):
+  - `MetacouplingAssistant(..., rag_mode=...)` parameter removed.
+    Callers passing `rag_mode=...` will get `TypeError:
+    __init__() got an unexpected keyword argument 'rag_mode'`.
+    No migration needed for callers who relied on the default --
+    that path is unchanged.
+  - `annotate_citations` is no longer exported from
+    `metacouplingllm`.  `from metacouplingllm import
+    annotate_citations` will raise `ImportError`.  The underlying
+    function in `metacouplingllm/knowledge/rag.py` is also
+    deleted.  Anyone relying on it can re-vendor from this PR's
+    deletion diff.
+  - Internal `_VALID_RAG_MODES` constant and the post-hoc-only
+    `_citation_policy` helper are deleted.
+
+  **Net diff**: ~ -1100 lines code/tests, ~ +30 lines docs.
+
+  **Tests removed**: 8 `TestAnnotateCitations` cases in
+  `test_rag.py`, 5 post_hoc-specific tests in
+  `test_rag_pipeline.py` (incl. `TestPostHocBackwardCompat`),
+  1 test in `test_structured_extraction.py`, and 2 parameter-
+  validation tests (`test_default_rag_mode_is_pre_retrieval`,
+  `test_invalid_rag_mode_raises`).  The `advisor_post_hoc`
+  fixture in `conftest.py` is also removed.
+
 ### Documentation
 
 - **Sweeping refresh of README.md, MANUAL.md, INTRODUCTION.md

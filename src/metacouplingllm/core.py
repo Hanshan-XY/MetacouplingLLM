@@ -46,9 +46,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Allowed values for the rag_mode parameter on MetacouplingAssistant.
-_VALID_RAG_MODES = frozenset({"pre_retrieval", "post_hoc"})
-
 # Public built-in RAG corpus names. Use these when the bundled journal
 # corpus should be used; ``rag_papers_dir`` is reserved for custom folders.
 JOURNAL_ARTICLES_2025 = "journal_articles_2025"
@@ -678,37 +675,16 @@ class MetacouplingAssistant:
         ``rag_papers_dir`` unset to disable RAG.
     rag_top_k:
         Maximum number of evidence passages to retrieve per analysis.
-        Default ``8``. In ``rag_mode="pre_retrieval"`` this also bounds
-        the number of ``<retrieved_literature>`` passages injected into
-        the user message and therefore the number of valid
-        ``[T{k}:1]..[T{k}:N]`` citation labels for the LLM in turn ``k``.
-    rag_mode:
-        Selects how RAG integrates with the LLM call. Two options:
-
-        - ``"pre_retrieval"`` (default): retrieve corpus passages
-          **before** the LLM runs, embed them in the user message as
-          a labeled ``<retrieved_literature turn="k">`` XML block, and
-          instruct the LLM (via a citation-rules layer in the system
-          prompt) to cite them inline as ``[Tk:N]``. After the LLM
-          responds, invalid citation tokens are stripped (with a
-          logged warning) by
-          :func:`~metacouplingllm.knowledge.citations.sanitize_turn_citations`,
-          and the same evidence block as the post-hoc path is appended
-          to the formatted output. This is the recommended mode and
-          gives the LLM literature to ground its analysis in rather
-          than relying purely on training memory.
-        - ``"post_hoc"`` (alternative): the LLM generates from training
-          memory, then a keyword-overlap pass annotates ``[Tk:N]``
-          citations onto sentences that match retrieved passages. Use
-          this mode when downstream tooling expects citations to be
-          assigned by post-hoc keyword matching rather than inline by
-          the LLM.
-
-        On ``refine()`` in pre_retrieval mode, the merged retrieval
-        query is the **original** research description (anchored at
-        ``analyze()`` time and never overwritten) plus the new
-        refinement text, in a labeled structure — see
-        :meth:`refine` for details.
+        Default ``8``. Passages are injected into the user message as
+        a labeled ``<retrieved_literature turn="k">`` XML block, and
+        the LLM is instructed to cite them inline as
+        ``[T{k}:1]..[T{k}:N]`` in turn ``k``. After the LLM responds,
+        invalid citation tokens are stripped (with a logged warning)
+        by :func:`~metacouplingllm.knowledge.citations.sanitize_turn_citations`.
+        On ``refine()`` the merged retrieval query is the **original**
+        research description (anchored at ``analyze()`` time and never
+        overwritten) plus the new refinement text, in a labeled
+        structure — see :meth:`refine` for details.
     rag_max_chunks_per_paper:
         Maximum number of chunks from the same paper that may appear
         in a single retrieval result. Default ``3``. Set to ``1`` for
@@ -721,9 +697,9 @@ class MetacouplingAssistant:
         Higher values improve coverage at the cost of reduced
         paper-level diversity in the retrieved set.
     rag_structured_extraction:
-        If ``True`` and ``rag_mode="pre_retrieval"`` with a RAG engine
-        configured, runs a second LLM pass over the already-retrieved
-        passages to extract systems and flows that may have been missed
+        If ``True`` with a RAG engine configured, runs a second LLM
+        pass over the already-retrieved passages to extract systems
+        and flows that may have been missed
         or under-specified in the free-form analysis. Covers all three
         system roles (sending, receiving, spillover) and produces a
         schema-validated list of supplementary flows. Results are
@@ -784,7 +760,6 @@ class MetacouplingAssistant:
         rag_corpus: str | None = None,
         rag_top_k: int = 8,
         rag_backend: str = "auto",
-        rag_mode: str = "pre_retrieval",
         rag_max_chunks_per_paper: int = 3,
         rag_structured_extraction: bool = False,
         web_search: bool = False,
@@ -800,11 +775,6 @@ class MetacouplingAssistant:
         # exactly or skip the small extra LLM cost.
         generate_abstract: bool = True,
     ) -> None:
-        if rag_mode not in _VALID_RAG_MODES:
-            raise ValueError(
-                f"rag_mode must be one of {sorted(_VALID_RAG_MODES)}, "
-                f"got {rag_mode!r}"
-            )
         self._client = llm_client
         self._temperature = temperature
         self._max_tokens = max_tokens
@@ -816,7 +786,6 @@ class MetacouplingAssistant:
         self._adm0_shapefile = adm0_shapefile
         self._rag_top_k = rag_top_k
         self._rag_backend = rag_backend
-        self._rag_mode = rag_mode
         self._rag_max_chunks_per_paper = max(1, int(rag_max_chunks_per_paper))
         self._rag_structured_extraction = rag_structured_extraction
         self._web_search = web_search
@@ -1487,10 +1456,8 @@ class MetacouplingAssistant:
 
         # Pre-retrieval RAG: fetch corpus passages BEFORE calling the LLM
         # so we can inject them into the user message and the LLM can
-        # cite them inline. Disabled in post_hoc mode (which retrieves
-        # and annotates AFTER the LLM responds) and when no RAG engine
-        # is configured.
-        if self._rag_mode == "pre_retrieval" and self._rag_engine is not None:
+        # cite them inline. Skipped when no RAG engine is configured.
+        if self._rag_engine is not None:
             try:
                 results = self._rag_engine.retrieve(
                     research_description,
@@ -1513,24 +1480,19 @@ class MetacouplingAssistant:
                 self._last_rag_hits = []
 
         # Build the system prompt (examples selected based on context).
-        # The citation rules layer is only injected when pre_retrieval
-        # mode is active so post_hoc users see no behavioral change.
+        # The citation rules layer is always included so the LLM knows
+        # how to cite the injected literature passages inline.
         system_prompt = self._prompt_builder.build_system_prompt(
             research_context=research_description,
             web_context=web_context,
-            include_citation_rules=(self._rag_mode == "pre_retrieval"),
+            include_citation_rules=True,
         )
         self._history.append(Message(role="system", content=system_prompt))
 
-        # Build the user message. In pre_retrieval mode the literature
-        # passages are prepended as a <retrieved_literature> XML block.
-        # In post_hoc mode (or when RAG is disabled) literature_passages
-        # is None and the original behavior is preserved exactly.
+        # Build the user message. Literature passages (when available)
+        # are prepended as a <retrieved_literature> XML block.
         literature_for_msg = (
-            self._last_rag_hits
-            if self._rag_mode == "pre_retrieval"
-            and self._rag_engine is not None
-            else None
+            self._last_rag_hits if self._rag_engine is not None else None
         )
 
         # Record per-turn citation-validation counts so the post-LLM
@@ -1620,8 +1582,7 @@ class MetacouplingAssistant:
         # Pre-retrieval RAG on refinement: re-retrieve with the merged
         # query so the LLM gets fresh evidence for the refined ask.
         if (
-            self._rag_mode == "pre_retrieval"
-            and self._rag_engine is not None
+            self._rag_engine is not None
             and self._original_query is not None
         ):
             merged_query = (
@@ -1650,10 +1611,7 @@ class MetacouplingAssistant:
                 self._last_rag_hits = []
 
         literature_for_msg = (
-            self._last_rag_hits
-            if self._rag_mode == "pre_retrieval"
-            and self._rag_engine is not None
-            else None
+            self._last_rag_hits if self._rag_engine is not None else None
         )
 
         # Record per-turn citation-validation counts. Refine() does NOT
@@ -4616,10 +4574,7 @@ class MetacouplingAssistant:
         # The sanitizer also runs an idempotent whitespace/punctuation
         # cleanup pass so the result reads naturally even when tokens
         # were stripped.
-        if (
-            self._rag_mode == "pre_retrieval"
-            and self._last_rag_hits is not None
-        ):
+        if self._last_rag_hits is not None:
             sanitized, invalid_tokens = sanitize_turn_citations(
                 response.content,
                 turn_passage_counts=self._turn_passage_counts,
@@ -4653,136 +4608,70 @@ class MetacouplingAssistant:
             if papers:
                 formatted += "\n\n" + format_recommendations(papers)
 
-        # RAG evidence assembly. Two modes:
-        #
-        # - "post_hoc" (legacy): retrieve from corpus AFTER LLM response,
-        #   keyword-annotate citations onto the formatted text, then
-        #   append the evidence block. Code path unchanged from
-        #   pre-upgrade behavior.
-        #
-        # - "pre_retrieval": passages were already retrieved at
-        #   analyze() / refine() time and stored on
-        #   self._last_rag_hits. The LLM has already cited them inline
-        #   (subject to sanitization above). We just need to append
-        #   the human-readable evidence block — same format as post_hoc
-        #   mode so downstream consumers see no shape change.
+        # RAG evidence assembly. Passages were already retrieved at
+        # analyze() / refine() time and stored on self._last_rag_hits.
+        # The LLM has already cited them inline (subject to sanitization
+        # above). We just need to append the human-readable evidence
+        # block.
         structured_supplement: dict[str, object] | None = None
         if self._rag_engine is not None:
-            if self._rag_mode == "pre_retrieval":
-                # Optional: second LLM call that scans the retrieved
-                # passages for systems / flows the draft missed. The
-                # supplement is rendered as its own visible block so
-                # the main analysis body stays 100% LLM-authored.
-                if (
-                    self._rag_structured_extraction
-                    and self._last_rag_hits
-                ):
-                    try:
-                        structured_supplement = (
-                            self._structured_extract_supplement(parsed)
-                        )
-                    except Exception as exc:
-                        logger.warning(
-                            "Structured extraction supplement failed: "
-                            "%s. Skipping supplement.", exc,
-                        )
-                        structured_supplement = None
-
-                if structured_supplement is not None:
-                    try:
-                        formatted += "\n\n" + self._format_structured_supplement(
-                            structured_supplement
-                        )
-                    except Exception as exc:
-                        if self._verbose:
-                            print(
-                                f"[MetacouplingAssistant] Structured "
-                                f"supplement formatting failed: {exc}"
-                            )
-
+            # Optional: second LLM call that scans the retrieved
+            # passages for systems / flows the draft missed. The
+            # supplement is rendered as its own visible block so
+            # the main analysis body stays 100% LLM-authored.
+            if (
+                self._rag_structured_extraction
+                and self._last_rag_hits
+            ):
                 try:
-                    from metacouplingllm.knowledge.rag import format_evidence
-
-                    if self._last_rag_hits:
-                        rag_backend = (
-                            self._rag_engine.backend
-                            if self._rag_engine is not None
-                            else "tfidf"
-                        )
-                        formatted += "\n\n" + format_evidence(
-                            self._last_rag_hits,
-                            anchor_text=self._original_query or "",
-                            backend=rag_backend or "tfidf",
-                            turn=self._turn,
-                        )
-                    elif self._verbose:
-                        print(
-                            "[MetacouplingAssistant] Pre-retrieval RAG: "
-                            "no passages to append (empty hits)."
-                        )
-                except Exception as exc:
-                    if self._verbose:
-                        print(
-                            f"[MetacouplingAssistant] Pre-retrieval RAG "
-                            f"evidence formatting failed: {exc}"
-                        )
-            else:  # post_hoc — existing behavior preserved exactly
-                try:
-                    from metacouplingllm.knowledge.rag import (
-                        _build_query_from_analysis,
-                        annotate_citations,
-                        format_evidence,
+                    structured_supplement = (
+                        self._structured_extract_supplement(parsed)
                     )
+                except Exception as exc:
+                    logger.warning(
+                        "Structured extraction supplement failed: "
+                        "%s. Skipping supplement.", exc,
+                    )
+                    structured_supplement = None
 
-                    query = _build_query_from_analysis(parsed)
-                    if self._verbose:
-                        print(
-                            f"[MetacouplingAssistant] RAG query "
-                            f"({len(query)} chars): {query[:120]}..."
-                        )
-
-                    if not query.strip():
-                        if self._verbose:
-                            print(
-                                "[MetacouplingAssistant] RAG query is empty — "
-                                "skipping evidence retrieval."
-                            )
-                    else:
-                        results = self._rag_engine.retrieve(
-                            query,
-                            top_k=self._rag_top_k,
-                            min_score=self._rag_min_score,
-                            max_chunks_per_paper=self._rag_max_chunks_per_paper,
-                        )
-                        if self._verbose:
-                            print(
-                                f"[MetacouplingAssistant] RAG returned "
-                                f"{len(results)} evidence passages."
-                            )
-                        if results:
-                            # Add inline [Tk:N] citations to analysis
-                            # statements via keyword-overlap matching.
-                            formatted = annotate_citations(
-                                formatted, results, turn=self._turn,
-                            )
-                            # Append the evidence reference block, passing
-                            # the active backend so confidence thresholds
-                            # match the score range.
-                            rag_backend = (
-                                self._rag_engine.backend
-                                if self._rag_engine is not None
-                                else "tfidf"
-                            )
-                            formatted += "\n\n" + format_evidence(
-                                results,
-                                anchor_text=query,
-                                backend=rag_backend or "tfidf",
-                                turn=self._turn,
-                            )
+            if structured_supplement is not None:
+                try:
+                    formatted += "\n\n" + self._format_structured_supplement(
+                        structured_supplement
+                    )
                 except Exception as exc:
                     if self._verbose:
-                        print(f"[MetacouplingAssistant] RAG evidence failed: {exc}")
-                    # Non-fatal: continue without RAG evidence
+                        print(
+                            f"[MetacouplingAssistant] Structured "
+                            f"supplement formatting failed: {exc}"
+                        )
+
+            try:
+                from metacouplingllm.knowledge.rag import format_evidence
+
+                if self._last_rag_hits:
+                    rag_backend = (
+                        self._rag_engine.backend
+                        if self._rag_engine is not None
+                        else "tfidf"
+                    )
+                    formatted += "\n\n" + format_evidence(
+                        self._last_rag_hits,
+                        anchor_text=self._original_query or "",
+                        backend=rag_backend or "tfidf",
+                        turn=self._turn,
+                    )
+                elif self._verbose:
+                    print(
+                        "[MetacouplingAssistant] Pre-retrieval RAG: "
+                        "no passages to append (empty hits)."
+                    )
+            except Exception as exc:
+                if self._verbose:
+                    print(
+                        f"[MetacouplingAssistant] Pre-retrieval RAG "
+                        f"evidence formatting failed: {exc}"
+                    )
 
         # Optional: annotate and append web search sources
         if self._last_web_results:
@@ -4937,22 +4826,16 @@ class MetacouplingAssistant:
         # PR #31: attach RAG retrieval hits the same way so the
         # exporters can render an "Evidence from Literature" section
         # mirroring the existing ``format_evidence`` text block.
-        # ``_last_rag_hits`` is populated in pre_retrieval mode (set
-        # at analyze() / refine() time and reused across the result
-        # assembly).  The post_hoc legacy mode re-retrieves AFTER
-        # the LLM call inside ``_build_result`` and writes the
-        # evidence block directly to ``formatted`` without keeping
-        # the hits in an attribute -- so post_hoc exports will not
-        # show RAG evidence today.  Documented as a known limitation.
+        # ``_last_rag_hits`` is populated at analyze() / refine() time
+        # whenever a RAG engine is configured.
         if self._last_rag_hits:
             result._rag_hits_for_export = list(self._last_rag_hits)
         # PR #32: attach the user's original query so the exporters
         # can use it as the document title instead of the previous
         # heuristic (first 80 chars of coupling_classification, which
         # often started with the LLM's bullet markers).
-        # ``self._original_query`` is set in ``analyze()`` regardless
-        # of RAG mode (line ~1356), so this works in both
-        # pre_retrieval and post_hoc paths.
+        # ``self._original_query`` is set in ``analyze()`` whenever a
+        # research description is provided.
         if self._original_query:
             result._original_query_for_export = self._original_query
         return result
