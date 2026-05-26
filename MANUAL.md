@@ -116,7 +116,7 @@ from metacouplingllm import MetacouplingAssistant, OpenAIAdapter
 
 # 1. Set up your LLM client
 client = OpenAI(api_key="sk-your-api-key-here")
-adapter = OpenAIAdapter(client, model="gpt-5.2")
+adapter = OpenAIAdapter(client, model="gpt-4o")
 
 # 2. Create an advisor
 advisor = MetacouplingAssistant(
@@ -226,12 +226,12 @@ from openai import OpenAI
 from metacouplingllm import MetacouplingAssistant, OpenAIAdapter
 
 client = OpenAI(api_key="sk-your-api-key-here")
-adapter = OpenAIAdapter(client, model="gpt-5.2")
+adapter = OpenAIAdapter(client, model="gpt-4o")
 advisor = MetacouplingAssistant(adapter)
 ```
 
-Supported models: `"gpt-5.2"`, `"gpt-5"`, `"gpt-4o"`, `"gpt-4o-mini"`, or any
-OpenAI chat model.
+Supported models: `"gpt-4o"`, `"gpt-4o-mini"`, or any OpenAI chat
+model identifier OpenAI's API accepts.
 
 **Using Google Colab with secure API key storage:**
 
@@ -243,7 +243,7 @@ from openai import OpenAI
 from metacouplingllm import MetacouplingAssistant, OpenAIAdapter
 
 client = OpenAI(api_key=api_key)
-advisor = MetacouplingAssistant(OpenAIAdapter(client, model="gpt-5.2"))
+advisor = MetacouplingAssistant(OpenAIAdapter(client, model="gpt-4o"))
 ```
 
 ### Option B: Anthropic (Claude)
@@ -279,7 +279,7 @@ When you set `web_search=True` with a `GeminiAdapter`, the advisor
 automatically uses Gemini's **Google Search grounding** tool — the
 same auto-wiring pattern as OpenAI/Anthropic.
 
-Install with: `pip install "metacoupling[gemini]"`
+Install with: `pip install "metacouplingllm[gemini]"`
 
 ### Option D: xAI Grok
 
@@ -297,7 +297,7 @@ SDK with xAI's base URL. The dedicated `GrokAdapter` (rather than
 `OpenAIAdapter`) lets the advisor route web search to Grok's native
 **Live Search** tool (which queries both the web and X/Twitter).
 
-Install with: `pip install "metacoupling[grok]"`
+Install with: `pip install "metacouplingllm[grok]"`
 
 ### Option E: Custom LLM Client
 
@@ -873,9 +873,11 @@ get_country_name("GBR")  # "United Kingdom"
 
 ## 9. Literature Recommendations
 
-The package bundles a BibTeX database of ~297 telecoupling and metacoupling
-papers (filtered from 444 Web of Science entries). You can get relevant paper
-recommendations based on keyword matching.
+The package bundles a BibTeX database of ~265 telecoupling and
+metacoupling papers (filtered from a larger Web of Science
+collection).  Call `get_database_info()` for the live count if
+the corpus drifts.  You can get relevant paper recommendations
+based on keyword matching.
 
 ### Standalone usage
 
@@ -920,18 +922,20 @@ Papers are ranked by total score, then by citation count, then by year.
 
 ### Exploring the database
 
+Live values as of v0.1.0; call `get_database_info()` for
+current counts:
+
 ```python
 from metacouplingllm import get_database_info
 
 info = get_database_info()
 print(info)
 # {
-#     'total_papers': 297,
-#     'with_keywords': 284,
-#     'with_abstracts': 294,
+#     'total_papers': 265,
+#     'with_keywords': 249,
 #     'year_min': 2013,
 #     'year_max': 2026,
-#     'total_citations': 10051,
+#     'total_citations': 7626,
 # }
 ```
 
@@ -959,7 +963,7 @@ Generate color-coded world maps showing coupling types relative to a focal
 country. Requires the `viz` optional dependency.
 
 ```bash
-pip install metacoupling[viz]
+pip install "metacouplingllm[viz]"
 ```
 
 ### Map colors
@@ -1178,7 +1182,7 @@ methods-section drafting around the deterministic core.
 
 | Class | Description |
 |---|---|
-| `OpenAIAdapter(client, model="gpt-5.2")` | Wraps an `openai.OpenAI` instance. |
+| `OpenAIAdapter(client, model="gpt-4o")` | Wraps an `openai.OpenAI` instance. |
 | `AnthropicAdapter(client, model="claude-sonnet-4-20250514")` | Wraps an `anthropic.Anthropic` instance. |
 | `GeminiAdapter(client, model="gemini-2.5-flash")` | Wraps a `google.genai.Client` instance. |
 | `GrokAdapter(client, model="grok-3")` | Wraps an `openai.OpenAI` instance pointed at `https://api.x.ai/v1`. |
@@ -1246,7 +1250,7 @@ methods-section drafting around the deterministic core.
 |---|---|
 | `CouplingType` | `INTRACOUPLING`, `PERICOUPLING`, `TELECOUPLING` |
 | `SystemRole` | `SENDING`, `RECEIVING`, `SPILLOVER` |
-| `FlowCategory` | `MATTER`, `ENERGY`, `INFORMATION`, `FINANCIAL`, `PEOPLE` |
+| `FlowCategory` | `CAPITAL`, `ENERGY`, `INFORMATION`, `MATTER`, `ORGANISMS`, `PEOPLE` |
 | `AgentLevel` | `INDIVIDUALS_HOUSEHOLDS`, `FIRMS_TRADERS_CORPORATIONS`, `GOVERNMENTS_POLICYMAKERS`, `ORGANIZATIONS_NGOS`, `NON_HUMAN_AGENTS` |
 | `CauseCategory` / `EffectCategory` | `ECONOMIC`, `POLITICAL_INSTITUTIONAL`, `ECOLOGICAL_BIOLOGICAL`, `TECHNOLOGICAL_INFRASTRUCTURAL`, `CULTURAL_SOCIAL_DEMOGRAPHIC`, `HYDROLOGICAL`, `CLIMATIC_ATMOSPHERIC`, `GEOLOGICAL_GEOMORPHOLOGICAL` |
 | `PairCouplingType` | `PERICOUPLED`, `TELECOUPLED`, `UNKNOWN` |
@@ -1369,7 +1373,7 @@ calling code is identical across providers.
 
 ```python
 advisor = MetacouplingAssistant(
-    OpenAIAdapter(client, model="gpt-5.2"),
+    OpenAIAdapter(client, model="gpt-4o"),
     web_search=True,                  # turn on web search
     web_search_max_results=5,         # number of hits per query (PR #24)
     web_structured_extraction=True,   # Stage-3 validated countries + flows
@@ -1395,7 +1399,7 @@ from the adapter type — see §4 LLM Setup, "Web-search auto-wiring".
 | Setting | Default | Notes |
 |---|---|---|
 | `web_search` | `False` | Master switch. |
-| `web_search_max_results` | `5` | Number of hits requested per query. Scales `max_output_tokens` automatically (PR #24). |
+| `web_search_max_results` | `10` | Number of hits requested per query. Scales `max_output_tokens` automatically (PR #24). |
 | `web_structured_extraction` | `False` | Runs a second, strict-JSON LLM pass over the snippets to extract validated receiving countries, spillover countries, and map-ready flows. Recommended whenever `auto_map=True`. |
 | `web_map_signals` | `False` | Exposes the validated structured-extraction payload at `result.web_map_signals` so callers can render their own maps. |
 | `blocked_domains` | `None` | Per-adapter denylist passed through to the native backend (PR #18, #28-#30). |
@@ -1479,7 +1483,7 @@ from metacouplingllm import (
 
 client = OpenAI(api_key="sk-...")
 advisor = MetacouplingAssistant(
-    OpenAIAdapter(client, model="gpt-5.2"),
+    OpenAIAdapter(client, model="gpt-4o"),
     web_search=True,
     web_search_max_results=5,
     web_structured_extraction=True,
@@ -1595,15 +1599,16 @@ classified = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
 summary    = summarize_metacoupling(classified)
 print(summary)
 #    focal_system_id   IFS   PFS   TFS   MFE   IFCI   PFCI   TFCI
-# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.36   0.62
+# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.25   0.33
 ```
 
 Interpretation: 70% of Brazil's classified soybean-equivalent flow is
 **telecoupled** (China + EU + USA), 20% is **pericoupled**
 (Argentina + Paraguay), and 10% is **intracoupled**. `MFE ≈ 0.73`
 shows the flow mix is moderately even across coupling types.
-`TFCI ≈ 0.62` shows the telecoupled flows are themselves concentrated
-on a few large partners (China dominates).
+`TFCI ≈ 0.33` shows the telecoupled flows are moderately
+concentrated (China is the largest single partner but the EU and
+USA share the remainder).
 
 ### Orthogonal flow_type × coupling_type analysis
 
@@ -1678,7 +1683,7 @@ Every helper returns an `LLMTrace` alongside the result:
 @dataclass
 class LLMTrace:
     timestamp_utc: str      # ISO 8601 with Z suffix
-    model: str              # e.g., "gpt-5.2"
+    model: str              # e.g., "gpt-4o"
     prompt_version: str     # e.g., "define_study_v1"
     system_prompt: str
     user_prompt: str
@@ -1728,7 +1733,7 @@ from metacouplingllm.indicators import (
 )
 
 client     = OpenAI(api_key="sk-...")
-llm_client = OpenAIAdapter(client, model="gpt-5.2")
+llm_client = OpenAIAdapter(client, model="gpt-4o")
 
 # 1. Turn a study description into a structured config
 study_config, trace_def = define_study(
