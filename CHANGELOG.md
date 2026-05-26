@@ -7,6 +7,40 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Maintenance
+
+- **Regenerate `paper_citation_counts.csv` against the rebuilt
+  corpus + add reusable regeneration script (PR #41).**  The CSV
+  was stale from before the corpus rebuild — 262 rows reflecting
+  the pre-rebuild state with `oa_status` valued only as `OA` /
+  `non-OA` (170 / 92), whereas the rebuilt corpus contains 420
+  papers using a richer mixed strategy (296 OA full-text + 124
+  truly closed-access papers with copyright-safe structured
+  summaries; another 104 papers technically OA under gold / green
+  / hybrid / bronze but using the same summary format for
+  copyright safety).
+
+  This PR regenerates the CSV from the current corpus state with
+  the rule: `oa_status='non-OA'` if and only if the in-file
+  header says `OA status: closed`; everything else is `OA`.  Final
+  CSV: 420 rows, 296 OA / 124 non-OA, matching live in-corpus
+  ground truth.
+
+  Citation counts are preserved for the 163 papers that were
+  already in the old CSV with a populated `cited_by` field; the
+  remaining 257 rows have an empty `cited_by` until someone
+  re-runs `scripts/check_oa_status.py` against Unpaywall.
+
+  Added `scripts/regenerate_paper_metadata.py` (~150 LOC, one-off
+  maintainer script) that documents the regeneration logic:
+  preserve old metadata where possible, parse the in-corpus NOA
+  header for new closed-access papers, and BibTeX-lookup for new
+  OA-fulltext papers.  Future corpus rebuilds can re-run this
+  script to refresh the CSV.
+
+  No code or behavior changes; the CSV is not loaded at runtime
+  by any `src/` module (it's a maintainer-facing audit artifact).
+
 ### Documentation
 
 - **Documentation accuracy sweep (PR #40).**  A paragraph-by-
