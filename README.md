@@ -45,7 +45,7 @@ from metacouplingllm import (
 
 client = OpenAI(api_key="your-key")
 advisor = MetacouplingAssistant(
-    OpenAIAdapter(client, model="gpt-5.2"),
+    OpenAIAdapter(client, model="gpt-4o"),
     web_search=True,
     web_search_max_results=5,
     web_structured_extraction=True,    # validated countries + flows for maps
@@ -89,7 +89,7 @@ classified = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
 summary    = summarize_metacoupling(classified)
 print(summary)
 #    focal_system_id   IFS   PFS   TFS   MFE   IFCI   PFCI   TFCI
-# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.36   0.62
+# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.25   0.33
 ```
 
 The same DataFrame plugs into the optional LLM helpers (PR #36) —

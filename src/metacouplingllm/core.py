@@ -1302,14 +1302,13 @@ class MetacouplingAssistant:
 
         Notes
         -----
-        Framework mode: when ``rag_mode="pre_retrieval"`` (the default)
-        and a RAG engine is configured, this method retrieves the top
-        ``rag_top_k`` passages from the corpus *before* calling the LLM
-        and embeds them in the user message as a
-        ``<retrieved_literature>`` block, so the LLM can cite them
-        inline as ``[1]..[N]``. The retrieved hits and the original
-        research description are stored on the instance for later reuse
-        by :meth:`refine`.
+        Framework mode: when a RAG engine is configured, this method
+        retrieves the top ``rag_top_k`` passages from the corpus
+        *before* calling the LLM and embeds them in the user message
+        as a ``<retrieved_literature turn="k">`` block, so the LLM
+        can cite them inline as ``[Tk:N]``.  The retrieved hits and
+        the original research description are stored on the instance
+        for later reuse by :meth:`refine`.
         """
         if not self._coupling_analysis:
             return self._analyze_rag_only(research_description)
@@ -1548,7 +1547,7 @@ class MetacouplingAssistant:
 
         Notes
         -----
-        When ``rag_mode="pre_retrieval"``, this method always re-runs
+        When a RAG engine is configured, this method always re-runs
         retrieval using a **labeled merged query** that combines the
         original research description (anchored at :meth:`analyze` time
         and never overwritten) with the new ``additional_info``::

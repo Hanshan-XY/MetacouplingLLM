@@ -7,6 +7,49 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Documentation
+
+- **Documentation accuracy sweep (PR #40).**  A paragraph-by-
+  paragraph audit of `INTRODUCTION.md` and `MANUAL.md` against
+  current code/data surfaced ~15 mismatches; this PR fixes them
+  all:
+  - Stale paper counts: `262` (full-text) / `262` / `~297`
+    (BibTeX) → actual `420` / `265`.  Live counts confirmed via
+    `get_database_info()` and a `zipfile.ZipFile(Papers.zip)`
+    namelist count.
+  - Broken example model identifier: `model="gpt-5.2"` (does not
+    exist in OpenAI's API) → `model="gpt-4o"` in 8 places across
+    INTRODUCTION, MANUAL, and README.  Removed `gpt-5` from the
+    "supported models" list for the same reason.
+  - Misleading "embeddings + TF-IDF" notation in INTRODUCTION
+    §3 architecture diagram → "embeddings or TF-IDF fallback"
+    (the code does OR-with-graceful-degradation, not hybrid).
+  - Stale test count: "429 tests" → "1158 tests" in INTRODUCTION
+    §8.
+  - `FlowCategory` enum in MANUAL §12 listed 5 values including
+    a non-existent `FINANCIAL` → corrected to the actual 6 values
+    (`CAPITAL`, `ENERGY`, `INFORMATION`, `MATTER`, `ORGANISMS`,
+    `PEOPLE`).
+  - `web_search_max_results` default documented as `5` → actual
+    `10` (changed in PR #24 but never reflected in §14 table).
+  - Brazil-soybean canonical example expected output: `PFCI=0.36,
+    TFCI=0.62` → actual `PFCI=0.25, TFCI=0.33` (verified by
+    running the example).  Fixed in both MANUAL §16 and README
+    Quick Start.
+  - `get_database_info()` example output: removed non-existent
+    `'with_abstracts'` field; fixed `total_papers` (297→265) and
+    `total_citations` (10051→7626).
+  - Three stale `pip install metacoupling[X]` commands using
+    the legacy package name → `metacouplingllm[X]`.
+  - Two leftover `rag_mode="pre_retrieval"` references in
+    `src/metacouplingllm/core.py` docstrings (lines ~1305, 1551)
+    that PR #38 missed → rewritten without the deleted parameter.
+
+  Added a "Call `get_database_info()` for live counts if the
+  corpus drifts" hint to the INTRODUCTION §4.6 + §6 and MANUAL
+  §9 sections so future drift is auditable.  No code or test
+  changes besides the 2 docstring fixes.
+
 ### Refactored
 
 - **Drop dead `include_citation_rules` parameter from

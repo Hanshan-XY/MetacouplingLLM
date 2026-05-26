@@ -8,7 +8,7 @@
 
 - Structured metacoupling analysis from free-text research descriptions
 - Multi-turn refinement via conversational LLM interaction
-- Retrieval-Augmented Generation (RAG) with 262 full-text telecoupling papers
+- Retrieval-Augmented Generation (RAG) with 420 full-text telecoupling papers
 - **RAG-only literature Q&A mode** for users already familiar with the framework (`coupling_analysis=False`)
 - Literature recommendation from a curated BibTeX database
 - Real-time web search grounding (DuckDuckGo, no API key required)
@@ -86,9 +86,10 @@ The package encodes 14 telecoupling categories from the literature (trade, migra
           |                   |                   |
   +-------v-------+  +-------v--------+  +-------v-------+
   | PromptBuilder  |  |  Web Search    |  | RAG Engine    |
-  | (6-layer       |  |  (DuckDuckGo)  |  | (262 papers,  |
-  |  system prompt)|  |                |  |  embeddings + |
-  |                |  |                |  |  TF-IDF)      |
+  | (6-layer       |  |  (DuckDuckGo)  |  | (420 papers,  |
+  |  system prompt)|  |                |  |  embeddings   |
+  |                |  |                |  |  or TF-IDF    |
+  |                |  |                |  |  fallback)    |
   +-------+-------+  +-------+--------+  +-------+-------+
           |                   |                   |
           +-------------------+-------------------+
@@ -171,7 +172,7 @@ from metacouplingllm import (
 from openai import OpenAI
 
 advisor = MetacouplingAssistant(
-    llm_client=OpenAIAdapter(OpenAI(api_key="..."), model="gpt-5.2"),
+    llm_client=OpenAIAdapter(OpenAI(api_key="..."), model="gpt-4o"),
     auto_map=True,              # Generate map automatically
     rag_corpus=JOURNAL_ARTICLES_2025,  # Use bundled 2025 journal corpus
     web_search=True,            # Ground analysis in web search results
@@ -212,7 +213,7 @@ Before calling the LLM, the system also injects:
 
 ### 4.3 Retrieval-Augmented Generation (RAG)
 
-The RAG engine provides evidence grounding from 262 full-text telecoupling and metacoupling papers:
+The RAG engine provides evidence grounding from 420 full-text telecoupling and metacoupling papers:
 
 - **Indexing**: Papers are chunked by section and indexed by one of two backends:
   - **Embeddings (default)** -- semantic retrieval via `fastembed` + the `BAAI/bge-small-en-v1.5` ONNX model. Captures synonyms, paraphrases, and related concepts (e.g., a query about "soybean trade" also matches chunks about "soya bean exports" and "Glycine max shipments"). Pre-computed corpus vectors are shipped with the package as `chunk_embeddings.npy` (~15 MB) so users never have to re-encode.
@@ -246,7 +247,7 @@ Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_peric
 
 ### 4.6 Literature Recommendations
 
-From a curated BibTeX database of 262 telecoupling/metacoupling papers, the system recommends the most relevant papers by matching keywords, coupling types, and domain overlap with the analysis.
+From a curated BibTeX database of 265 telecoupling/metacoupling papers, the system recommends the most relevant papers by matching keywords, coupling types, and domain overlap with the analysis.  Call `get_database_info()` for live counts if the corpus drifts.
 
 ### 4.7 Map Visualization
 
@@ -266,7 +267,7 @@ The package uses a protocol-based design that supports any LLM backend:
 
 ```python
 # Built-in adapters
-OpenAIAdapter(client, model="gpt-5.2")
+OpenAIAdapter(client, model="gpt-4o")
 AnthropicAdapter(client, model="claude-sonnet-4-20250514")
 GeminiAdapter(client, model="gemini-2.5-flash")
 GrokAdapter(client, model="grok-3")     # OpenAI-protocol-compatible
@@ -356,7 +357,7 @@ from metacouplingllm import (
 
 client = OpenAI(api_key="your-key")
 advisor = MetacouplingAssistant(
-    llm_client=OpenAIAdapter(client, model="gpt-5.2"),
+    llm_client=OpenAIAdapter(client, model="gpt-4o"),
     auto_map=True,
     rag_corpus=JOURNAL_ARTICLES_2025,
     web_search=True,
@@ -488,11 +489,13 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 
 | Resource | Description |
 |---|---|
-| 262 full-text papers (Papers.zip) | Markdown versions of telecoupling/metacoupling research papers for RAG |
-| BibTeX database (telecoupling_literature.bib) | 262 curated entries with metadata for literature recommendation |
+| 420 full-text papers (Papers.zip) | Markdown versions of telecoupling/metacoupling research papers for RAG |
+| BibTeX database (telecoupling_literature.bib) | 265 curated entries with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
 | ADM1 edge list (CSV) | 8,290 subnational border pairs across 3,366 regions in 195 countries |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
+
+*Counts above are as of v0.1.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live full-text count if the corpus drifts.*
 
 ---
 
@@ -513,8 +516,8 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 The package includes a comprehensive test suite:
 
 ```bash
-pip install metacoupling[dev]
+pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-429 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, and map generation.
+1158 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, and quantitative indicators.
