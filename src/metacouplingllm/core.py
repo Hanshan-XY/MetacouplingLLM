@@ -1480,12 +1480,10 @@ class MetacouplingAssistant:
                 self._last_rag_hits = []
 
         # Build the system prompt (examples selected based on context).
-        # The citation rules layer is always included so the LLM knows
-        # how to cite the injected literature passages inline.
+        # PromptBuilder always injects the citation-rules layer (see PR #39).
         system_prompt = self._prompt_builder.build_system_prompt(
             research_context=research_description,
             web_context=web_context,
-            include_citation_rules=True,
         )
         self._history.append(Message(role="system", content=system_prompt))
 

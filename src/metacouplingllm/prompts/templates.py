@@ -549,11 +549,12 @@ synthesis — do NOT stop there. After §5, write §6 (≥3 gaps) and §7 \
 """
 
 # ---------------------------------------------------------------------------
-# Layer 5b — Citation rules (only injected in pre-retrieval RAG mode)
+# Layer 5b — Citation rules
 # ---------------------------------------------------------------------------
 #
-# This layer is opt-in via PromptBuilder.build_system_prompt(
-#     include_citation_rules=True). It tells the LLM how to cite the
+# This layer is now always injected by PromptBuilder.build_system_prompt()
+# (was opt-in via include_citation_rules=True before PR #38; the opt-in
+# kwarg was removed in PR #39).  It tells the LLM how to cite the
 # numbered passages it will see in the user message's
 # ``<retrieved_literature>`` block. The rules are intentionally strict
 # about hallucination and stale-numbering, since the post-LLM sanitizer

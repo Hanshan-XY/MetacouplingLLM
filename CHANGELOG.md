@@ -7,6 +7,37 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Refactored
+
+- **Drop dead `include_citation_rules` parameter from
+  `PromptBuilder.build_system_prompt` (PR #39).**  After PR #38
+  removed `post_hoc` RAG mode, the single in-tree caller at
+  `core.py:1485` always passed `True`.  The parameter and the
+  `if include_citation_rules:` conditional in the builder are
+  now gone; `CITATION_RULES_LAYER` is unconditionally injected.
+  Backwards-compatible for callers that omitted the kwarg
+  (default behavior was already always-on after PR #38).
+  Callers that explicitly passed `include_citation_rules=True`
+  must drop the kwarg or get a `TypeError`.  Three files touched:
+  `prompts/builder.py` (drop param + conditional + docstring),
+  `core.py` (drop kwarg from the one call site), `prompts/templates.py`
+  (update the Layer 5b explanatory comment).
+
+### Documentation
+
+- **MANUAL §5 "How RAG citations work" expanded with concrete
+  examples (PR #39).**  The post-PR-#38 single-mode paragraph
+  was correct but thin.  The rewritten subsection adds: (a) a
+  concrete `<retrieved_literature turn="k">` XML block showing
+  what the LLM actually sees in the user message; (b) a short
+  output snippet showing inline `[Tk:N]` and `[Tk:Wn]` markers
+  plus the `SUPPORTING EVIDENCE` resolution block; (c) an
+  explanation of what the `sanitize_turn_citations` function
+  strips and why (out-of-range tokens, forward references,
+  bare-legacy tokens) with the warning-log message users will
+  see.  Existing intro paragraph, `refine()` merged-query
+  paragraph, and turn-scoped callout preserved verbatim.
+
 ### Removed
 
 - **Legacy `post_hoc` RAG mode and the public `annotate_citations`

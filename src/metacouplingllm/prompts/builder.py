@@ -77,7 +77,6 @@ class PromptBuilder:
         self,
         research_context: str | None = None,
         web_context: str | None = None,
-        include_citation_rules: bool = False,
     ) -> str:
         """Build the full system prompt by combining all template layers.
 
@@ -90,13 +89,6 @@ class PromptBuilder:
             Optional pre-formatted web search context to inject into the
             prompt.  Typically produced by
             :func:`~metacouplingllm.knowledge.websearch.format_web_context`.
-        include_citation_rules:
-            When ``True``, inject :data:`CITATION_RULES_LAYER` between the
-            output-format layer and the interaction layer. Used by the
-            pre-retrieval RAG pipeline so the LLM knows how to cite the
-            ``<retrieved_literature>`` block that will appear in user
-            messages.  Defaults to ``False`` for backward compatibility
-            with the post-hoc RAG pipeline.
 
         Returns
         -------
@@ -125,13 +117,13 @@ class PromptBuilder:
         # Layer 5 — Output format
         parts.append(OUTPUT_FORMAT_LAYER)
 
-        # Layer 5b — Citation rules (only in pre-retrieval RAG mode).
-        # Placed after OUTPUT_FORMAT_LAYER so the LLM reads citation
-        # mechanics adjacent to the format spec, and immediately before
-        # INTERACTION_LAYER so recency bias keeps the strict rules
-        # fresh in the model's attention.
-        if include_citation_rules:
-            parts.append(CITATION_RULES_LAYER)
+        # Layer 5b — Citation rules.
+        # Always included now that pre-retrieval RAG is the only mode
+        # (see PR #38).  Placed after OUTPUT_FORMAT_LAYER so the LLM
+        # reads citation mechanics adjacent to the format spec, and
+        # immediately before INTERACTION_LAYER so recency bias keeps
+        # the strict rules fresh in the model's attention.
+        parts.append(CITATION_RULES_LAYER)
 
         # Layer 6 — Interaction guidelines
         parts.append(INTERACTION_LAYER)
