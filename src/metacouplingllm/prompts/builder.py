@@ -300,7 +300,16 @@ class PromptBuilder:
 
     @staticmethod
     def _build_pericoupling_hint(research_context: str) -> str | None:
-        """Scan research text for country names and build a pericoupling hint.
+        """Scan research text for country names and build a country-pair
+        classification hint.
+
+        Each focal-vs-other pair is reported with its database
+        classification (PERICOUPLED for adjacent pairs, TELECOUPLED
+        for distant pairs).  Framing is REFERENCE-ONLY, parallel to
+        the ADM1 hint (PR #20, harmonized in PR #43): the LLM is
+        told that database classification is supporting context but
+        the actual coupling type still depends on whether real
+        cross-system flows exist.
 
         Only generates pairs that involve the **first detected country**
         (assumed to be the focal/sending country).  This avoids spurious
@@ -354,12 +363,16 @@ class PromptBuilder:
 
         focal_name = get_country_name(focal_code)
         header = (
-            "## PERICOUPLING DATABASE INFORMATION\n\n"
+            "## PERICOUPLING DATABASE LOOKUP (REFERENCE)\n\n"
             f"Focal country detected: {focal_name} ({focal_code}).\n"
-            "The following country-pair classifications come from a curated "
-            "pericoupling database (ISO 3166-1 alpha-3). Use these ground-truth "
-            "adjacency relationships when classifying coupling types in your "
-            "analysis:\n"
+            "The following classifications come from a curated country-pair "
+            "database (ISO 3166-1 alpha-3).  For PERICOUPLED pairs, "
+            "database adjacency is a strong indicator but NOT proof of "
+            "pericoupling — confirm with independent evidence of actual "
+            "flows (trade, migration, policy spillover, etc.) before "
+            "classifying.  For TELECOUPLED pairs, geographic distance is "
+            "corroborating context but the classification still depends on "
+            "whether actual cross-system flows exist.\n"
         )
         return header + "\n".join(lines)
 

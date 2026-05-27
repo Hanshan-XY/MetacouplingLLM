@@ -230,8 +230,24 @@ class TestBuildAdm1PericouplingHint:
             research_context="Brazil soybean exports to China"
         )
         # Should fall through to country-level hint
-        assert "PERICOUPLING DATABASE INFORMATION" in prompt
+        assert "PERICOUPLING DATABASE LOOKUP" in prompt
         assert "ADM1" not in prompt.split("PERICOUPLING DATABASE")[0][-5:]
+
+    def test_country_hint_wording_is_reference_not_ground_truth(self):
+        """PR #43: the country-level hint must NOT claim the database
+        is ground-truth.  Parallels PR #20's ADM1 hint softening.
+        """
+        hint = PromptBuilder._build_pericoupling_hint(
+            "Brazil soybean exports to China"
+        )
+        assert hint is not None
+        # New framing: reference, not ground-truth
+        assert "REFERENCE" in hint  # in heading
+        assert "strong indicator but NOT proof" in hint
+        assert "confirm with independent evidence" in hint.lower()
+        # Old authoritative framing must be gone
+        assert "ground-truth" not in hint.lower()
+        assert "Use these" not in hint  # imperative authoritative wording
 
 
 class TestFullLengthPassageSurvivesTruncation:

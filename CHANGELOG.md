@@ -7,7 +7,64 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Refactored
+
+- **Harmonize country-level pericoupling-hint framing with the
+  ADM1 hint (PR #43).**  Before: the country-level hint
+  (`_build_pericoupling_hint` in `prompts/builder.py:302`) told
+  the LLM the database was *"ground-truth adjacency
+  relationships"*, while the ADM1 hint (modernized in PR #20)
+  said *"adjacency alone is NOT evidence of pericoupling — find
+  independent flow evidence"*.  Two parts of the same package
+  silently disagreed on the framework's epistemology.  This PR
+  rewrites the country-level hint to match the ADM1 hint's
+  reference-only framing.
+
+  Specific changes:
+  - Section heading: `## PERICOUPLING DATABASE INFORMATION` →
+    `## PERICOUPLING DATABASE LOOKUP (REFERENCE)`.  More
+    accurate name since the function returns both pericoupled
+    and telecoupled lines; "LOOKUP" is what the operation
+    actually is, and "(REFERENCE)" parallels the ADM1 hint's
+    "(REFERENCE ONLY)" tag.
+  - Body: replaces *"Use these ground-truth adjacency
+    relationships..."* with two-clause guidance covering both
+    pericoupled bodies (*"database adjacency is a strong
+    indicator but NOT proof — confirm with independent flow
+    evidence"*) and telecoupled bodies (*"geographic distance
+    is corroborating context but the classification still
+    depends on whether actual cross-system flows exist"*).
+  - Function docstring: rewritten to reflect that the function
+    builds a country-pair CLASSIFICATION hint (pericoupled OR
+    telecoupled), not just a pericoupling hint.
+
+  Per-pair line format is unchanged (still emits "X and Y are
+  **pericoupled/telecoupled**...").  Trigger conditions and
+  mutual-exclusivity-with-ADM1-hint are unchanged.  No
+  behavior change beyond what the LLM sees in the system
+  prompt of the Stage-2 main analysis call.
+
+  Tests updated: `test_system_prompt_uses_country_hint_when_no_adm1`
+  assertion now expects "LOOKUP" instead of "INFORMATION";
+  new test `test_country_hint_wording_is_reference_not_ground_truth`
+  asserts the softer framing, mirroring the ADM1 framing test
+  added in PR #20.
+
 ### Documentation
+
+- **Rewrite INTRODUCTION §4.2 pre-LLM injection bullet list
+  (PR #43).**  The user flagged that the *"Michigan and
+  Indiana are pericoupled"* example was misleading — Michigan
+  and Indiana trigger the ADM1 hint (which never says "X and
+  Y are pericoupled" since PR #20), not the country hint.
+  The four-bullet structure also obscured that the
+  pericoupling/ADM1 bullets were mutually exclusive flavors of
+  one mechanism, and trigger conditions for each injection
+  weren't called out.  Rewrote as a nested-bullet list with:
+  (a) corrected pericoupling-hint example using country pairs,
+  (b) explicit nested structure for the two hint flavors,
+  (c) trigger condition for every injection, (d) reflection of
+  the new harmonized country-level framing.
 
 - **Documentation completeness sweep (PR #42).**  A second-pass
   audit beyond PR #40 found ~15 additional issues — capability

@@ -213,11 +213,32 @@ The system prompt is constructed in six layers:
 5. **Output Format** -- Structured template for seven analysis sections
 6. **Interaction** -- Multi-turn refinement guidelines and citation expectations
 
-Before calling the LLM, the system also injects:
-- **Pericoupling hints** from the geographic database (e.g., "Michigan and Indiana are pericoupled")
-- **Web search context** with `[Tk:W1]`, `[Tk:W2]` labels for inline citation (turn-scoped — `k` is the conversation turn)
-- **Structured web map hints** with validated countries and flows when enabled
-- **ADM1 neighbor information** when subnational regions are detected
+Before calling the LLM, the system **conditionally** injects (each
+only fires if its precondition is met):
+
+- **Pericoupling-database hints** — exactly one of two flavors fires per query:
+  - *Country-level hint*: if ≥2 country names are detected and no
+    ADM1 region applies.  Each focal-vs-other pair is reported with
+    its database classification (e.g., `"Mexico (MEX) and United
+    States (USA) are pericoupled"` for adjacent pairs, `"Brazil
+    (BRA) and China (CHN) are telecoupled"` for distant pairs),
+    framed as REFERENCE — the LLM is told that database adjacency
+    is a strong indicator but not proof, and must confirm with
+    independent flow evidence (harmonized with the ADM1 hint's
+    framing in PR #43).
+  - *ADM1 (subnational) hint*: if any ADM1 region (e.g., Michigan,
+    Mato Grosso) is detected.  The focal region's adjacent
+    neighbors are listed as **reference-only adjacency** rather
+    than asserted pericoupling — the LLM is told that adjacency
+    alone is NOT evidence of pericoupling and must find
+    independent flow evidence (PR #20).
+  - Single-country queries with no ADM1 region get no hint.
+- **Web search context** with `[Tk:W1]`, `[Tk:W2]` labels for
+  inline citation (turn-scoped — `k` is the conversation turn).
+  Only when `web_search=True` and at least one hit returned.
+- **Structured web map hints** — validated receiving/spillover
+  countries and flows extracted by a second LLM pass over the
+  web snippets.  Only when `web_structured_extraction=True`.
 
 ### 4.3 Retrieval-Augmented Generation (RAG)
 
