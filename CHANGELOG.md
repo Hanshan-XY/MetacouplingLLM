@@ -7,6 +7,61 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Documentation
+
+- **Documentation completeness sweep (PR #42).**  A second-pass
+  audit beyond PR #40 found ~15 additional issues — capability
+  lists missing major feature families, architecture diagrams
+  behind the times on new adapters, and a few stale values PR #40
+  missed.  All fixed in one sweep.
+
+  **Completeness fixes (capability lists were silently incomplete):**
+  - INTRODUCTION §1 "Key capabilities": added entries for
+    quantitative indicators, scholar export, LLM-assisted helpers,
+    and `evidence_coverage_note`
+  - INTRODUCTION §1 "What Users Get": same expansion
+  - INTRODUCTION §3 main architecture diagram: "LLM Client" box
+    now lists Gemini + Grok (was OpenAI / Anthropic / custom only)
+  - INTRODUCTION §3 PR #35 indicators side-track diagram: LLM
+    helpers box now lists all five helpers (was missing
+    `classify_ambiguous_edges`)
+  - INTRODUCTION §5 Step 3 "The output includes": added scholar
+    export + `evidence_coverage_note` entries
+  - MANUAL §3 "How the Package Works" diagram: LLM Provider box
+    now lists all four adapters; Output box now lists scholar
+    export and indicators sidecar
+  - MANUAL §12 "Core Classes" table: added all four LLM adapter
+    classes (OpenAIAdapter / AnthropicAdapter / GeminiAdapter /
+    GrokAdapter), `LLMClient` protocol, and `RAGResult` (RAG-only
+    mode) — readers consulting the "Core Classes" reference
+    would otherwise miss the adapters entirely
+  - MANUAL §12 "AnalysisResult exporters" expanded to
+    "Properties + exporters": added `result.formatted`, `.parsed`,
+    `.raw`, `.turn_number`, `.usage`, `.map` (structural properties
+    used throughout examples)
+  - README "Core Capabilities" Qualitative subsection: explicitly
+    names Gemini and Grok as natively supported providers
+    (previously only mentioned in install block and in passing)
+
+  **Factual fixes (PR #40 missed):**
+  - INTRODUCTION §4.3 + §7: `BAAI/bge-small-en-v1.5` → actual
+    `BAAI/bge-base-en-v1.5` (the actual model the package ships;
+    confirmed via `DEFAULT_EMBEDDING_MODEL` in `rag.py`)
+  - INTRODUCTION §5 Step 7 + §4.10: Brazil-soybean example output
+    `PFCI=0.36, TFCI=0.62` → actual `PFCI=0.25, TFCI=0.33` (PR #40
+    fixed this in MANUAL §16 and README but missed both
+    INTRODUCTION occurrences)
+
+  **Consistency fixes (defaults drifted in examples):**
+  - `web_search_max_results=5` in 4 code examples across
+    INTRODUCTION / MANUAL / README → `web_search_max_results=10`
+    (matches the documented default in MANUAL §14 table; the
+    actual code default is 10 per PR #24)
+  - `rag_top_k=10` in 5 code examples across INTRODUCTION /
+    MANUAL / README → `rag_top_k=8` (matches actual code default)
+
+  No code or behavior changes — docs only.
+
 ### Maintenance
 
 - **Regenerate `paper_citation_counts.csv` against the rebuilt

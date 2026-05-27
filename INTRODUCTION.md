@@ -11,10 +11,13 @@
 - Retrieval-Augmented Generation (RAG) with 420 full-text telecoupling papers
 - **RAG-only literature Q&A mode** for users already familiar with the framework (`coupling_analysis=False`)
 - Literature recommendation from a curated BibTeX database
-- Real-time web search grounding (DuckDuckGo, no API key required)
+- Real-time web search grounding with native backends for OpenAI, Anthropic, Gemini, and Grok (DuckDuckGo fallback for custom clients) plus `evidence_coverage_note` self-assessment
 - Pericoupling validation against two geographic databases (country-level and subnational ADM1)
-- Automated map generation at both country and subnational levels
+- Automated map generation at both country and subnational levels, including supranational-union dissolution (EU / ASEAN / USMCA)
 - Support for OpenAI, Anthropic, **Google Gemini**, **xAI Grok**, or any custom LLM backend (each with native web-search auto-wiring)
+- **Scholar-ready export**: `result.abstract`, `result.to_markdown()`, `result.to_docx()` for manuscript-ready output
+- **Quantitative metacoupling indicators** (`metacouplingllm.indicators`) — IFS / PFS / TFS, MFE, MFCI computed on user-supplied flow data
+- **Optional LLM-assisted indicator helpers** — `define_study`, `check_inputs`, `classify_ambiguous_edges`, `interpret_results`, `write_methods`, each returning `(result, LLMTrace)` for reproducibility
 
 **Requirements:** Python 3.10+, no hard runtime dependencies. Optional extras: `openai`, `anthropic`, `gemini`, `grok`, `geopandas`+`matplotlib` (visualization), `ddgs` (web search), `pandas` (quantitative indicators), `python-docx` (Word export).
 
@@ -46,8 +49,11 @@ If you want to use the built-in OpenAI example below, install `metacouplingllm[o
 
 - A structured metacoupling analysis from a plain-language study description
 - Optional literature recommendations and supporting evidence passages
-- Optional web-grounded context for current trade, policy, or event information
+- Optional web-grounded context for current trade, policy, or event information, with an `evidence_coverage_note` self-assessment of which sources back which claims
 - Optional map generation for country-level and ADM1-level analyses
+- Scholar-ready abstract + Markdown + Word export (`result.abstract`, `result.to_markdown()`, `result.to_docx()`)
+- Quantitative metacoupling indicators (IFS / PFS / TFS, MFE, MFCI) computed on user-supplied flow data via `metacouplingllm.indicators`
+- Optional LLM-assisted helpers for study setup, input validation, ambiguous-edge classification, results interpretation, and methods-text drafting — each producing reproducible `LLMTrace` records
 
 ---
 
@@ -96,8 +102,9 @@ The package encodes 14 telecoupling categories from the literature (trade, migra
                               |
                     +---------v----------+
                     |     LLM Client     |
-                    |  (OpenAI/Anthropic/ |
-                    |   custom backend)  |
+                    |  (OpenAI / Anthropic /|
+                    |   Gemini / Grok /   |
+                    |   custom backend)   |
                     +---------+----------+
                               |
                     +---------v----------+
@@ -145,8 +152,9 @@ The package encodes 14 telecoupling categories from the literature (trade, migra
             +----------v-----------+
             |  LLM helpers (PR #36)|  ← define_study,
             |  optional; each      |     check_inputs,
-            |  returns (result,    |     interpret_results,
-            |   LLMTrace)          |     write_methods
+            |  returns (result,    |     classify_ambiguous_edges,
+            |   LLMTrace)          |     interpret_results,
+            |                      |     write_methods
             +----------------------+
 ```
 
@@ -176,9 +184,9 @@ advisor = MetacouplingAssistant(
     auto_map=True,              # Generate map automatically
     rag_corpus=JOURNAL_ARTICLES_2025,  # Use bundled 2025 journal corpus
     web_search=True,            # Ground analysis in web search results
-    web_search_max_results=5,   # Number of web results to retrieve
+    web_search_max_results=10,  # Number of web results (default)
     web_structured_extraction=True,  # Recommended with web_search + auto_map
-    rag_top_k=10,               # Number of RAG evidence passages
+    rag_top_k=8,                # Number of RAG evidence passages (default)
     rag_min_score=0.15,         # Minimum cosine similarity for RAG
     max_examples=2,             # Framework examples in prompt
     temperature=0.7,            # LLM temperature
@@ -216,7 +224,7 @@ Before calling the LLM, the system also injects:
 The RAG engine provides evidence grounding from 420 full-text telecoupling and metacoupling papers:
 
 - **Indexing**: Papers are chunked by section and indexed by one of two backends:
-  - **Embeddings (default)** -- semantic retrieval via `fastembed` + the `BAAI/bge-small-en-v1.5` ONNX model. Captures synonyms, paraphrases, and related concepts (e.g., a query about "soybean trade" also matches chunks about "soya bean exports" and "Glycine max shipments"). Pre-computed corpus vectors are shipped with the package as `chunk_embeddings.npy` (~15 MB) so users never have to re-encode.
+  - **Embeddings (default)** -- semantic retrieval via `fastembed` + the `BAAI/bge-base-en-v1.5` ONNX model. Captures synonyms, paraphrases, and related concepts (e.g., a query about "soybean trade" also matches chunks about "soya bean exports" and "Glycine max shipments"). Pre-computed corpus vectors are shipped with the package as `chunk_embeddings.npy` (~15 MB) so users never have to re-encode.
   - **TF-IDF (fallback)** -- lexical retrieval using TF-IDF + cosine similarity. Activated when `fastembed` is unavailable or the pre-computed file is missing.
 - **Retrieval**: Cosine similarity; top-k deduplication (at most one chunk per paper)
 - **Citation**: Evidence passages are appended as `[Tk:1]`, `[Tk:2]`, ... with inline annotation (turn-scoped — `k` marks the turn so prior-turn references remain unambiguous across multi-turn conversations)
@@ -304,7 +312,7 @@ The `metacouplingllm.indicators` submodule computes deterministic metacoupling i
 | `compute_mfci(data, ...)` | Metacoupling Flow Concentration Index — normalised HHI (IFCI / PFCI / TFCI) within each coupling type. |
 | `summarize_metacoupling(data, ...)` | One-shot combined indicator table. |
 
-Built on established statistics (Shannon 1948 entropy, Hirschman 1945 / Cracau & Lima 2016 normalised HHI), not invented indices. Brazil-soybean worked example: IFS = 0.10, PFS = 0.20, TFS = 0.70, MFE ≈ 0.73, TFCI ≈ 0.62. See MANUAL §16 for the full math + code.
+Built on established statistics (Shannon 1948 entropy, Hirschman 1945 / Cracau & Lima 2016 normalised HHI), not invented indices. Brazil-soybean worked example: IFS = 0.10, PFS = 0.20, TFS = 0.70, MFE ≈ 0.73, TFCI ≈ 0.33. See MANUAL §16 for the full math + code.
 
 Pandas is the only added dependency; install via `pip install "metacouplingllm[indicators]"`.
 
@@ -361,9 +369,9 @@ advisor = MetacouplingAssistant(
     auto_map=True,
     rag_corpus=JOURNAL_ARTICLES_2025,
     web_search=True,
-    web_search_max_results=5,
+    web_search_max_results=10,
     web_structured_extraction=True,
-    rag_top_k=10,
+    rag_top_k=8,
     rag_min_score=0.15,
 )
 ```
@@ -392,6 +400,8 @@ The output includes:
 - Literature evidence with `[Tk:1]`-`[Tk:N]` citations (turn-scoped)
 - Web sources with `[Tk:W1]`-`[Tk:WN]` citations (turn-scoped)
 - Pericoupling database validation
+- An `evidence_coverage_note` self-assessment from the LLM summarising what evidence backs which claims
+- Scholar-ready outputs accessible via `result.abstract`, `result.to_markdown(path)`, and `result.to_docx(path)` (the latter requires `metacouplingllm[export]`)
 
 ### Step 4: Refine (optional)
 
@@ -478,7 +488,7 @@ classified = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
 summary    = summarize_metacoupling(classified)
 print(summary)
 #    focal_system_id   IFS   PFS   TFS   MFE   IFCI   PFCI   TFCI
-# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.36   0.62
+# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.25   0.33
 ```
 
 The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `define_study`, `check_inputs`, `interpret_results`, `write_methods` — for natural-language study setup, validation, interpretation, and manuscript prose around the deterministic numbers. Install via `pip install "metacouplingllm[indicators]"`.
@@ -505,7 +515,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 - **Graceful degradation** -- Each optional feature (RAG, web search, maps, literature, indicators, export) can be independently enabled or disabled; RAG transparently falls back from embeddings to TF-IDF when `fastembed` is unavailable
 - **Protocol-based extensibility** -- Any object with a `chat()` method works as an LLM client
 - **Pre-LLM knowledge injection** -- Pericoupling validation, web search, and example selection all happen before the LLM call, reducing hallucination
-- **Semantic RAG** -- Pre-computed BGE-small embeddings shipped with the package; semantic matching catches synonyms and paraphrases that TF-IDF misses. TF-IDF remains available as a fallback.
+- **Semantic RAG** -- Pre-computed BGE-base embeddings shipped with the package; semantic matching catches synonyms and paraphrases that TF-IDF misses. TF-IDF remains available as a fallback.
 - **Colab-compatible** -- Web search includes a zero-dependency stdlib fallback for restricted environments
 - **Deterministic-first for quantitative analysis (PR #35, #36)** -- The `metacouplingllm.indicators` math never calls an LLM; numbers are reproducible from the input DataFrame alone. The five LLM-assisted helpers are explicitly scoped to natural-language tasks (study setup, validation, interpretation, methods drafting) and always pair their output with an `LLMTrace` record. When the LLM is uncertain, it returns `"unknown"` rather than guess; the package never lets the LLM invent adjacency facts or flow values silently.
 
