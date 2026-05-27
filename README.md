@@ -47,11 +47,11 @@ client = OpenAI(api_key="your-key")
 advisor = MetacouplingAssistant(
     OpenAIAdapter(client, model="gpt-4o"),
     web_search=True,
-    web_search_max_results=5,
+    web_search_max_results=10,
     web_structured_extraction=True,    # validated countries + flows for maps
     auto_map=True,
     rag_corpus=JOURNAL_ARTICLES_2025,
-    rag_top_k=10,
+    rag_top_k=8,
     rag_min_score=0.15,
 )
 
@@ -102,12 +102,17 @@ manuscript prose around the deterministic numbers.
 ### Qualitative LLM analysis
 - Structured metacoupling analyses from free-text research descriptions
 - Multi-turn refinement across systems, flows, agents, causes, and effects
+- **Four LLM providers natively supported**: OpenAI, Anthropic, Google
+  Gemini, and xAI Grok (plus a custom-client protocol for anything else),
+  each with auto-wired web search and strict structured output
 - Literature recommendations from a curated telecoupling/metacoupling database
-- Optional web-search grounding with native backends for OpenAI, Anthropic,
-  Gemini, and Grok — plus `evidence_coverage_note` summaries (PR #20)
+- Optional web-search grounding with native backends per provider — plus
+  `evidence_coverage_note` summaries (PR #20)
 - Country-level and ADM1 pericoupling validation, with dual rendering when
   both apply (PR #27); supranational unions (EU / ASEAN / USMCA) handled
   via member-state dissolution (PR #22-#23)
+- Scholar-ready Markdown + Word export (`result.abstract`,
+  `result.to_markdown()`, `result.to_docx()`)
 
 ### Quantitative indicators (PR #35, new)
 - `compute_flow_shares` — IFS / PFS / TFS per focal system

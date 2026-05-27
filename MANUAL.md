@@ -122,11 +122,11 @@ adapter = OpenAIAdapter(client, model="gpt-4o")
 advisor = MetacouplingAssistant(
     adapter,
     web_search=True,
-    web_search_max_results=5,
+    web_search_max_results=10,
     web_structured_extraction=True,  # Recommended with web_search + auto_map
     auto_map=True,
     rag_corpus="journal_articles_2025",
-    rag_top_k=10,
+    rag_top_k=8,
     rag_min_score=0.15,
 )
 
@@ -195,10 +195,12 @@ Your Research Description
 └─────────┬───────────┘
           │
           ▼
-┌─────────────────────┐
-│    LLM Provider      │  ← OpenAI / Anthropic / Custom
-│   (GPT-4o, Claude)   │
-└─────────┬───────────┘
+┌──────────────────────────┐
+│    LLM Provider           │  ← OpenAI / Anthropic / Gemini /
+│ (GPT-4o, Claude, Gemini,  │     Grok / custom backend
+│  Grok) — native           │
+│  web-search auto-wiring   │
+└─────────┬────────────────┘
           │
           ▼
 ┌─────────────────────┐
@@ -208,11 +210,14 @@ Your Research Description
 └─────────┬───────────┘
           │
           ▼
-┌─────────────────────┐
-│   Formatted Output   │  ← Human-readable report
-│  + Literature Recs   │  ← Optional paper recommendations
-│  + World Map         │  ← Optional visualization
-└─────────────────────┘
+┌──────────────────────────┐
+│   Formatted Output        │  ← Human-readable report
+│  + Literature Recs        │  ← Optional paper recommendations
+│  + World Map              │  ← Optional visualization
+│  + Scholar Export         │  ← result.abstract / to_markdown / to_docx
+│  + Quantitative           │  ← optional metacouplingllm.indicators
+│    Indicators (sidecar)   │     on your own flow data
+└──────────────────────────┘
 ```
 
 ---
@@ -1166,14 +1171,23 @@ methods-section drafting around the deterministic core.
 | Class | Description |
 |---|---|
 | `MetacouplingAssistant` | Main entry point. Runs analyses and refinements via LLM. |
+| `OpenAIAdapter` / `AnthropicAdapter` / `GeminiAdapter` / `GrokAdapter` | LLM-provider adapters; each auto-wires its native web-search backend. See "LLM Adapters" below for signatures. |
+| `LLMClient` | Protocol any custom client can implement (just a `chat()` method). |
 | `AnalysisResult` | Container for parsed + formatted + raw + abstract + exporter output. |
 | `ParsedAnalysis` | Structured data extracted from LLM response (incl. `evidence_coverage_note`). |
 | `AnalysisFormatter` | Formats ParsedAnalysis into various text representations. |
+| `RAGResult` | Container returned when `coupling_analysis=False` (RAG-only Q&A mode). |
 
-### AnalysisResult exporters (PR #31, #32)
+### AnalysisResult properties + exporters (PR #31, #32)
 
 | Method / property | Returns | Description |
 |---|---|---|
+| `result.formatted` | `str` | Human-readable report (the default `print()` surface). |
+| `result.parsed` | `ParsedAnalysis` | Structured fields for programmatic access. |
+| `result.raw` | `str` | Unmodified LLM response (pre-sanitization). |
+| `result.turn_number` | `int` | 1 for the first turn; increments across `refine()`. |
+| `result.usage` | `dict \| None` | Token-usage accounting (provider-dependent). |
+| `result.map` | `Figure \| None` | Generated map (when `auto_map=True`). |
 | `result.abstract` | `str` | Scholar-ready one-paragraph abstract. |
 | `result.to_markdown(path=None)` | `str` | Manuscript-ready Markdown; writes to `path` if given. |
 | `result.to_docx(path)` | `None` | Word document (requires `metacouplingllm[export]`). |
@@ -1375,7 +1389,7 @@ calling code is identical across providers.
 advisor = MetacouplingAssistant(
     OpenAIAdapter(client, model="gpt-4o"),
     web_search=True,                  # turn on web search
-    web_search_max_results=5,         # number of hits per query (PR #24)
+    web_search_max_results=10,        # number of hits per query (default; PR #24 raised from 5)
     web_structured_extraction=True,   # Stage-3 validated countries + flows
     web_map_signals=True,             # surface validated payload on result
 )
@@ -1485,10 +1499,10 @@ client = OpenAI(api_key="sk-...")
 advisor = MetacouplingAssistant(
     OpenAIAdapter(client, model="gpt-4o"),
     web_search=True,
-    web_search_max_results=5,
+    web_search_max_results=10,
     web_structured_extraction=True,
     rag_corpus=JOURNAL_ARTICLES_2025,
-    rag_top_k=10,
+    rag_top_k=8,
     rag_min_score=0.15,
     recommend_papers=True,
 )
