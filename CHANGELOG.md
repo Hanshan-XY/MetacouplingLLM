@@ -7,6 +7,130 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Added / Refactored
+
+- **Coupling-DB surface improvements: single-country hint trigger
+  + role-aware validator + clearer formatter blocks (PR #44).**
+  This PR improves three related surfaces that all touch the
+  coupling/pericoupling database:
+
+  **(a) Pre-LLM hint — single-country queries now get neighbor
+  context.**  Before, `_build_pericoupling_hint`
+  (`prompts/builder.py`) only fired when the query mentioned ≥2
+  countries (`if len(other_codes) < 2: return None`).  Single-
+  country queries got no hint at all.  Now the gate is `< 1`:
+  when exactly one country is named, the function enumerates
+  the focal country's pericoupled neighbors (via
+  `get_pericoupled_neighbors`) and injects them as REFERENCE
+  context — e.g., a Mexico-only query surfaces Belize,
+  Guatemala, and the United States as candidate partners the
+  LLM may want to consider.  Returns None for island nations
+  with zero pericoupled neighbors (Australia, etc.).  Reuses
+  the same REFERENCE framing PR #43 introduced.
+
+  **(b) Post-LLM validator — role-aware filtering.**
+  Before, `_validate_country_pericoupling` (`core.py`)
+  classified every receiving or spillover country at the
+  country-adjacency scale, mixing framework-level spillover
+  judgments into a geography-only block.  Live trace example:
+  an avocado-focused Mexico query in which the LLM placed
+  Chile and Peru in `parsed.systems["spillover"]` (competitor
+  producers, indirect market effects) was getting them
+  labeled TELECOUPLED in the validator output as if they were
+  direct distant trade partners.  Now a new
+  `_extract_countries_with_roles` helper walks `parsed.systems`
+  per-role, and the validator **filters spillover-roled
+  countries out of its block entirely** — geography alone
+  can't validate the framework's TELECOUPLED-vs-SPILLOVER
+  distinction (it depends on whether flows are direct or
+  indirect), so the validator declines to opine on those
+  pairs.  Spillover info still lives in
+  `parsed.systems["spillover"]` for the framework systems
+  analysis (§3–§4) and the map renderer.  Surviving pairs are
+  classified PERICOUPLED (adjacent) or TELECOUPLED (distant)
+  per the database.
+
+  Role priority for the helper: sending > focal > receiving >
+  spillover > adjacent.  `_extract_country_names` is
+  preserved as a thin backward-compat wrapper that returns
+  ISO codes via the new helper.
+
+  **(c) Formatter — single flat block with grouped lists.**
+  Before, the formatter emitted two separate validation
+  blocks (`PERICOUPLING DATABASE VALIDATION — SUBNATIONAL
+  (ADM1)` and `PERICOUPLING DATABASE VALIDATION —
+  COUNTRY-LEVEL`).  Splitting by database scale obscured that
+  a focal region's coupled partners can span both scales.
+  Now: one unified `COUPLING DATABASE VALIDATION` heading
+  with a flat layout —
+  - `Focal System:` line (with optional `Core subnational
+    regions:` sub-line for national-scope queries),
+  - mode-aware grouped lists: `Pericoupled Countries:` /
+    `Telecoupled Countries:` for national-scope queries;
+    `Pericoupled Countries/Subnational Regions:` /
+    `Telecoupled Countries/Subnational Regions:` for
+    subnational-scope queries (where pairs can mix country
+    and ADM1 partners),
+  - single `Note:`.
+
+  The intro paragraph also adapts to mode: national-scope
+  queries get a country-only intro that explains the `Core
+  subnational regions:` sub-line; subnational-scope queries
+  get an intro covering both country-adjacency and
+  ADM1-adjacency databases.
+
+  Spillover-roled countries are filtered out of the validator
+  block entirely (they remain in `parsed.systems["spillover"]`
+  for the framework systems analysis above).  Geography alone
+  can't validate framework-level spillover claims, so the
+  validator declines to opine.
+
+  Mode-aware dispatch: the validator now respects the user's
+  query scope.  For national-scope queries (user named a
+  country, no subnational region), the ADM1 sub-validator is
+  SKIPPED to avoid surfacing the DB neighbours of an
+  auto-picked focal state; the country validator instead
+  populates a `core_subnational_regions` key listing the
+  LLM-mentioned subnational regions inside the focal country.
+  For subnational-scope queries, both validators run as
+  before.  Reuses existing helpers: `_user_query_mentions_adm1`
+  and `_extract_mentioned_adm1_from_text`.
+
+  Heading rename PERICOUPLING → COUPLING because the unified
+  block validates both pericoupled and telecoupled
+  classifications.  Schema unchanged — both
+  `pericoupling_info` and `country_pericoupling_info`
+  `ParsedAnalysis` fields stay separate; the merge happens at
+  render time only.
+
+  **Region-scale adjacency in subnational mode (v3.2 Option A).**
+  In subnational mode, foreign partner countries are now
+  classified by the focal REGION's adjacency, not the focal
+  COUNTRY's.  An interior focal state (e.g., Jalisco) borders
+  no foreign country, so foreign partners are TELECOUPLED even
+  though the focal COUNTRY (Mexico) borders the USA.  A border
+  state (e.g., Chihuahua) keeps the adjacent foreign country
+  PERICOUPLED.  Pairs are anchored on the focal region (e.g.
+  `Jalisco (MEX014) ↔ United States (USA): TELECOUPLED`) so the
+  verdict reads coherently under the `Focal System: Jalisco`
+  header.  National mode is unchanged — pairs stay country-
+  anchored and country-scale.  Uses the existing
+  `get_cross_border_neighbors()` helper.
+
+  Tests: 3 new builder tests (single-country / island-nation /
+  no-country) + 3 validator tests
+  (`test_validator_omits_spillover_country`,
+  `test_validator_falls_back_to_geography_when_no_spillover_role`,
+  `test_extract_countries_with_roles_priority`) + 2 v3 dispatch
+  tests (`test_validator_skips_adm1_in_national_mode`,
+  `test_validator_includes_core_subnational_regions_in_national_mode`)
+  + 3 v3.2 region-scale tests
+  (`test_validator_subnational_interior_region_telecouples_foreign_partner`,
+  `test_validator_subnational_border_region_pericouples_foreign_partner`,
+  `test_validator_national_mode_keeps_country_scale`).  Three
+  pre-existing formatter tests updated for the flat v3 layout.
+  Total: 1159 → 1170.
+
 ### Refactored
 
 - **Harmonize country-level pericoupling-hint framing with the

@@ -659,13 +659,50 @@ RESEARCH GAPS & SUGGESTIONS
   - Consider investigating spillover effects on...
   - Quantify carbon footprint of transportation flows
 
-PERICOUPLING DATABASE VALIDATION
+COUPLING DATABASE VALIDATION
 ----------------------------------------
-  Brazil (BRA) ↔ China (CHN): TELECOUPLED
-  Note: LLM classification is consistent with the pericoupling database.
+  This block cross-checks the LLM's coupled-system claims
+  against the bundled coupling databases (country adjacency).
+  Pairs are labeled PERICOUPLED (adjacent) countries or
+  TELECOUPLED (distant) countries per the database.  Core
+  subnational regions are subnational regions identified
+  based on the analysis results and are provided for
+  reference only.
+
+  Focal System: Brazil (BRA)
+    Core subnational regions: Mato Grosso, Pará
+
+  Pericoupled Countries:
+    Brazil (BRA) ↔ Argentina (ARG)
+
+  Telecoupled Countries:
+    Brazil (BRA) ↔ China (CHN)
+
+  Note: LLM classification is consistent with the coupling database.
 
 ========================================================================
 ```
+
+The `Core subnational regions:` sub-line appears only for
+national-scope queries (user named a country, not a state) and
+lists the LLM-mentioned subnational regions inside the focal
+country.  For subnational-scope queries (e.g. "avocado in
+Jalisco, Mexico"), the `Focal System:` line shows the ADM1
+region explicitly instead — e.g.
+`Focal System: Jalisco (MEX014), Mexico (MEX)` — no
+`Core subnational regions:` sub-line appears, and the group
+labels change to `Pericoupled Countries/Subnational Regions:`
+and `Telecoupled Countries/Subnational Regions:` to reflect
+that pairs can mix country and ADM1 partners.
+
+In subnational mode, foreign-partner classification is done at
+the **region** scale: a country is pericoupled iff the focal
+ADM1 region has a cross-border neighbor inside it.  An interior
+focal state (e.g. Jalisco) therefore has zero pericoupled
+foreign countries, while a border state (e.g. Chihuahua) keeps
+the adjacent foreign country pericoupled.  National mode
+classifies at the country scale (does the focal country border
+the partner?).
 
 ### Accessing structured data programmatically
 
@@ -701,8 +738,14 @@ for category, items in parsed.effects.items():
 for suggestion in parsed.suggestions:
     print(f"  - {suggestion}")
 
-# Pericoupling validation results
-if parsed.pericoupling_info:
+# Coupling-database validation results.  Country-level (always
+# populated when ≥2 countries are detected) and subnational ADM1
+# (populated only when the focal region resolves to an ADM1 code)
+# live in separate fields and can both be present at once.
+if parsed.country_pericoupling_info:   # country-level (PR #27)
+    print(parsed.country_pericoupling_info.get("pair_results", ""))
+    print(parsed.country_pericoupling_info.get("note", ""))
+if parsed.pericoupling_info:            # subnational (ADM1)
     print(parsed.pericoupling_info.get("pair_results", ""))
     print(parsed.pericoupling_info.get("note", ""))
 ```

@@ -12,7 +12,7 @@
 - **RAG-only literature Q&A mode** for users already familiar with the framework (`coupling_analysis=False`)
 - Literature recommendation from a curated BibTeX database
 - Real-time web search grounding with native backends for OpenAI, Anthropic, Gemini, and Grok (DuckDuckGo fallback for custom clients) plus `evidence_coverage_note` self-assessment
-- Pericoupling validation against two geographic databases (country-level and subnational ADM1)
+- Pericoupling validation against two geographic databases (country-level and subnational ADM1) with mode-aware presentation: region-scale adjacency for subnational queries, country-scale for national queries; spillover pairs filtered (left to the framework systems analysis)
 - Automated map generation at both country and subnational levels, including supranational-union dissolution (EU / ASEAN / USMCA)
 - Support for OpenAI, Anthropic, **Google Gemini**, **xAI Grok**, or any custom LLM backend (each with native web-search auto-wiring)
 - **Scholar-ready export**: `result.abstract`, `result.to_markdown()`, `result.to_docx()` for manuscript-ready output
@@ -217,22 +217,29 @@ Before calling the LLM, the system **conditionally** injects (each
 only fires if its precondition is met):
 
 - **Pericoupling-database hints** — exactly one of two flavors fires per query:
-  - *Country-level hint*: if ≥2 country names are detected and no
-    ADM1 region applies.  Each focal-vs-other pair is reported with
-    its database classification (e.g., `"Mexico (MEX) and United
-    States (USA) are pericoupled"` for adjacent pairs, `"Brazil
-    (BRA) and China (CHN) are telecoupled"` for distant pairs),
-    framed as REFERENCE — the LLM is told that database adjacency
-    is a strong indicator but not proof, and must confirm with
-    independent flow evidence (harmonized with the ADM1 hint's
-    framing in PR #43).
+  - *Country-level hint*: if ≥1 country name is detected and no
+    ADM1 region applies.  If ≥2 countries are named, each
+    focal-vs-other pair is reported with its database
+    classification (e.g., `"Mexico (MEX) and United States (USA)
+    are pericoupled"` for adjacent pairs, `"Brazil (BRA) and
+    China (CHN) are telecoupled"` for distant pairs).  If exactly
+    1 country is named (PR #44), the focal country's full
+    pericoupled-neighbor list is injected as candidate context
+    (e.g., a Mexico-only query gets Belize, Guatemala, USA
+    presented as REFERENCE — the LLM is encouraged to consider
+    these as potential pericoupled flows but must confirm with
+    independent evidence).  Framing is REFERENCE-only in both
+    cases (harmonized with the ADM1 hint in PR #43).
   - *ADM1 (subnational) hint*: if any ADM1 region (e.g., Michigan,
     Mato Grosso) is detected.  The focal region's adjacent
     neighbors are listed as **reference-only adjacency** rather
     than asserted pericoupling — the LLM is told that adjacency
     alone is NOT evidence of pericoupling and must find
     independent flow evidence (PR #20).
-  - Single-country queries with no ADM1 region get no hint.
+  - Queries with no detectable country (and no ADM1 region) get
+    no hint; queries with one country named but no pericoupled
+    neighbors in the database (island nations like Australia,
+    Japan, Cuba) also get no hint.
 - **Web search context** with `[Tk:W1]`, `[Tk:W2]` labels for
   inline citation (turn-scoped — `k` is the conversation turn).
   Only when `web_search=True` and at least one hit returned.
@@ -551,4 +558,4 @@ pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-1158 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, and quantitative indicators.
+1170 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, and quantitative indicators.

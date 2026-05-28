@@ -190,43 +190,145 @@ class AnalysisFormatter:
             parts.append(analysis.evidence_coverage_note)
             parts.append("")
 
-        # PR #27: render BOTH ADM1 (subnational) and country-level
-        # validation blocks when both are populated.  Previously
-        # _validate_pericoupling returned early once ADM1 succeeded,
-        # so country-level results were never shown for analyses
-        # that spanned both scales (e.g., focal=Jalisco MEX014 +
-        # destinations USA/CAN/JPN).  Now both helpers run
-        # independently and we render whichever is present.
-        for info_field, header_subnational, header_country in (
-            (
-                analysis.pericoupling_info,
-                "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)",
-                "PERICOUPLING DATABASE VALIDATION",
-            ),
-            (
-                analysis.country_pericoupling_info,
-                None,
-                "PERICOUPLING DATABASE VALIDATION",
-            ),
-        ):
-            if not info_field:
-                continue
-            info = info_field
-            if info.get("level") == "adm1":
-                parts.append(header_subnational)
-            else:
-                parts.append(header_country)
+        # PR #27 + PR #44 (v3): single COUPLING DATABASE VALIDATION
+        # block with a flat layout — Focal (+ optional Core
+        # subnational regions sub-line) + grouped Pericoupled list
+        # + grouped Telecoupled list + Note.  Spillover-roled
+        # countries are filtered out at the validator level (they
+        # remain in parsed.systems["spillover"] for the framework
+        # systems analysis above).
+        #
+        # History:
+        # - PR #27 made the two validators independent (both
+        #   populate their own ParsedAnalysis fields, no early
+        #   return).
+        # - PR #44 v1 renamed + reordered the two separate blocks.
+        # - PR #44 v2 merged into one block with two sub-sections.
+        # - PR #44 v3 (current): replaces sub-sections with a flat
+        #   structure grouping pairs by verdict.  ADM1 validator
+        #   only runs when the user's query named a subnational
+        #   region; otherwise the country validator's
+        #   core_subnational_regions key carries LLM-mentioned
+        #   state names without DB-derived neighbour lists.
+        #
+        # Schema unchanged: both pericoupling_info and
+        # country_pericoupling_info remain separate dataclass
+        # fields, populated independently.
+        country_info = analysis.country_pericoupling_info
+        adm1_info = analysis.pericoupling_info
+        if country_info or adm1_info:
+            parts.append("COUPLING DATABASE VALIDATION")
             parts.append(_SUB_SEPARATOR)
-            for key, value in info.items():
-                if key == "level":
-                    continue
-                if key == "pair_results":
-                    for pair_result in str(value).split("; "):
-                        parts.append(f"  {pair_result}")
-                    continue
-                label = key.replace("_", " ").title()
-                parts.append(f"  {label}: {value}")
+
+            # PR #44 (v3.1): mode-aware intro + group labels.
+            # When the user's query was country-scope
+            # (national mode), the country validator sets
+            # info["mode"] = "national" and the ADM1 sub-validator
+            # is skipped.  When the user named a subnational
+            # region, both validators run and pair_results can mix
+            # country + ADM1 partners.  Use the country_info mode
+            # signal; fall back to "subnational" when only ADM1
+            # populated (rare edge case).
+            mode = (country_info or {}).get("mode") or "subnational"
+            if mode == "national":
+                intro = (
+                    "  This block cross-checks the LLM's coupled-system\n"
+                    "  claims against the bundled coupling databases\n"
+                    "  (country adjacency).  Pairs are labeled PERICOUPLED\n"
+                    "  (adjacent) countries or TELECOUPLED (distant) countries\n"
+                    "  per the database.  Core subnational regions are\n"
+                    "  subnational regions identified based on the analysis\n"
+                    "  results and are provided for reference only."
+                )
+                peri_label = "Pericoupled Countries:"
+                tele_label = "Telecoupled Countries:"
+            else:
+                intro = (
+                    "  This block cross-checks the LLM's coupled-system\n"
+                    "  claims against the bundled coupling databases\n"
+                    "  (country adjacency + ADM1 adjacency).  Pairs are\n"
+                    "  labeled PERICOUPLED (adjacent) countries/subnational\n"
+                    "  regions or TELECOUPLED (distant) countries/subnational\n"
+                    "  regions per the database."
+                )
+                peri_label = "Pericoupled Countries/Subnational Regions:"
+                tele_label = "Telecoupled Countries/Subnational Regions:"
+            parts.append(intro)
             parts.append("")
+
+            # Unified Focal System line.  Combines ADM1
+            # focal_region (when present) and the country focal.
+            focal_segments: list[str] = []
+            if adm1_info and adm1_info.get("focal_region"):
+                focal_segments.append(adm1_info["focal_region"])
+            focal_country = (
+                (adm1_info or {}).get("focal_country")
+                or (country_info or {}).get("focal_country")
+            )
+            if focal_country:
+                focal_segments.append(focal_country)
+            if focal_segments:
+                parts.append(f"  Focal System: {', '.join(focal_segments)}")
+                # Core subnational regions: national-mode-only
+                # sub-line listing LLM-mentioned states in the
+                # focal country.
+                csr = (country_info or {}).get("core_subnational_regions")
+                if csr:
+                    parts.append(f"    Core subnational regions: {csr}")
+                parts.append("")
+
+            # Bucket pair_results by verdict across both info
+            # dicts.  Strip the trailing ": VERDICT" since the
+            # group label conveys the verdict.
+            pericoupled: list[str] = []
+            telecoupled: list[str] = []
+            for info_dict in (country_info, adm1_info):
+                if not info_dict or not info_dict.get("pair_results"):
+                    continue
+                for line in str(info_dict["pair_results"]).split("; "):
+                    line = line.strip()
+                    if line.endswith(": PERICOUPLED"):
+                        pericoupled.append(line[: -len(": PERICOUPLED")])
+                    elif line.endswith(": TELECOUPLED"):
+                        telecoupled.append(line[: -len(": TELECOUPLED")])
+
+            if pericoupled:
+                parts.append(f"  {peri_label}")
+                for pair in pericoupled:
+                    parts.append(f"    {pair}")
+                parts.append("")
+            if telecoupled:
+                parts.append(f"  {tele_label}")
+                for pair in telecoupled:
+                    parts.append(f"    {pair}")
+                parts.append("")
+
+            # Combined Note at the bottom.  When both validators'
+            # notes agree on consistency, collapse to one summary
+            # line; otherwise surface each note separately so
+            # disagreement signals aren't hidden by the merge.
+            notes: list[tuple[str, str]] = []
+            if country_info and country_info.get("note"):
+                notes.append(("country", country_info["note"]))
+            if adm1_info and adm1_info.get("note"):
+                notes.append(("subnational", adm1_info["note"]))
+            if notes:
+                all_consistent = all(
+                    "consider revising" not in n.lower()
+                    for _, n in notes
+                )
+                if all_consistent and len(notes) > 1:
+                    parts.append(
+                        "  Note: LLM classification is consistent with the "
+                        "coupling databases (country adjacency + ADM1 "
+                        "adjacency)."
+                    )
+                elif all_consistent:
+                    parts.append(f"  Note: {notes[0][1]}")
+                else:
+                    for scope, note_text in notes:
+                        parts.append(f"  Note ({scope}): {note_text}")
+                parts.append("")
 
         parts.append(_SEPARATOR)
         return "\n".join(parts)
