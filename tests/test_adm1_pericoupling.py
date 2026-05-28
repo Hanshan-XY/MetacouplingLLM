@@ -360,3 +360,47 @@ class TestResolveAdm1Code:
         """Generic words should not substring-match unrelated ADM1 names."""
         code = resolve_adm1_code("trade")
         assert code is None
+
+    # PR #45: accent-folded fallback (Strategy 3).  The DB stores
+    # region names with their canonical accents (e.g.,
+    # "Michoacán de Ocampo").  English LLM output and many user
+    # queries drop the accents, which previously broke resolution.
+    # The fallback folds both sides via NFKD before retrying.
+
+    def test_unaccented_michoacan_resolves(self):
+        """Michoacan (no accent) should fold to match the
+        canonical "Michoacán de Ocampo" entry → MEX016."""
+        assert resolve_adm1_code("Michoacan", country="MEX") == "MEX016"
+
+    def test_unaccented_michoacan_de_ocampo_resolves(self):
+        """The unaccented full name should also resolve."""
+        code = resolve_adm1_code("Michoacan de Ocampo", country="MEX")
+        assert code == "MEX016"
+
+    def test_unaccented_yucatan_resolves(self):
+        """Yucatan (no accent) → MEX031 (Yucatán)."""
+        assert resolve_adm1_code("Yucatan", country="MEX") == "MEX031"
+
+    def test_unaccented_nuevo_leon_resolves(self):
+        """Nuevo Leon (no accent) → MEX019 (Nuevo León)."""
+        assert resolve_adm1_code("Nuevo Leon", country="MEX") == "MEX019"
+
+    def test_unaccented_sao_paulo_resolves(self):
+        """Sao Paulo (no accent) → BRA029 (São Paulo)."""
+        assert resolve_adm1_code("Sao Paulo", country="BRA") == "BRA029"
+
+    def test_accented_form_still_resolves(self):
+        """Regression: existing accented-form resolution still works
+        through Strategy 1/2 (unchanged behavior)."""
+        assert resolve_adm1_code("Michoacán") == "MEX016"
+        assert resolve_adm1_code("São Paulo") == "BRA029"
+
+    def test_folded_ambiguity_respects_country_filter(self):
+        """Folded match honors the country filter — if a folded
+        candidate exists outside the requested country, it's
+        excluded.  (Mexico has no foreign-country folded
+        collisions for the avocado states, so we test the
+        weaker no-cross-country-leak property here.)"""
+        # Michoacan only exists in Mexico; with country=CHN it
+        # must return None (no leak through the folded fallback).
+        assert resolve_adm1_code("Michoacan", country="CHN") is None

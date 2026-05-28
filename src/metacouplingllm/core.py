@@ -95,6 +95,19 @@ _LOW_PRIORITY_SYSTEM_FIELDS: tuple[str, ...] = (
     "human_subsystem", "natural_subsystem", "description",
 )
 
+# PR #45: accent-aware capitalized-word-group regex.  The original
+# ASCII-only ``[A-Z][a-z]+`` truncated accented region names at the
+# first diacritic (e.g. ``"Michoacán"`` → ``"Michoac"``,
+# ``"Nuevo León"`` → ``"Nuevo Le"``), which broke the country-
+# mention relevance guard in ``_extract_mentioned_adm1_from_text``
+# and the ADM1 detector in ``_user_query_mentions_adm1``.  The
+# new pattern accepts all Latin-1 Supplement letters so the full
+# accented form survives, covering Spanish / Portuguese / French
+# / German region names with diacritics.
+_CAPITALIZED_WORD_GROUP_RE = (
+    r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)*"
+)
+
 # Defensive ceiling on the number of web-search results included in the
 # structured map-extraction prompt.  This is independent of the user's
 # ``web_search_max_results`` setting -- that setting already caps
@@ -1693,7 +1706,11 @@ class MetacouplingAssistant:
             text = re.sub(r"\[[^\]]+\]", " ", text)
             text = text.replace("*", " ").replace("`", " ")
             text = re.sub(r"\s+", " ", text)
-            return text.strip().rstrip(".,;:")
+            text = text.strip().rstrip(".,;:")
+            # PR #45: strip trailing English possessive forms so
+            # "Michoacán's" / "Michoacán’s" resolves cleanly.
+            text = re.sub(r"['’]s$", "", text).strip()
+            return text
 
         def _looks_like_direct_location(text: str) -> bool:
             lowered = text.lower().strip()
@@ -1761,7 +1778,7 @@ class MetacouplingAssistant:
             combined = " ".join(parsed.iter_text_fragments())
             # Try to resolve country names found in the text
             for word_group in re.findall(
-                r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", combined
+                _CAPITALIZED_WORD_GROUP_RE, combined
             ):
                 code = resolve_country_code(word_group)
                 if code:
@@ -1867,7 +1884,7 @@ class MetacouplingAssistant:
         country_mentions: set[str] = set()
         combined = " ".join(parsed.iter_text_fragments())
         for word_group in re.findall(
-            r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", combined
+            _CAPITALIZED_WORD_GROUP_RE, combined
         ):
             code = resolve_country_code(word_group)
             if code:
@@ -1880,6 +1897,9 @@ class MetacouplingAssistant:
             cleaned = re.sub(r"\[[^\]]+\]", " ", text)
             cleaned = cleaned.replace("*", " ").replace("`", " ")
             cleaned = re.sub(r"\s+", " ", cleaned).strip().rstrip(".,;:")
+            # PR #45: strip trailing English possessive forms so
+            # "Michoacán's" / "Michoacán’s" resolves cleanly.
+            cleaned = re.sub(r"['’]s$", "", cleaned).strip()
             if not cleaned or len(cleaned) < 3:
                 return None
             # Bail out on fuzzy language
@@ -1934,7 +1954,9 @@ class MetacouplingAssistant:
                     if code:
                         found.add(code)
                     # Also scan comma-separated sub-chunks
-                    for chunk in re.split(r"[;\u2022]|\s+and\s+", text):
+                    for chunk in re.split(
+                        r"[;\u2022\u2014/\-]|\s+and\s+", text
+                    ):
                         code = _resolve_candidate(chunk)
                         if code:
                             found.add(code)
@@ -1965,7 +1987,9 @@ class MetacouplingAssistant:
             for _section_name, _category, item in parsed.iter_category_items(kind):
                 if not isinstance(item, str):
                     continue
-                for chunk in re.split(r"[;\u2022]|\s+and\s+", item):
+                for chunk in re.split(
+                    r"[;\u2022\u2014/\-]|\s+and\s+", item
+                ):
                     code = _resolve_candidate(chunk)
                     if code:
                         found.add(code)
@@ -2636,7 +2660,7 @@ class MetacouplingAssistant:
 
         # Resolve country names found in the text
         for word_group in re.findall(
-            r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", combined
+            _CAPITALIZED_WORD_GROUP_RE, combined
         ):
             code = resolve_country_code(word_group)
             if code:
@@ -4505,7 +4529,7 @@ class MetacouplingAssistant:
         # that's the safe default — users can use ISO codes
         # ("MEX016") to force ADM1 explicitly.
         for word_group in re.findall(
-            r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*", query
+            _CAPITALIZED_WORD_GROUP_RE, query
         ):
             # Country mentions take precedence: if the word group
             # resolves to a country, the user is framing at country
@@ -4995,6 +5019,36 @@ class MetacouplingAssistant:
         tele_partners = mentioned_adm1 - all_neighbours
         has_peri = bool(peri_partners)
         has_tele = bool(tele_partners)
+
+        # PR #45 (Fix E): emit LLM-mentioned ADM1 partners as
+        # ``pair_results`` lines so the formatter's verdict
+        # bucketing surfaces them in the COUPLING DATABASE
+        # VALIDATION block.  Without this, the partners were
+        # detected, used to drive the consistency ``note``, and
+        # then silently discarded — the formatter only reads
+        # ``pair_results``.  Same wire format the country
+        # validator uses: ``"focal ↔ partner: VERDICT"``.  Pair
+        # left side is the focal ADM1 (so the verdict reads
+        # coherently under the ``Focal System: Jalisco`` header),
+        # matching PR #44 v3.2 Option A region-anchoring.
+        adm1_pair_lines: list[str] = []
+        focal_pair_label = peri_info["focal_region"]
+        for partner_code in sorted(peri_partners):
+            partner_info = get_adm1_info(partner_code)
+            if partner_info:
+                adm1_pair_lines.append(
+                    f"{focal_pair_label} ↔ "
+                    f"{partner_info['name']} ({partner_code}): PERICOUPLED"
+                )
+        for partner_code in sorted(tele_partners):
+            partner_info = get_adm1_info(partner_code)
+            if partner_info:
+                adm1_pair_lines.append(
+                    f"{focal_pair_label} ↔ "
+                    f"{partner_info['name']} ({partner_code}): TELECOUPLED"
+                )
+        if adm1_pair_lines:
+            peri_info["pair_results"] = "; ".join(adm1_pair_lines)
 
         if parsed.coupling_classification:
             llm_class = parsed.coupling_classification.lower()

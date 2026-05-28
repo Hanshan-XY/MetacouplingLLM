@@ -558,4 +558,4 @@ pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-1170 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, and quantitative indicators.
+1179 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, and quantitative indicators.

@@ -7,6 +7,77 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Fixed
+
+- **ADM1 resolver robustness: detect Michoacán-class regions
+  through possessive, unaccented, and hyphenated surface forms
+  (PR #45).**  PR #44's `COUPLING DATABASE VALIDATION` block
+  silently dropped Michoacán de Ocampo (MEX016) — Mexico's
+  dominant avocado state — from a Jalisco-scope live trace,
+  even though the LLM mentioned it ~95 times.  Root cause:
+  the resolver and the text-extraction pipeline couldn't
+  recover the canonical accented DB name (`Michoacán de
+  Ocampo`) from the noisy surface forms the LLM actually
+  produces.  Four targeted fixes:
+
+  **(a) Possessive stripping** in `_clean_candidate_text` /
+  `_resolve_candidate` (`core.py`) — drop trailing `'s` /
+  `’s` (ASCII and curly apostrophe) so `Michoacán's avocado
+  belt` cleans down to a resolvable token.
+
+  **(b) Accent-folded resolver fallback** in
+  `resolve_adm1_code` (`knowledge/adm1_pericoupling.py`) — new
+  Strategy 3 builds a lazily-cached NFKD-folded index and
+  retries direct + substring lookup against it.  Recovers
+  `Michoacan`, `Michoacan de Ocampo`, `Yucatan`, `Nuevo Leon`,
+  `Sao Paulo`, and any other unaccented form of an accented
+  DB region globally.  Ambiguity is contained by reusing
+  `_pick_best_candidate` (single ISO or matching country
+  filter required).
+
+  **(c) Accent-aware capitalized-word-group regex** (new
+  module-level `_CAPITALIZED_WORD_GROUP_RE` constant in
+  `core.py`).  The previous ASCII-only `[A-Z][a-z]+` truncated
+  every accented region name at the first diacritic
+  (`Michoacán` → `Michoac`, `Nuevo León` → `Nuevo Le`,
+  `São Paulo` → `Paulo`), which broke the country-mention
+  relevance guard in `_extract_mentioned_adm1_from_text` and
+  the ADM1 detector in `_user_query_mentions_adm1`.  Replaced
+  with Latin-1 Supplement-aware
+  `[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)*` at
+  all four call sites.
+
+  **(d) Extended chunk-splitter delimiters** in
+  `_extract_mentioned_adm1_from_text` (`core.py`) — split also
+  on `-`, `—`, and `/` so the LLM's compound forms like
+  `Michoacán-Jalisco`, `Michoacán—labor`, and
+  `Aguascalientes/Jalisco` each yield isolated tokens that the
+  resolver can match.
+
+  **(e) Surface LLM-mentioned ADM1 partners in the validator
+  block.**  `_validate_adm1_pericoupling` already computed
+  `peri_partners` / `tele_partners` from the LLM-mentioned
+  ADM1 set, but only used them to drive the consistency
+  `note` text — then discarded them.  The formatter buckets
+  pairs from `pair_results`, so these partners never reached
+  the COUPLING DATABASE VALIDATION block even when the
+  resolver detected them.  Now the validator emits each
+  partner as a `"focal ↔ partner: VERDICT"` line in
+  `pair_results`, anchored on the focal ADM1 region (same
+  convention PR #44 v3.2 established for the country
+  validator).  Closes the loop: the LLM names `Michoacán`,
+  the resolver finds it via A/B/C/D, and the validator now
+  surfaces it as `Jalisco (MEX014) ↔ Michoacán de Ocampo
+  (MEX016): PERICOUPLED` in the user-facing block.
+
+  Tests added: 7 new resolver-fallback tests (unaccented
+  Michoacán/Yucatán/Nuevo León/São Paulo, accented regression,
+  country-filter ambiguity containment) + 1 extractor test
+  (possessive + hyphenated + unaccented surface forms all
+  produce MEX016 / MEX014) + 1 ADM1-validator emission test
+  (Jalisco→Michoacán pair surfaces correctly).  Total: 1170
+  → 1179.
+
 ### Added / Refactored
 
 - **Coupling-DB surface improvements: single-country hint trigger

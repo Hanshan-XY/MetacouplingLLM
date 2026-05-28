@@ -3317,6 +3317,87 @@ class TestStructuredMapData:
             f"got {codes}"
         )
 
+    def test_adm1_validator_emits_pair_results_for_mentioned_partners(self):
+        """PR #45 (Fix E): when the LLM names a subnational partner
+        of the focal ADM1 region, the ADM1 validator must surface
+        it as a ``pair_results`` line so the formatter buckets it
+        into the COUPLING DATABASE VALIDATION block.
+
+        Before this fix, the partner was correctly computed
+        internally (used to drive the consistency note) but
+        silently discarded — the formatter only reads
+        ``pair_results``, so Michoacán-class regions never made
+        it into the validator output even when the resolver
+        detected them.
+        """
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="pericoupling",
+            systems={
+                "sending": {
+                    "name": "Jalisco avocado production",
+                    "geographic_scope": "Jalisco, Mexico",
+                },
+            },
+            # Arrow-split path: Michoacán cleanly extracted from the
+            # flow direction.  Mirrors how the LLM actually writes
+            # cross-state flows in live traces.
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Michoacán → Jalisco",
+                    "description": "Inputs flow from Michoacán",
+                },
+            ],
+        )
+        result = MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        assert result is True
+        info = parsed.pericoupling_info
+        assert info is not None
+        pr = info.get("pair_results", "")
+        # Michoacán de Ocampo (MEX016) is a DB-adjacent neighbor of
+        # Jalisco — must surface as a PERICOUPLED pair anchored on
+        # the focal region.
+        assert (
+            "Jalisco (MEX014) ↔ Michoacán de Ocampo (MEX016): PERICOUPLED"
+            in pr
+        ), f"Expected PERICOUPLED Michoacán pair, got: {pr!r}"
+
+    def test_extract_mentioned_adm1_handles_possessive_and_hyphenated_forms(self):
+        """PR #45: the extractor must recover ADM1 codes when the
+        LLM writes regions in possessive (``Michoacán's``) or
+        hyphenated (``Michoacán-Jalisco``) forms, plus the
+        unaccented variant.  These were silently dropped before
+        the cleaner / chunk-splitter / resolver upgrades.
+        """
+        from metacouplingllm.llm.parser import ParsedAnalysis
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="Mexican avocado pericoupling.",
+            systems={
+                "sending": {
+                    "name": "Jalisco avocado production",
+                    "geographic_scope": "Jalisco, Mexico",
+                    "description": (
+                        "Production expanded out of Michoacán's avocado "
+                        "belt into Jalisco; Michoacán-Jalisco corridors "
+                        "carry inputs; the Michoacan packing hubs (no "
+                        "accent) coordinate exports."
+                    ),
+                },
+                "receiving": {"name": "United States"},
+            },
+        )
+        codes = MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
+        assert "MEX014" in codes, f"Expected Jalisco, got {codes}"
+        assert "MEX016" in codes, (
+            f"Expected Michoacán de Ocampo via possessive / hyphenated / "
+            f"unaccented forms, got {codes}"
+        )
+
     def test_generate_map_passes_empty_set_not_none(self, monkeypatch):
         """When mentioned_adm1_set is empty after focal-discard,
         _generate_map() must pass an empty set to the renderer,

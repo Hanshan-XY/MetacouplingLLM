@@ -486,16 +486,78 @@ def _get_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
     return _adm1_name_index
 
 
+def _fold_diacritics(text: str) -> str:
+    """NFKD-normalize and strip combining marks.
+
+    Used by the accent-folded fallback in ``resolve_adm1_code``
+    (PR #45) so that unaccented user input — common in English
+    text and many LLM outputs — still resolves accented region
+    names in the database (e.g. ``"Michoacan"`` → ``MEX016``
+    even though the DB name is ``"Michoacán de Ocampo"``).
+    """
+    import unicodedata
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", text)
+        if not unicodedata.combining(c)
+    )
+
+
+_adm1_folded_index: dict[str, list[tuple[str, str]]] | None = None
+
+
+def _get_adm1_folded_name_index() -> dict[str, list[tuple[str, str]]]:
+    """Lazily build and cache an accent-folded version of the
+    name index for the PR #45 fallback.
+
+    Built by folding every key in the accented index; entries
+    are deduplicated per folded key so that a single resolved
+    region doesn't appear twice when both its full and stripped
+    forms fold to the same string.
+    """
+    global _adm1_folded_index
+    if _adm1_folded_index is not None:
+        return _adm1_folded_index
+    base = _get_adm1_name_index()
+    folded: dict[str, list[tuple[str, str]]] = {}
+    for name, entries in base.items():
+        f = _fold_diacritics(name)
+        bucket = folded.setdefault(f, [])
+        for entry in entries:
+            if entry not in bucket:
+                bucket.append(entry)
+    _adm1_folded_index = folded
+    return _adm1_folded_index
+
+
 def resolve_adm1_code(
     name: str,
     country: str | None = None,
 ) -> str | None:
     """Resolve an ADM1 region name to its World Bank ADM1 code.
 
+    Three resolution strategies, applied in order, returning the
+    first successful match:
+
+    1. Direct lookup against the accented index built from the DB
+       canonical names plus suffix-stripped and slash-split
+       variants.
+    2. Substring containment (either direction, both sides ≥ 4
+       chars) against the same accented index.
+    3. **(PR #45)** Accent-folded fallback: NFKD-fold the query
+       and retry strategies 1/2 against a folded version of the
+       index.  Recovers common English / unaccented surface forms
+       of accented DB names (``"Michoacan"`` → ``MEX016`` for
+       ``"Michoacán de Ocampo"``, ``"Sao Paulo"`` → ``BRA029``
+       for ``"São Paulo"``, ``"Nuevo Leon"`` → ``MEX019``).
+       Ambiguity from folding is contained by reusing
+       ``_pick_best_candidate`` (single ISO or matching country
+       filter required).
+
     Parameters
     ----------
     name:
-        Region name (e.g., ``"Michigan"``, ``"Anhui"``, ``"Catalunya"``).
+        Region name (e.g., ``"Michigan"``, ``"Anhui"``, ``"Catalunya"``,
+        or an unaccented variant like ``"Michoacan"``).
     country:
         Optional country name or ISO alpha-3 code to disambiguate when
         the name matches regions in multiple countries (e.g., ``"Georgia"``
@@ -515,6 +577,9 @@ def resolve_adm1_code(
 
     >>> resolve_adm1_code("Georgia", country="United States")
     'USA011'
+
+    >>> resolve_adm1_code("Michoacan", country="MEX")   # PR #45 fallback
+    'MEX016'
     """
     if not name or not name.strip():
         return None
@@ -559,6 +624,39 @@ def resolve_adm1_code(
                 result = _pick_best_candidate(entries, country_iso)
                 if result:
                     return result
+
+    # --- Strategy 3: Accent-folded fallback (PR #45) ---
+    # Last resort: fold diacritics on both sides and retry direct
+    # + substring lookup against a folded index.  Recovers the
+    # very common "Michoacan / Yucatan / Nuevo Leon" pattern from
+    # English LLM output (query is ASCII but the DB name carries
+    # accents).  Always runs when Strategies 1/2 missed — even for
+    # ASCII queries, since the *index* may still hold accented
+    # forms that only the folded index can match.  Ambiguity is
+    # contained by reusing ``_pick_best_candidate`` (requires a
+    # single ISO or a matching country filter).
+    folded_query = _fold_diacritics(name_lower)
+    if folded_query:
+        folded_index = _get_adm1_folded_name_index()
+        # Strategy 3a: direct folded lookup.
+        candidates = folded_index.get(folded_query)
+        if candidates:
+            result = _pick_best_candidate(candidates, country_iso)
+            if result:
+                return result
+        # Strategy 3b: folded substring match (same length guard
+        # as Strategy 2).
+        if len(folded_query) >= 4:
+            for db_name, entries in folded_index.items():
+                if len(db_name) < 4:
+                    continue
+                if (
+                    _contains_phrase(db_name, folded_query)
+                    or _contains_phrase(folded_query, db_name)
+                ):
+                    result = _pick_best_candidate(entries, country_iso)
+                    if result:
+                        return result
 
     return None
 
