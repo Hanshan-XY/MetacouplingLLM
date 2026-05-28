@@ -1403,6 +1403,34 @@ If you see unexpected pairs, the LLM may have identified a different
 country as the sending system than you intended. Use `result.parsed.systems`
 to check what the LLM detected.
 
+### A subnational region the LLM clearly mentioned isn't in the validator block
+
+The validator can only show regions whose name `resolve_adm1_code` can
+match against the bundled ADM1 database. PR #45 broadened recognition to
+include unaccented forms (`Michoacan` → `Michoacán de Ocampo`), possessives
+(`Michoacán's`), and hyphenated compounds (`Michoacán-Jalisco`), and now
+surfaces LLM-mentioned ADM1 partners as `pair_results` lines so the
+formatter buckets them into the COUPLING DATABASE VALIDATION block. But a
+few edge cases still slip through:
+
+- **Non-canonical names.** The DB uses official names (e.g.
+  `Michoacán de Ocampo`, not `Michoacan State`). Short or colloquial
+  forms work via the substring / folded fallback, but truly different
+  names (e.g. local short names not in the gazetteer) won't.
+- **Region mentioned only in `name` or `geographic_scope` fields.**
+  By design `_extract_mentioned_adm1_from_text` skips those two fields
+  because they often hold echo-back enumerations from the prompt's
+  pericoupling hint. Move the substantive mention into a `description`
+  or flow `direction` to surface it.
+- **Region buried in a hedge phrase** like `"such as Michoacán"` or
+  `"especially Michoacán"`. The cleaner's hedge-marker bailout filters
+  these to avoid false positives from speculative language.
+
+To diagnose, inspect `result.parsed.systems` + `result.parsed.flows` for
+where the region is mentioned, and try
+`from metacouplingllm.knowledge.adm1_pericoupling import resolve_adm1_code`
+to confirm whether the resolver finds it at all.
+
 ### Literature recommendations seem unrelated
 
 The recommendation engine uses keyword matching (not semantic similarity).
