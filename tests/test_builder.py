@@ -249,6 +249,45 @@ class TestBuildAdm1PericouplingHint:
         assert "ground-truth" not in hint.lower()
         assert "Use these" not in hint  # imperative authoritative wording
 
+    def test_single_country_query_enumerates_neighbors(self):
+        """PR #44: single-country queries now get a hint listing
+        the focal country's pericoupled neighbors as REFERENCE
+        context.  Previously returned None (no hint).
+        """
+        hint = PromptBuilder._build_pericoupling_hint(
+            "Impact of avocado production in Mexico"
+        )
+        assert hint is not None
+        assert "PERICOUPLING DATABASE LOOKUP" in hint
+        assert "Mexico (MEX)" in hint
+        # Mexico has exactly 3 pericoupled neighbors per the DB
+        assert "Belize (BLZ)" in hint
+        assert "Guatemala (GTM)" in hint
+        assert "United States (USA)" in hint
+        # Caveat language present (matches REFERENCE framing)
+        assert "must still be supported by independent evidence" in hint
+        # Make sure the "no specific partner named" framing is there
+        assert "No specific partner country was named" in hint
+
+    def test_island_nation_query_still_returns_none(self):
+        """PR #44 edge case: single-country query for a country with
+        zero pericoupled neighbors (island nation) returns None —
+        no empty neighbors block is emitted.
+        """
+        hint = PromptBuilder._build_pericoupling_hint(
+            "Mining and biodiversity in Australia"
+        )
+        assert hint is None
+
+    def test_zero_country_query_returns_none(self):
+        """Queries with no detectable country still return None,
+        unchanged from pre-PR-#44 behavior.
+        """
+        hint = PromptBuilder._build_pericoupling_hint(
+            "Generic research about agriculture and climate change"
+        )
+        assert hint is None
+
 
 class TestFullLengthPassageSurvivesTruncation:
     """Regression guard: realistic chunks (up to ~2000 chars) should

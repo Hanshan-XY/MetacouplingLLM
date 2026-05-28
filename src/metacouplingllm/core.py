@@ -4589,8 +4589,13 @@ class MetacouplingAssistant:
 
         parsed = parse_analysis(response.content)
 
-        # Post-LLM pericoupling validation
-        self._validate_pericoupling(parsed)
+        # Post-LLM pericoupling validation.  PR #44 (v3):
+        # national_mode skips the ADM1 sub-validator when the
+        # user's query did not name a subnational region.
+        self._validate_pericoupling(
+            parsed,
+            national_mode=not self._user_query_mentions_adm1(),
+        )
 
         formatted = self._formatter.format_full(parsed)
 
@@ -5028,8 +5033,12 @@ class MetacouplingAssistant:
         return True
 
     @staticmethod
-    def _validate_pericoupling(parsed: ParsedAnalysis) -> None:
-        """Run BOTH ADM1 (subnational) and country-level validations.
+    def _validate_pericoupling(
+        parsed: ParsedAnalysis,
+        *,
+        national_mode: bool = False,
+    ) -> None:
+        """Run ADM1 (subnational) and country-level validations.
 
         PR #27: previously the function returned early once ADM1
         validation succeeded, so analyses that identified a focal
@@ -5037,32 +5046,48 @@ class MetacouplingAssistant:
         destination countries (USA, CAN, JPN) only saw the
         subnational block in the formatted output — the country-
         level MEX↔USA / MEX↔CAN / MEX↔JPN classification was
-        silently skipped.  Now both validators run independently and
-        populate two separate fields on ``parsed`` so the formatter
-        can render both blocks when both apply.
+        silently skipped.
 
-        - ``parsed.pericoupling_info``: ADM1 (subnational) result.
-        - ``parsed.country_pericoupling_info``: country-level result.
+        PR #44 (v3): mode-aware dispatch.  When the caller passes
+        ``national_mode=True`` (user's query did not name a
+        subnational region), the ADM1 validator is SKIPPED to
+        avoid surfacing DB neighbours of an auto-picked focal
+        state.  The country validator instead populates a
+        ``core_subnational_regions`` key listing all LLM-mentioned
+        subnational regions in the focal country.
 
-        Either or both may stay None — country-only analyses just
-        get the second block, ADM1-only analyses just the first,
-        and dual-scope analyses get both.
+        Default is ``national_mode=False`` so existing test
+        fixtures that call this directly preserve their pre-v3
+        behavior (run both validators).  Production callers
+        compute the flag via ``self._user_query_mentions_adm1()``.
 
-        Only validates pairs involving the **sending system** (focal
-        country).  This avoids spurious validation of pairs between
-        receiving countries that the researcher did not intend to
-        compare (e.g. USA ↔ Canada when the study is Mexico → USA/CAN).
+        - ``parsed.pericoupling_info``: ADM1 result (skipped in
+          national mode).
+        - ``parsed.country_pericoupling_info``: country-level
+          result, always populated when ≥1 non-spillover partner
+          country is mentioned.  Carries
+          ``core_subnational_regions`` in national mode.
         """
-        # ADM1 (subnational): populates parsed.pericoupling_info when
-        # a focal subnational region is resolvable.
-        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        if not national_mode:
+            # ADM1-mode query: run ADM1 validator (populates
+            # parsed.pericoupling_info when a focal subnational
+            # region is resolvable from the analysis text).
+            MetacouplingAssistant._validate_adm1_pericoupling(parsed)
 
-        # Country-level: always runs (previously gated by the ADM1
-        # early-return).  Populates parsed.country_pericoupling_info.
-        MetacouplingAssistant._validate_country_pericoupling(parsed)
+        # Country-level: always runs.  Populates
+        # parsed.country_pericoupling_info, including the new
+        # core_subnational_regions key in national mode.
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed,
+            national_mode=national_mode,
+        )
 
     @staticmethod
-    def _validate_country_pericoupling(parsed: ParsedAnalysis) -> None:
+    def _validate_country_pericoupling(
+        parsed: ParsedAnalysis,
+        *,
+        national_mode: bool = False,
+    ) -> None:
         """Country-level pericoupling validation.
 
         Populates ``parsed.country_pericoupling_info`` when:
@@ -5070,10 +5095,44 @@ class MetacouplingAssistant:
         - At least one other country is mentioned in the systems.
 
         Otherwise leaves the field as None.
+
+        PR #44 (v3): pure 2-way geographic classification
+        (PERICOUPLED / TELECOUPLED).  Countries the LLM placed in
+        the spillover role are filtered out entirely (rather than
+        being labeled SPILLOVER) — geography alone can't validate
+        the framework-level spillover judgment, so the validator
+        declines to opine on those pairs.  Spillover info remains
+        in ``parsed.systems["spillover"]`` for downstream consumers.
+
+        ``national_mode``: when True (user query did not name a
+        subnational region), the function also populates a
+        ``core_subnational_regions`` key listing all LLM-mentioned
+        ADM1 regions inside the focal country, so the formatter
+        can show "Core subnational regions: Michoacán, Jalisco"
+        without rendering DB-derived neighbours of an auto-picked
+        state.  Foreign partners are classified at the COUNTRY
+        scale (does the focal country border the partner?).
+
+        PR #44 (v3.2 — Option A): when ``national_mode`` is False
+        AND a focal subnational region resolves from the analysis,
+        foreign partners are classified at the REGION scale instead
+        — pericoupled iff the focal region has a cross-border
+        neighbour in the partner country.  This fixes the
+        scale-mismatch where an interior focal state (e.g.,
+        Jalisco) was reported as pericoupled with the USA purely
+        because its COUNTRY (Mexico) borders the USA.  Jalisco
+        borders no foreign country, so all foreign partners are
+        telecoupled; a border state like Chihuahua keeps the USA
+        pericoupled.  Each pair is anchored on the focal region
+        (e.g. "Jalisco (MEX014) ↔ United States (USA)").
         """
+        # --- Walk parsed.systems once to capture {code: role} ---
+        country_roles = MetacouplingAssistant._extract_countries_with_roles(
+            parsed
+        )
+
         # --- Identify the focal (sending) country first ---
         focal_code: str | None = None
-        focal_name: str | None = None
         sending_entry = (
             parsed.get_first_system_entry("sending")
             or parsed.get_first_system_entry("focal")
@@ -5085,119 +5144,226 @@ class MetacouplingAssistant:
                     code = resolve_country_code(value)
                     if code:
                         focal_code = code
-                        focal_name = value
                         break
 
         # Fall back to first detected country from all systems
-        if focal_code is None:
-            countries = MetacouplingAssistant._extract_country_names(parsed)
-            if countries:
-                code = resolve_country_code(countries[0])
-                if code:
-                    focal_code = code
-                    focal_name = countries[0]
+        if focal_code is None and country_roles:
+            focal_code = next(iter(country_roles))
 
         if focal_code is None:
             return  # Cannot identify any country
 
         # --- Collect other (non-focal) countries ---
-        all_countries = MetacouplingAssistant._extract_country_names(parsed)
-        other_codes: list[tuple[str, str]] = []  # (code, display_name)
-        seen: set[str] = {focal_code}
-        for name in all_countries:
-            code = resolve_country_code(name)
-            if code and code not in seen:
-                seen.add(code)
-                other_codes.append((code, name))
+        other_codes = [c for c in country_roles if c != focal_code]
 
         if not other_codes:
             return  # Only one country detected
 
         # --- Build validation info (focal ↔ each other only) ---
         info: dict[str, str] = {}
-        info[f"focal_country"] = f"{get_country_name(focal_code)} ({focal_code})"
+        info["focal_country"] = f"{get_country_name(focal_code)} ({focal_code})"
+        # PR #44 (v3.1): record the mode so the formatter can pick
+        # the right intro text and label wording (national mode
+        # uses country-only labels; subnational mode uses
+        # countries/subnational regions labels).
+        info["mode"] = "national" if national_mode else "subnational"
+
+        # PR #44 (v3.2 — Option A): in subnational mode, classify
+        # each foreign partner by the focal REGION's adjacency, not
+        # the focal COUNTRY's.  An interior focal state (e.g.,
+        # Jalisco) borders no foreign country, so all foreign
+        # partners are telecoupled even though the focal COUNTRY
+        # (Mexico) borders the USA.  A border state (e.g.,
+        # Chihuahua) keeps the foreign neighbour pericoupled.
+        #
+        # The left side of each pair becomes the focal REGION so the
+        # verdict reads coherently under the "Focal System: Jalisco"
+        # header.  National mode is unchanged (country-level lookup,
+        # country on the left).
+        focal_region_label: str | None = None
+        cross_border_countries: set[str] = set()
+        if not national_mode:
+            focal_adm1 = MetacouplingAssistant._resolve_adm1_from_analysis(
+                parsed
+            )
+            if focal_adm1:
+                from metacouplingllm.knowledge.adm1_pericoupling import (
+                    get_adm1_info,
+                    get_cross_border_neighbors,
+                )
+
+                a_info = get_adm1_info(focal_adm1)
+                if a_info:
+                    focal_region_label = f"{a_info['name']} ({focal_adm1})"
+                    for xb_code in get_cross_border_neighbors(focal_adm1):
+                        xb_info = get_adm1_info(xb_code)
+                        if xb_info and xb_info.get("iso_a3"):
+                            cross_border_countries.add(xb_info["iso_a3"])
 
         pair_lines: list[str] = []
-        for code_b, _name_b in other_codes:
-            result = lookup_pericoupling(focal_code, code_b)
-            cn_a = get_country_name(focal_code)
+        cn_a = get_country_name(focal_code)
+        # When a focal region resolved, anchor pairs on the region;
+        # otherwise fall back to the focal country (also covers the
+        # national-mode path and the no-ADM1-resolvable edge case).
+        left_label = focal_region_label or f"{cn_a} ({focal_code})"
+        use_region_adjacency = (
+            not national_mode and focal_region_label is not None
+        )
+        for code_b in other_codes:
+            llm_role = country_roles.get(code_b, "")
+
+            # PR #44 (v3): countries the LLM placed in the
+            # spillover role are framework-level judgments that
+            # geography can't validate.  Filter them out of the
+            # validator block entirely (they remain in
+            # parsed.systems["spillover"] for the framework
+            # systems analysis).
+            if llm_role == "spillover":
+                continue
+
             cn_b = get_country_name(code_b)
-            if result.pair_type == PairCouplingType.PERICOUPLED:
-                pair_lines.append(
-                    f"{cn_a} ({focal_code}) ↔ {cn_b} ({code_b}): PERICOUPLED"
+
+            if use_region_adjacency:
+                # Option A: pericoupled iff the focal region has a
+                # cross-border neighbour in the partner country.
+                verdict = (
+                    "PERICOUPLED"
+                    if code_b in cross_border_countries
+                    else "TELECOUPLED"
                 )
-            elif result.pair_type == PairCouplingType.TELECOUPLED:
-                pair_lines.append(
-                    f"{cn_a} ({focal_code}) ↔ {cn_b} ({code_b}): TELECOUPLED"
-                )
+            else:
+                # National mode (or no resolvable focal region):
+                # classify at the country scale.
+                result = lookup_pericoupling(focal_code, code_b)
+                if result.pair_type == PairCouplingType.PERICOUPLED:
+                    verdict = "PERICOUPLED"
+                elif result.pair_type == PairCouplingType.TELECOUPLED:
+                    verdict = "TELECOUPLED"
+                else:
+                    continue  # UNKNOWN — skip
+
+            pair_lines.append(
+                f"{left_label} ↔ {cn_b} ({code_b}): {verdict}"
+            )
 
         if pair_lines:
             info["pair_results"] = "; ".join(pair_lines)
 
-        # Check agreement with LLM classification.
+        # PR #44 (v3): national-mode queries get a
+        # "core_subnational_regions" key listing all LLM-mentioned
+        # ADM1 regions inside the focal country.  Used by the
+        # formatter to render a "Core subnational regions:"
+        # sub-line under the Focal:.  ADM1-mode queries skip this
+        # (their focal ADM1 region is already shown explicitly).
+        if national_mode:
+            from metacouplingllm.knowledge.adm1_pericoupling import (
+                get_adm1_info,
+            )
+
+            mentioned = MetacouplingAssistant._extract_mentioned_adm1_from_text(
+                parsed
+            )
+            region_names: list[str] = []
+            for code in sorted(mentioned):
+                a_info = get_adm1_info(code)
+                if a_info and a_info.get("iso_a3") == focal_code:
+                    region_names.append(a_info["name"])
+            if region_names:
+                info["core_subnational_regions"] = ", ".join(region_names)
+
+        # Check agreement with LLM classification.  PR #44 (v3):
+        # 2-way check only (no spillover branch since the
+        # validator no longer emits SPILLOVER pair lines).
         if parsed.coupling_classification:
             llm_class = parsed.coupling_classification.lower()
-            has_peri = any("PERICOUPLED" in p for p in pair_lines)
-            has_tele = any("TELECOUPLED" in p for p in pair_lines)
+            has_peri = any(": PERICOUPLED" in p for p in pair_lines)
+            has_tele = any(": TELECOUPLED" in p for p in pair_lines)
 
             if has_peri and "pericoupl" not in llm_class:
                 info["note"] = (
-                    "The pericoupling database indicates at least one "
+                    "The coupling database indicates at least one "
                     "pericoupled country pair, but the LLM classified "
                     "this study differently. Consider revising."
                 )
             elif has_tele and not has_peri and "telecoupl" not in llm_class:
                 info["note"] = (
-                    "The pericoupling database indicates all detected "
+                    "The coupling database indicates all detected "
                     "pairs are telecoupled, but the LLM classified "
                     "this study differently. Consider revising."
                 )
             else:
                 info["note"] = (
                     "LLM classification is consistent with the "
-                    "pericoupling database."
+                    "coupling database."
                 )
 
         parsed.country_pericoupling_info = info
 
     @staticmethod
-    def _extract_country_names(parsed: ParsedAnalysis) -> list[str]:
-        """Extract country-like names from parsed systems data.
+    def _extract_countries_with_roles(
+        parsed: ParsedAnalysis,
+    ) -> dict[str, str]:
+        """Return ``{ISO_alpha3_code: role}`` for countries mentioned
+        in ``parsed.systems``.
 
-        Looks at sending, receiving, and spillover system names/descriptions
-        and tries to identify country references.
+        Role is one of ``"sending"`` / ``"receiving"`` / ``"spillover"``
+        / ``"focal"`` / ``"adjacent"``.  Walks ``parsed.systems``
+        per-role so the validator can differentiate spillover from
+        receiving (PR #44) — the prior name-only extractor flattened
+        this distinction and forced the validator to fall back on
+        geography alone.
+
+        When a country appears in multiple roles, priority is:
+        sending > focal > receiving > spillover > adjacent.  This
+        matches the validator's interest in the most-causal role.
         """
-        texts: list[str] = []
-        for role in ("focal", "adjacent", "sending", "receiving", "spillover"):
+        role_priority = {
+            "sending": 0,
+            "focal": 1,
+            "receiving": 2,
+            "spillover": 3,
+            "adjacent": 4,
+        }
+        # code -> (priority, role)
+        found: dict[str, tuple[int, str]] = {}
+
+        def _record(code: str, role: str) -> None:
+            pr = role_priority[role]
+            if code not in found or pr < found[code][0]:
+                found[code] = (pr, role)
+
+        for role in ("focal", "sending", "receiving", "spillover", "adjacent"):
             for entry in parsed.get_system_entries(role):
-                if entry.get("name"):
-                    texts.append(entry["name"])
-                if entry.get("geographic_scope"):
-                    texts.append(entry["geographic_scope"])
+                for field in ("name", "geographic_scope"):
+                    value = entry.get(field, "") or ""
+                    if not value:
+                        continue
+                    # Try the full value first (e.g. "Mexico"), then
+                    # per-chunk on common delimiters (handles "Chile
+                    # and Peru" via "and" split below).
+                    code = resolve_country_code(value)
+                    if code is not None:
+                        _record(code, role)
+                    for chunk in re.split(r"[,;/()]+|\band\b", value):
+                        chunk = chunk.strip()
+                        if not chunk:
+                            continue
+                        code = resolve_country_code(chunk)
+                        if code is not None:
+                            _record(code, role)
 
-        # Also scan the coupling_classification for country mentions
-        if parsed.coupling_classification:
-            texts.append(parsed.coupling_classification)
+        return {c: r for c, (_, r) in found.items()}
 
-        # Resolve unique countries from all collected text
-        seen: set[str] = set()
-        countries: list[str] = []
-        for text in texts:
-            # Try resolving the full text first (e.g. "Mexico")
-            code = resolve_country_code(text)
-            if code and code not in seen:
-                seen.add(code)
-                countries.append(text)
-                continue
-            # Otherwise scan for country names within the text
-            # Split on common delimiters
-            for chunk in re.split(r"[,;/()]+", text):
-                chunk = chunk.strip()
-                if not chunk:
-                    continue
-                code = resolve_country_code(chunk)
-                if code and code not in seen:
-                    seen.add(code)
-                    countries.append(chunk)
+    @staticmethod
+    def _extract_country_names(parsed: ParsedAnalysis) -> list[str]:
+        """Backward-compat wrapper.  Returns a flat list of ISO
+        alpha-3 codes for countries mentioned in
+        ``parsed.systems`` (no role info).
 
-        return countries
+        New code should use :py:meth:`_extract_countries_with_roles`
+        which preserves the per-role classification needed for
+        PR #44's 3-way validator output.
+        """
+        return list(
+            MetacouplingAssistant._extract_countries_with_roles(parsed).keys()
+        )

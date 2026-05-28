@@ -27,7 +27,11 @@ from metacouplingllm.knowledge.examples import (
     get_relevant_examples,
 )
 from metacouplingllm.knowledge.framework import get_framework_knowledge
-from metacouplingllm.knowledge.pericoupling import PairCouplingType, lookup_pericoupling
+from metacouplingllm.knowledge.pericoupling import (
+    PairCouplingType,
+    get_pericoupled_neighbors,
+    lookup_pericoupling,
+)
 from metacouplingllm.knowledge.references import format_references
 from metacouplingllm.prompts.templates import (
     CITATION_RULES_LAYER,
@@ -303,21 +307,33 @@ class PromptBuilder:
         """Scan research text for country names and build a country-pair
         classification hint.
 
-        Each focal-vs-other pair is reported with its database
-        classification (PERICOUPLED for adjacent pairs, TELECOUPLED
-        for distant pairs).  Framing is REFERENCE-ONLY, parallel to
-        the ADM1 hint (PR #20, harmonized in PR #43): the LLM is
-        told that database classification is supporting context but
-        the actual coupling type still depends on whether real
-        cross-system flows exist.
+        If ≥2 countries are detected, reports each focal-vs-other pair
+        with its database classification (PERICOUPLED for adjacent
+        pairs, TELECOUPLED for distant pairs).
 
-        Only generates pairs that involve the **first detected country**
-        (assumed to be the focal/sending country).  This avoids spurious
-        pairs between receiving countries that the researcher did not
-        intend to compare (e.g. USA ↔ Canada when the study is about
-        Mexico exporting to both).
+        If exactly 1 country is detected (PR #44), enumerates that
+        focal country's pericoupled neighbors from the database as
+        REFERENCE context the LLM may want to consider as candidate
+        pericoupled partners.  Added to surface underexplored
+        pericoupling angles for single-country queries that
+        previously got no hint at all.
 
-        Returns ``None`` if fewer than two countries are found.
+        Framing is REFERENCE-ONLY, parallel to the ADM1 hint
+        (PR #20, harmonized in PR #43): the LLM is told that
+        database classification is supporting context but the actual
+        coupling type still depends on whether real cross-system
+        flows exist.
+
+        Only generates pairs that involve the **first detected
+        country** (assumed to be the focal/sending country).  This
+        avoids spurious pairs between receiving countries that the
+        researcher did not intend to compare (e.g. USA ↔ Canada when
+        the study is about Mexico exporting to both).
+
+        Returns ``None`` when:
+        - No country is detected, OR
+        - A 1-country query's focal country has zero pericoupled
+          neighbors (island nations like Australia, Japan, Cuba).
         """
         # Detect country codes mentioned in the text.
         found_codes: list[str] = []
@@ -332,36 +348,58 @@ class PromptBuilder:
                 found_codes.append(code)
                 seen.add(code)
 
-        if len(found_codes) < 2:
-            return None
+        if len(found_codes) < 1:
+            return None  # no country detected -> no hint
 
         # Use the first detected country as the focal country and only
         # look up pairs between the focal country and the others.
         focal_code = found_codes[0]
         other_codes = found_codes[1:]
-
-        lines: list[str] = []
-        for code_b in other_codes:
-            result = lookup_pericoupling(focal_code, code_b)
-            name_a = get_country_name(focal_code)
-            name_b = get_country_name(code_b)
-            if result.pair_type == PairCouplingType.PERICOUPLED:
-                lines.append(
-                    f"- {name_a} ({focal_code}) and {name_b} ({code_b}) are "
-                    f"**pericoupled** (geographically adjacent) according "
-                    f"to the pericoupling database."
-                )
-            elif result.pair_type == PairCouplingType.TELECOUPLED:
-                lines.append(
-                    f"- {name_a} ({focal_code}) and {name_b} ({code_b}) are "
-                    f"**telecoupled** (geographically distant) according "
-                    f"to the pericoupling database."
-                )
-
-        if not lines:
-            return None
-
         focal_name = get_country_name(focal_code)
+
+        body: str
+        if other_codes:
+            # >=2 countries: per-pair classification lookup (unchanged).
+            lines: list[str] = []
+            for code_b in other_codes:
+                result = lookup_pericoupling(focal_code, code_b)
+                name_b = get_country_name(code_b)
+                if result.pair_type == PairCouplingType.PERICOUPLED:
+                    lines.append(
+                        f"- {focal_name} ({focal_code}) and {name_b} ({code_b}) are "
+                        f"**pericoupled** (geographically adjacent) according "
+                        f"to the pericoupling database."
+                    )
+                elif result.pair_type == PairCouplingType.TELECOUPLED:
+                    lines.append(
+                        f"- {focal_name} ({focal_code}) and {name_b} ({code_b}) are "
+                        f"**telecoupled** (geographically distant) according "
+                        f"to the pericoupling database."
+                    )
+            if not lines:
+                return None
+            body = "\n".join(lines)
+        else:
+            # PR #44: exactly 1 country detected -> enumerate focal's
+            # pericoupled neighbors as REFERENCE context.  Island
+            # nations with no neighbors yield None (no empty
+            # "neighbors:" block).
+            neighbors = sorted(get_pericoupled_neighbors(focal_code))
+            if not neighbors:
+                return None
+            neighbor_lines = [
+                f"- {get_country_name(c)} ({c})" for c in neighbors
+            ]
+            body = (
+                f"No specific partner country was named in the research "
+                f"description.  Based on the database, {focal_name}'s "
+                f"pericoupled (geographically adjacent) neighbors are:\n"
+                + "\n".join(neighbor_lines)
+                + "\n\nAny actual pericoupling involving these neighbors "
+                "must still be supported by independent evidence of "
+                "cross-system flows."
+            )
+
         header = (
             "## PERICOUPLING DATABASE LOOKUP (REFERENCE)\n\n"
             f"Focal country detected: {focal_name} ({focal_code}).\n"
@@ -372,9 +410,9 @@ class PromptBuilder:
             "flows (trade, migration, policy spillover, etc.) before "
             "classifying.  For TELECOUPLED pairs, geographic distance is "
             "corroborating context but the classification still depends on "
-            "whether actual cross-system flows exist.\n"
+            "whether actual cross-system flows exist.\n\n"
         )
-        return header + "\n".join(lines)
+        return header + body
 
     @staticmethod
     def _build_adm1_pericoupling_hint(research_context: str) -> str | None:

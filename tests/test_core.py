@@ -3910,18 +3910,29 @@ class TestValidateAdm1Pericoupling:
         assert parsed.country_pericoupling_info is not None
 
         formatted = AnalysisFormatter.format_full(parsed)
-        # Both headers must appear.
-        assert "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)" in formatted
-        # Country-level header (without the SUBNATIONAL suffix) must
-        # ALSO appear, in addition to (and after) the subnational one.
-        subnat_idx = formatted.index(
-            "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)"
+        # PR #44 (v3.1): flat layout + mode-aware labels.
+        assert "COUPLING DATABASE VALIDATION" in formatted
+        # No legacy "(SUBNATIONAL)" suffix on the heading.
+        assert "COUPLING DATABASE VALIDATION (SUBNATIONAL)" not in formatted
+        assert formatted.count("COUPLING DATABASE VALIDATION\n") == 1
+        # Unified "Focal System:" line combines ADM1 region + country.
+        assert "Focal System: " in formatted
+        assert "Michigan" in formatted
+        assert "USA023" in formatted
+        # v3 sub-section labels (from merge draft) stay GONE.
+        assert "Subnational context:" not in formatted
+        assert "Country-pair classifications:" not in formatted
+        # v3.1: mode-aware group labels.  The fixture exercises
+        # the dispatcher in default (national_mode=False) mode,
+        # so subnational-mode labels (with "/Subnational Regions"
+        # suffix) are expected.
+        has_groups = (
+            "Pericoupled Countries/Subnational Regions:" in formatted
+            or "Telecoupled Countries/Subnational Regions:" in formatted
         )
-        # Search for the country header after the subnational header.
-        country_search = formatted[subnat_idx + 50:]
-        assert "PERICOUPLING DATABASE VALIDATION" in country_search, (
-            "expected a second PERICOUPLING block after the "
-            "(SUBNATIONAL) one for the country-level validation"
+        assert has_groups, (
+            "expected at least one of the subnational-mode group "
+            "labels in the flat v3.1 layout"
         )
 
     # ------------------------------------------------------------------
@@ -4030,6 +4041,245 @@ class TestValidateAdm1Pericoupling:
         )
         assert "returned neighbour information" in note
 
+    # ------------------------------------------------------------------
+    # PR #44: role-aware country-level validator
+    # ------------------------------------------------------------------
+
+    def test_validator_omits_spillover_country(self):
+        """PR #44 (v3): countries the LLM placed in the spillover
+        role are filtered OUT of the validator block entirely
+        (not relabeled).  The validator is geography-only and
+        can't validate framework-level spillover claims, so it
+        declines to opine on those pairs.
+
+        Mirrors the avocado-trace case: Chile and Peru were
+        identified by the LLM as spillover competitor systems.
+        They must not appear in the validator's pair_results.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling and spillover",
+            systems={
+                "sending": {"name": "Mexico"},
+                "receiving": {"name": "United States"},
+                "spillover": {"name": "Chile and Peru"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(parsed)
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        pair_results = info["pair_results"]
+        # USA is receiving + geographically adjacent → PERICOUPLED
+        assert "Mexico (MEX) ↔ United States (USA): PERICOUPLED" in pair_results
+        # Chile and Peru are spillover-roled → must be ABSENT
+        # from pair_results entirely (not labeled SPILLOVER, not
+        # labeled TELECOUPLED).
+        assert "Chile (CHL)" not in pair_results
+        assert "Peru (PER)" not in pair_results
+        assert "SPILLOVER" not in pair_results
+
+    def test_validator_falls_back_to_geography_when_no_spillover_role(self):
+        """When a country is only in receiving (no spillover role),
+        validator falls back to pure geographic classification —
+        adjacent → PERICOUPLED, distant → TELECOUPLED.  This is the
+        pre-PR-44 behavior for the non-spillover case.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {"name": "Brazil"},
+                "receiving": {"name": "China"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(parsed)
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        assert (
+            "Brazil (BRA) ↔ China (CHN): TELECOUPLED" in info["pair_results"]
+        )
+
+    def test_validator_skips_adm1_in_national_mode(self):
+        """PR #44 (v3): the dispatcher skips the ADM1 sub-validator
+        when called with national_mode=True (user query did not
+        name a subnational region).  ``parsed.pericoupling_info``
+        stays None even if a focal ADM1 region IS resolvable
+        from the LLM's analysis text.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Mexican avocado production landscapes",
+                    "geographic_scope": "Mexico, especially Jalisco",
+                },
+                "receiving": {"name": "United States"},
+            },
+        )
+        MetacouplingAssistant._validate_pericoupling(
+            parsed, national_mode=True,
+        )
+        # ADM1 validator was SKIPPED in national mode.
+        assert parsed.pericoupling_info is None
+        # Country validator still ran.
+        assert parsed.country_pericoupling_info is not None
+
+    def test_validator_includes_core_subnational_regions_in_national_mode(self):
+        """PR #44 (v3): in national mode, the country validator
+        populates a ``core_subnational_regions`` key listing the
+        LLM-mentioned subnational regions inside the focal country.
+        Foreign subnational mentions are excluded.
+
+        Note: ``_extract_mentioned_adm1_from_text`` scans
+        substantive fields (description / human_subsystem /
+        natural_subsystem / flow text / causes-effects), NOT the
+        echo-back-prone ``name`` and ``geographic_scope`` fields.
+        Fixture places region names in ``description`` to hit
+        that path.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Mexican avocado production",
+                    "geographic_scope": "Mexico",
+                },
+                "receiving": {"name": "United States"},
+            },
+            # Flow directions use the arrow-split resolver path
+            # that cleanly extracts ADM1 codes from "X → Y" form.
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Jalisco → United States",
+                    "description": "Avocado exports from Mexican states",
+                },
+                {
+                    "category": "matter",
+                    "direction": "Michoacán → United States",
+                    "description": "Avocado exports from Mexican states",
+                },
+            ],
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        csr = info.get("core_subnational_regions", "")
+        assert "Jalisco" in csr
+        assert "Michoacán" in csr
+
+    def test_validator_subnational_interior_region_telecouples_foreign_partner(self):
+        """PR #44 (v3.2 / Option A): an interior focal state borders
+        no foreign country, so foreign partners are TELECOUPLED even
+        though the focal COUNTRY borders the partner.
+
+        Jalisco is interior; Mexico borders the USA.  The verdict
+        must be telecoupled (region scale, not country scale) and
+        the pair must be anchored on the region.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Avocado production",
+                    "geographic_scope": "Jalisco, Mexico",
+                },
+                "receiving": {"name": "United States"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=False,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        pr = info["pair_results"]
+        assert "Jalisco (MEX014) ↔ United States (USA): TELECOUPLED" in pr
+        # Interior focal state → no foreign pericoupling.
+        assert "PERICOUPLED" not in pr
+
+    def test_validator_subnational_border_region_pericouples_foreign_partner(self):
+        """PR #44 (v3.2 / Option A): a border focal state keeps the
+        adjacent foreign country PERICOUPLED.  Chihuahua borders the
+        USA, so the region-scale verdict is pericoupled.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="pericoupling",
+            systems={
+                "sending": {
+                    "name": "Cattle production",
+                    "geographic_scope": "Chihuahua, Mexico",
+                },
+                "receiving": {"name": "United States"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=False,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        pr = info["pair_results"]
+        assert "Chihuahua (MEX008) ↔ United States (USA): PERICOUPLED" in pr
+
+    def test_validator_national_mode_keeps_country_scale(self):
+        """PR #44 (v3.2 / Option A): national mode is UNCHANGED —
+        foreign partners are still classified at the country scale
+        (does the focal country border the partner?), anchored on
+        the country.  Mexico borders the USA → pericoupled, even
+        though any specific interior state would not.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="pericoupling",
+            systems={
+                "sending": {
+                    "name": "Avocado production",
+                    "geographic_scope": "Jalisco, Mexico",
+                },
+                "receiving": {"name": "United States"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        pr = info["pair_results"]
+        # Country scale: Mexico borders the USA → pericoupled,
+        # anchored on the country (not the region).
+        assert "Mexico (MEX) ↔ United States (USA): PERICOUPLED" in pr
+
+    def test_extract_countries_with_roles_priority(self):
+        """Role priority sending > focal > receiving > spillover >
+        adjacent.  When a country appears under multiple roles, the
+        higher-priority role wins.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems=[
+                {"role": "sending", "name": "Mexico"},
+                # Mexico appears AGAIN in receiving — sending should win.
+                {"role": "receiving", "name": "Mexico"},
+                {"role": "spillover", "name": "Chile"},
+            ],
+        )
+        roles = MetacouplingAssistant._extract_countries_with_roles(parsed)
+        assert roles["MEX"] == "sending"
+        assert roles["CHL"] == "spillover"
+
 
 class TestFormatterAdm1PericouplingInfo:
     """Tests for ADM1-level pericoupling info in formatted output."""
@@ -4051,14 +4301,20 @@ class TestFormatterAdm1PericouplingInfo:
             },
         )
         output = AnalysisFormatter.format_full(parsed)
-        assert "PERICOUPLING DATABASE VALIDATION (SUBNATIONAL)" in output
-        assert "Michigan (USA023)" in output
-        # Headers were title-cased: "Same-country neighbors:" ->
-        # "Domestic Neighbors:" and "Cross-border neighbors:" ->
-        # "Cross Border Neighbors:".
-        assert "Domestic Neighbors:" in output
-        assert "Cross Border Neighbors:" in output
-        assert "Ontario" in output
+        # PR #44 (v3.1): unified heading + flat layout + "Focal
+        # System:" label.  Subnational context is no longer a
+        # sub-section; the focal region is part of the unified
+        # Focal System: line and DB-derived neighbor lists are
+        # dropped from the validator block.
+        assert "COUPLING DATABASE VALIDATION" in output
+        assert "Subnational context:" not in output
+        assert "Country-pair classifications:" not in output
+        # Unified "Focal System:" line at the top.
+        assert "Focal System: Michigan (USA023), United States of America (USA)" in output
+        # v3: DB-derived neighbor lists (domestic_neighbors /
+        # cross_border_neighbors) are NOT rendered.
+        assert "Domestic Neighbors:" not in output
+        assert "Cross Border Neighbors:" not in output
 
     def test_country_info_renders_unchanged(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
@@ -4067,16 +4323,31 @@ class TestFormatterAdm1PericouplingInfo:
 
         parsed = ParsedAnalysis(
             coupling_classification="telecoupling",
-            pericoupling_info={
+            country_pericoupling_info={
                 "focal_country": "Brazil (BRA)",
                 "pair_results": "Brazil (BRA) ↔ China (CHN): TELECOUPLED",
                 "note": "Consistent.",
             },
         )
         output = AnalysisFormatter.format_full(parsed)
-        assert "PERICOUPLING DATABASE VALIDATION" in output
+        # PR #44 (v3.1): unified heading + flat layout + mode-aware
+        # labels.  Fixture has no "mode" key so the formatter
+        # falls back to subnational-mode wording ("Telecoupled
+        # Countries/Subnational Regions:").
+        assert "COUPLING DATABASE VALIDATION" in output
+        # v3: no sub-section labels.
+        assert "Country-pair classifications:" not in output
+        assert "Subnational context:" not in output
+        # And the merge collapses the old "(SUBNATIONAL)" suffix.
         assert "SUBNATIONAL" not in output
-        assert "Brazil (BRA) ↔ China (CHN): TELECOUPLED" in output
+        # Unified "Focal System:" line at the top (country only).
+        assert "Focal System: Brazil (BRA)" in output
+        # v3.1: subnational-mode group label (fallback when no
+        # mode key is set on the info dict).
+        assert "Telecoupled Countries/Subnational Regions:" in output
+        assert "Brazil (BRA) ↔ China (CHN)" in output
+        # No per-line label after the merge (group label conveys it).
+        assert "Brazil (BRA) ↔ China (CHN): TELECOUPLED" not in output
 
 
 # ---------------------------------------------------------------------------
