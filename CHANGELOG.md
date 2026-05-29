@@ -7,6 +7,45 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Fixed
+
+- **Stage-3 map extraction: retry + alert on non-JSON responses
+  (PR #47).**  The structured map-extraction LLM call
+  (`_extract_map_data_from_analysis`) occasionally received a
+  prose summary instead of the requested JSON object — observed
+  in ~1 of 13 live GPT-5.5 traces (the Jalisco `pr45_resolver`
+  run).  When that happened, `_extract_json_object` returned
+  `None`, the method returned `None`, and the map silently did
+  not render — the run "succeeded" with no error surfaced and a
+  misleading `map_notice` blaming "no resolvable focal country"
+  (the analysis text *did* name a focal; the map step just
+  couldn't parse the model's output).
+
+  Two changes:
+  - **Retry.**  The extractor now retries the call once on a
+    format failure (call exception / unparseable / non-dict).
+    The retry samples a fresh completion (GPT-5 models run at
+    effective temperature 1.0 even when 0.0 is requested), so a
+    single retry almost always recovers.  A valid-JSON-but-no-
+    focal response is *not* retried — that is a content outcome
+    a retry won't change.
+  - **Alert.**  The previous silent `print()` calls are now
+    `logger.warning()` (surfaced through standard logging), and
+    when every attempt fails the method records
+    `_last_map_extraction_error` so `result.map_notice` reports
+    an accurate `extraction_format_error` reason instead of the
+    misleading "no focal country" message.
+
+  Net effect: the common transient slip self-heals via the
+  retry; the rare double failure is now loud and correctly
+  attributed instead of silent.  This makes adapter-level
+  strict-output for Stage-3 unnecessary for current models
+  (and avoids its supranational-shorthand / information-loss
+  trade-offs).
+
+  Tests added: 2 (retry-recovers, retry-exhausted-alerts).
+  Total: 1182 → 1184.
+
 ### Added
 
 - **Doc-capability drift CI guard (PR #46).**  PR #42 was a manual
