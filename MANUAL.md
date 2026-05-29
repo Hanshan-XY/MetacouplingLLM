@@ -1255,7 +1255,7 @@ methods-section drafting around the deterministic core.
 | `GrokWebSearchBackend` | xAI Live Search (web + X/Twitter) | #29 |
 | `DuckDuckGoBackend` | `ddgs` → `duckduckgo_search` → stdlib | — |
 
-### Pericoupling Functions
+### Pericoupling Functions (country level)
 
 | Function | Returns | Description |
 |---|---|---|
@@ -1264,6 +1264,19 @@ methods-section drafting around the deterministic core.
 | `get_pericoupled_neighbors(country)` | `set[str]` | All pericoupled ISO codes. |
 | `resolve_country_code(name)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3. |
 | `get_country_name(code)` | `str` | ISO alpha-3 code to canonical English name. |
+
+### ADM1 (Subnational) Pericoupling Functions
+
+| Function | Returns | Description |
+|---|---|---|
+| `lookup_adm1_pericoupling(a, b)` | `Adm1PericouplingResult` | Full ADM1 lookup with pair type. |
+| `is_adm1_pericoupled(a, b)` | `bool \| None` | Quick adjacency check at the ADM1 scale. |
+| `get_adm1_neighbors(code)` | `set[str]` | All ADM1 neighbors (domestic + cross-border). |
+| `get_cross_border_neighbors(code)` | `set[str]` | ADM1 neighbors in other countries only. |
+| `get_adm1_codes_for_country(iso)` | `set[str]` | All ADM1 codes inside the given country. |
+| `get_adm1_info(code)` | `dict \| None` | ADM1 metadata (canonical name, country, region). |
+| `get_adm1_country(code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve region name (possessives, hyphens, unaccented forms supported — PR #45) to ADM1 code. |
 
 ### Literature Functions
 
@@ -1279,6 +1292,7 @@ methods-section drafting around the deterministic core.
 |---|---|---|
 | `plot_focal_country_map(country, ...)` | `Figure` | World map from country name/code. |
 | `plot_analysis_map(parsed, ...)` | `Figure` | World map from LLM analysis result. |
+| `plot_focal_adm1_map(focal_adm1, ...)` | `Figure` | Subnational (ADM1) map for the focal region + its neighbors. |
 
 ### Quantitative Indicator Functions (PR #35 — `metacouplingllm.indicators`)
 

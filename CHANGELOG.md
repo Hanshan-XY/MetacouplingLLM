@@ -7,6 +7,66 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Added
+
+- **Doc-capability drift CI guard (PR #46).**  PR #42 was a manual
+  audit that uncovered ~15 places where the package's marketing-
+  style capability lists in INTRODUCTION.md, MANUAL.md, and
+  README.md had drifted out of sync with actually-shipped features
+  (Gemini/Grok adapters, scholar export, quantitative indicators,
+  `evidence_coverage_note`, …).  In each case the feature was
+  implemented and tested; it just wasn't advertised anywhere a
+  reader would look.  This PR adds three pytest cases in
+  `tests/test_docs_capabilities.py` that compare the three docs'
+  capability surfaces against a curated `EXPECTED_FEATURES`
+  registry whose entries are each anchored to a real code check
+  (a symbol in `__all__`, an importable submodule, a method on a
+  class, or a function name in the source text).
+
+  How it works:
+  - `EXPECTED_FEATURES` is a list of `MarketingFeature` dataclass
+    entries.  Each has a `keyword` (lenient substring, case-
+    insensitive, hyphen ≡ space, split-word tolerance — so
+    `"web search"` matches the `"Web-Search Backends"` heading),
+    a `code_check` lambda (when False, the feature is treated as
+    no longer required in docs — automatic teardown), and a
+    `docs` set restricting which docs must mention it.
+  - Three section extractors pull just the marketing-list regions
+    out of INTRODUCTION §1, README "Core Capabilities", and
+    MANUAL §12 "API Reference" (including all sub-tables —
+    Core Classes, LLM Adapters, Web-Search Backends, Pericoupling
+    Functions, Visualization Functions, Quantitative Indicator
+    Functions, LLM-Assisted Helpers, Enums).
+  - Three test cases fail with a list of missing keywords + the
+    per-feature `note` (so the failure message names exactly what
+    needs to be added and where).
+
+  Bootstrap drift fixed in the same PR:
+  - **README.md "Core Capabilities"**: added an "Automated map
+    generation" bullet to the Qualitative LLM analysis subsection
+    (`plot_focal_country_map`, `plot_analysis_map`,
+    `plot_focal_adm1_map`) — map generation was a shipped
+    capability not mentioned in README.
+  - **MANUAL.md §12**: split the Pericoupling Functions table
+    into "country level" and a new "ADM1 (Subnational)
+    Pericoupling Functions" sub-table — 7 ADM1 functions
+    (`lookup_adm1_pericoupling`, `is_adm1_pericoupled`,
+    `get_adm1_neighbors`, `get_cross_border_neighbors`,
+    `get_adm1_codes_for_country`, `get_adm1_info`,
+    `get_adm1_country`, `resolve_adm1_code`) were silently absent
+    from §12 despite being in `__all__`.
+  - **MANUAL.md §12 Visualization Functions table**: added
+    `plot_focal_adm1_map` (was exported in `__all__` but missing
+    from the table).
+
+  Going forward: a developer who ships a new feature without
+  updating the relevant capability sections gets a build break
+  with a message naming exactly the missing keyword.  This turns
+  "did you remember to update the marketing docs?" from a
+  reviewer's checklist item into a forcing function.
+
+  Tests added: 3 (1179 → 1182).
+
 ### Fixed
 
 - **ADM1 resolver robustness: detect Michoacán-class regions
