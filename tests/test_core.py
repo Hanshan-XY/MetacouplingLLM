@@ -3317,6 +3317,97 @@ class TestStructuredMapData:
             f"got {codes}"
         )
 
+    def test_stage3_map_extraction_retries_once_on_nonjson(self):
+        """PR #47: when Stage-3 returns prose on the first call, the
+        extractor retries once and recovers from the second (valid-JSON)
+        response — a transient format slip no longer silently drops the
+        map."""
+        from ._helpers import make_parsed_analysis
+        from metacouplingllm.llm.client import LLMResponse
+
+        class _SeqClient:
+            def __init__(self, responses):
+                self.responses = responses
+                self.calls = []
+
+            def chat(self, messages, **kwargs):
+                self.calls.append(messages)
+                idx = min(len(self.calls) - 1, len(self.responses) - 1)
+                return LLMResponse(content=self.responses[idx], usage=None)
+
+        valid = (
+            '{"focal_country": "MEX", "adm1_region": null, '
+            '"mentioned_adm1_regions": [], '
+            '"receiving_countries": ["USA"], '
+            '"spillover_countries": [], "flows": []}'
+        )
+        client = _SeqClient([
+            "This analysis examines avocado production in Mexico...",
+            valid,
+        ])
+        advisor = MetacouplingAssistant(llm_client=client)
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {"name": "Mexico", "geographic_scope": "Mexico"},
+                "receiving": {"name": "United States"},
+            },
+        )
+        result = advisor._extract_map_data_from_analysis(parsed)
+        assert result is not None
+        assert result["focal_country"] == "MEX"
+        # Retried exactly once (two calls total); no infinite loop.
+        assert len(client.calls) == 2
+        # Recovered cleanly → no recorded failure.
+        assert advisor._last_map_extraction_error is None
+
+    def test_stage3_map_extraction_alerts_when_nonjson_persists(self, caplog):
+        """PR #47: when every Stage-3 attempt returns prose, the
+        extractor returns None, records an accurate failure reason on
+        _last_map_extraction_error, and logs a warning (not a silent
+        stdout print)."""
+        import logging
+        from ._helpers import make_parsed_analysis
+        from metacouplingllm.llm.client import LLMResponse
+
+        class _SeqClient:
+            def __init__(self, responses):
+                self.responses = responses
+                self.calls = []
+
+            def chat(self, messages, **kwargs):
+                self.calls.append(messages)
+                idx = min(len(self.calls) - 1, len(self.responses) - 1)
+                return LLMResponse(content=self.responses[idx], usage=None)
+
+        client = _SeqClient([
+            "Prose summary instead of JSON, attempt one.",
+            "Still prose, attempt two.",
+        ])
+        advisor = MetacouplingAssistant(llm_client=client)
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {"name": "Mexico", "geographic_scope": "Mexico"},
+                "receiving": {"name": "United States"},
+            },
+        )
+        with caplog.at_level(logging.WARNING, logger="metacouplingllm.core"):
+            result = advisor._extract_map_data_from_analysis(parsed)
+        assert result is None
+        # Tried twice, then gave up — no infinite retry.
+        assert len(client.calls) == 2
+        # Accurate, surfaced failure reason (not the misleading
+        # "no resolvable focal country").
+        assert advisor._last_map_extraction_error is not None
+        assert "valid JSON" in advisor._last_map_extraction_error
+        # The failure is logged, not buried in a stdout print.
+        assert any(
+            "failed after" in r.getMessage()
+            or "instead of a JSON" in r.getMessage()
+            for r in caplog.records
+        )
+
     def test_adm1_validator_emits_pair_results_for_mentioned_partners(self):
         """PR #45 (Fix E): when the LLM names a subnational partner
         of the focal ADM1 region, the ADM1 validator must surface

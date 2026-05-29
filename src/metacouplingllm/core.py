@@ -815,6 +815,10 @@ class MetacouplingAssistant:
         self._last_web_results: list[dict[str, str]] = []
         self._last_web_map_signals: dict[str, object] | None = None
         self._last_map_notice: str | None = None
+        # PR #47: set when Stage-3 map extraction fails to return valid
+        # JSON after all retries, so the map_notice can attribute the
+        # missing map to a format failure rather than "no focal country".
+        self._last_map_extraction_error: str | None = None
         self._last_flow_parse_warnings: list[dict[str, str]] = []
         # Records what map type ``_generate_map`` actually rendered on
         # the most recent call.  ``"adm1"`` / ``"country"`` / ``None``
@@ -2898,43 +2902,74 @@ class MetacouplingAssistant:
             f"{web_results_text}"
         )
 
-        try:
-            response = self._client.chat(
-                messages=[
-                    Message(role="system", content=system_text),
-                    Message(role="user", content=user_text),
-                ],
-                temperature=0.0,
-                max_tokens=8192,
-            )
-        except Exception as exc:
-            print(
-                "[MetacouplingAssistant] Map data extraction LLM call "
-                f"failed: {exc}"
-            )
-            return None
+        # PR #47: retry once on a non-JSON / failed Stage-3 response.
+        # The model occasionally returns a prose summary instead of the
+        # requested JSON object (observed ~1 in 13 live GPT-5.5 traces),
+        # which silently produced no map.  A single retry almost always
+        # recovers because the call samples a fresh completion (GPT-5
+        # models run at effective temperature 1.0 even when 0.0 is
+        # requested, so the retry is not a deterministic repeat).
+        #
+        # Only FORMAT failures retry (call exception / unparseable /
+        # non-dict).  A valid-JSON-but-no-resolvable-focal response is
+        # NOT retried below — that is a content outcome a retry won't
+        # change, and it is handled by the focal-resolution guard.
+        self._last_map_extraction_error = None
+        _MAX_ATTEMPTS = 2
+        raw_obj: object | None = None
+        for _attempt in range(_MAX_ATTEMPTS):
+            try:
+                response = self._client.chat(
+                    messages=[
+                        Message(role="system", content=system_text),
+                        Message(role="user", content=user_text),
+                    ],
+                    temperature=0.0,
+                    max_tokens=8192,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Map data extraction LLM call failed "
+                    "(attempt %d/%d): %s",
+                    _attempt + 1, _MAX_ATTEMPTS, exc,
+                )
+                continue
 
-        try:
-            raw_obj = _extract_json_object(response.content)
-        except Exception as exc:
-            print(
-                f"[MetacouplingAssistant] JSON parsing error: {exc}. "
-                f"Raw (first 300 chars): {response.content[:300]}"
-            )
-            return None
+            raw_text = response.content or ""
+            try:
+                candidate = _extract_json_object(raw_text)
+            except Exception as exc:
+                logger.warning(
+                    "Map data extraction JSON parse error "
+                    "(attempt %d/%d): %s. Raw (first 200 chars): %s",
+                    _attempt + 1, _MAX_ATTEMPTS, exc, raw_text[:200],
+                )
+                candidate = None
 
-        if raw_obj is None:
-            print(
-                "[MetacouplingAssistant] Map data extraction returned "
-                "non-JSON response. Raw response (first 300 chars): "
-                f"{response.content[:300]}"
+            if isinstance(candidate, dict):
+                raw_obj = candidate
+                break
+
+            logger.warning(
+                "Map data extraction returned %s instead of a JSON "
+                "object (attempt %d/%d). Raw (first 200 chars): %s",
+                "prose/non-JSON" if candidate is None
+                else f"non-dict ({type(candidate).__name__})",
+                _attempt + 1, _MAX_ATTEMPTS, raw_text[:200],
             )
-            return None
 
         if not isinstance(raw_obj, dict):
-            print(
-                "[MetacouplingAssistant] Map data extraction returned "
-                f"non-dict JSON: {type(raw_obj).__name__}"
+            # Every attempt failed to yield a JSON object.  Record an
+            # accurate reason so the user-facing ``map_notice`` explains
+            # the map is missing due to a Stage-3 FORMAT failure rather
+            # than the misleading "no resolvable focal country" message.
+            self._last_map_extraction_error = (
+                "structured map extraction did not return valid JSON "
+                f"after {_MAX_ATTEMPTS} attempts"
+            )
+            logger.warning(
+                "Map data extraction failed after %d attempts; no map "
+                "will be generated for this turn.", _MAX_ATTEMPTS,
             )
             return None
 
