@@ -127,7 +127,7 @@ advisor = MetacouplingAssistant(
     auto_map=True,
     rag_corpus="journal_articles_2025",
     rag_top_k=8,
-    rag_min_score=0.15,
+    rag_min_score=0.60,
 )
 
 # 3. Analyze your research
@@ -205,7 +205,7 @@ Your Research Description
           ▼
 ┌─────────────────────┐
 │   Response Parser    │  ← Best-effort structured extraction
-│  + Pericoupling      │  ← Post-LLM database validation
+│  + Coupling          │  ← Post-LLM database validation
 │    Validation        │
 └─────────┬───────────┘
           │
@@ -921,9 +921,9 @@ get_country_name("GBR")  # "United Kingdom"
 
 ## 9. Literature Recommendations
 
-The package bundles a BibTeX database of ~265 telecoupling and
-metacoupling papers (filtered from a larger Web of Science
-collection).  Call `get_database_info()` for the live count if
+The package bundles a BibTeX database of 265 empirical telecoupling
+and metacoupling journal articles (2013–2025, filtered from a larger
+Web of Science collection).  Call `get_database_info()` for the live count if
 the corpus drifts.  You can get relevant paper recommendations
 based on keyword matching.
 
@@ -1588,7 +1588,7 @@ advisor = MetacouplingAssistant(
     web_structured_extraction=True,
     rag_corpus=JOURNAL_ARTICLES_2025,
     rag_top_k=8,
-    rag_min_score=0.15,
+    rag_min_score=0.60,
     recommend_papers=True,
 )
 
@@ -1758,8 +1758,7 @@ classification of ambiguous edges (see §17).
 The optional `metacouplingllm.indicators.llm` submodule (PR #36)
 wraps natural-language judgment tasks around the deterministic
 indicator core. Five helpers cover the workflow steps where LLM help
-adds value, each returning `(result, LLMTrace)` for reproducibility
-per spec §15.4.
+adds value, each returning `(result, LLMTrace)` for reproducibility.
 
 Install: any of the LLM-provider extras (`[openai]`, `[anthropic]`,
 `[gemini]`, `[grok]`) plus `[indicators]`.
@@ -1794,7 +1793,7 @@ Save it however you like — the package doesn't make filesystem
 assumptions. Common pattern: write `trace.__dict__` to JSON next to
 your output file.
 
-### Option A integration with `classify_coupling()`
+### LLM-assisted edge resolution in `classify_coupling()`
 
 `classify_coupling()` gains three new kwargs in PR #36: `llm_client`,
 `study_config`, `model`. When `llm_client` is supplied AND the
@@ -1875,7 +1874,7 @@ methods_text, trace_m = write_methods(
 )
 ```
 
-### Guardrails baked into every prompt (spec §15.4)
+### Guardrails baked into every prompt
 
 - LLM **must not** invent numerical flow values.
 - LLM **must not** calculate final indicator values — deterministic

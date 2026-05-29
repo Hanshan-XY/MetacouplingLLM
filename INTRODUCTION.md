@@ -8,7 +8,7 @@
 
 - Structured metacoupling analysis from free-text research descriptions
 - Multi-turn refinement via conversational LLM interaction
-- Retrieval-Augmented Generation (RAG) with 420 full-text telecoupling papers
+- Retrieval-Augmented Generation (RAG) over 420 telecoupling/metacoupling papers — full text for the 296 open-access, structured summaries for the 124 non-OA
 - **RAG-only literature Q&A mode** for users already familiar with the framework (`coupling_analysis=False`)
 - Literature recommendation from a curated BibTeX database
 - Real-time web search grounding with native backends for OpenAI, Anthropic, Gemini, and Grok (DuckDuckGo fallback for custom clients) plus `evidence_coverage_note` self-assessment
@@ -92,8 +92,8 @@ The package encodes 14 telecoupling categories from the literature (trade, migra
           |                   |                   |
   +-------v-------+  +-------v--------+  +-------v-------+
   | PromptBuilder  |  |  Web Search    |  | RAG Engine    |
-  | (6-layer       |  |  (DuckDuckGo)  |  | (420 papers,  |
-  |  system prompt)|  |                |  |  embeddings   |
+  | (6-layer       |  |  (native +     |  | (420 papers,  |
+  |  system prompt)|  |   DuckDuckGo)  |  |  embeddings   |
   |                |  |                |  |  or TF-IDF    |
   |                |  |                |  |  fallback)    |
   +-------+-------+  +-------+--------+  +-------+-------+
@@ -116,8 +116,8 @@ The package encodes 14 telecoupling categories from the literature (trade, migra
           +-------------------+-------------------+
           |                   |                   |
   +-------v-------+  +-------v--------+  +-------v-------+
-  | Pericoupling   |  | Literature     |  | Map Generator |
-  | Validation     |  | Recommendations|  | (world/ADM1)  |
+  | Coupling       |  | Literature     |  | Map Generator |
+  | Validation     |  | Recommendations|  | (ADM0/ADM1)   |
   +---------------+  +----------------+  +---------------+
                               |
                     +---------v----------+
@@ -187,7 +187,7 @@ advisor = MetacouplingAssistant(
     web_search_max_results=10,  # Number of web results (default)
     web_structured_extraction=True,  # Recommended with web_search + auto_map
     rag_top_k=8,                # Number of RAG evidence passages (default)
-    rag_min_score=0.15,         # Minimum cosine similarity for RAG
+    rag_min_score=0.60,         # Min embeddings cosine sim (BGE-base scale)
     max_examples=2,             # Framework examples in prompt
     temperature=0.7,            # LLM temperature
     verbose=True,               # Print progress messages
@@ -243,18 +243,21 @@ only fires if its precondition is met):
 - **Web search context** with `[Tk:W1]`, `[Tk:W2]` labels for
   inline citation (turn-scoped — `k` is the conversation turn).
   Only when `web_search=True` and at least one hit returned.
-- **Structured web map hints** — validated receiving/spillover
-  countries and flows extracted by a second LLM pass over the
-  web snippets.  Only when `web_structured_extraction=True`.
+- **Structured web map hints** — receiving/spillover countries and
+  flows extracted by a second LLM pass over the web snippets, each
+  kept only if it resolves to a real country/union and cites a real
+  retrieved snippet (confidence ≥ 0.7).  This grounds the *evidence*,
+  not the spillover *role* (which classification the LLM still
+  decides).  Only when `web_structured_extraction=True`.
 
 ### 4.3 Retrieval-Augmented Generation (RAG)
 
-The RAG engine provides evidence grounding from 420 full-text telecoupling and metacoupling papers:
+The RAG engine provides evidence grounding from 420 telecoupling and metacoupling papers (full text for the 296 open-access papers, structured summaries for the 124 non-open-access papers):
 
 - **Indexing**: Papers are chunked by section and indexed by one of two backends:
   - **Embeddings (default)** -- semantic retrieval via `fastembed` + the `BAAI/bge-base-en-v1.5` ONNX model. Captures synonyms, paraphrases, and related concepts (e.g., a query about "soybean trade" also matches chunks about "soya bean exports" and "Glycine max shipments"). Pre-computed corpus vectors are shipped with the package as `chunk_embeddings.npy` (~15 MB) so users never have to re-encode.
   - **TF-IDF (fallback)** -- lexical retrieval using TF-IDF + cosine similarity. Activated when `fastembed` is unavailable or the pre-computed file is missing.
-- **Retrieval**: Cosine similarity; top-k deduplication (at most one chunk per paper)
+- **Retrieval**: Cosine similarity with a per-paper cap (default 3 chunks/paper, configurable via `rag_max_chunks_per_paper`; within-paper section diversity preferred). The relevance floor is backend-aware — `rag_min_score` defaults to **0.60** for embeddings (BGE-base cosine) and **0.01** for TF-IDF (the two score scales are not comparable).
 - **Citation**: Evidence passages are appended as `[Tk:1]`, `[Tk:2]`, ... with inline annotation (turn-scoped — `k` marks the turn so prior-turn references remain unambiguous across multi-turn conversations)
 - **Lightweight**: `fastembed` + `onnxruntime` add ~20 MB to the install; no torch/GPU dependencies
 - **Backend selection**: `MetacouplingAssistant(..., rag_backend="auto")` (default) picks embeddings if available and transparently falls back to TF-IDF. Explicit options: `"embeddings"`, `"tfidf"`.
@@ -283,7 +286,7 @@ Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_peric
 
 ### 4.6 Literature Recommendations
 
-From a curated BibTeX database of 265 telecoupling/metacoupling papers, the system recommends the most relevant papers by matching keywords, coupling types, and domain overlap with the analysis.  Call `get_database_info()` for live counts if the corpus drifts.
+From a curated BibTeX database of 265 empirical telecoupling/metacoupling journal articles (2013–2025), the system recommends the most relevant papers by matching keywords, coupling types, and domain overlap with the analysis.  Call `get_database_info()` for live counts if the corpus drifts.
 
 ### 4.7 Map Visualization
 
@@ -346,7 +349,7 @@ Pandas is the only added dependency; install via `pip install "metacouplingllm[i
 
 ### 4.11 LLM-Assisted Indicator Helpers (PR #36)
 
-Five optional helpers in `metacouplingllm.indicators` wrap natural-language judgment tasks around the deterministic indicator core. Each returns `(result, LLMTrace)` for reproducibility per spec §15.4:
+Five optional helpers in `metacouplingllm.indicators` wrap natural-language judgment tasks around the deterministic indicator core. Each returns `(result, LLMTrace)` for reproducibility (see MANUAL §17, *LLM-Assisted Indicator Helpers*):
 
 | Helper | What it does |
 |---|---|
@@ -358,7 +361,7 @@ Five optional helpers in `metacouplingllm.indicators` wrap natural-language judg
 
 The `LLMTrace` dataclass carries `timestamp_utc`, `model`, `prompt_version`, `system_prompt`, `user_prompt`, `raw_response`, `usage` so old traces stay attributable when prompt wording evolves.
 
-**Option A integration with `classify_coupling()`:** pass `llm_client=` (plus optional `study_config=` and `model=`) and the function automatically calls `classify_ambiguous_edges()` on any rows the deterministic pass left as `NaN`, merging suggestions back. When the LLM returns `"unknown"`, the row stays `NaN` — the package never lets the LLM invent adjacency facts silently.
+**Automatic LLM resolution of ambiguous edges in `classify_coupling()`:** pass `llm_client=` (plus optional `study_config=` and `model=`) and the function automatically calls `classify_ambiguous_edges()` on any rows the deterministic pass left as `NaN`, merging suggestions back. When the LLM returns `"unknown"`, the row stays `NaN` — the package never lets the LLM invent adjacency facts silently.
 
 All five helpers work across OpenAI / Anthropic / Gemini / Grok adapters and use each provider's native strict-JSON / tool-output mode for the structured-output helpers.
 
@@ -400,7 +403,7 @@ advisor = MetacouplingAssistant(
     web_search_max_results=10,
     web_structured_extraction=True,
     rag_top_k=8,
-    rag_min_score=0.15,
+    rag_min_score=0.60,
 )
 ```
 
@@ -527,13 +530,13 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 
 | Resource | Description |
 |---|---|
-| 420 full-text papers (Papers.zip) | Markdown versions of telecoupling/metacoupling research papers for RAG |
-| BibTeX database (telecoupling_literature.bib) | 265 curated entries with metadata for literature recommendation |
+| 420 papers (Papers.zip) | Markdown for RAG — full text for the 296 open-access papers, structured summaries for the 124 non-OA |
+| BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2025) with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
 | ADM1 edge list (CSV) | 8,290 subnational border pairs across 3,366 regions in 195 countries |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 
-*Counts above are as of v0.1.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live full-text count if the corpus drifts.*
+*Counts above are as of v0.1.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
 
 ---
 

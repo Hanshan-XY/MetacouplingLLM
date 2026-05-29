@@ -709,6 +709,16 @@ class MetacouplingAssistant:
         sub-topic chunks (inbound vs outbound, aggregate vs bilateral).
         Higher values improve coverage at the cost of reduced
         paper-level diversity in the retrieved set.
+    rag_min_score:
+        Minimum retrieval score for a passage to be kept, on the
+        active backend's native scale. ``None`` (default) applies a
+        backend-aware floor: ``0.60`` for the embeddings backend
+        (BGE-base cosine; relevant chunks typically score 0.45–0.9)
+        and ``0.01`` for the TF-IDF fallback (whose cosine scores top
+        out around 0.4, so the two scales are not comparable). Pass an
+        explicit float to override — but note a value tuned for the
+        embeddings backend (e.g. ``0.60``) would filter out almost
+        everything on TF-IDF.
     rag_structured_extraction:
         If ``True`` with a RAG engine configured, runs a second LLM
         pass over the already-retrieved passages to extract systems

@@ -7,6 +7,51 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Changed
+
+- **RAG embeddings relevance floor raised 0.3 → 0.60 (PR #49).**  The
+  backend-aware `rag_min_score` default for the embeddings backend
+  (BGE-base cosine) is now `0.60` instead of `0.3`
+  (`knowledge/rag.py`); the TF-IDF fallback floor (`0.01`) is
+  unchanged.  This favors precision over recall — only strong matches
+  are retrieved.  The two backends score on different scales, so a
+  value tuned for embeddings (0.60) would filter out ~everything on
+  TF-IDF; the floor stays backend-specific.
+
+### Docs
+
+- **INTRODUCTION / MANUAL / README accuracy pass (PR #49).**
+  - §3 architecture diagram: web-search box relabelled from
+    `(DuckDuckGo)` to `(native + DuckDuckGo)` (DDG is the *fallback*,
+    not the only backend); Map Generator `(world/ADM1)` → `(ADM0/ADM1)`;
+    `Pericoupling Validation` → `Coupling Validation` (matches the
+    `COUPLING DATABASE VALIDATION` output block and the parallel
+    MANUAL diagram).
+  - RAG corpus described accurately: "420 papers" with **full text
+    for the 296 open-access papers and structured summaries for the
+    124 non-open-access papers** (was the inaccurate "420 full-text
+    papers"; the OA/non-OA split is recorded in
+    `paper_citation_counts.csv`).
+  - RAG retrieval description: "at most one chunk per paper" corrected
+    to the real per-paper cap (default 3, configurable via
+    `rag_max_chunks_per_paper`); added the backend-aware `rag_min_score`
+    note (0.60 embeddings / 0.01 TF-IDF); example snippets bumped
+    `rag_min_score=0.15` → `0.60`.
+  - "Structured web map hints": clarified that "validated" means the
+    extracted countries/flows are grounded (resolve to a real
+    country/union + cite a real retrieved snippet, confidence ≥ 0.7),
+    not that the spillover *role* is validated.
+  - Literature DB described as "265 empirical journal articles
+    (2013–2025)" (all `@article`; year range verified).
+  - `(result, LLMTrace) … per spec §15.4` cross-reference (no such
+    section/spec exists) repointed to MANUAL §17 "LLM-Assisted
+    Indicator Helpers"; dangling `spec §15.4` refs inside MANUAL
+    removed.
+  - `Option A integration with classify_coupling()` reworded to
+    "Automatic LLM resolution of ambiguous edges" / "LLM-assisted edge
+    resolution" (the "Option A" label was an internal PR #36 design
+    tag, meaningless to readers).
+
 ### Added / Refactored
 
 - **Coupling-validation consistency + naming cleanup (PR #48).**
