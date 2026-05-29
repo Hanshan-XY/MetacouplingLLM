@@ -52,7 +52,7 @@ advisor = MetacouplingAssistant(
     auto_map=True,
     rag_corpus=JOURNAL_ARTICLES_2025,
     rag_top_k=8,
-    rag_min_score=0.15,
+    rag_min_score=0.60,
 )
 
 result = advisor.analyze("My research examines Brazil soybean exports to China.")

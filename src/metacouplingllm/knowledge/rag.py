@@ -917,7 +917,7 @@ class EmbeddingRetriever:
         self,
         query_text: str,
         top_k: int = 5,
-        min_score: float = 0.3,
+        min_score: float = 0.60,
         max_chunks_per_paper: int = 3,
     ) -> list[RetrievalResult]:
         """Retrieve the top-k most relevant chunks for a query.
@@ -932,9 +932,11 @@ class EmbeddingRetriever:
             chunks from the same paper may appear when that paper's
             most relevant content is spread across different sections.
         min_score:
-            Minimum cosine similarity threshold. BGE-small cosine
-            similarity typically ranges 0.3–0.9 for relevant results,
-            so this default is stricter than the TF-IDF default.
+            Minimum cosine similarity threshold. BGE-base cosine
+            similarity typically ranges 0.45–0.9 for relevant results;
+            the default ``0.60`` keeps only strong matches (higher
+            precision, lower recall) and is far stricter than the
+            TF-IDF default (whose scores top out around 0.4).
         max_chunks_per_paper:
             Maximum number of chunks from the same paper that can
             appear in the result set. Default ``3`` lets strongly-
@@ -1466,7 +1468,7 @@ class RAGEngine:
             raise RuntimeError("RAG engine not loaded. Call load() first.")
         if min_score is None:
             min_score = (
-                0.3 if self._active_backend == "embeddings" else 0.01
+                0.60 if self._active_backend == "embeddings" else 0.01
             )
         return self._index.query(
             query,
