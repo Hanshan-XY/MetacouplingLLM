@@ -111,6 +111,8 @@ manuscript prose around the deterministic numbers.
 - Country-level and ADM1 pericoupling validation, with dual rendering when
   both apply (PR #27); supranational unions (EU / ASEAN / USMCA) handled
   via member-state dissolution (PR #22-#23)
+- Automated map generation at both country and subnational (ADM1) levels
+  (`plot_focal_country_map`, `plot_analysis_map`, `plot_focal_adm1_map`)
 - Scholar-ready Markdown + Word export (`result.abstract`,
   `result.to_markdown()`, `result.to_docx()`)
 
