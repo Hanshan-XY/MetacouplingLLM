@@ -237,7 +237,7 @@ class TestBuildAdm1PericouplingHint:
         """PR #43: the country-level hint must NOT claim the database
         is ground-truth.  Parallels PR #20's ADM1 hint softening.
         """
-        hint = PromptBuilder._build_pericoupling_hint(
+        hint = PromptBuilder._build_coupling_hint(
             "Brazil soybean exports to China"
         )
         assert hint is not None
@@ -254,7 +254,7 @@ class TestBuildAdm1PericouplingHint:
         the focal country's pericoupled neighbors as REFERENCE
         context.  Previously returned None (no hint).
         """
-        hint = PromptBuilder._build_pericoupling_hint(
+        hint = PromptBuilder._build_coupling_hint(
             "Impact of avocado production in Mexico"
         )
         assert hint is not None
@@ -274,7 +274,7 @@ class TestBuildAdm1PericouplingHint:
         zero pericoupled neighbors (island nation) returns None —
         no empty neighbors block is emitted.
         """
-        hint = PromptBuilder._build_pericoupling_hint(
+        hint = PromptBuilder._build_coupling_hint(
             "Mining and biodiversity in Australia"
         )
         assert hint is None
@@ -283,7 +283,7 @@ class TestBuildAdm1PericouplingHint:
         """Queries with no detectable country still return None,
         unchanged from pre-PR-#44 behavior.
         """
-        hint = PromptBuilder._build_pericoupling_hint(
+        hint = PromptBuilder._build_coupling_hint(
             "Generic research about agriculture and climate change"
         )
         assert hint is None

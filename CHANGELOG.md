@@ -7,6 +7,59 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Added / Refactored
+
+- **Coupling-validation consistency + naming cleanup (PR #48).**
+  Three related cleanups on the post-LLM coupling-validation
+  surface:
+
+  **(a) ADM1-scope spillover filter.**  PR #44 taught the
+  *country* validator to drop partners the LLM placed in the
+  spillover role (geography can't validate the framework's
+  direct-vs-indirect distinction).  The *ADM1* validator
+  (`_validate_adm1_pericoupling`) still did a pure 2-way
+  geographic split, so a subnational region framed as spillover
+  got hard-labeled PERICOUPLED/TELECOUPLED.  A new
+  `_extract_adm1_with_roles` helper (ADM1 sibling of
+  `_extract_countries_with_roles`, resolving via
+  `resolve_adm1_code`) now lets the ADM1 validator drop
+  spillover-roled regions before bucketing — the same fix at
+  subnational scale.
+
+  **(b) Supranational unions in the country validator.**
+  `resolve_country_code("EU")` returns None (a union isn't a
+  country), so a study framed as "Brazil → EU" silently dropped
+  the Brazil↔EU relationship from the `COUPLING DATABASE
+  VALIDATION` block even though the map renderer dissolves
+  unions (PR #22/#23).  A new `_extract_unions_with_roles`
+  helper detects EU / ASEAN / USMCA / NAFTA in both system
+  entries and flow text (via `expand_supranational` +
+  `supranational_display_name`), and the country validator now
+  emits a union line.  A per-member adjacency check surfaces any
+  genuinely-pericoupled member on its own line (rare — e.g. a
+  focal country bordering a metropolitan EU member) and
+  collapses the usual all-distant case to one
+  `Brazil (BRA) ↔ European Union: TELECOUPLED` line.  Union
+  members named individually (e.g. "EU" and "Germany" both
+  present) are de-duplicated — the individual country line wins.
+  Spillover-roled unions are filtered, same as spillover
+  countries.  The per-partner verdict logic is factored into a
+  shared closure so the country loop and the union expansion
+  classify identically (respecting PR #44 v3.2's national-vs-
+  subnational mode).
+
+  **(c) Rename `_build_pericoupling_hint` → `_build_coupling_hint`.**
+  The pre-LLM hint builder (`prompts/builder.py`) emits BOTH
+  pericoupled and telecoupled per-pair lines, so the
+  `pericoupling` name understated its scope (deferred since
+  PR #43).  Pure mechanical rename of the private method + its
+  call site + docstring cross-ref + 4 test call sites.  The
+  LLM-facing `## PERICOUPLING DATABASE LOOKUP (REFERENCE)`
+  heading and in-body prompt literals are intentionally left
+  unchanged (no Stage-2 prompt change, no retrace needed).
+
+  Tests added: 8 (3 ADM1-filter, 5 union).  Total: 1184 → 1192.
+
 ### Fixed
 
 - **Stage-3 map extraction: retry + alert on non-JSON responses

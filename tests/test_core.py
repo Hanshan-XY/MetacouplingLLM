@@ -4348,6 +4348,181 @@ class TestValidateAdm1Pericoupling:
         assert "Jalisco" in csr
         assert "Michoacán" in csr
 
+    # ------------------------------------------------------------------
+    # PR #48 — supranational unions in the country validator (Item 2)
+    # ------------------------------------------------------------------
+
+    def test_union_in_flow_target_telecoupled(self):
+        """PR #48: a union named only as a flow target ("Brazil →
+        European Union") surfaces as one telecoupled union line."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazil", "geographic_scope": "Brazil"}},
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → European Union",
+                "description": "Soy exports to the EU",
+            }],
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        pr = parsed.country_pericoupling_info["pair_results"]
+        assert "Brazil (BRA) ↔ European Union: TELECOUPLED" in pr
+
+    def test_union_in_system_entry_detected(self):
+        """PR #48: a union named as a receiving system entry is
+        detected the same as a flow target."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {"name": "Brazil", "geographic_scope": "Brazil"},
+                "receiving": {"name": "European Union"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        pr = parsed.country_pericoupling_info["pair_results"]
+        assert "Brazil (BRA) ↔ European Union: TELECOUPLED" in pr
+
+    def test_union_in_spillover_role_filtered(self):
+        """PR #48: a union the LLM placed in the spillover role is
+        filtered, same as a spillover country."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {"name": "Brazil", "geographic_scope": "Brazil"},
+                "spillover": {"name": "European Union"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        pr = (info or {}).get("pair_results", "") if info else ""
+        assert "European Union" not in (pr or "")
+
+    def test_union_member_named_individually_dedups(self):
+        """PR #48: when both a union and one of its members are named,
+        the member's individual line is kept and not double-counted in
+        the union expansion."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {"name": "Brazil", "geographic_scope": "Brazil"},
+                "receiving": {"name": "Germany"},
+            },
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → European Union",
+                "description": "exports",
+            }],
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        pr = parsed.country_pericoupling_info["pair_results"]
+        assert pr.count("Germany (DEU)") == 1
+        assert "European Union" in pr
+
+    def test_extract_unions_with_roles_detects_eu_alias(self):
+        """PR #48: the union extractor canonicalizes 'EU' → 'European
+        Union' and reads flow text."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Brazil", "geographic_scope": "Brazil"}},
+            flows=[{
+                "category": "matter",
+                "direction": "Brazil → EU",
+                "description": "exports to EU markets",
+            }],
+        )
+        unions = MetacouplingAssistant._extract_unions_with_roles(parsed)
+        assert "European Union" in unions
+
+    # ------------------------------------------------------------------
+    # PR #48 — ADM1 spillover filter (Item 3)
+    # ------------------------------------------------------------------
+
+    def test_adm1_validator_excludes_spillover_region(self):
+        """PR #48: a subnational region the LLM placed in the spillover
+        role must NOT be hard-labeled in the ADM1 validator's
+        pair_results — same filter the country validator applies
+        (PR #44)."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="pericoupling",
+            systems={
+                "sending": {
+                    "name": "Jalisco avocado",
+                    "geographic_scope": "Jalisco, Mexico",
+                },
+                "spillover": {"name": "Michoacan de Ocampo"},
+            },
+            flows=[{
+                "category": "matter",
+                "direction": "Michoacán de Ocampo → Jalisco",
+                "description": "inputs flow",
+            }],
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        pr = (parsed.pericoupling_info or {}).get("pair_results", "") or ""
+        assert "MEX016" not in pr, (
+            f"Spillover-roled Michoacán (MEX016) must be filtered; got {pr!r}"
+        )
+
+    def test_adm1_validator_keeps_nonspillover_region(self):
+        """PR #48 regression: the same region, when RECEIVING (not
+        spillover), is still classified — the filter must not
+        over-reach."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="pericoupling",
+            systems={
+                "sending": {
+                    "name": "Jalisco avocado",
+                    "geographic_scope": "Jalisco, Mexico",
+                },
+                "receiving": {"name": "Michoacan de Ocampo"},
+            },
+            flows=[{
+                "category": "matter",
+                "direction": "Michoacán de Ocampo → Jalisco",
+                "description": "inputs",
+            }],
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        pr = (parsed.pericoupling_info or {}).get("pair_results", "") or ""
+        assert "MEX016" in pr, (
+            f"Non-spillover Michoacán (MEX016) should still appear; got {pr!r}"
+        )
+
+    def test_extract_adm1_with_roles_priority(self):
+        """PR #48: region in two roles → sending > receiving priority."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems=[
+                {"role": "sending", "name": "Jalisco, Mexico"},
+                {"role": "receiving", "name": "Jalisco, Mexico"},
+            ],
+        )
+        roles = MetacouplingAssistant._extract_adm1_with_roles(parsed)
+        assert roles.get("MEX014") == "sending"
+
     def test_validator_subnational_interior_region_telecouples_foreign_partner(self):
         """PR #44 (v3.2 / Option A): an interior focal state borders
         no foreign country, so foreign partners are TELECOUPLED even
