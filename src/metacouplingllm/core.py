@@ -5049,6 +5049,21 @@ class MetacouplingAssistant:
             MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
         )
         mentioned_adm1.discard(adm1_code)  # never compare focal with itself
+
+        # PR #48: drop regions the LLM placed in the spillover role
+        # before geographic bucketing — mirrors the country
+        # validator's spillover filter (PR #44).  Geography can't
+        # validate the framework's direct-vs-indirect distinction at
+        # subnational scale, so a spillover-roled region must not be
+        # hard-labeled PERICOUPLED/TELECOUPLED.  It remains in
+        # parsed.systems["spillover"] for the framework systems
+        # analysis.
+        adm1_roles = MetacouplingAssistant._extract_adm1_with_roles(parsed)
+        spillover_adm1 = {
+            c for c, r in adm1_roles.items() if r == "spillover"
+        }
+        mentioned_adm1 -= spillover_adm1
+
         all_neighbours = domestic | cross_border
         peri_partners = mentioned_adm1 & all_neighbours
         tele_partners = mentioned_adm1 - all_neighbours
@@ -5245,8 +5260,14 @@ class MetacouplingAssistant:
         # --- Collect other (non-focal) countries ---
         other_codes = [c for c in country_roles if c != focal_code]
 
-        if not other_codes:
-            return  # Only one country detected
+        # PR #48: detect supranational unions (EU / ASEAN / USMCA /
+        # NAFTA) in system entries + flow text.  Computed here so a
+        # union-only study ("Brazil → EU", no other country named)
+        # is NOT dropped by the other_codes early-return below.
+        unions = MetacouplingAssistant._extract_unions_with_roles(parsed)
+
+        if not other_codes and not unions:
+            return  # No partner country or union detected
 
         # --- Build validation info (focal ↔ each other only) ---
         info: dict[str, str] = {}
@@ -5298,6 +5319,31 @@ class MetacouplingAssistant:
         use_region_adjacency = (
             not national_mode and focal_region_label is not None
         )
+
+        def _verdict_for(code_b: str) -> str | None:
+            """Classify one focal↔partner pair (PR #48: shared by the
+            country loop and the union member-expansion below).
+            Returns ``"PERICOUPLED"`` / ``"TELECOUPLED"`` / ``None``
+            (skip).
+            """
+            if use_region_adjacency:
+                # Option A: pericoupled iff the focal region has a
+                # cross-border neighbour in the partner country.
+                return (
+                    "PERICOUPLED"
+                    if code_b in cross_border_countries
+                    else "TELECOUPLED"
+                )
+            # National mode (or no resolvable focal region): classify
+            # at the country scale.
+            result = lookup_pericoupling(focal_code, code_b)
+            if result.pair_type == PairCouplingType.PERICOUPLED:
+                return "PERICOUPLED"
+            if result.pair_type == PairCouplingType.TELECOUPLED:
+                return "TELECOUPLED"
+            return None  # UNKNOWN — skip
+
+        emitted_codes: set[str] = set()  # PR #48: dedup vs union members
         for code_b in other_codes:
             llm_role = country_roles.get(code_b, "")
 
@@ -5310,30 +5356,52 @@ class MetacouplingAssistant:
             if llm_role == "spillover":
                 continue
 
+            verdict = _verdict_for(code_b)
+            if verdict is None:
+                continue
             cn_b = get_country_name(code_b)
-
-            if use_region_adjacency:
-                # Option A: pericoupled iff the focal region has a
-                # cross-border neighbour in the partner country.
-                verdict = (
-                    "PERICOUPLED"
-                    if code_b in cross_border_countries
-                    else "TELECOUPLED"
-                )
-            else:
-                # National mode (or no resolvable focal region):
-                # classify at the country scale.
-                result = lookup_pericoupling(focal_code, code_b)
-                if result.pair_type == PairCouplingType.PERICOUPLED:
-                    verdict = "PERICOUPLED"
-                elif result.pair_type == PairCouplingType.TELECOUPLED:
-                    verdict = "TELECOUPLED"
-                else:
-                    continue  # UNKNOWN — skip
-
             pair_lines.append(
                 f"{left_label} ↔ {cn_b} ({code_b}): {verdict}"
             )
+            emitted_codes.add(code_b)
+
+        # PR #48: supranational unions (EU / ASEAN / USMCA / NAFTA).
+        # resolve_country_code returns None for these, so they never
+        # reached the country loop above; emit a union line so the
+        # text validation block matches the map (which already
+        # dissolves unions, PR #22/#23).  Per-member check: surface
+        # any genuinely-pericoupled member on its own line (rare —
+        # e.g. a focal country bordering a metropolitan EU member),
+        # and collapse the usual all-distant case to one union line.
+        from metacouplingllm.knowledge.countries import expand_supranational
+
+        for union_name, role in unions.items():
+            if role == "spillover":
+                continue  # same framework-judgment filter as countries
+            members = expand_supranational(union_name) or []
+            peri_members: list[str] = []
+            for m in members:
+                if m == focal_code or m in emitted_codes:
+                    # Skip the focal itself + any member already
+                    # emitted as an individually-named country line
+                    # (dedup — the individual line wins).
+                    continue
+                if _verdict_for(m) == "PERICOUPLED":
+                    peri_members.append(m)
+            if peri_members:
+                for m in peri_members:
+                    pair_lines.append(
+                        f"{left_label} ↔ {get_country_name(m)} ({m}): "
+                        f"PERICOUPLED"
+                    )
+                pair_lines.append(
+                    f"{left_label} ↔ {union_name} (remaining members): "
+                    f"TELECOUPLED"
+                )
+            else:
+                pair_lines.append(
+                    f"{left_label} ↔ {union_name}: TELECOUPLED"
+                )
 
         if pair_lines:
             info["pair_results"] = "; ".join(pair_lines)
@@ -5442,6 +5510,141 @@ class MetacouplingAssistant:
                             _record(code, role)
 
         return {c: r for c, (_, r) in found.items()}
+
+    @staticmethod
+    def _extract_adm1_with_roles(
+        parsed: ParsedAnalysis,
+    ) -> dict[str, str]:
+        """Return ``{ADM1_code: role}`` for subnational regions
+        mentioned in ``parsed.systems``.
+
+        ADM1 sibling of :py:meth:`_extract_countries_with_roles`
+        (PR #48).  Walks ``parsed.systems`` per-role and resolves
+        region names to ADM1 codes via ``resolve_adm1_code`` (robust
+        to possessive / unaccented / hyphenated forms after PR #45)
+        instead of ``resolve_country_code``.  Used by
+        ``_validate_adm1_pericoupling`` to filter out regions the
+        LLM placed in the spillover role — geography can't validate
+        the framework's direct-vs-indirect distinction at subnational
+        scale any more than it can at country scale (PR #44).
+
+        When a region appears in multiple roles, priority is:
+        sending > focal > receiving > spillover > adjacent.
+        """
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            resolve_adm1_code,
+        )
+
+        role_priority = {
+            "sending": 0,
+            "focal": 1,
+            "receiving": 2,
+            "spillover": 3,
+            "adjacent": 4,
+        }
+        # code -> (priority, role)
+        found: dict[str, tuple[int, str]] = {}
+
+        def _record(code: str, role: str) -> None:
+            pr = role_priority[role]
+            if code not in found or pr < found[code][0]:
+                found[code] = (pr, role)
+
+        for role in ("focal", "sending", "receiving", "spillover", "adjacent"):
+            for entry in parsed.get_system_entries(role):
+                for field in ("name", "geographic_scope"):
+                    value = entry.get(field, "") or ""
+                    if not value:
+                        continue
+                    # Per-chunk only: ADM1 names are rarely the whole
+                    # field value (e.g. "Jalisco, Mexico"), so split on
+                    # the same delimiters the country extractor uses.
+                    for chunk in re.split(r"[,;/()]+|\band\b", value):
+                        chunk = chunk.strip()
+                        if not chunk:
+                            continue
+                        code = resolve_adm1_code(chunk)
+                        if code is not None:
+                            _record(code, role)
+
+        return {c: r for c, (_, r) in found.items()}
+
+    @staticmethod
+    def _extract_unions_with_roles(
+        parsed: ParsedAnalysis,
+    ) -> dict[str, str]:
+        """Return ``{union_display_name: role}`` for supranational
+        unions (EU / ASEAN / USMCA / NAFTA) mentioned in
+        ``parsed.systems`` OR in flow text (PR #48).
+
+        ``resolve_country_code`` returns None for "EU" / "ASEAN"
+        (they aren't countries), so the country validator silently
+        dropped union partners even though the map renderer handles
+        them (PR #22/#23).  This helper detects them so
+        ``_validate_country_pericoupling`` can emit a
+        ``Focal ↔ European Union: TELECOUPLED`` line, keeping the
+        text validation block consistent with the map.
+
+        Two scans:
+        - system entries (``name`` / ``geographic_scope``), per-role,
+          same priority as the country extractor;
+        - flow ``direction`` / ``description`` text, where unions
+          most often appear as targets (e.g. "Brazil → European
+          Union").  Flow-detected unions default to the
+          ``"receiving"`` role (a flow target is a receiving
+          system) unless a higher-priority role was already recorded
+          from a system entry.
+
+        Returns canonical display names via
+        ``supranational_display_name`` so "EU" and "European Union"
+        collapse to one key.
+        """
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+            supranational_display_name,
+        )
+
+        role_priority = {
+            "sending": 0,
+            "focal": 1,
+            "receiving": 2,
+            "spillover": 3,
+            "adjacent": 4,
+        }
+        found: dict[str, tuple[int, str]] = {}  # display -> (priority, role)
+
+        def _record(display: str, role: str) -> None:
+            pr = role_priority[role]
+            if display not in found or pr < found[display][0]:
+                found[display] = (pr, role)
+
+        def _try_union(text: str, role: str) -> None:
+            for chunk in re.split(r"[,;/()]+|\band\b|→|->|↔", text):
+                chunk = chunk.strip()
+                if not chunk:
+                    continue
+                members = expand_supranational(chunk)
+                if members:
+                    display = supranational_display_name(members)
+                    if display:
+                        _record(display, role)
+
+        # Scan system entries per role.
+        for role in ("focal", "sending", "receiving", "spillover", "adjacent"):
+            for entry in parsed.get_system_entries(role):
+                for field in ("name", "geographic_scope"):
+                    value = entry.get(field, "") or ""
+                    if value:
+                        _try_union(value, role)
+
+        # Scan flow text — unions usually appear as flow targets.
+        for flow in parsed.iter_flow_entries():
+            for field in ("direction", "description"):
+                value = flow.get(field, "") or ""
+                if value:
+                    _try_union(value, "receiving")
+
+        return {d: r for d, (_, r) in found.items()}
 
     @staticmethod
     def _extract_country_names(parsed: ParsedAnalysis) -> list[str]:

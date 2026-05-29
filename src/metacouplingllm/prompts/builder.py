@@ -137,7 +137,7 @@ class PromptBuilder:
         if research_context:
             hint = self._build_adm1_pericoupling_hint(research_context)
             if hint is None:
-                hint = self._build_pericoupling_hint(research_context)
+                hint = self._build_coupling_hint(research_context)
             if hint:
                 parts.append(hint)
 
@@ -303,9 +303,14 @@ class PromptBuilder:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_pericoupling_hint(research_context: str) -> str | None:
+    def _build_coupling_hint(research_context: str) -> str | None:
         """Scan research text for country names and build a country-pair
         classification hint.
+
+        Renamed from ``_build_pericoupling_hint`` (PR #48): the method
+        emits BOTH pericoupled AND telecoupled per-pair lines, so the
+        old ``pericoupling`` name understated its scope.  The
+        LLM-facing section heading is intentionally unchanged.
 
         If ≥2 countries are detected, reports each focal-vs-other pair
         with its database classification (PERICOUPLED for adjacent
@@ -419,7 +424,7 @@ class PromptBuilder:
         """Scan research text for ADM1 region names and build a subnational hint.
 
         Uses the same n-gram scanning approach as
-        :meth:`_build_pericoupling_hint`, but resolves phrases against the
+        :meth:`_build_coupling_hint`, but resolves phrases against the
         ADM1 pericoupling database.  On the first successful match (the
         *focal region*), retrieves its domestic and cross-border neighbors
         and formats them into a prompt section.
