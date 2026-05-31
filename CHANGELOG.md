@@ -7,6 +7,22 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cross-country folded-name ambiguity in `resolve_adm1_code`
+  (follow-up to #45/#50).**  Two ADM1 provinces fold to the same
+  name across different countries — the DRC stores its province
+  accented as `Équateur` (`COD013`) while the Central African
+  Republic stores its unaccented as `Equateur` (`CAF002`).  A bare
+  `Equateur` query previously resolved arbitrarily to `CAF002`
+  (an exact Strategy-1 match), silently returning the wrong
+  country.  A new `_is_cross_country_folded_collision` guard makes
+  an unaccented query whose accent-folded spelling is shared across
+  countries return `None` unless a `country` hint is given; an exact
+  accented query (`Équateur`) and any hinted query are unaffected.
+  Data-driven, so future cross-country collisions are covered
+  automatically.
+
 ### Changed
 
 - **Pericoupling databases regenerated from World Bank Official

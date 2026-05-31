@@ -405,6 +405,79 @@ class TestResolveAdm1Code:
         # must return None (no leak through the folded fallback).
         assert resolve_adm1_code("Michoacan", country="CHN") is None
 
+    # Cross-country folded-name ambiguity (Équateur / Equateur).
+    #
+    # Two ADM1 provinces fold to the same name across different
+    # countries: the DRC stores its province accented as "Équateur"
+    # (COD013), the CAR stores its unaccented as "Equateur" (CAF002).
+    # A bare "Equateur" used to resolve arbitrarily to CAF002 because
+    # the CAR spelling is an exact Strategy-1 match.  An exact accented
+    # query is unambiguous; an unaccented query needs a country hint.
+
+    def test_accented_equateur_resolves_to_drc(self):
+        """The exact accented form uniquely identifies the DRC province."""
+        assert resolve_adm1_code("Équateur") == "COD013"
+
+    def test_unaccented_equateur_ambiguous_without_hint(self):
+        """Bare "Equateur" is ambiguous across DRC/CAR — it must not
+        silently pick one, so it returns None without a country hint."""
+        assert resolve_adm1_code("Equateur") is None
+        assert resolve_adm1_code("equateur") is None
+
+    def test_equateur_hint_drc(self):
+        """A DRC hint constrains the unaccented form to COD013."""
+        assert resolve_adm1_code("Equateur", country="COD") == "COD013"
+
+    def test_equateur_hint_car(self):
+        """A CAR hint constrains the unaccented form to CAF002."""
+        assert resolve_adm1_code("Equateur", country="CAF") == "CAF002"
+
+    def test_equateur_hint_unrelated_country_returns_none(self):
+        """A hint for a country with no Équateur province returns None
+        (no leak through the folded fallback)."""
+        assert resolve_adm1_code("Equateur", country="USA") is None
+
+    def test_cross_country_folded_collisions_need_hint_generally(self):
+        """General case: every unaccented name shared (after accent-
+        folding) by ADM1 regions in more than one country must not
+        silently resolve without a country hint, and must resolve
+        within the hinted country when a hint is supplied.
+
+        Data-driven, so cross-country collisions introduced by future
+        data refreshes are covered automatically."""
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            _get_adm1_folded_name_index,
+            get_adm1_country,
+        )
+
+        folded = _get_adm1_folded_name_index()
+        collisions = {
+            name: entries
+            for name, entries in folded.items()
+            if len({iso for _, iso in entries}) > 1
+        }
+        assert collisions, "expected >=1 cross-country folded collision"
+        # The motivating Équateur pair must be among them.
+        assert "equateur" in collisions, "equateur collision missing"
+
+        for name, entries in collisions.items():
+            # No hint: must not arbitrarily pick a single region.
+            no_hint = resolve_adm1_code(name)
+            assert no_hint is None, (
+                "%r resolved without a hint to %r" % (name, no_hint)
+            )
+            # With each member country hint, it resolves inside that
+            # country.
+            for _code, iso in entries:
+                resolved = resolve_adm1_code(name, country=iso)
+                assert resolved is not None, (
+                    "%r + country=%s unexpectedly returned None" % (name, iso)
+                )
+                assert get_adm1_country(resolved) == iso, (
+                    "%r + country=%s -> %r which is not in %s"
+                    % (name, iso, resolved, iso)
+                )
+
 
 class TestIsoCodeCoverage:
     """PR #50 guard: every ISO-3 code used in the bundled pericoupling
