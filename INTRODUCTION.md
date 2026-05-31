@@ -280,7 +280,7 @@ Two geographic adjacency databases validate LLM coupling classifications:
 | Database | Scope | Coverage |
 |---|---|---|
 | Country-level | Sovereign states | Full global (ISO alpha-3) |
-| ADM1 (subnational) | First-level administrative regions | 3,366 regions, 8,290 border pairs, 195 countries |
+| ADM1 (subnational) | First-level administrative regions | 3,373 regions, 8,369 land-border pairs, 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
 
@@ -533,7 +533,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | 420 papers (Papers.zip) | Markdown for RAG — full text for the 296 open-access papers, structured summaries for the 124 non-OA |
 | BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2025) with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
-| ADM1 edge list (CSV) | 8,290 subnational border pairs across 3,366 regions in 195 countries |
+| ADM1 edge list (CSV) | 8,369 subnational land-border pairs across 3,373 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 
 *Counts above are as of v0.1.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*

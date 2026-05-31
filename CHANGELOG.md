@@ -9,6 +9,28 @@ file. The format is loosely based on
 
 ### Changed
 
+- **Pericoupling databases regenerated from World Bank Official
+  Boundaries (2026-05-14) + ISO-3 modernization (PR #50).**
+  - Both bundled adjacency datasets rebuilt by a new committed,
+    reproducible build script (`scripts/build_pericoupling_db.py`)
+    using a strict shared-land-border method: STRtree adjacency,
+    inland-water filter (open-water meetings dropped, shore/river-
+    following borders kept), **geodesic kilometre** border lengths
+    (replacing latitude-distorted degrees), and an explicit disputed-
+    border allowlist (`CHN/PAK`, `ISR/SYR`). ADM1: 8,290→**8,369**
+    edges, 3,366→**3,373** regions, 195→**196** countries. ADM0:
+    308→**324** land-border pairs on 264 units.
+  - `countries.py` **migrated from legacy to current ISO 3166-1
+    alpha-3** codes (`ZAR`→`COD`, `ROM`→`ROU`, `YUG`→`SRB`,
+    `TMP`→`TLS`) and extended with the 44 codes the new data uses, so
+    every ISO code in the bundled CSVs resolves. The legacy→package
+    remap in `visualization/worldmap.py` (`_ISO_CODE_FIXES`) is
+    removed — map geometry and classification now share one modern
+    vocabulary. A new guard test asserts every CSV ISO code resolves.
+  - Provenance, method, and known limitations (disputed-area
+    allowlist, river-separated province pairs, Flevoland polder)
+    documented in `data/PROVENANCE.md`.
+
 - **RAG embeddings relevance floor raised 0.3 → 0.60 (PR #49).**  The
   backend-aware `rag_min_score` default for the embeddings backend
   (BGE-base cosine) is now `0.60` instead of `0.3`

@@ -131,16 +131,6 @@ _WORLD_BANK_NDLSA_DOWNLOAD_FILENAME = (
 )
 _WORLD_BANK_NDLSA_STATUS = "Non-determined legal status area"
 
-# Mapping from shapefile ISO codes to this package's codes.
-# The pericoupling DB sometimes uses older or non-standard codes.
-_ISO_CODE_FIXES: dict[str, str] = {
-    "ROU": "ROM",  # Romania
-    "COD": "ZAR",  # Democratic Republic of the Congo
-    "TLS": "TMP",  # Timor-Leste / East Timor
-    "SRB": "YUG",  # Serbia (package uses YUG for former Yugoslavia/Serbia)
-}
-
-
 def _get_shapefile_cache_dir() -> Path:
     """Return the directory for caching map boundary files.
 
@@ -428,8 +418,8 @@ def _load_world_bank_ndlsa_geodataframe() -> gpd.GeoDataFrame | None:
         elif "ISO_A3_EH" in ndlsa.columns:
             ndlsa["iso_code"] = ndlsa["ISO_A3_EH"]
 
-    if "iso_code" in ndlsa.columns:
-        ndlsa["iso_code"] = ndlsa["iso_code"].replace(_ISO_CODE_FIXES)
+    # PR #50: the package and the WB geometry now share current ISO-3
+    # codes, so no legacy remap is applied.
 
     return ndlsa
 
@@ -493,7 +483,7 @@ def _get_world_geodataframe(
                 "Custom shapefile must contain an 'ISO_A3' or "
                 "'iso_code' column with ISO alpha-3 country codes."
             )
-    world["iso_code"] = world["iso_code"].replace(_ISO_CODE_FIXES)
+    # PR #50: package + WB geometry share current ISO-3; no remap needed.
     return world
 
 
