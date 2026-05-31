@@ -532,6 +532,53 @@ def _get_adm1_folded_name_index() -> dict[str, list[tuple[str, str]]]:
     return _adm1_folded_index
 
 
+def _resolve_country_filter(country: str) -> str | None:
+    """Resolve a country hint to an ISO alpha-3 code for filtering.
+
+    Mirrors :func:`get_adm1_codes_for_country`: a 3-letter token that is
+    itself an ISO code present in the loaded ADM1 data is honored
+    directly, so hints such as ``"COD"`` (DR Congo) constrain correctly
+    even when ``countries.py`` lacks that mapping.  Falls back to
+    :func:`resolve_country_code` for country names and other forms.
+    """
+    _ensure_loaded()
+    assert _adm1_country is not None
+    stripped = country.strip().upper()
+    if len(stripped) == 3 and stripped in set(_adm1_country.values()):
+        return stripped
+    return resolve_country_code(country)
+
+
+def _is_cross_country_folded_collision(name_lower: str) -> bool:
+    """Return ``True`` when ``name_lower`` is an *unaccented* query whose
+    accent-folded spelling is shared by ADM1 regions in more than one
+    country.
+
+    This is the cross-country analogue of the within-country ambiguity
+    that ``_pick_best_candidate`` already contains (PR #45).  The
+    motivating case: the Democratic Republic of the Congo stores its
+    province *with* the accent as ``"Équateur"`` (``COD013``) while the
+    Central African Republic stores its as the bare ``"Equateur"``
+    (``CAF002``).  A query of ``"Equateur"`` therefore found an exact
+    Strategy-1 match for the CAR province and silently resolved to
+    ``CAF002`` — an artifact of which country happens to omit the accent,
+    not a real signal of which region the caller meant.
+
+    The guard fires only when the query itself carries no diacritics
+    (folding is a no-op).  An *accented* query such as ``"Équateur"``
+    changes under folding, so this returns ``False`` and that query
+    keeps its exact accented Strategy-1 match (``COD013``).  A resolved
+    country hint also bypasses this guard (checked at the call site),
+    letting the strategies disambiguate.
+    """
+    if _fold_diacritics(name_lower) != name_lower:
+        return False
+    entries = _get_adm1_folded_name_index().get(name_lower)
+    if not entries:
+        return False
+    return len({iso for _, iso in entries}) > 1
+
+
 def resolve_adm1_code(
     name: str,
     country: str | None = None,
@@ -555,6 +602,19 @@ def resolve_adm1_code(
        Ambiguity from folding is contained by reusing
        ``_pick_best_candidate`` (single ISO or matching country
        filter required).
+
+    Cross-country ambiguity
+    -----------------------
+    If the query is an *unaccented* name whose accent-folded spelling is
+    shared by ADM1 regions in more than one country, it cannot identify a
+    single region and ``None`` is returned unless a ``country`` hint is
+    given.  The motivating case is ``"Equateur"``: the DRC stores its
+    province accented as ``"Équateur"`` (``COD013``) while the CAR stores
+    its unaccented as ``"Equateur"`` (``CAF002``), so a bare
+    ``"Equateur"`` used to resolve arbitrarily to ``CAF002``.  An exact
+    *accented* query (``"Équateur"``) is unambiguous and still resolves
+    (``COD013``); pass ``country`` to pick a side for the unaccented
+    form.
 
     Parameters
     ----------
@@ -583,6 +643,15 @@ def resolve_adm1_code(
 
     >>> resolve_adm1_code("Michoacan", country="MEX")   # PR #45 fallback
     'MEX016'
+
+    >>> resolve_adm1_code("Équateur")                   # exact accented
+    'COD013'
+
+    >>> resolve_adm1_code("Equateur") is None           # ambiguous, no hint
+    True
+
+    >>> resolve_adm1_code("Equateur", country="COD")    # hint disambiguates
+    'COD013'
     """
     if not name or not name.strip():
         return None
@@ -597,10 +666,25 @@ def resolve_adm1_code(
 
     index = _get_adm1_name_index()
 
-    # Resolve country filter if provided
+    # Resolve country filter if provided.  Honor a 3-letter ISO code
+    # present in the data directly (see ``_resolve_country_filter``), so
+    # hints such as ``"COD"`` work; fall back to ``resolve_country_code``
+    # for names.
     country_iso: str | None = None
     if country is not None:
-        country_iso = resolve_country_code(country)
+        country_iso = _resolve_country_filter(country)
+
+    # --- Cross-country folded-collision guard (Équateur/Equateur) ---
+    # When no usable country hint is available and the query is an
+    # unaccented form whose folded spelling is shared across countries,
+    # it cannot identify a single region.  Refuse to guess rather than
+    # return whichever country happens to store its name without the
+    # accent (see ``_is_cross_country_folded_collision``).  A resolved
+    # country hint routes past this guard and is disambiguated by the
+    # strategies below; an exact *accented* query is unaffected because
+    # folding changes it.
+    if country_iso is None and _is_cross_country_folded_collision(name_lower):
+        return None
 
     # --- Strategy 1: Direct index lookup ---
     candidates = index.get(name_lower)
