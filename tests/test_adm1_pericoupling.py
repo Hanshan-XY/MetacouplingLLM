@@ -31,16 +31,16 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8290, (
-            f"Expected 8290 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8369, (
+            f"Expected 8369 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_country
         assert _adm1_country is not None
-        assert len(_adm1_country) == 3366, (
-            f"Expected 3366 unique ADM1 codes, got {len(_adm1_country)}"
+        assert len(_adm1_country) == 3373, (
+            f"Expected 3373 unique ADM1 codes, got {len(_adm1_country)}"
         )
 
     def test_expected_country_count(self):
@@ -48,8 +48,8 @@ class TestAdm1DataLoading:
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_country
         assert _adm1_country is not None
         countries = set(_adm1_country.values())
-        assert len(countries) == 195, (
-            f"Expected 195 unique countries, got {len(countries)}"
+        assert len(countries) == 196, (
+            f"Expected 196 unique countries, got {len(countries)}"
         )
 
 
@@ -404,3 +404,57 @@ class TestResolveAdm1Code:
         # Michoacan only exists in Mexico; with country=CHN it
         # must return None (no leak through the folded fallback).
         assert resolve_adm1_code("Michoacan", country="CHN") is None
+
+
+class TestIsoCodeCoverage:
+    """PR #50 guard: every ISO-3 code used in the bundled pericoupling
+    data must resolve via ``resolve_country_code``.  This prevents the
+    legacy/modern code drift that motivated the ISO-3 migration (e.g.
+    data using ``COD`` while the resolver only knew legacy ``ZAR``).
+    If a future data refresh introduces a code the resolver doesn't
+    know, this fails loudly instead of silently dropping lookups.
+    """
+
+    def _data_dir(self):
+        import metacouplingllm.knowledge.adm1_pericoupling as mod
+        from pathlib import Path
+        return Path(mod.__file__).resolve().parent.parent / "data"
+
+    def test_all_adm1_iso_codes_resolve(self):
+        import csv
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        path = self._data_dir() / "pericoupled_adm1_edge_list.csv"
+        isos = set()
+        with open(path, encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                isos.add(row["ISO_A3_A"])
+                isos.add(row["ISO_A3_B"])
+        unresolved = sorted(c for c in isos if resolve_country_code(c) is None)
+        assert not unresolved, (
+            f"ADM1 edge-list ISO codes not resolvable by "
+            f"resolve_country_code: {unresolved}"
+        )
+
+    def test_all_adm0_iso_codes_resolve(self):
+        import csv
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        path = self._data_dir() / "PeriTelecoupling_clean.csv"
+        isos = set()
+        with open(path, encoding="utf-8-sig") as fh:
+            for row in csv.DictReader(fh):
+                isos.add(row["Sending"])
+                isos.add(row["Receiving"])
+        unresolved = sorted(c for c in isos if resolve_country_code(c) is None)
+        assert not unresolved, (
+            f"ADM0 matrix ISO codes not resolvable by "
+            f"resolve_country_code: {unresolved}"
+        )
+
+    def test_modern_iso_aliases_resolve(self):
+        """The PR #50 modernized aliases map to current ISO-3."""
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        assert resolve_country_code("DR Congo") == "COD"
+        assert resolve_country_code("Serbia") == "SRB"
+        assert resolve_country_code("Romania") == "ROU"
+        assert resolve_country_code("Timor-Leste") == "TLS"
+        assert resolve_country_code("Kosovo") == "XKX"

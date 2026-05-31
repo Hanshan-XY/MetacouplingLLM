@@ -5,14 +5,17 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,290 border pairs** covering **3,366 unique ADM1
-regions** across **195 countries**, including both within-country and
+The edge list contains **8,369 border pairs** covering **3,373 unique ADM1
+regions** across **196 countries**, including both within-country and
 cross-country borders.
 
 Source
 ------
-``pericoupled_adm1_edge_list.csv`` (research dataset using World Bank ADM1
-codes and ISO 3166-1 alpha-3 country codes).
+``pericoupled_adm1_edge_list.csv``, regenerated in PR #50 from the World Bank
+Official Boundaries dataset (GeoPackage, 2026-05-14 release) using World Bank
+ADM1 codes and current ISO 3166-1 alpha-3 country codes.  Adjacency is the
+shared land border between region polygons (geodesic ``border_length_km``);
+see ``data/PROVENANCE.md`` for the full method.
 """
 
 from __future__ import annotations
