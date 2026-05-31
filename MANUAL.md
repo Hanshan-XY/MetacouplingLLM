@@ -837,9 +837,11 @@ print(result.parsed.evidence_coverage_note)
 
 ## 8. Pericoupling Database
 
-The package includes a curated database of 308 symmetric country pairs
-classified as pericoupled (geographically adjacent) or telecoupled
-(geographically distant), based on ISO 3166-1 alpha-3 country codes.
+The package includes a curated database of 324 symmetric country
+land-border pairs classified as pericoupled (geographically adjacent)
+or telecoupled (geographically distant), based on current ISO 3166-1
+alpha-3 country codes (World Bank Official Boundaries, 2026-05-14
+release; see `data/PROVENANCE.md`).
 
 ### Automatic integration
 
