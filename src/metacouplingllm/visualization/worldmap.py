@@ -108,7 +108,7 @@ _WORLD_BANK_NDLSA_FILENAMES = (
 _WORLD_BANK_ADM0_SHAPEFILE_NAME = "WB_countries_Admin0_10m.shp"
 _WORLD_BANK_BOUNDARIES_RELEASE_BASE_URL = (
     "https://github.com/Hanshan-XY/wb-boundaries-data/releases/download/"
-    "v2025-06-17"
+    "v2026-05-14"
 )
 _WORLD_BANK_ADM0_RELEASE_URL = (
     f"{_WORLD_BANK_BOUNDARIES_RELEASE_BASE_URL}/"

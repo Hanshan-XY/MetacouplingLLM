@@ -88,7 +88,7 @@ DEFAULT_ADM1_COLORS = Adm1CouplingColors()
 
 _WB_BOUNDARIES_RELEASE_BASE_URL = (
     "https://github.com/Hanshan-XY/wb-boundaries-data/releases/download/"
-    "v2025-06-17"
+    "v2026-05-14"
 )
 _WB_ADM1_DOWNLOAD_ENV_VAR = "METACOUPLING_ADM1_DOWNLOAD_URL"
 _WB_ADM1_URL = (
@@ -105,7 +105,7 @@ _WB_ADM1_FILENAMES = (
 _WB_ADM1_DOWNLOAD_INSTRUCTIONS = (
     "The World Bank Admin 1 GeoPackage is required for ADM1 maps.\n"
     "Download it from:\n"
-    "  https://github.com/Hanshan-XY/wb-boundaries-data/releases/tag/v2025-06-17\n"
+    "  https://github.com/Hanshan-XY/wb-boundaries-data/releases/tag/v2026-05-14\n"
     "Then pass the file path:\n"
     "  plot_focal_adm1_map('MEX001', shapefile='path/to/Admin 1.gpkg')"
 )
