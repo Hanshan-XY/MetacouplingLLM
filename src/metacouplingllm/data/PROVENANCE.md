@@ -8,9 +8,11 @@ limitations of the two bundled adjacency datasets.
 
 | File | Shape | Content |
 |---|---|---|
-| `pericoupled_adm1_edge_list.csv` | 8,369 edges · 3,373 ADM1 regions · 196 countries | Subnational (ADM1) shared-land-border adjacency |
-| `PeriTelecoupling_clean.csv` | 324 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-land-border adjacency matrix |
+| `pericoupled_adm1_edge_list.csv` | 8,381 edges · 3,373 ADM1 regions · 196 countries | Subnational (ADM1) shared-land-border adjacency |
+| `PeriTelecoupling_clean.csv` | 325 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-land-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
+| `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
+| `water_separated_pairs.csv` | 315 ADM1 + 18 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (see *Water-separated pairs* below) |
 
 Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 `TLS`). ADM1 codes are World Bank `ADM1CD_c` (e.g. `MEX014`).
@@ -24,6 +26,9 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
     is **excluded**); `WB_GAD_ocean_mask`.
 - **Natural Earth** 10m physical — `ne_10m_lakes` (inland-water filter).
   Rivers (`ne_10m_rivers_lake_centerlines`) are used only for advisory flags.
+  The WB distribution ships **no inland-hydrography layer** (admin polygons plus
+  a single-feature ocean mask only), and its admin polygons *include* lake
+  water; inland lakes and rivers are therefore sourced from Natural Earth.
 
 ## Method
 
@@ -31,8 +36,11 @@ Built by `scripts/build_pericoupling_db.py` (committed; reproducible —
 re-running on the same inputs yields byte-identical CSVs). Summary:
 
 1. **Land-border definition.** Two units are adjacent iff their polygons share
-   a boundary segment of non-zero length. Sea/strait separation ⇒ not adjacent
-   (islands such as Japan, Cuba, the Philippines have no neighbours).
+   a boundary segment of non-zero length (**rook contiguity** — a single shared
+   vertex/corner does *not* count, unlike the queen rule). Sea/strait separation
+   ⇒ not adjacent (islands such as Japan, Cuba, the Philippines have no
+   neighbours). See `docs/METHODS_adjacency.md` for the rationale, the
+   prior-practice comparison, and the snapping-tolerance sensitivity analysis.
 2. **Spatial index.** STRtree filter-and-refine; snap tolerance 5×10⁻⁴°
    (~55 m N–S, shrinking E–W toward the poles) bridges digitisation slivers
    without merging genuinely-separate units.
@@ -48,12 +56,62 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
 
 ## Known limitations
 
-- **Disputed-area allowlist.** Excluding the WB NDLSA layer drops a few real
-  land borders that run through contested tracts. These are re-added explicitly:
-  **`CHN`/`PAK`** (Kashmir/Khunjerab) and **`ISR`/`SYR`** (Golan). India retains
-  the Kashmir geometry natively (so `IND/PAK`, `IND/CHN` need no patch). Western
-  Sahara (`ESH`) is folded into Morocco in the source, so former `ESH/*` pairs
-  are superseded by Morocco's borders.
+- **Disputed territories (de-facto vs strict).** WB's standard ADM0 (264-unit)
+  and ADM1 (3,591-unit) layers *exclude* the 24-feature NDLSA disputed-areas
+  layer, which carves contested tracts out of **both** neighbours and opens
+  multi-km gaps — so the flanking units are recorded as non-adjacent even though
+  they meet along the de-facto line of control. The shipped data is the
+  **de-facto** view: such land is treated as part of its de-facto administrator.
+  At **ADM0** this re-adds three country pairs — **`CHN`/`PAK`**, **`ISR`/`SYR`**
+  & **`MAR`/`MRT`**. At **ADM1** the overlay is derived *independently* (country
+  adjacency does **not** imply province adjacency — two countries adjacent
+  elsewhere can still have their flanking provinces meet only across a disputed
+  tract) via an authored tract→**province** map, yielding **13** subnational
+  pairs — e.g. `IND003` Arunachal Pradesh↔`CHN029` Tibet (~993 km), `ISR004`
+  Northern↔`SYR012` Quneitra (Golan), `MAR005`/`MAR007`↔`MRT012`/`MRT004`/`MRT001`
+  (Western Sahara), `BTN005` Haa↔`CHN029` Tibet (Doklam). The runtime loaders
+  accept `de_facto_borders` (default `True`); passing `False` gives the
+  **strict** standard-layer view, which omits these pairs (3 ADM0 + 13 ADM1,
+  listed in `disputed_overlay_pairs.csv`).
+
+  **`CHN`/`PAK` is ADM0-only.** Gilgit-Baltistan and Ladakh/Jammu & Kashmir are
+  disputed territories EXCLUDED from WB's ADM1 layer — **not** provinces (WB
+  lists only 5 Pakistani ADM1 units, none Gilgit-Baltistan) — so there is no WB
+  province to attribute their subnational adjacency to, and the China–Pakistan
+  relationship is carried at the country level only. India retains the rest of
+  its Kashmir geometry natively (`IND/PAK`, `IND/CHN` need no ADM0 patch).
+  Western Sahara (`ESH`) is a **separate excluded NDLSA tract** — *not* dissolved
+  into Morocco in the standard layer; folding it into its de-facto administrator
+  (Morocco) adds the otherwise-absent **`MAR`/`MRT`** land border (~1,544 km).
+
+  *Neutral-framing note.* The NDLSA layer carries **no** administering-country
+  field (`SOVEREIGN` is null for all 24 tracts; `WB_STATUS` is uniformly
+  "Non-determined legal status area"), so every tract→administrator (ADM0) and
+  tract→province (ADM1) attribution is **authored** — it records effective/
+  physical coupling across the de-facto line for a connectivity dataset and is
+  **not** a legal or endorsed sovereignty claim. Both are **geometry-validated**
+  at build time (`derive_disputed_overlay` raises if an authored unit does not
+  touch its tract, so a mislabel fails loudly rather than silently dropping a
+  pair); ADM1 borders spanning several administering provinces are split among
+  them by nearest province. The full per-tract candidate audit is shipped at
+  `docs/ndlsa_tract_audit.csv` (see `docs/METHODS_adjacency.md`).
+- **Water-separated pairs (`coupling_standard`).** 315 ADM1 pairs (and 18
+  rolled-up ADM0 country pairs) share **only** a river/lake border with no land
+  segment. The runtime loaders accept `coupling_standard` (default `"moderate"`),
+  orthogonal to `de_facto_borders`: `lenient` keeps all water borders; `moderate`
+  keeps a pair only if a fixed crossing **open to traffic** links the two units;
+  `stringent` drops every water-only pair (ADM1 default-view edges 8,381 →
+  **8,234**; ADM0 325 → **322**). Each pair's `has_bridge` flag was classified
+  from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
+  a ferry — lying in **both** units) and then **independently verified** via web
+  search, a deterministic geocode + province-polygon check, and manual review.
+  It is a **reviewed static artifact** shipped in `water_separated_pairs.csv`,
+  NOT regenerated from geometry alone (only the ADM0 roll-up is, by
+  `write_water_separated_manifest`). A *completed* bridge on a politically closed
+  border counts (pericoupling is structural); under-construction/proposed links
+  do not. Mid-lake "median-line" meetings are already removed by the inland-water
+  filter (Method step 3) and so are out of scope for all three standards. Full
+  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 - **Correctly-absent pairs.** `ARE/QAT`, `KEN/SDN`, `SDN/UGA` are *not* land
   neighbours (separated by Saudi Arabia / South Sudan respectively) and are
   rightly absent — these differ from the older dataset, which listed them.
@@ -68,6 +126,42 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   Earth maps the IJsselmeer as a lake and the polder meets its neighbours across
   it; in reality dikes/bridges connect them. Domestic-only, so it does not
   affect cross-border pericoupling. (Also one 0.1 km MOZ/TZA sliver.)
+- **Collapsed-node (quadripoint) artifacts.** At a few places the WB source
+  snaps two nearby tripoints to a single coordinate, producing a degenerate
+  4-province node. This both *manufactures* a false point-contact between the
+  two provinces on one diagonal and *collapses* a short real border between the
+  two on the other diagonal to zero length — so both pairs are recorded as
+  point-touches (shared length 0) and therefore **not adjacent** under the
+  land-border rule. The confirmed cross-border case is the **Congo Pedicle**
+  tip (≈29.612°E, 8.372°S): WB places `Tanganyika`/`Haut-Katanga` (COD) and
+  `Northern`/`Luapula` (ZMB) at one node, whereas on the ground there is a
+  tripoint (Tanganyika·Haut-Katanga·Northern) plus a second ≈3 mi to the
+  south-west — so the real `Haut-Katanga↔Northern` border is lost while a
+  spurious `Tanganyika↔Luapula` contact is implied. A geometry screen for
+  ≥4-province single-point nodes flags ~4 cross-border candidates of this
+  shape (others, e.g. the USA Four Corners, are genuine quadripoints, so the
+  screen triages rather than confirms). A geometry screen for ≥4-province
+  single-point nodes returns 33 candidates (30 domestic, 3 cross-border) after
+  excluding nodes that fall inside a Natural Earth lake (those are mid-water
+  meetings the lake filter already handles, e.g. EST/RUS in Lake Peipus). Of the
+  3 cross-border candidates only the Congo Pedicle is a confirmed collapse; the
+  other two (OMN/SAU/YEM in the Rub' al Khali; KHM/VNM) are genuine quadripoints.
+- **Snapping-tolerance false positives (manually removed).** The snap tolerance
+  (5×10⁻⁴°) bridges sub-tolerance gaps between independently-digitised polygons.
+  This correctly recovers genuine borders drawn with a small cross-source offset
+  (e.g. a 49 km Egypt–Libya segment whose two renderings sit ~0.4 m apart and
+  share no vertices, which an exact-match rule would miss), but can also
+  fabricate an edge between units that do not share a frontier. The six ADM1
+  pairs whose adjacency depends on the tolerance (present at 5×10⁻⁴° but absent
+  at zero tolerance) were manually reviewed; one confirmed non-adjacent pair —
+  **`MLT002`/`MLT019`** (Balzan / Iklin, Malta; polygons ~31 m apart) — is
+  removed via a denylist in `scripts/build_pericoupling_db.py`, reducing the
+  edge count from 8,369 to **8,368** (the de-facto disputed overlay then adds 13,
+  for the shipped total of **8,381**; see *Disputed territories* above). A
+  sensitivity sweep shows adjacency is otherwise stable across snapping
+  tolerances in [0, 10⁻³°] (<0.1% of ADM1 edges change; the ADM0 matrix is
+  invariant across the plateau — the snap-independent overlay is an additive
+  constant, for a shipped total of 325 pairs).
 - **ADM1 granularity varies by country** (WB "first-order unit"): micro-states
   appear at municipal granularity (e.g. Latvia 119 units), so per-country region
   counts are not directly comparable.

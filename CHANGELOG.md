@@ -7,7 +7,62 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Added
+
+- **`coupling_standard` for water-separated adjacency (`stringent` /
+  `moderate` / `lenient`, default `moderate`).**  The pericoupling loaders
+  (`pericoupling.py`, `adm1_pericoupling.py`) accept `coupling_standard`,
+  orthogonal to `de_facto_borders`.  For the 315 ADM1 (and 18 rolled-up ADM0)
+  pairs that share **only** a river/lake border, `moderate` (the new default)
+  keeps a pair only if a **fixed crossing open to traffic** links the two units;
+  `stringent` drops every water-only pair; `lenient` keeps all (the prior
+  behaviour).  So Kinshasa↔Brazzaville (Congo, ferry only) is no longer
+  pericoupled by default, while the Rio Grande and the Mekong Friendship-bridge
+  crossings remain.  Bridge presence was classified from OpenStreetMap and then
+  **independently verified** (web search + a geometric province check + manual
+  review); see `data/water_separated_pairs.csv` and
+  `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.  ADM1 pericoupled edges under the
+  default fall 8,381 → **8,234**; ADM0 country pairs 325 → **322**.  A
+  structurally complete bridge on a politically *closed* border still counts
+  (pericoupling is structural; under-construction links do not).
+
+- **`de_facto_borders` toggle for disputed-territory adjacency.**  The
+  pericoupling loaders (`pericoupling.py`, `adm1_pericoupling.py`) now accept
+  `de_facto_borders` (default `True`).  WB's standard boundary layers exclude
+  the NDLSA disputed-areas tracts, opening multi-km gaps between neighbours that
+  meet only across a de-facto line of control.  The shipped data is the
+  **de-facto** view (disputed land folded into its de-facto administrator),
+  which at ADM0 treats China–Pakistan, Israel–Syria, and Morocco–Mauritania as
+  adjacent (3 country pairs).  At ADM1 the overlay is derived **independently** —
+  country adjacency does not imply province adjacency — from a separate authored,
+  geometry-validated tract→province map, yielding **13** subnational pairs (e.g.
+  Arunachal Pradesh↔Tibet, Northern↔Quneitra (Golan), Guelmim-Oued Noun /
+  Laâyoune↔Mauritania (Western Sahara), Haa↔Tibet (Doklam)).  China–Pakistan has
+  **no** ADM1 pair: Gilgit-Baltistan and Ladakh/J&K are disputed territories
+  excluded from WB's ADM1 layer (not provinces), so that relationship is carried
+  at ADM0 only.  Passing `de_facto_borders=False` returns the strict
+  standard-layer view, which omits the overlay (3 ADM0 + 13 ADM1).  Both levels
+  are **derived from geometry at build time** by `derive_disputed_overlay()`,
+  which validates every authored unit against the tract polygons so a mislabel
+  fails loudly instead of silently dropping a pair (this surfaced the
+  previously-missed Western Sahara → Morocco fold and the subnational pairs hidden
+  behind already-adjacent countries, e.g. Arunachal Pradesh↔Tibet).  The applied
+  pairs ship in `data/disputed_overlay_pairs.csv` and the full per-tract candidate
+  audit in `docs/ndlsa_tract_audit.csv`.  Attributions are authored (the source
+  has no sovereignty field) and encode physical coupling, **not** a legal claim —
+  see `data/PROVENANCE.md` and `docs/METHODS_adjacency.md`.  ADM1 edge count
+  8,368 → 8,381 (13 overlay edges); ADM0 adds Morocco–Mauritania, 324 → 325.
+
 ### Fixed
+
+- **Malta snapping-tolerance false positive removed.**  The ~55 m snapping
+  tolerance bridged a ~31 m gap between Balzan (`MLT002`) and Iklin (`MLT019`),
+  which do not share a frontier, fabricating a spurious ADM1 edge.  It is now
+  dropped via `_ADM1_FALSE_POSITIVE_DENYLIST` in the build script (ADM1 edge
+  count 8,369 → 8,368, before the de-facto overlay).  Added
+  `docs/METHODS_adjacency.md` documenting the rook-contiguity rule, the
+  snapping-tolerance and river-buffer sensitivity analyses, and the
+  tolerance-sensitive-band audit.
 
 - **Cross-country folded-name ambiguity in `resolve_adm1_code`
   (follow-up to #45/#50).**  Two ADM1 provinces fold to the same

@@ -5057,7 +5057,6 @@ MLT001,Attard,Malta,MLT,MENA,MLT042,Qormi,Malta,MLT,MENA,False,0.7896,True,True
 MLT001,Attard,Malta,MLT,MENA,MLT044,Rabat (malta),Malta,MLT,MENA,False,1.1069,True,False
 MLT001,Attard,Malta,MLT,MENA,MLT065,Zebbug (malta),Malta,MLT,MENA,False,3.733,True,False
 MLT002,Balzan,Malta,MLT,MENA,MLT004,Birkirkara,Malta,MLT,MENA,False,1.1957,True,False
-MLT002,Balzan,Malta,MLT,MENA,MLT019,Iklin,Malta,MLT,MENA,False,0.0604,True,True
 MLT002,Balzan,Malta,MLT,MENA,MLT024,Lija,Malta,MLT,MENA,False,0.7046,True,True
 MLT003,Birgu,Malta,MLT,MENA,MLT006,Bormla,Malta,MLT,MENA,False,1.0408,True,False
 MLT003,Birgu,Malta,MLT,MENA,MLT021,Kalkara,Malta,MLT,MENA,False,0.649,True,True
@@ -8368,3 +8367,16 @@ ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE007,Masvingo,Zimbabwe,ZWE,AFR,False,385.4528
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,418.5808,False,False
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE009,Matabeleland South,Zimbabwe,ZWE,AFR,False,291.3107,False,False
 ZWE011,Area under National Administration,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,305.8221,False,False
+BTN005,Haa,Bhutan,BTN,SAR,CHN029,Xizang Zizhiqu,China,CHN,EAP,True,61.7,False,False
+BTN005,Haa,Bhutan,BTN,SAR,IND030,Sikkim,India,IND,SAR,True,6.6,False,False
+IND003,Arunachal Pradesh,India,IND,SAR,BTN011,Samdrupjongkhar,Bhutan,BTN,SAR,True,40.8,False,False
+IND003,Arunachal Pradesh,India,IND,SAR,BTN015,Trashigang,Bhutan,BTN,SAR,True,83.4,False,False
+IND003,Arunachal Pradesh,India,IND,SAR,BTN016,Trashiyangtse,Bhutan,BTN,SAR,True,85.6,False,False
+IND003,Arunachal Pradesh,India,IND,SAR,CHN029,Xizang Zizhiqu,China,CHN,EAP,True,993.4,False,False
+ISR004,Northern,Israel,ISR,Other,LBN004,Bekaa,Lebanon,LBN,MENA,True,0.4,True,True
+ISR004,Northern,Israel,ISR,Other,SYR006,Dar`ā,Syrian Arab Republic,SYR,MENA,True,4.8,True,False
+ISR004,Northern,Israel,ISR,Other,SYR012,Quneitra,Syrian Arab Republic,SYR,MENA,True,74.2,False,False
+MAR005,Guelmim-Oued Noun,Morocco,MAR,MENA,MRT012,Tiris-Zemmou,Mauritania,MRT,AFR,True,286.5,False,False
+MAR007,Laâyoune-Sakia al Hamra,Morocco,MAR,MENA,MRT001,Adrar,Mauritania,MRT,AFR,True,95.5,False,False
+MAR007,Laâyoune-Sakia al Hamra,Morocco,MAR,MENA,MRT004,Dakhlet-Nouadhibou,Mauritania,MRT,AFR,True,404.7,False,False
+MAR007,Laâyoune-Sakia al Hamra,Morocco,MAR,MENA,MRT012,Tiris-Zemmou,Mauritania,MRT,AFR,True,757.0,False,False

@@ -280,9 +280,11 @@ Two geographic adjacency databases validate LLM coupling classifications:
 | Database | Scope | Coverage |
 |---|---|---|
 | Country-level | Sovereign states | Full global (ISO alpha-3) |
-| ADM1 (subnational) | First-level administrative regions | 3,373 regions, 8,369 land-border pairs, 196 countries |
+| ADM1 (subnational) | First-level administrative regions | 3,373 regions, 8,381 shared-border pairs (8,234 under the default `moderate` coupling standard), 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
+
+Both levels accept two orthogonal toggles: **`de_facto_borders`** (default `True`; fold disputed land into its de-facto administrator, vs the strict WB standard layer) and **`coupling_standard`** (`stringent` / `moderate` / `lenient`, default `moderate`) — for pairs sharing **only** a river/lake border, `moderate` requires a fixed crossing open to traffic, `stringent` drops all water-only pairs, and `lenient` keeps them.  Bridge presence was OSM-classified and then independently verified (web search + geometric province check + manual review); see `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
 ### 4.6 Literature Recommendations
 
@@ -533,7 +535,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | 420 papers (Papers.zip) | Markdown for RAG — full text for the 296 open-access papers, structured summaries for the 124 non-OA |
 | BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2025) with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
-| ADM1 edge list (CSV) | 8,369 subnational land-border pairs across 3,373 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
+| ADM1 edge list (CSV) | 8,381 subnational shared-border pairs across 3,373 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 
 *Counts above are as of v0.1.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
@@ -561,4 +563,4 @@ pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-1192 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.
+1225 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.

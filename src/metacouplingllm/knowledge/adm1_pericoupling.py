@@ -5,7 +5,7 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,369 border pairs** covering **3,373 unique ADM1
+The edge list contains **8,381 border pairs** covering **3,373 unique ADM1
 regions** across **196 countries**, including both within-country and
 cross-country borders.
 
@@ -79,6 +79,22 @@ _adm1_pairs: frozenset[frozenset[str]] | None = None
 _adm1_neighbors: dict[str, set[str]] | None = None
 _adm1_country: dict[str, str] | None = None
 _adm1_metadata: dict[str, dict[str, str]] | None = None
+_adm1_disputed_overlay: frozenset[frozenset[str]] | None = None
+_adm1_water_all: frozenset[frozenset[str]] | None = None
+_adm1_water_nobridge: frozenset[frozenset[str]] | None = None
+
+_COUPLING_STANDARDS = ("stringent", "moderate", "lenient")
+
+
+def _check_standard(coupling_standard: str) -> str:
+    """Validate/normalise a ``coupling_standard`` value."""
+    s = coupling_standard.strip().lower()
+    if s not in _COUPLING_STANDARDS:
+        raise ValueError(
+            "coupling_standard must be one of "
+            f"{_COUPLING_STANDARDS}, got {coupling_standard!r}"
+        )
+    return s
 
 
 # ---------------------------------------------------------------------------
@@ -156,13 +172,134 @@ def _load_adm1_data() -> tuple[
     return frozenset(pairs), neighbors, country_map, metadata
 
 
+def _load_disputed_overlay() -> frozenset[frozenset[str]]:
+    """Load the de-facto ADM1 disputed-territory overlay pairs.
+
+    Reads ``disputed_overlay_pairs.csv`` (shipped beside the data) and returns
+    the set of ADM1 code pairs whose adjacency exists only under the de-facto
+    view; these are subtracted when ``de_facto_borders=False``.  Empty set if
+    the manifest is absent (older data) — both views then identical.
+    """
+    try:
+        data_pkg = resources.files("metacouplingllm") / "data"
+        path = Path(str(data_pkg / "disputed_overlay_pairs.csv"))
+    except (TypeError, ModuleNotFoundError):
+        return frozenset()
+    if not path.is_file():
+        return frozenset()
+    overlay: set[frozenset[str]] = set()
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            if row.get("level", "").strip() == "adm1":
+                overlay.add(
+                    frozenset({row["code_a"].strip(), row["code_b"].strip()})
+                )
+    return frozenset(overlay)
+
+
+def _load_water_separated() -> tuple[
+    frozenset[frozenset[str]], frozenset[frozenset[str]]
+]:
+    """Load water-separated ADM1 pairs for the ``coupling_standard`` filter.
+
+    Reads ``water_separated_pairs.csv`` (rows with ``level == "adm1"``): pairs
+    whose shared border is water only.  Returns ``(all_water, no_bridge)`` —
+    the second is the subset lacking an open fixed crossing.  Under
+    ``moderate`` the ``no_bridge`` set is subtracted from the (lenient) base;
+    under ``stringent`` the full ``all_water`` set is.  Empty sets if the
+    manifest is absent (older data) — all standards then identical.
+    """
+    try:
+        data_pkg = resources.files("metacouplingllm") / "data"
+        path = Path(str(data_pkg / "water_separated_pairs.csv"))
+    except (TypeError, ModuleNotFoundError):
+        return frozenset(), frozenset()
+    if not path.is_file():
+        return frozenset(), frozenset()
+    all_water: set[frozenset[str]] = set()
+    no_bridge: set[frozenset[str]] = set()
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            if row.get("level", "").strip() != "adm1":
+                continue
+            pair = frozenset({row["code_a"].strip(), row["code_b"].strip()})
+            all_water.add(pair)
+            if row.get("has_bridge", "").strip() != "True":
+                no_bridge.add(pair)
+    return frozenset(all_water), frozenset(no_bridge)
+
+
 def _ensure_loaded() -> None:
     """Lazily load and cache all ADM1 data."""
     global _adm1_pairs, _adm1_neighbors, _adm1_country, _adm1_metadata
+    global _adm1_disputed_overlay, _adm1_water_all, _adm1_water_nobridge
     if _adm1_pairs is None:
         _adm1_pairs, _adm1_neighbors, _adm1_country, _adm1_metadata = (
             _load_adm1_data()
         )
+    if _adm1_disputed_overlay is None:
+        _adm1_disputed_overlay = _load_disputed_overlay()
+    if _adm1_water_all is None:
+        _adm1_water_all, _adm1_water_nobridge = _load_water_separated()
+
+
+def _water_dropped(coupling_standard: str) -> frozenset[frozenset[str]]:
+    """Water-only pairs to subtract from the base under a coupling standard.
+
+    ``lenient`` keeps all water borders; ``moderate`` drops water-only pairs
+    with no open fixed crossing; ``stringent`` drops every water-only pair.
+    """
+    if coupling_standard == "stringent":
+        return _adm1_water_all or frozenset()
+    if coupling_standard == "moderate":
+        return _adm1_water_nobridge or frozenset()
+    return frozenset()
+
+
+def _pair_in_db(
+    pair: frozenset[str], de_facto_borders: bool, coupling_standard: str
+) -> bool:
+    """Whether a pair is adjacent under the requested view.
+
+    The shipped data is the de-facto / lenient view; the strict view subtracts
+    the disputed-territory overlay, and ``coupling_standard`` subtracts
+    water-separated pairs (see :func:`_water_dropped`).
+    """
+    assert _adm1_pairs is not None
+    if pair not in _adm1_pairs:
+        return False
+    if not de_facto_borders and _adm1_disputed_overlay:
+        if pair in _adm1_disputed_overlay:
+            return False
+    if pair in _water_dropped(coupling_standard):
+        return False
+    return True
+
+
+def _filter_neighbors(
+    code: str,
+    neighbors: set[str],
+    de_facto_borders: bool,
+    coupling_standard: str,
+) -> set[str]:
+    """Drop overlay (strict view) and water-separated (coupling standard) neighbours."""
+    overlay = (
+        _adm1_disputed_overlay
+        if (not de_facto_borders and _adm1_disputed_overlay)
+        else None
+    )
+    dropped = _water_dropped(coupling_standard)
+    if not overlay and not dropped:
+        return neighbors
+    result: set[str] = set()
+    for n in neighbors:
+        pair = frozenset({code, n})
+        if overlay and pair in overlay:
+            continue
+        if pair in dropped:
+            continue
+        result.add(n)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +310,8 @@ def _ensure_loaded() -> None:
 def lookup_adm1_pericoupling(
     adm1_a: str,
     adm1_b: str,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
 ) -> Adm1PericouplingResult:
     """Look up whether two ADM1 regions are pericoupled or telecoupled.
 
@@ -196,6 +335,7 @@ def lookup_adm1_pericoupling(
     True
     """
     _ensure_loaded()
+    coupling_standard = _check_standard(coupling_standard)
     assert _adm1_pairs is not None
     assert _adm1_country is not None
 
@@ -227,7 +367,7 @@ def lookup_adm1_pericoupling(
     cross_country = _adm1_country[adm1_a] != _adm1_country[adm1_b]
     pair = frozenset({adm1_a, adm1_b})
 
-    if pair in _adm1_pairs:
+    if _pair_in_db(pair, de_facto_borders, coupling_standard):
         return Adm1PericouplingResult(
             pair_type=Adm1PairType.PERICOUPLED,
             code_a=adm1_a,
@@ -245,7 +385,11 @@ def lookup_adm1_pericoupling(
     )
 
 
-def get_adm1_neighbors(adm1_code: str) -> set[str]:
+def get_adm1_neighbors(
+    adm1_code: str,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
+) -> set[str]:
     """Return all ADM1 codes adjacent to the given region.
 
     Includes both within-country and cross-border neighbors.
@@ -269,11 +413,20 @@ def get_adm1_neighbors(adm1_code: str) -> set[str]:
     True
     """
     _ensure_loaded()
+    coupling_standard = _check_standard(coupling_standard)
     assert _adm1_neighbors is not None
-    return set(_adm1_neighbors.get(adm1_code.strip(), set()))
+    code = adm1_code.strip()
+    return _filter_neighbors(
+        code, set(_adm1_neighbors.get(code, set())), de_facto_borders,
+        coupling_standard,
+    )
 
 
-def get_cross_border_neighbors(adm1_code: str) -> set[str]:
+def get_cross_border_neighbors(
+    adm1_code: str,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
+) -> set[str]:
     """Return ADM1 codes adjacent to the given region in *different* countries.
 
     Parameters
@@ -294,6 +447,7 @@ def get_cross_border_neighbors(adm1_code: str) -> set[str]:
     False
     """
     _ensure_loaded()
+    coupling_standard = _check_standard(coupling_standard)
     assert _adm1_neighbors is not None
     assert _adm1_country is not None
 
@@ -302,8 +456,12 @@ def get_cross_border_neighbors(adm1_code: str) -> set[str]:
         return set()
 
     focal_iso = _adm1_country[adm1_code]
+    candidates = _filter_neighbors(
+        adm1_code, set(_adm1_neighbors.get(adm1_code, set())), de_facto_borders,
+        coupling_standard,
+    )
     result: set[str] = set()
-    for neighbor in _adm1_neighbors.get(adm1_code, set()):
+    for neighbor in candidates:
         if _adm1_country.get(neighbor) != focal_iso:
             result.add(neighbor)
     return result
@@ -380,15 +538,25 @@ def get_adm1_info(adm1_code: str) -> dict[str, str] | None:
     return _adm1_metadata.get(adm1_code.strip())
 
 
-def is_adm1_pericoupled(adm1_a: str, adm1_b: str) -> bool | None:
+def is_adm1_pericoupled(
+    adm1_a: str,
+    adm1_b: str,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
+) -> bool | None:
     """Convenience function for quick ADM1 pericoupling checks.
 
     Returns
     -------
     ``True`` if the two regions share a border, ``False`` if they do
     not, ``None`` if one or both codes are not in the database.
+
+    See :func:`lookup_adm1_pericoupling` for ``de_facto_borders`` (default
+    ``True`` treats disputed land as part of its de-facto administrator).
     """
-    result = lookup_adm1_pericoupling(adm1_a, adm1_b)
+    result = lookup_adm1_pericoupling(
+        adm1_a, adm1_b, de_facto_borders, coupling_standard
+    )
     if result.pair_type == Adm1PairType.PERICOUPLED:
         return True
     if result.pair_type in (Adm1PairType.TELECOUPLED, Adm1PairType.SAME_REGION):
