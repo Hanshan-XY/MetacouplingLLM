@@ -1679,25 +1679,34 @@ Install: `pip install "metacouplingllm[indicators]"` (pulls in pandas).
 
 **Flow shares (per focal system *i*):**
 
-```
-IFS_i = F_iI / (F_iI + F_iP + F_iT)
-PFS_i = F_iP / (F_iI + F_iP + F_iT)
-TFS_i = F_iT / (F_iI + F_iP + F_iT)
-```
+$$
+\begin{aligned}
+\mathrm{IFS}_i &= \frac{F_{iI}}{F_{iI} + F_{iP} + F_{iT}}, \\
+\mathrm{PFS}_i &= \frac{F_{iP}}{F_{iI} + F_{iP} + F_{iT}}, \\
+\mathrm{TFS}_i &= \frac{F_{iT}}{F_{iI} + F_{iP} + F_{iT}}
+\end{aligned}
+$$
 
-**MFE** (Shannon 1948 evenness, normalised to [0, 1]):
+where $F_{iI}$, $F_{iP}$, $F_{iT}$ are system $i$'s intra-, peri-, and telecoupled flow magnitudes.
 
-```
-MFE_i = -Σ_c (s_c · ln s_c) / ln 3        where s_c ∈ {IFS_i, PFS_i, TFS_i}
-```
+**MFE** — Metacoupling Flow Evenness (Shannon 1948 entropy, normalised to $[0, 1]$):
 
-**MFCI** (normalised HHI per Cracau & Lima 2016, per coupling type *c*):
+$$
+\mathrm{MFE}_i = -\frac{1}{\ln 3} \sum_{c \,\in\, \{I,\, P,\, T\}} s_c \ln s_c,
+\qquad s_c \in \{\mathrm{IFS}_i,\ \mathrm{PFS}_i,\ \mathrm{TFS}_i\}
+$$
 
-```
-HHI_ic     = Σ_j (f_ij^c / F_i^c)^2
-MFCI_ic    = (HHI_ic - 1/n_ic) / (1 - 1/n_ic)        n_ic = #partners
-ENP_ic     = 1 / HHI_ic                              equivalent #partners
-```
+**MFCI** — Metacoupling Flow Concentration Index (normalised HHI per Cracau & Lima 2016, per coupling type *c*):
+
+$$
+\mathrm{HHI}_{ic} = \sum_j \left( \frac{f_{ij}^{c}}{F_i^{c}} \right)^{2},
+\qquad
+\mathrm{MFCI}_{ic} = \frac{\mathrm{HHI}_{ic} - 1/n_{ic}}{1 - 1/n_{ic}},
+\qquad
+\mathrm{ENP}_{ic} = \frac{1}{\mathrm{HHI}_{ic}}
+$$
+
+where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_i^{c} = \sum_j f_{ij}^{c}$, $n_{ic}$ is the number of partners, and ENP is the equivalent number of partners.
 
 Produces `IFCI` / `PFCI` / `TFCI` columns plus `ENP_I` / `ENP_P` /
 `ENP_T`.
