@@ -54,6 +54,7 @@ import geopandas as gpd
 import pandas as pd
 from pyproj import Geod
 from shapely import STRtree
+from shapely.geometry import LineString
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -70,22 +71,105 @@ LAKE_SHORE_BUFFER_DEG = 1e-3  # ~110 m: treat shared border within this of a
 
 _GEOD = Geod(ellps="WGS84")
 
-# ADM0 disputed-border allowlist (PR #50).  The standard 264-unit WB ADM0
-# layer excludes the NDLSA disputed-areas layer, which drops a few real,
-# well-established international land borders that run through contested
-# tracts.  Rather than fold the overlapping NDLSA polygons in (non-standard
-# ISO codes, double-counting), we re-add these specific pairs explicitly.
-# Each entry is a frozenset of ISO-3 codes.  Verified missing-in-new /
-# present-in-old and confirmed as genuine land borders:
-#   CHN/PAK — Khunjerab Pass / Gilgit-Baltistan (Kashmir)
-#   ISR/SYR — Golan Heights
-# (India already retains the Kashmir geometry, so IND/PAK and IND/CHN are
-# present without a patch; ARE/QAT is correctly absent — no shared land
-# border; Western Sahara ESH/* pairs are superseded by Morocco's borders.)
-_ADM0_DISPUTED_ALLOWLIST: set[frozenset[str]] = {
-    frozenset({"CHN", "PAK"}),
-    frozenset({"ISR", "SYR"}),
+# De-facto administrator map for the NDLSA disputed-areas tracts.
+#
+# The standard WB ADM0 (264-unit) and ADM1 (3,591-unit) layers EXCLUDE the
+# 24-feature NDLSA disputed-areas layer, carving each contested tract out of
+# *both* neighbours and opening a gap — so the flanking units are recorded as
+# non-adjacent even where they meet across the de-facto line of control.  The
+# de-facto view (default) re-adds those borders by folding each tract into its
+# de-facto administering country; the resulting overlay pairs are *derived from
+# geometry* by ``derive_disputed_overlay`` (not hand-listed), so a mis-labelled
+# tract fails loudly instead of silently dropping a pair.
+#
+# IMPORTANT — these tract→administrator assignments are AUTHORED.  The NDLSA
+# layer carries NO administering-country field (``SOVEREIGN`` is null for all 24
+# tracts; ``WB_STATUS`` is uniformly "Non-determined legal status area"), so each
+# mapping reflects *de-facto control* for a connectivity dataset and is NOT a
+# legal or endorsed sovereignty claim.  ``None`` = no single de-facto
+# administrator (islands, no-man's-lands, UN zones); such tracts are not folded.
+# Keyed by the tract's ``NAM_0`` (note "Kauirik" carries a stray newline in the
+# source, normalised on load).
+_NDLSA_TRACT_ADMIN: dict[str, str | None] = {
+    # India–China LoAC tracts (already-adjacent ISO pair → produce no new pair):
+    "Aksai Chin": "CHN", "Kauirik": "CHN", "Lapthal": "CHN", "Shipki Pass": "CHN",
+    "Chumar East": "IND", "Chumar West": "IND", "Demchok": "IND",
+    "Jadh Ganga Valley": "IND", "Arunachal Pradesh": "IND",
+    "Jammu and Kashmir": "IND", "Kalapani": "IND", "Doklam": "BTN",
+    # Pair-producing tracts (sole land link between the two flanking countries):
+    "Gilgit Baltistan": "PAK", "Karakoram Range": "PAK",   # → CHN/PAK
+    "Golan Heights": "ISR", "Shebaa Farms Dispute": "ISR",  # → ISR/SYR
+    "Western Sahara": "MAR",                                # → MAR/MRT
+    # Ilemi Triangle: de-facto Kenya, but Kenya and South Sudan ALREADY share an
+    # ~80 km border in the standard layer (SW of the tract), so folding it adds
+    # no new pair — only lengthens an existing border. Left assigned to KEN; the
+    # geometric derivation correctly emits no overlay pair for it.
+    "Ilemi Triangle": "KEN",
+    # No single de-facto administrator → not folded:
+    "Abyei": None, "No Man's Land": None, "UN Buffer Zone": None,
+    "British Indian Ocean Territory": None,
+    "South Georgia and South Sandwich Islands": None, "Falkland Islands": None,
 }
+
+# De-facto administering ADM1 PROVINCE(s) per tract, for the subnational overlay.
+# Authored (same neutral-framing caveat as _NDLSA_TRACT_ADMIN above) and
+# GEOMETRY-VALIDATED: derive_disputed_overlay raises if a listed province does
+# not touch its tract.  A tract may list SEVERAL provinces — a large tract spans
+# more than one (e.g. Western Sahara) — and the tract↔neighbour frontier is split
+# among them by nearest province.  An EMPTY list means the de-facto administering
+# sub-unit is NOT a WB ADM1 province and the relationship is carried at ADM0 only:
+# Gilgit-Baltistan and Ladakh/Jammu & Kashmir are disputed territories EXCLUDED
+# from WB's standard layer, not provinces (verified — Pakistan has only 5 WB ADM1
+# units: Balochistan, Federal Capital Territory, Khyber Pakhtunkhwa, Punjab,
+# Sindh; none is Gilgit-Baltistan), so attributing them to the nearest province
+# (Khyber Pakhtunkhwa / Himachal Pradesh) would be geographically false.  Tracts
+# whose flanking provinces are ALREADY adjacent in the strict layer are listed
+# too (completeness/auditability); the geometric derivation emits no row for them.
+# Every non-None _NDLSA_TRACT_ADMIN tract MUST appear here (completeness guard).
+_NDLSA_TRACT_ADM1: dict[str, list[str]] = {
+    # Pair-producing — the tract is the sole subnational land link:
+    "Golan Heights": ["ISR004"],          # Northern District administers the Golan
+    "Shebaa Farms Dispute": ["ISR004"],
+    "Arunachal Pradesh": ["IND003"],      # the state itself — NOT Assam (which is
+                                          # merely the nearest non-tract polygon)
+    "Doklam": ["BTN005"],                 # Haa Dzongkhag
+    "Western Sahara": ["MAR005", "MAR007"],  # Guelmim-Oued Noun + Laâyoune-Sakia
+                                          # al Hamra (Moroccan "Southern Provinces")
+    # Already-adjacent flanks (no new overlay row — listed for completeness):
+    "Aksai Chin": ["CHN029", "CHN028"], "Kauirik": ["CHN029"],
+    "Lapthal": ["CHN029"], "Shipki Pass": ["CHN029"],
+    "Jadh Ganga Valley": ["IND035", "IND014"], "Kalapani": ["IND035"],
+    "Ilemi Triangle": ["KEN043"],
+    # De-facto admin sub-unit is NOT a WB ADM1 province → ADM0-only (empty):
+    "Gilgit Baltistan": [], "Karakoram Range": [],
+    "Jammu and Kashmir": [], "Chumar East": [], "Chumar West": [], "Demchok": [],
+}
+
+# Frontier-sampling step (~1.1 km at the equator) used to split a tract↔neighbour
+# border among the authored admin provinces by nearest province (ADM1 overlay).
+_ADM1_SAMPLE_DEG = 0.01
+
+# ADM1 false-positive denylist.  The snapping tolerance (SNAP_TOL_DEG) bridges
+# sub-tolerance gaps between independently-digitised polygons, which is correct
+# for genuine borders drawn with a small cross-source offset but occasionally
+# fabricates an edge between two units that do not actually share a frontier.
+# These pairs were manually verified (against imagery) to be NON-adjacent — the
+# polygons are separated by a gap the tolerance spuriously closes — and are
+# removed from the ADM1 edge list.  Each entry is a frozenset of ADM1CD_c codes.
+# Verified not-adjacent:
+#   MLT002/MLT019 — Balzan / Iklin (Malta): ~31 m apart, no shared frontier.
+_ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
+    frozenset({"MLT002", "MLT019"}),
+}
+
+# Populated by ``derive_disputed_overlay`` (geometry-derived from the NDLSA
+# tracts + _NDLSA_TRACT_ADMIN).  _ADM0_DISPUTED_ALLOWLIST: set of ISO frozensets
+# re-added to the ADM0 matrix; _ADM1_DISPUTED_OVERLAY: list of full ADM1 edge
+# rows appended to the edge list; _DISPUTED_OVERLAY_MANIFEST: the shipped sidecar
+# rows (both levels).  Empty until derive_disputed_overlay() runs.
+_ADM0_DISPUTED_ALLOWLIST: set[frozenset[str]] = set()
+_ADM1_DISPUTED_OVERLAY: list[dict] = []
+_DISPUTED_OVERLAY_MANIFEST: list[dict] = []
 
 # Natural Earth 10m downloads (used only when --ne-cache has no local copy)
 _NE_LAKES_URL = (
@@ -305,17 +389,18 @@ def build_edges(
 # Writers
 # ---------------------------------------------------------------------------
 
-def write_adm1_csv(edges: list[dict], out_path: Path) -> None:
+def write_adm1_csv(edges: list[dict], out_path: Path,
+                   de_facto_borders: bool = True) -> None:
     cols = [
         "ADM1_code_A", "ADM1_name_A", "country_A", "ISO_A3_A", "WB_region_A",
         "ADM1_code_B", "ADM1_name_B", "country_B", "ISO_A3_B", "WB_region_B",
         "cross_country", "border_length_km", "narrow_border",
         "potential_artifact",
     ]
-    rows = []
-    for e in edges:
+
+    def _row_from_edge(e: dict) -> dict:
         km = e["border_length_km"]
-        rows.append({
+        return {
             "ADM1_code_A": e["code_a"], "ADM1_name_A": e["name_a"],
             "country_A": e["country_a"], "ISO_A3_A": e["iso_a"],
             "WB_region_A": e["wb_a"],
@@ -326,13 +411,241 @@ def write_adm1_csv(edges: list[dict], out_path: Path) -> None:
             "border_length_km": km,
             "narrow_border": km < NARROW_KM,
             "potential_artifact": km < ARTIFACT_KM,
-        })
+        }
+
+    rows = []
+    dropped = 0
+    for e in edges:
+        if frozenset({e["code_a"], e["code_b"]}) in _ADM1_FALSE_POSITIVE_DENYLIST:
+            dropped += 1
+            continue
+        rows.append(_row_from_edge(e))
+
+    # De-facto disputed-territory overlay (default).  Re-adds the ADM1 borders
+    # that the NDLSA-exclusion opened a gap across; omitted for the strict
+    # standard-layer view.  See _ADM1_DISPUTED_OVERLAY for the authored
+    # attribution caveat.
+    overlay_added = 0
+    if de_facto_borders:
+        present = {frozenset({r["ADM1_code_A"], r["ADM1_code_B"]}) for r in rows}
+        for e in _ADM1_DISPUTED_OVERLAY:
+            if frozenset({e["code_a"], e["code_b"]}) in present:
+                continue
+            rows.append(_row_from_edge(e))
+            overlay_added += 1
+
     rows.sort(key=lambda r: (r["ADM1_code_A"], r["ADM1_code_B"]))
     with open(out_path, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
         w.writeheader()
         w.writerows(rows)
-    log(f"  wrote {out_path} ({len(rows)} edges)")
+    log(f"  wrote {out_path} ({len(rows)} edges; "
+        f"{dropped} false-positive edge(s) dropped; "
+        f"{overlay_added} de-facto overlay edge(s) added)")
+
+
+def _norm(s: object) -> str:
+    """Normalise a tract name (the source has stray newlines, e.g. 'Kauirik')."""
+    return " ".join(str(s).split())
+
+
+def derive_disputed_overlay(
+    a0: gpd.GeoDataFrame,
+    a1: gpd.GeoDataFrame,
+    ndlsa: gpd.GeoDataFrame,
+) -> None:
+    """Derive the de-facto disputed-territory overlay from geometry.
+
+    For each NDLSA tract with an assigned de-facto administrator
+    (``_NDLSA_TRACT_ADMIN``), fold the tract into that administrator's polygon
+    and re-measure adjacency.  A pair is added to the overlay only when the two
+    flanking units are NON-adjacent in the strict layer but adjacent after the
+    fold (i.e. the tract is their sole land link) — this automatically excludes
+    already-adjacent ISO pairs and multi-claimant artifacts.
+
+    Populates the module globals ``_ADM0_DISPUTED_ALLOWLIST`` (ISO pairs),
+    ``_ADM1_DISPUTED_OVERLAY`` (full ADM1 edge rows) and
+    ``_DISPUTED_OVERLAY_MANIFEST`` (sidecar rows, both levels).
+
+    Validation: every assigned tract must touch (within SNAP_TOL of) at least
+    one polygon of its administrator at the level being processed; a tract that
+    touches NONE of its administrator's geometry raises ``ValueError`` (this is
+    the guard that makes a mis-labelled tract fail loudly instead of silently
+    dropping a pair).
+    """
+    global _ADM0_DISPUTED_ALLOWLIST, _ADM1_DISPUTED_OVERLAY
+    global _DISPUTED_OVERLAY_MANIFEST
+
+    # tract geometry + admin, keyed by normalised name
+    tracts: dict[str, BaseGeometry] = {}
+    for _, row in ndlsa.iterrows():
+        tracts[_norm(row["NAM_0"])] = row.geometry
+    # admin -> [tract names]
+    admin_tracts: dict[str, list[str]] = {}
+    for name, adm in _NDLSA_TRACT_ADMIN.items():
+        if adm is None:
+            continue
+        if name not in tracts:
+            raise ValueError(f"NDLSA admin map names unknown tract: {name!r}")
+        admin_tracts.setdefault(adm, []).append(name)
+
+    def _union_iso(gdf, iso):
+        sub = gdf[gdf["ISO_A3"] == iso]
+        return unary_union(list(sub.geometry)) if len(sub) else None
+
+    def _shared_km(a, b):
+        sh = _shared_border(a, b)
+        return _geodesic_km(sh) if (sh is not None and not sh.is_empty) else 0.0
+
+    adm0_pairs: set[frozenset[str]] = set()
+    adm1_rows: list[dict] = []
+    manifest: list[dict] = []
+    tract_label = {  # de-facto admin -> human tract list for the manifest
+        adm: "; ".join(sorted(names)) for adm, names in admin_tracts.items()
+    }
+
+    for adm, names in sorted(admin_tracts.items()):
+        adm_geom0 = _union_iso(a0, adm)
+        if adm_geom0 is None:
+            continue
+        merged = unary_union([adm_geom0] + [tracts[n] for n in names])
+        # validation: at least one tract must touch this admin's polygon
+        if not any(adm_geom0.distance(tracts[n]) <= SNAP_TOL_DEG for n in names):
+            raise ValueError(
+                f"NDLSA validation: no tract of admin {adm} ({names}) touches "
+                f"its ADM0 polygon — check _NDLSA_TRACT_ADMIN"
+            )
+        # which OTHER ISO becomes newly adjacent?
+        for other in sorted(set(a0["ISO_A3"]) - {adm}):
+            og = _union_iso(a0, other)
+            if og is None:
+                continue
+            if _shared_km(adm_geom0, og) > 0:
+                continue  # already adjacent in strict layer
+            km0 = _shared_km(merged, og)
+            if km0 <= 0:
+                continue
+            adm0_pairs.add(frozenset({adm, other}))
+            a_name = a0[a0["ISO_A3"] == adm]["NAM_0"].iloc[0]
+            o_name = a0[a0["ISO_A3"] == other]["NAM_0"].iloc[0]
+            manifest.append({
+                "level": "adm0", "code_a": adm, "name_a": a_name, "iso_a": adm,
+                "code_b": other, "name_b": o_name, "iso_b": other,
+                "defacto_admin_iso": adm, "tracts": tract_label[adm],
+                "defacto_border_km": round(km0, 1),
+            })
+    # ---- ADM1 overlay: authored de-facto admin province(s) per tract ----
+    # Country-level adjacency (ADM0, above) cannot stand in for province-level
+    # adjacency: two countries adjacent elsewhere can still have their flanking
+    # PROVINCES meet only across a disputed tract.  So the ADM1 overlay is
+    # derived independently from an authored, geometry-validated tract->province
+    # map.  Completeness guard: every folded tract must carry an assignment.
+    for _nm, _adm in _NDLSA_TRACT_ADMIN.items():
+        if _adm is not None and _nm not in _NDLSA_TRACT_ADM1:
+            raise ValueError(f"_NDLSA_TRACT_ADM1 is missing tract {_nm!r}")
+    a1g = list(a1.geometry)
+    a1code = list(a1["ADM1CD_c"]); a1iso = list(a1["ISO_A3"])
+    a1name = list(a1["NAM_1"]); a1ctry = list(a1["NAM_0"]); a1reg = list(a1["WB_REGION"])
+    code2i = {c: i for i, c in enumerate(a1code)}
+    a1tree = STRtree(a1g)
+
+    def _attribute(seg, ap_idx):
+        """Credit each ~1 km of `seg` to the nearest authored province index."""
+        acc: dict[int, float] = {}
+        sub = STRtree([a1g[i] for i in ap_idx])
+        parts = list(seg.geoms) if seg.geom_type == "MultiLineString" else [seg]
+        for ln in parts:
+            if ln.length == 0:
+                continue
+            steps = max(1, int(ln.length / _ADM1_SAMPLE_DEG))
+            prev = ln.interpolate(0.0, normalized=True)
+            for k in range(1, steps + 1):
+                cur = ln.interpolate(k / steps, normalized=True)
+                mid = LineString([prev, cur]).interpolate(0.5, normalized=True)
+                owner = ap_idx[int(sub.nearest(mid))]
+                acc[owner] = acc.get(owner, 0.0) + _geodesic_km(LineString([prev, cur]))
+                prev = cur
+        return acc
+
+    adm1_acc: dict[tuple[str, str], float] = {}
+    adm1_src: dict[tuple[str, str], set[str]] = {}
+    adm1_owner: dict[tuple[str, str], tuple[int, int]] = {}
+    for tname, provs in _NDLSA_TRACT_ADM1.items():
+        if not provs:
+            continue  # de-facto admin sub-unit is not a WB province -> ADM0-only
+        T = tracts[tname]
+        ap_idx: list[int] = []
+        for c in provs:
+            if c not in code2i:
+                raise ValueError(f"_NDLSA_TRACT_ADM1[{tname!r}]: unknown ADM1 code {c!r}")
+            gi = code2i[c]
+            if a1g[gi].distance(T) > SNAP_TOL_DEG:
+                raise ValueError(
+                    f"_NDLSA_TRACT_ADM1 validation: {c} does not touch tract {tname!r}"
+                )
+            ap_idx.append(gi)
+        adm_isos = {a1iso[i] for i in ap_idx}
+        for jx in a1tree.query(T.buffer(SNAP_TOL_DEG)):
+            oi = int(jx)
+            if a1iso[oi] in adm_isos or a1g[oi].distance(T) > SNAP_TOL_DEG:
+                continue
+            seg = _shared_border(T, a1g[oi])
+            if seg is None or seg.is_empty:
+                continue
+            for owner, kmv in _attribute(seg, ap_idx).items():
+                if kmv <= 0:
+                    continue
+                # NEW pairs only: the two provinces are non-adjacent in strict
+                if _shared_km(a1g[owner], a1g[oi]) > 0:
+                    continue
+                key = (a1code[owner], a1code[oi])
+                adm1_acc[key] = adm1_acc.get(key, 0.0) + kmv
+                adm1_src.setdefault(key, set()).add(tname)
+                adm1_owner[key] = (owner, oi)
+    for key, kmv in adm1_acc.items():
+        owner, oi = adm1_owner[key]
+        kmv = round(kmv, 1)
+        adm1_rows.append({
+            "code_a": a1code[owner], "name_a": a1name[owner],
+            "country_a": a1ctry[owner], "iso_a": a1iso[owner], "wb_a": a1reg[owner],
+            "code_b": a1code[oi], "name_b": a1name[oi],
+            "country_b": a1ctry[oi], "iso_b": a1iso[oi], "wb_b": a1reg[oi],
+            "border_length_km": kmv,
+        })
+        manifest.append({
+            "level": "adm1", "code_a": a1code[owner], "name_a": a1name[owner],
+            "iso_a": a1iso[owner], "code_b": a1code[oi], "name_b": a1name[oi],
+            "iso_b": a1iso[oi], "defacto_admin_iso": a1iso[owner],
+            "tracts": "; ".join(sorted(adm1_src[key])),
+            "defacto_border_km": kmv,
+        })
+
+    _ADM0_DISPUTED_ALLOWLIST = adm0_pairs
+    _ADM1_DISPUTED_OVERLAY = adm1_rows
+    # stable sort: adm0 rows first, then adm1, each by code_a/code_b
+    manifest.sort(key=lambda r: (r["level"], r["code_a"], r["code_b"]))
+    _DISPUTED_OVERLAY_MANIFEST = manifest
+    log(f"  derived disputed overlay: {len(adm0_pairs)} ADM0 pairs, "
+        f"{len(adm1_rows)} ADM1 pairs")
+
+
+def write_disputed_overlay_manifest(out_path: Path) -> None:
+    """Write the shipped sidecar listing the de-facto disputed-territory pairs.
+
+    This documents the authored ADM0 + ADM1 overlay pairs (the user's manual-
+    verification artifact) and is also read at runtime to subtract the overlay
+    for the strict (``de_facto_borders=False``) view.
+    """
+    cols = [
+        "level", "code_a", "name_a", "iso_a", "code_b", "name_b", "iso_b",
+        "defacto_admin_iso", "tracts", "defacto_border_km",
+    ]
+    with open(out_path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=cols)
+        w.writeheader()
+        for r in _DISPUTED_OVERLAY_MANIFEST:
+            w.writerow({c: r.get(c, "") for c in cols})
+    log(f"  wrote {out_path} ({len(_DISPUTED_OVERLAY_MANIFEST)} overlay pairs)")
 
 
 def write_adm0_matrix(
@@ -364,6 +677,69 @@ def write_adm0_matrix(
         f"{len(adj)} adjacent pairs)")
 
 
+def write_water_separated_manifest(
+    bridge_csv: Path, edge_list_path: Path, out_path: Path
+) -> None:
+    """Write the water-separated manifest (``coupling_standard`` filter source).
+
+    ``bridge_csv`` is the curated, web+geometry-verified ADM1 bridge
+    classification (water-only pairs with ``has_bridge``) — a *reviewed static
+    artifact* produced by the bridge-classification pipeline and NOT regenerated
+    here (it embeds web + manual verification; see
+    ``docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md``).  Only the ADM0 roll-up is
+    computed: a country pair is water-only iff *all* its ADM1 crossings (from
+    ``edge_list_path``) are water-only, and has a bridge iff *any* does.
+    """
+    import collections
+
+    water_all: set[frozenset[str]] = set()
+    has_b: dict[frozenset[str], bool] = {}
+    adm1_rows: list[tuple[str, str, str, str, str]] = []
+    with open(bridge_csv, newline="", encoding="utf-8-sig") as fh:
+        for r in csv.DictReader(fh):
+            ca, cb = r["code_a"].strip(), r["code_b"].strip()
+            br = "True" if str(r["has_bridge"]).strip() == "True" else "False"
+            pair = frozenset({ca, cb})
+            water_all.add(pair)
+            has_b[pair] = br == "True"
+            adm1_rows.append(
+                (ca, cb, br, r.get("water_type", ""), r.get("water_body", ""))
+            )
+
+    edges: set[frozenset[str]] = set()
+    iso: dict[str, str] = {}
+    with open(edge_list_path, newline="", encoding="utf-8-sig") as fh:
+        for r in csv.DictReader(fh):
+            a, b = r["ADM1_code_A"].strip(), r["ADM1_code_B"].strip()
+            edges.add(frozenset({a, b}))
+            iso[a] = r["ISO_A3_A"].strip()
+            iso[b] = r["ISO_A3_B"].strip()
+    by_country: dict[frozenset[str], list] = collections.defaultdict(list)
+    for e in edges:
+        a, b = tuple(e)
+        ia, ib = iso.get(a), iso.get(b)
+        if ia and ib and ia != ib:
+            by_country[frozenset({ia, ib})].append(e)
+    adm0_rows: list[tuple[str, str, str]] = []
+    for ctypair, crossings in by_country.items():
+        if all(c in water_all for c in crossings):
+            ia, ib = sorted(ctypair)
+            anyb = "True" if any(has_b.get(c, False) for c in crossings) else "False"
+            adm0_rows.append((ia, ib, anyb))
+
+    cols = ["level", "code_a", "code_b", "has_bridge",
+            "water_type", "water_body", "note"]
+    with open(out_path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(cols)
+        for ca, cb, br, wt, wb in adm1_rows:
+            w.writerow(["adm1", ca, cb, br, wt, wb, ""])
+        for ia, ib, br in sorted(adm0_rows):
+            w.writerow(["adm0", ia, ib, br, "", "", "adm1-rollup"])
+    log(f"  wrote {out_path} ({len(adm1_rows)} adm1 + "
+        f"{len(adm0_rows)} adm0 water-separated pairs)")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -376,6 +752,12 @@ def main() -> int:
     ap.add_argument("--adm1-layer", default="WB_GAD_ADM1")
     ap.add_argument("--adm0-layer", default="WB_GAD_ADM0")
     ap.add_argument("--ocean-layer", default="WB_GAD_ocean_mask")
+    ap.add_argument("--ndlsa-gpkg",
+                    help="NDLSA disputed-areas GeoPackage. If given, the de-facto "
+                         "disputed-territory overlay is derived from geometry "
+                         "(default view); if omitted, no overlay is applied "
+                         "(strict standard-layer build).")
+    ap.add_argument("--ndlsa-layer", default="WB_GAD_ADM0_NDLSA")
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--ne-cache", default="build_data/naturalearth")
     ap.add_argument("--skip-ne", action="store_true",
@@ -389,6 +771,10 @@ def main() -> int:
                          "(islands isolate, no maritime adjacencies), and the "
                          "clip is the build's main bottleneck.")
     ap.add_argument("--levels", default="adm0,adm1")
+    ap.add_argument("--bridge-csv", default=None,
+                    help="curated ADM1 bridge classification CSV; if given, "
+                         "writes water_separated_pairs.csv (coupling_standard "
+                         "source). See docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -418,6 +804,23 @@ def main() -> int:
             g = _clip_to_land(g, ocean)
         return g
 
+    # Derive the de-facto disputed-territory overlay from geometry (before the
+    # writers, which consume the module-level overlay globals).  Needs the
+    # unclipped ADM0 + ADM1 polygons + the NDLSA tracts.  Skipped (strict build)
+    # if --ndlsa-gpkg is not supplied.
+    if args.ndlsa_gpkg:
+        log("=== disputed overlay (de-facto) ===")
+        a0_raw = _make_valid(
+            gpd.read_file(args.adm0_gpkg, layer=args.adm0_layer).to_crs(4326)
+        )
+        a1_raw = _make_valid(
+            gpd.read_file(args.adm1_gpkg, layer=args.adm1_layer).to_crs(4326)
+        )
+        ndlsa = _make_valid(
+            gpd.read_file(args.ndlsa_gpkg, layer=args.ndlsa_layer).to_crs(4326)
+        )
+        derive_disputed_overlay(a0_raw, a1_raw, ndlsa)
+
     if "adm1" in levels:
         log("=== ADM1 ===")
         a1 = _prep(args.adm1_gpkg, args.adm1_layer)
@@ -430,6 +833,21 @@ def main() -> int:
         e0 = build_edges(a0, "ISO_A3", lakes_gdf, rivers_gdf)
         write_adm0_matrix(
             e0, list(a0["ISO_A3"]), out_dir / "PeriTelecoupling_clean.csv"
+        )
+
+    # Shipped manifest of the de-facto disputed-territory overlay pairs
+    # (verification artifact + runtime strict-mode subtraction source).
+    write_disputed_overlay_manifest(out_dir / "disputed_overlay_pairs.csv")
+
+    # Shipped water-separated manifest (coupling_standard filter source).  The
+    # ADM1 bridge data is a reviewed static artifact (web+geometry verified);
+    # only the ADM0 roll-up is computed here.  See
+    # docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md.
+    if args.bridge_csv:
+        write_water_separated_manifest(
+            Path(args.bridge_csv),
+            out_dir / "pericoupled_adm1_edge_list.csv",
+            out_dir / "water_separated_pairs.csv",
         )
 
     log("done")

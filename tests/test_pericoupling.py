@@ -124,3 +124,102 @@ class TestAvocadoTradeScenario:
 
     def test_canada_us_pericoupled(self):
         assert is_pericoupled("Canada", "United States") is True
+
+
+class TestDeFactoBorders:
+    """The de_facto_borders toggle for disputed-territory pairs (ADM0)."""
+
+    def test_disputed_pairs_present_by_default(self):
+        # Default (de-facto) view: disputed land folded into de-facto admin.
+        assert is_pericoupled("China", "Pakistan") is True       # Kashmir LoC
+        assert is_pericoupled("Israel", "Syria") is True         # Golan
+        assert is_pericoupled("Morocco", "Mauritania") is True   # Western Sahara
+
+    def test_disputed_pairs_absent_in_strict_view(self):
+        assert (
+            is_pericoupled("China", "Pakistan", de_facto_borders=False) is False
+        )
+        assert (
+            is_pericoupled("Israel", "Syria", de_facto_borders=False) is False
+        )
+        assert (
+            is_pericoupled("Morocco", "Mauritania", de_facto_borders=False)
+            is False
+        )
+
+    def test_undisputed_pairs_unaffected_by_toggle(self):
+        # A normal land border is identical in both views.
+        assert is_pericoupled("Mexico", "United States") is True
+        assert (
+            is_pericoupled("Mexico", "United States", de_facto_borders=False)
+            is True
+        )
+
+    def test_already_adjacent_pair_stays_in_strict_view(self):
+        # Kenya and South Sudan already share a land border (SW of the Ilemi
+        # Triangle), so they are a BASE pair present in BOTH views — folding
+        # Ilemi adds no new pair.
+        assert is_pericoupled("Kenya", "South Sudan") is True
+        assert (
+            is_pericoupled("Kenya", "South Sudan", de_facto_borders=False)
+            is True
+        )
+
+    def test_strict_view_removes_only_overlay_pairs(self):
+        defacto = _get_pairs(de_facto_borders=True)
+        strict = _get_pairs(de_facto_borders=False)
+        removed = defacto - strict
+        assert removed == {
+            frozenset({"CHN", "PAK"}),
+            frozenset({"ISR", "SYR"}),
+            frozenset({"MAR", "MRT"}),
+        }
+
+
+class TestCouplingStandardAdm0:
+    """The coupling_standard toggle for water-separated country pairs (ADM0)."""
+
+    def test_no_bridge_country_pair_dropped_under_moderate(self):
+        # DR Congo <-> Central African Republic share only river borders with no
+        # fixed crossing -> dropped under moderate/stringent, kept under lenient.
+        assert is_pericoupled("COD", "CAF", coupling_standard="lenient") is True
+        assert is_pericoupled("COD", "CAF", coupling_standard="moderate") is False
+        assert (
+            is_pericoupled("COD", "CAF", coupling_standard="stringent") is False
+        )
+
+    def test_default_standard_is_moderate(self):
+        # No coupling_standard argument == moderate.
+        assert is_pericoupled("COD", "CAF") is False
+        assert is_pericoupled("SEN", "MRT") is False
+
+    def test_bridge_country_pair_kept_under_moderate(self):
+        # Romania <-> Moldova: water border with fixed crossings.
+        assert is_pericoupled("ROU", "MDA", coupling_standard="lenient") is True
+        assert is_pericoupled("ROU", "MDA", coupling_standard="moderate") is True
+        assert (
+            is_pericoupled("ROU", "MDA", coupling_standard="stringent") is False
+        )
+
+    def test_land_pair_unaffected_by_standard(self):
+        for s in ("lenient", "moderate", "stringent"):
+            assert (
+                is_pericoupled("Mexico", "United States", coupling_standard=s)
+                is True
+            )
+
+    def test_invalid_standard_raises(self):
+        import pytest
+        with pytest.raises(ValueError):
+            is_pericoupled("COD", "CAF", coupling_standard="loose")
+
+    def test_standard_view_sizes(self):
+        lenient = _get_pairs(coupling_standard="lenient")
+        moderate = _get_pairs(coupling_standard="moderate")
+        stringent = _get_pairs(coupling_standard="stringent")
+        # moderate drops the 3 no-bridge water-only country pairs; stringent
+        # drops all 18 water-only country pairs.
+        assert len(lenient) - len(moderate) == 3
+        assert len(lenient) - len(stringent) == 18
+        assert frozenset({"COD", "CAF"}) in lenient
+        assert frozenset({"COD", "CAF"}) not in moderate

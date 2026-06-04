@@ -1,0 +1,17 @@
+level,code_a,name_a,iso_a,code_b,name_b,iso_b,defacto_admin_iso,tracts,defacto_border_km
+adm0,ISR,Israel,ISR,SYR,Syrian Arab Republic,SYR,ISR,Golan Heights; Shebaa Farms Dispute,79.1
+adm0,MAR,Morocco,MAR,MRT,Mauritania,MRT,MAR,Western Sahara,1543.6
+adm0,PAK,Pakistan,PAK,CHN,China,CHN,PAK,Gilgit Baltistan; Karakoram Range,491.2
+adm1,BTN005,Haa,BTN,CHN029,Xizang Zizhiqu,CHN,BTN,Doklam,61.7
+adm1,BTN005,Haa,BTN,IND030,Sikkim,IND,BTN,Doklam,6.6
+adm1,IND003,Arunachal Pradesh,IND,BTN011,Samdrupjongkhar,BTN,IND,Arunachal Pradesh,40.8
+adm1,IND003,Arunachal Pradesh,IND,BTN015,Trashigang,BTN,IND,Arunachal Pradesh,83.4
+adm1,IND003,Arunachal Pradesh,IND,BTN016,Trashiyangtse,BTN,IND,Arunachal Pradesh,85.6
+adm1,IND003,Arunachal Pradesh,IND,CHN029,Xizang Zizhiqu,CHN,IND,Arunachal Pradesh,993.4
+adm1,ISR004,Northern,ISR,LBN004,Bekaa,LBN,ISR,Golan Heights,0.4
+adm1,ISR004,Northern,ISR,SYR006,Dar`ā,SYR,ISR,Golan Heights,4.8
+adm1,ISR004,Northern,ISR,SYR012,Quneitra,SYR,ISR,Golan Heights,74.2
+adm1,MAR005,Guelmim-Oued Noun,MAR,MRT012,Tiris-Zemmou,MRT,MAR,Western Sahara,286.5
+adm1,MAR007,Laâyoune-Sakia al Hamra,MAR,MRT001,Adrar,MRT,MAR,Western Sahara,95.5
+adm1,MAR007,Laâyoune-Sakia al Hamra,MAR,MRT004,Dakhlet-Nouadhibou,MRT,MAR,Western Sahara,404.7
+adm1,MAR007,Laâyoune-Sakia al Hamra,MAR,MRT012,Tiris-Zemmou,MRT,MAR,Western Sahara,757.0

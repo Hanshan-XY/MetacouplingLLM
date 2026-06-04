@@ -31,8 +31,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8369, (
-            f"Expected 8369 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8381, (
+            f"Expected 8381 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -531,3 +531,161 @@ class TestIsoCodeCoverage:
         assert resolve_country_code("Romania") == "ROU"
         assert resolve_country_code("Timor-Leste") == "TLS"
         assert resolve_country_code("Kosovo") == "XKX"
+
+
+class TestDeFactoBordersAdm1:
+    """The de_facto_borders toggle for disputed-territory pairs (ADM1)."""
+
+    def test_overlay_pairs_present_by_default(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        # Province-level de-facto pairs across disputed tracts: Arunachal Pradesh
+        # <-> Tibet; Northern <-> Quneitra (Golan); Guelmim-Oued Noun <->
+        # Tiris-Zemmour (Western Sahara); Haa <-> Tibet (Doklam).
+        assert is_adm1_pericoupled("IND003", "CHN029") is True
+        assert is_adm1_pericoupled("ISR004", "SYR012") is True
+        assert is_adm1_pericoupled("MAR005", "MRT012") is True
+        assert is_adm1_pericoupled("BTN005", "CHN029") is True
+
+    def test_overlay_pairs_are_cross_country(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            lookup_adm1_pericoupling,
+        )
+        assert lookup_adm1_pericoupling("IND003", "CHN029").cross_country is True
+        assert lookup_adm1_pericoupling("ISR004", "SYR012").cross_country is True
+        assert lookup_adm1_pericoupling("MAR005", "MRT012").cross_country is True
+
+    def test_overlay_pairs_absent_in_strict_view(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        for a, b in [("IND003", "CHN029"), ("ISR004", "SYR012"),
+                     ("MAR005", "MRT012"), ("BTN005", "CHN029")]:
+            assert is_adm1_pericoupled(a, b) is True
+            assert is_adm1_pericoupled(a, b, de_facto_borders=False) is False
+
+    def test_disputed_territory_without_wb_province_is_adm0_only(self):
+        # Gilgit-Baltistan and Ladakh/J&K are disputed territories EXCLUDED from
+        # WB's ADM1 layer (not provinces), so the CHN/PAK relationship has NO
+        # subnational overlay pair — it is carried at ADM0 only.  PAK005 Khyber
+        # Pakhtunkhwa does not administer Gilgit-Baltistan, so PAK005<->CHN028 is
+        # not pericoupled at ADM1 in EITHER view.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        assert is_adm1_pericoupled("PAK005", "CHN028") is False
+        assert (
+            is_adm1_pericoupled("PAK005", "CHN028", de_facto_borders=False)
+            is False
+        )
+
+    def test_already_adjacent_disputed_pair_stays_base(self):
+        # Kenya (Turkana) and South Sudan (Eastern Equatoria) already share an
+        # ~80 km border SW of the Ilemi Triangle, so they are a BASE pair —
+        # present in BOTH views, NOT a de-facto overlay pair.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        assert is_adm1_pericoupled("KEN043", "SSD002") is True
+        assert (
+            is_adm1_pericoupled("KEN043", "SSD002", de_facto_borders=False)
+            is True
+        )
+
+    def test_undisputed_pair_unaffected_by_toggle(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        assert is_adm1_pericoupled("AFG001", "PAK005") is True
+        assert (
+            is_adm1_pericoupled("AFG001", "PAK005", de_facto_borders=False)
+            is True
+        )
+
+    def test_strict_view_subtracts_only_overlay_neighbors(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            get_cross_border_neighbors,
+        )
+        # ISR004 (Northern) gains exactly its Golan-tract neighbours under de-facto.
+        defacto = get_cross_border_neighbors("ISR004")
+        strict = get_cross_border_neighbors("ISR004", de_facto_borders=False)
+        assert defacto - strict == {"SYR012", "SYR006", "LBN004"}
+        # PAK005 has NO ADM1 overlay neighbour (CHN/PAK is ADM0-only), so the
+        # de-facto and strict views are identical for it.
+        assert get_cross_border_neighbors("PAK005") == get_cross_border_neighbors(
+            "PAK005", de_facto_borders=False
+        )
+
+
+class TestCouplingStandardAdm1:
+    """The coupling_standard toggle for water-separated pairs (ADM1)."""
+
+    def test_no_bridge_pair_dropped_under_moderate_and_stringent(self):
+        # COD007 Kinshasa <-> COG002 Brazzaville: ~9 km across the Congo, ferry
+        # only (no fixed crossing) -> a water-only / no-bridge pair.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        assert is_adm1_pericoupled(
+            "COD007", "COG002", coupling_standard="lenient"
+        ) is True
+        assert is_adm1_pericoupled(
+            "COD007", "COG002", coupling_standard="moderate"
+        ) is False
+        assert is_adm1_pericoupled(
+            "COD007", "COG002", coupling_standard="stringent"
+        ) is False
+
+    def test_default_standard_is_moderate(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        # No coupling_standard argument == moderate.
+        assert is_adm1_pericoupled("COD007", "COG002") is False
+
+    def test_bridge_pair_kept_under_moderate_dropped_under_stringent(self):
+        # CHN019 <-> RUS014 across the Argun: a fixed crossing exists.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        assert is_adm1_pericoupled(
+            "CHN019", "RUS014", coupling_standard="lenient"
+        ) is True
+        assert is_adm1_pericoupled(
+            "CHN019", "RUS014", coupling_standard="moderate"
+        ) is True
+        assert is_adm1_pericoupled(
+            "CHN019", "RUS014", coupling_standard="stringent"
+        ) is False
+
+    def test_land_pair_unaffected_by_standard(self):
+        # AFG001 <-> PAK005 is a land border -> pericoupled under every standard.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        for s in ("lenient", "moderate", "stringent"):
+            assert is_adm1_pericoupled(
+                "AFG001", "PAK005", coupling_standard=s
+            ) is True
+
+    def test_invalid_standard_raises(self):
+        import pytest
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        with pytest.raises(ValueError):
+            is_adm1_pericoupled("COD007", "COG002", coupling_standard="loose")
+
+    def test_neighbors_filtered_by_standard(self):
+        # The no-bridge Congo crossing is removed from COD007's moderate
+        # neighbour set but kept under lenient.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            get_adm1_neighbors,
+        )
+        assert "COG002" in get_adm1_neighbors(
+            "COD007", coupling_standard="lenient"
+        )
+        assert "COG002" not in get_adm1_neighbors(
+            "COD007", coupling_standard="moderate"
+        )

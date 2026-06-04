@@ -837,7 +837,7 @@ print(result.parsed.evidence_coverage_note)
 
 ## 8. Pericoupling Database
 
-The package includes a curated database of 324 symmetric country
+The package includes a curated database of 325 symmetric country
 land-border pairs classified as pericoupled (geographically adjacent)
 or telecoupled (geographically distant), based on current ISO 3166-1
 alpha-3 country codes (World Bank Official Boundaries, 2026-05-14
@@ -885,6 +885,32 @@ neighbors = get_pericoupled_neighbors("MEX")
 print(neighbors)
 # {'USA', 'GTM', 'BLZ'}
 ```
+
+### Adjacency standards (disputed borders & water-separated pairs)
+
+Both loaders accept two orthogonal toggles (defaults shown):
+
+- **`de_facto_borders=True`** — fold disputed land into its de-facto
+  administrator (so China–Pakistan, Israel–Syria and Morocco–Mauritania are
+  adjacent); pass `False` for the strict WB standard-layer view.
+- **`coupling_standard="moderate"`** — for pairs that share **only** a
+  river/lake border, `moderate` keeps a pair only if a fixed crossing **open to
+  traffic** links the two units, `stringent` drops every water-only pair, and
+  `lenient` keeps all.
+
+```python
+# Romania <-> Moldova share only the Prut (bridges exist):
+is_pericoupled("Romania", "Moldova")                                # True  (moderate default)
+is_pericoupled("Romania", "Moldova", coupling_standard="stringent") # False (water-only)
+# DR Congo <-> Central African Republic share only rivers, no bridge:
+is_pericoupled("COD", "CAF")                                        # False (moderate default)
+is_pericoupled("COD", "CAF", coupling_standard="lenient")           # True
+```
+
+The same `coupling_standard` argument is accepted by the ADM1 functions
+(`lookup_adm1_pericoupling`, `is_adm1_pericoupled`, `get_adm1_neighbors`,
+`get_cross_border_neighbors`).  See `data/PROVENANCE.md`,
+`docs/METHODS_adjacency.md` §8, and `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
 ### Country name resolution
 

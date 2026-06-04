@@ -67,6 +67,23 @@ class PericouplingResult:
 # ---------------------------------------------------------------------------
 
 _pericoupled_pairs: frozenset[frozenset[str]] | None = None
+_disputed_overlay_adm0: frozenset[frozenset[str]] | None = None
+_water_all_adm0: frozenset[frozenset[str]] | None = None
+_water_nobridge_adm0: frozenset[frozenset[str]] | None = None
+_pairs_view_cache: dict[tuple[bool, str], frozenset[frozenset[str]]] = {}
+
+_COUPLING_STANDARDS = ("stringent", "moderate", "lenient")
+
+
+def _check_standard(coupling_standard: str) -> str:
+    """Validate/normalise a ``coupling_standard`` value."""
+    s = coupling_standard.strip().lower()
+    if s not in _COUPLING_STANDARDS:
+        raise ValueError(
+            "coupling_standard must be one of "
+            f"{_COUPLING_STANDARDS}, got {coupling_standard!r}"
+        )
+    return s
 
 
 def _locate_csv() -> Path | None:
@@ -89,6 +106,32 @@ def _locate_csv() -> Path | None:
         except Exception:
             continue
     return None
+
+
+def _load_disputed_overlay(level: str) -> frozenset[frozenset[str]]:
+    """Load the de-facto disputed-territory overlay pairs for a level.
+
+    Reads ``disputed_overlay_pairs.csv`` (shipped beside the data) and returns
+    the set of ISO/ADM1 code pairs whose adjacency exists only under the
+    de-facto view.  These are subtracted when ``de_facto_borders=False``.
+    Returns an empty set if the manifest is absent (older data) — so both
+    views are then identical.
+    """
+    try:
+        data_pkg = resources.files("metacouplingllm") / "data"
+        path = Path(str(data_pkg / "disputed_overlay_pairs.csv"))
+    except (TypeError, ModuleNotFoundError):
+        return frozenset()
+    if not path.is_file():
+        return frozenset()
+    overlay: set[frozenset[str]] = set()
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            if row.get("level", "").strip() == level:
+                overlay.add(
+                    frozenset({row["code_a"].strip(), row["code_b"].strip()})
+                )
+    return frozenset(overlay)
 
 
 def _load_pairs() -> frozenset[frozenset[str]]:
@@ -114,12 +157,82 @@ def _load_pairs() -> frozenset[frozenset[str]]:
     return frozenset(pairs)
 
 
-def _get_pairs() -> frozenset[frozenset[str]]:
-    """Lazily load and cache the pericoupled pairs."""
-    global _pericoupled_pairs
+def _load_water_separated_adm0() -> tuple[
+    frozenset[frozenset[str]], frozenset[frozenset[str]]
+]:
+    """Load water-separated ADM0 (country) pairs for ``coupling_standard``.
+
+    Reads ``water_separated_pairs.csv`` (rows with ``level == "adm0"``): ISO
+    country pairs whose entire shared border is water (rolled up from the ADM1
+    crossings).  Returns ``(all_water, no_bridge)``; under ``moderate`` the
+    ``no_bridge`` set is subtracted from the base, under ``stringent`` the full
+    ``all_water`` set is.  Empty sets if the manifest is absent (older data).
+    """
+    try:
+        data_pkg = resources.files("metacouplingllm") / "data"
+        path = Path(str(data_pkg / "water_separated_pairs.csv"))
+    except (TypeError, ModuleNotFoundError):
+        return frozenset(), frozenset()
+    if not path.is_file():
+        return frozenset(), frozenset()
+    all_water: set[frozenset[str]] = set()
+    no_bridge: set[frozenset[str]] = set()
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            if row.get("level", "").strip() != "adm0":
+                continue
+            pair = frozenset({row["code_a"].strip(), row["code_b"].strip()})
+            all_water.add(pair)
+            if row.get("has_bridge", "").strip() != "True":
+                no_bridge.add(pair)
+    return frozenset(all_water), frozenset(no_bridge)
+
+
+def _water_dropped_adm0(coupling_standard: str) -> frozenset[frozenset[str]]:
+    """Water-only country pairs to subtract from the base under a standard."""
+    if coupling_standard == "stringent":
+        return _water_all_adm0 or frozenset()
+    if coupling_standard == "moderate":
+        return _water_nobridge_adm0 or frozenset()
+    return frozenset()
+
+
+def _get_pairs(
+    de_facto_borders: bool = True, coupling_standard: str = "moderate"
+) -> frozenset[frozenset[str]]:
+    """Lazily load and cache the pericoupled pairs for a given view.
+
+    Parameters
+    ----------
+    de_facto_borders:
+        ``True`` (default) returns the de-facto view (disputed land folded into
+        its de-facto administering country, e.g. China–Pakistan, Israel–Syria);
+        ``False`` subtracts the disputed-territory overlay.  See
+        ``data/disputed_overlay_pairs.csv`` and ``data/PROVENANCE.md``.
+    coupling_standard:
+        ``"moderate"`` (default) drops water-only country pairs with no open
+        fixed crossing; ``"stringent"`` drops every water-only pair;
+        ``"lenient"`` keeps all.  See ``data/water_separated_pairs.csv``.
+    """
+    global _pericoupled_pairs, _disputed_overlay_adm0
+    global _water_all_adm0, _water_nobridge_adm0
+    coupling_standard = _check_standard(coupling_standard)
+    key = (de_facto_borders, coupling_standard)
+    if key in _pairs_view_cache:
+        return _pairs_view_cache[key]
     if _pericoupled_pairs is None:
         _pericoupled_pairs = _load_pairs()
-    return _pericoupled_pairs
+    if _disputed_overlay_adm0 is None:
+        _disputed_overlay_adm0 = _load_disputed_overlay("adm0")
+    if _water_all_adm0 is None:
+        _water_all_adm0, _water_nobridge_adm0 = _load_water_separated_adm0()
+    pairs = set(_pericoupled_pairs)
+    if not de_facto_borders:
+        pairs -= _disputed_overlay_adm0
+    pairs -= _water_dropped_adm0(coupling_standard)
+    view = frozenset(pairs)
+    _pairs_view_cache[key] = view
+    return view
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +243,8 @@ def _get_pairs() -> frozenset[frozenset[str]]:
 def lookup_pericoupling(
     country_a: str,
     country_b: str,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
 ) -> PericouplingResult:
     """Look up whether two countries are pericoupled or telecoupled.
 
@@ -176,7 +291,7 @@ def lookup_pericoupling(
         )
 
     pair = frozenset({code_a, code_b})
-    pairs = _get_pairs()
+    pairs = _get_pairs(de_facto_borders, coupling_standard)
 
     if pair in pairs:
         return PericouplingResult(
@@ -194,7 +309,11 @@ def lookup_pericoupling(
     )
 
 
-def get_pericoupled_neighbors(country: str) -> set[str]:
+def get_pericoupled_neighbors(
+    country: str,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
+) -> set[str]:
     """Return the set of ISO alpha-3 codes pericoupled with a country.
 
     Parameters
@@ -217,7 +336,7 @@ def get_pericoupled_neighbors(country: str) -> set[str]:
     if code is None:
         return set()
     neighbors: set[str] = set()
-    for pair in _get_pairs():
+    for pair in _get_pairs(de_facto_borders, coupling_standard):
         if code in pair:
             others = pair - frozenset({code})
             if others:
@@ -225,15 +344,25 @@ def get_pericoupled_neighbors(country: str) -> set[str]:
     return neighbors
 
 
-def is_pericoupled(country_a: str, country_b: str) -> bool | None:
+def is_pericoupled(
+    country_a: str,
+    country_b: str,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
+) -> bool | None:
     """Convenience function for quick pericoupling checks.
 
     Returns
     -------
     ``True`` if pericoupled, ``False`` if telecoupled, ``None`` if one or
     both countries could not be resolved.
+
+    See :func:`_get_pairs` for the ``de_facto_borders`` flag (default ``True``
+    treats disputed land as part of its de-facto administrator).
     """
-    result = lookup_pericoupling(country_a, country_b)
+    result = lookup_pericoupling(
+        country_a, country_b, de_facto_borders, coupling_standard
+    )
     if result.pair_type == PairCouplingType.PERICOUPLED:
         return True
     if result.pair_type == PairCouplingType.TELECOUPLED:
