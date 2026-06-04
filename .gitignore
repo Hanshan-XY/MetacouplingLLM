@@ -89,3 +89,13 @@ CLAUDE.md
 
 # Regenerated scratch stub (geopandas downloaded.shp probe)
 downloaded.shp
+
+# OSM bridge-classification working artifacts (local-only; not used by the package).
+# build_data/ holds the bridge working files (gpkgs, audit CSVs, methodology source)
+# and is intentionally untracked. The loose /berea_*, /vrg_*, /caledon_*.json and
+# /three_ways.json files are leftover Overpass query/response scratch dumps.
+build_data/
+/berea_*
+/vrg_*
+/caledon_*.json
+/three_ways.json
