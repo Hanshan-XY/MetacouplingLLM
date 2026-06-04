@@ -99,3 +99,10 @@ build_data/
 /vrg_*
 /caledon_*.json
 /three_ways.json
+
+# Personal one-off working scripts (machine-specific D:\ paths; not package code,
+# nothing imports them, and pytest's testpaths=["tests"] excludes them).
+# build_advisor_deck.py builds the advisor-meeting pptx into runs/; test_pr31_export.py
+# is a manual live OpenAI export smoke test that reads a personal api.env path.
+/scripts/build_advisor_deck.py
+/scripts/test_pr31_export.py
