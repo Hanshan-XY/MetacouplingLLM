@@ -538,7 +538,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | ADM1 edge list (CSV) | 8,381 subnational shared-border pairs across 3,373 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 
-*Counts above are as of v0.1.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
+*Counts above are as of v0.1.3.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
 
 ---
 

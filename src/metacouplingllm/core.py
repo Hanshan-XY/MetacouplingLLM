@@ -18,7 +18,11 @@ from metacouplingllm.knowledge.citations import (
     TURN_CITATION_PATTERN,
     sanitize_turn_citations,
 )
-from metacouplingllm.knowledge.countries import get_country_name, resolve_country_code
+from metacouplingllm.knowledge.countries import (
+    ISO_ALPHA3_NAMES,
+    get_country_name,
+    resolve_country_code,
+)
 from metacouplingllm.knowledge.literature import Paper
 from metacouplingllm.knowledge.pericoupling import (
     PairCouplingType,
@@ -1797,10 +1801,13 @@ class MetacouplingAssistant:
                 code = resolve_country_code(word_group)
                 if code:
                     codes.add(code)
-            # Also pick up explicit 3-letter ISO codes like "USA", "BRA"
+            # Also pick up explicit 3-letter ISO codes like "USA", "BRA".
+            # Membership check must be explicit: get_country_name()
+            # returns the input code itself for unknown codes, so it is
+            # always truthy and would admit non-country acronyms like
+            # "GDP" or "PNG" (the image format).
             for m in re.findall(r"\b([A-Z]{3})\b", combined):
-                name = get_country_name(m)
-                if name:
+                if m in ISO_ALPHA3_NAMES:
                     codes.add(m)
             return codes
 
@@ -1903,8 +1910,11 @@ class MetacouplingAssistant:
             code = resolve_country_code(word_group)
             if code:
                 country_mentions.add(code)
+        # Explicit membership check — get_country_name() returns the
+        # input code itself for unknown codes (always truthy), which
+        # would let acronyms like "GDP" defeat the relevance guard.
         for m in re.findall(r"\b([A-Z]{3})\b", combined):
-            if get_country_name(m):
+            if m in ISO_ALPHA3_NAMES:
                 country_mentions.add(m)
 
         def _resolve_candidate(text: str) -> str | None:
@@ -2679,9 +2689,11 @@ class MetacouplingAssistant:
             code = resolve_country_code(word_group)
             if code:
                 mentioned_iso.add(code)
-        # Pick up explicit 3-letter ISO codes
+        # Pick up explicit 3-letter ISO codes (explicit membership
+        # check — get_country_name() falls back to the input code, so
+        # truthiness alone admits non-country acronyms like "USD").
         for m in re.findall(r"\b([A-Z]{3})\b", combined):
-            if get_country_name(m):
+            if m in ISO_ALPHA3_NAMES:
                 mentioned_iso.add(m)
 
         if not mentioned_iso:
