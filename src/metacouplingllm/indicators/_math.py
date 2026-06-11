@@ -7,7 +7,8 @@ indicators submodule.  All conventions per the spec at
 
 - Shannon (1948) entropy, normalised to [0, 1] by dividing by ln(n)
 - Hirschman (1945) / Herfindahl (1950) HHI, normalised per
-  Cracau & Lima (2016)
+  Hannah & Kay (1977); equivalent-number form per Laakso &
+  Taagepera (1979)
 """
 
 from __future__ import annotations
@@ -70,7 +71,7 @@ def normalised_hhi(shares: np.ndarray) -> float:
     - ``0`` when shares are perfectly even
     - ``1`` when one share carries everything
 
-    Per Cracau & Lima (2016): ``HHI_norm = (HHI - 1/n) / (1 - 1/n)``
+    Per Hannah & Kay (1977): ``HHI_norm = (HHI - 1/n) / (1 - 1/n)``
     where ``HHI = sum(p_i^2)``.
 
     Single-partner convention (per spec Section 8 edge cases):

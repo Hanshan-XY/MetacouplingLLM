@@ -174,7 +174,7 @@ class TestMFE:
 class TestMFCI:
     def test_brazil_telecoupled_mfci_approx_0_617(self):
         """Spec §20 test 5: telecoupled shares 0.857/0.071/0.071
-        -> HHI≈0.745, MFCI≈0.617 with m=3."""
+        -> HHI≈0.745, MFCI≈0.617 with n=3."""
         edges = _brazil_soybean_edges()
         with _suppress_user_warnings():
             warnings.simplefilter("ignore")
@@ -184,7 +184,7 @@ class TestMFCI:
             (out["focal_system_id"] == "Brazil")
             & (out["coupling_type"] == "T")
         ].iloc[0]
-        assert tele["m_partners"] == 3
+        assert tele["n_partners"] == 3
         assert tele["HHI"] == pytest.approx(0.745, abs=0.005)
         assert tele["MFCI"] == pytest.approx(0.617, abs=0.005)
 
@@ -198,7 +198,7 @@ class TestMFCI:
         with pytest.warns(UserWarning):
             out = compute_mfci(edges)
         t_row = out.loc[out["coupling_type"] == "T"].iloc[0]
-        assert t_row["m_partners"] == 1
+        assert t_row["n_partners"] == 1
         assert t_row["MFCI"] == pytest.approx(1.0)
 
     def test_zero_flow_coupling_type_returns_nan(self):
@@ -307,8 +307,8 @@ class TestSummarizeMetacoupling:
         assert row["MFE"] == pytest.approx(0.7298, abs=0.001)
         # TFCI
         assert row["TFCI"] == pytest.approx(0.617, abs=0.005)
-        # m_T = 3, IFCI = 1 (single self-loop partner)
-        assert row["m_T"] == 3
+        # n_T = 3, IFCI = 1 (single self-loop partner)
+        assert row["n_T"] == 3
         assert row["IFCI"] == pytest.approx(1.0)
 
     def test_grouped_by_year(self):

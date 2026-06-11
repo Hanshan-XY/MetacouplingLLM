@@ -3,11 +3,11 @@
 Three indicator families documented in
 ``docs/metacoupling_codex_prompts_and_formulas_with_llm.md``:
 
-1. **Metacoupling Flow Shares** (``compute_flow_shares``) -- IFS,
+1. **Metacoupled Flow Shares** (``compute_flow_shares``) -- IFS,
    PFS, TFS.  Relative size of intra-, peri-, and telecoupled flows.
-2. **Metacoupling Flow Evenness** (``compute_mfe``) -- normalised
+2. **Metacoupled Flow Evenness** (``compute_mfe``) -- normalised
    Shannon entropy across the three coupling-type shares.
-3. **Metacoupling Flow Concentration Index** (``compute_mfci``) --
+3. **Metacoupled Flow Concentration Index** (``compute_mfci``) --
    normalised HHI within each coupling type (IFCI, PFCI, TFCI).
 
 Plus two utilities:
@@ -27,7 +27,8 @@ Design principles:
   math.  LLM helpers (PR #36) live in a separate module and are
   optional.
 - **Established statistics, not invented indices**: Shannon (1948)
-  entropy + Hirschman (1945) / Cracau & Lima (2016) normalised HHI.
+  entropy; Hirschman (1945) HHI, normalised per Hannah & Kay (1977);
+  Equivalent Number of Partners per Laakso & Taagepera (1979).
 - **User supplies adjacency**: no hardcoded geography (spec §4).
 - **Intracoupling data required**: package warns when ``F_I = 0``
   so users don't misread missing data as "no intracoupling".

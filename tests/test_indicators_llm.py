@@ -290,14 +290,14 @@ class TestWriteMethods:
         }
         client = _RecordingMockLLMClient(
             responses=[
-                "We calculated Metacoupling Flow Shares (IFS, PFS, TFS), "
-                "Metacoupling Flow Evenness (MFE), and Metacoupling Flow "
+                "We calculated Metacoupled Flow Shares (IFS, PFS, TFS), "
+                "Metacoupled Flow Evenness (MFE), and Metacoupled Flow "
                 "Concentration Index (MFCI) per Liu (2017) and standard "
                 "Shannon and HHI conventions."
             ],
         )
         text, trace = write_methods(spec, llm_client=client)
-        assert "Metacoupling" in text
+        assert "Metacoupled" in text
         assert isinstance(trace, LLMTrace)
         assert trace.prompt_version == "write_methods_v1"
 

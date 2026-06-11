@@ -1395,10 +1395,10 @@ water-only pairs — see §8 "Adjacency standards".
 | Function | Returns | Description |
 |---|---|---|
 | `classify_coupling(edges, focal_id, adjacency, ...)` | `pd.DataFrame` | Add I/P/T column to an edge table (optional `llm_client=` for ambiguous edges). |
-| `compute_flow_shares(data, ...)` | `pd.DataFrame` | IFS / PFS / TFS per focal system. |
+| `compute_flow_shares(data, ...)` | `pd.DataFrame` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
 | `compute_mfe(data, ...)` | `pd.DataFrame` | Normalised Shannon entropy across coupling types; input is the **shares table from `compute_flow_shares`** (needs IFS/PFS/TFS columns), not the raw edge table. |
 | `compute_mfci(data, ...)` | `pd.DataFrame` | Normalised HHI per coupling type (long-format: one row per system × coupling type). |
-| `summarize_metacoupling(data, ...)` | `pd.DataFrame` | One-shot combined indicator table (this is what produces the wide IFCI/PFCI/TFCI + ENP_* columns). |
+| `summarize_metacoupling(data, ...)` | `pd.DataFrame` | One-shot combined indicator table (this is what produces the wide IFCI/PFCI/TFCI + ENP_* columns — ENP_I/P/T = Equivalent Number of Intra-/Peri-/Telecoupled Partners). |
 
 ### LLM-Assisted Indicator Helpers (PR #36 — `metacouplingllm.indicators`)
 
@@ -1758,14 +1758,14 @@ Install: `pip install "metacouplingllm[indicators]"` (pulls in pandas).
 | Function | What it does |
 |---|---|
 | `classify_coupling(edges, focal_id, adjacency, ...)` | Add `coupling_type` column (`I` / `P` / `T`) to an edge table using a user-supplied adjacency table. |
-| `compute_flow_shares(data, ...)` | IFS / PFS / TFS per focal system. |
-| `compute_mfe(data, ...)` | Metacoupling Flow Evenness — normalised Shannon entropy. |
-| `compute_mfci(data, ...)` | Metacoupling Flow Concentration Index — normalised HHI per coupling type. |
+| `compute_flow_shares(data, ...)` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
+| `compute_mfe(data, ...)` | Metacoupled Flow Evenness — normalised Shannon entropy. |
+| `compute_mfci(data, ...)` | Metacoupled Flow Concentration Index — normalised HHI per coupling type. |
 | `summarize_metacoupling(data, ...)` | One-shot combined indicator table. |
 
 ### Formulas
 
-**Flow shares (per focal system *i*):**
+**Metacoupled flow shares (per focal system *i*):**
 
 $$
 \begin{aligned}
@@ -1777,14 +1777,14 @@ $$
 
 where $F_{iI}$, $F_{iP}$, $F_{iT}$ are system $i$'s intra-, peri-, and telecoupled flow magnitudes.
 
-**MFE** — Metacoupling Flow Evenness (Shannon 1948 entropy, normalised to $[0, 1]$):
+**MFE** — Metacoupled Flow Evenness (Shannon 1948 entropy, normalised to $[0, 1]$):
 
 $$
 \mathrm{MFE}_i = -\frac{1}{\ln 3} \sum_{c \,\in\, \{I,\, P,\, T\}} s_c \ln s_c,
 \qquad s_c \in \{\mathrm{IFS}_i,\ \mathrm{PFS}_i,\ \mathrm{TFS}_i\}
 $$
 
-**MFCI** — Metacoupling Flow Concentration Index (normalised HHI per Cracau & Lima 2016, per coupling type *c*):
+**MFCI** — Metacoupled Flow Concentration Index (Hirschman 1945 HHI, normalised per Hannah & Kay 1977; per coupling type *c*):
 
 $$
 \mathrm{HHI}_{ic} = \sum_j \left( \frac{f_{ij}^{c}}{F_i^{c}} \right)^{2},
@@ -1794,7 +1794,7 @@ $$
 \mathrm{ENP}_{ic} = \frac{1}{\mathrm{HHI}_{ic}}
 $$
 
-where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_i^{c} = \sum_j f_{ij}^{c}$, $n_{ic}$ is the number of partners, and ENP is the equivalent number of partners.
+where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_i^{c} = \sum_j f_{ij}^{c}$, $n_{ic}$ is the number of partners, and ENP is the Equivalent Number of Partners (Laakso & Taagepera 1979) — reported per coupling type as `ENP_I` / `ENP_P` / `ENP_T`, the Equivalent Number of Intra-/Peri-/Telecoupled Partners.
 
 Two edge-case conventions (each emits a `UserWarning`): when
 $n_{ic} = 1$ the normalisation is undefined and MFCI is defined as
@@ -1804,7 +1804,7 @@ worked example below); when $F_{ic} = 0$ MFCI is **NaN**. In the MFE
 sum, $0 \ln 0 = 0$ by convention.
 
 `compute_mfci` itself returns a **long-format** table (one row per
-system × coupling type, with `m_partners`, `HHI`, `MFCI`,
+system × coupling type, with `n_partners`, `HHI`, `MFCI`,
 `effective_n_partners`); the wide `IFCI` / `PFCI` / `TFCI` columns
 plus `ENP_I` / `ENP_P` / `ENP_T` are produced by
 `summarize_metacoupling`.
@@ -1886,7 +1886,8 @@ classification of ambiguous edges (see §17).
 - **Deterministic-first.** The indicator math never calls an LLM.
   Numbers are reproducible.
 - **Established statistics, not invented indices.** Shannon (1948)
-  entropy + Hirschman (1945) / Cracau & Lima (2016) normalised HHI.
+  entropy; Hirschman (1945) HHI, normalised per Hannah & Kay (1977);
+  Equivalent Number of Partners per Laakso & Taagepera (1979).
 - **User supplies adjacency** — no hardcoded geography.
 - **Intracoupling data required** — package warns when `F_I = 0` so
   users don't misread missing data as "no intracoupling".
@@ -1911,7 +1912,7 @@ Install: any of the LLM-provider extras (`[openai]`, `[anthropic]`,
 | `check_inputs(data_summary, sample_rows, *, llm_client)` | Validate user data: which indicator families can be computed, what's missing, unit / intracoupling-self-loop warnings. |
 | `classify_ambiguous_edges(edges, study_config, *, llm_client)` | Classify edges the deterministic pass couldn't resolve. Returns a DataFrame with `suggested_coupling_type` (`"I"` / `"P"` / `"T"` / `"unknown"`), `confidence`, `reason`, `needs_user_confirmation`. |
 | `interpret_results(results, *, llm_client, audience)` | Plain-language interpretation of a computed indicator table. Audience presets: `"academic"` / `"general"` / `"policy"`. |
-| `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Cracau & Lima 2016, Liu 2017). |
+| `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Hannah & Kay 1977, Laakso & Taagepera 1979, Liu 2017). |
 
 ### The `LLMTrace` dataclass
 
@@ -2057,6 +2058,9 @@ to its native strict-JSON mode (see §14 for the matrix).
   System Technical Journal*, 27(3), 379-423.
 - Hirschman, A. O. (1945). *National Power and the Structure of
   Foreign Trade.* Berkeley: University of California Press.
-- Cracau, D., & Lima, J. E. (2016). On the normalized Herfindahl-
-  Hirschman index: A technical note. *International Journal on Food
-  System Dynamics*, 7(4), 382-386.
+- Hannah, L., & Kay, J. A. (1977). *Concentration in Modern Industry:
+  Theory, Measurement and the UK Experience.* London: Macmillan
+  (Springer).
+- Laakso, M., & Taagepera, R. (1979). "Effective" number of parties: A
+  measure with application to West Europe. *Comparative Political
+  Studies*, 12(1), 3-27.

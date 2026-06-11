@@ -38,6 +38,23 @@ file. The format is loosely based on
   the documented outputs still match the package.  Allowlisted blocks
   are checked to stay LLM/network-free.
 
+### Changed
+
+- **Indicator naming + provenance finalised (pre-publication).**
+  (1) The three indicator families are now the **Metacoupled** Flow
+  Shares / Flow Evenness (MFE) / Flow Concentration Index (MFCI) —
+  "Metacoupled", not "Metacoupling", modifying the flows being
+  measured.  (2) Partner-count columns renamed `m_I`/`m_P`/`m_T` →
+  **`n_I`/`n_P`/`n_T`** (long format `m_partners` → `n_partners`) to
+  match the MFCI formula's $n_{ic}$ and the n in `effective_n_partners`.
+  (3) `ENP_I`/`ENP_P`/`ENP_T` are spelled out as the **Equivalent
+  Number of Intra-/Peri-/Telecoupled Partners**.  (4) Provenance
+  corrected to the earliest sources: normalised HHI per **Hannah & Kay
+  (1977)** (replacing Cracau & Lima 2016) and ENP per **Laakso &
+  Taagepera (1979)**; Shannon (1948) and Hirschman (1945) unchanged.
+  Applied across the indicators code, `write_methods` prompt, MANUAL,
+  INTRODUCTION, README, and references.
+
 ### Added
 
 - **`__version__` now derives from the installed distribution metadata**
@@ -829,7 +846,7 @@ file. The format is loosely based on
     LLM-Assisted Indicator Helpers (with the end-to-end
     `define_study → check_inputs → classify → summarize →
     interpret → write_methods` workflow).  References renumbered
-    to §18 and Shannon / Hirschman / Cracau-Lima added.
+    to §18 and Shannon / Hirschman / Hannah-Kay / Laakso-Taagepera added.
   - **INTRODUCTION.md** — "Two complementary tracks" paragraph
     added to §1, indicators side-track diagram added to §3
     Architecture, §4.4 web-search section refreshed with native
@@ -862,7 +879,7 @@ file. The format is loosely based on
   | `check_inputs(data_summary, sample_rows, *, llm_client)` | Validate user data: which indicator families can be computed, what's missing, unit / intracoupling-self-loop warnings |
   | `classify_ambiguous_edges(edges, study_config, *, llm_client)` | Classify edges deterministic rules couldn't resolve.  Returns DataFrame with `suggested_coupling_type` (`"I"` / `"P"` / `"T"` / `"unknown"`), `confidence`, `reason`, `needs_user_confirmation` |
   | `interpret_results(results, *, llm_client, audience)` | Plain-language interpretation of a computed indicator table.  Audience presets: `"academic"` / `"general"` / `"policy"` |
-  | `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Cracau & Lima 2016, Liu 2017) |
+  | `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Hannah & Kay 1977, Laakso & Taagepera 1979, Liu 2017) |
 
   **Option A integration with `classify_coupling()`:** the PR #35
   `classify_coupling()` gains three new kwargs (`llm_client`,
@@ -958,16 +975,16 @@ file. The format is loosely based on
   deterministic Python functions (no LLM calls in the calculation
   path):
 
-  1. **Metacoupling Flow Shares** (`compute_flow_shares`) -- IFS,
+  1. **Metacoupled Flow Shares** (`compute_flow_shares`) -- IFS,
      PFS, TFS.  Relative size of intra-, peri-, and telecoupled
      flows, per Liu (2017) framework + spec §6.
-  2. **Metacoupling Flow Evenness** (`compute_mfe`) -- normalised
+  2. **Metacoupled Flow Evenness** (`compute_mfe`) -- normalised
      Shannon (1948) entropy across the three coupling-type shares.
      Uses the standard `0·ln(0) = 0` convention.  Returns 1 when
      shares are perfectly balanced, 0 when one type dominates.
-  3. **Metacoupling Flow Concentration Index**
+  3. **Metacoupled Flow Concentration Index**
      (`compute_mfci`) -- normalised Herfindahl-Hirschman Index
-     within each coupling type (Cracau & Lima 2016), producing
+     within each coupling type (Hirschman 1945; normalised per Hannah & Kay 1977), producing
      IFCI, PFCI, TFCI.  Returns 0 for perfectly distributed
      partners, 1 for single-partner concentration.
 
@@ -981,7 +998,7 @@ file. The format is loosely based on
   - `summarize_metacoupling()` -- one-shot combined indicator
     table per spec §12.5 with columns
     `[focal_system_id, *group_cols, F_I, F_P, F_T, F_total,
-    IFS, PFS, TFS, MFE, IFCI, PFCI, TFCI, m_I, m_P, m_T,
+    IFS, PFS, TFS, MFE, IFCI, PFCI, TFCI, n_I, n_P, n_T,
     ENP_I, ENP_P, ENP_T]`.
 
   **Pandas is an OPTIONAL dependency.**  Base install
@@ -998,7 +1015,7 @@ file. The format is loosely based on
   - Deterministic-first: indicator math never calls an LLM
   - Established statistics, not invented indices (Shannon entropy
     + normalised HHI sourced from Shannon 1948 / Hirschman 1945 /
-    Cracau & Lima 2016)
+    Hannah & Kay 1977; ENP per Laakso & Taagepera 1979)
   - User supplies adjacency: no hardcoded geography
   - **Intracoupling data is required**: when `F_I = 0` but other
     coupling types are non-zero, the package emits a
@@ -1019,7 +1036,7 @@ file. The format is loosely based on
   **Edge cases handled per spec §8/§13:**
   - `F_total == 0`: shares = NaN + `UserWarning`
   - `F_ic == 0`: `MFCI = NaN` + `UserWarning`
-  - `m_ic == 1`: `MFCI = 1` by convention + `UserWarning`
+  - `n_ic == 1`: `MFCI = 1` by convention + `UserWarning`
     (intracoupling self-loop case explicitly flagged via the
     spec §14.6 wording about needing internal subunits for
     meaningful intracoupling concentration)

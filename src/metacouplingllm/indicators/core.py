@@ -6,10 +6,11 @@ documented in the spec
 
 1. ``classify_coupling`` -- in ``classify.py``; assigns I/P/T
    coupling type to each edge based on user-supplied adjacency.
-2. ``compute_flow_shares`` -- IFS / PFS / TFS per focal system.
-3. ``compute_mfe`` -- Metacoupling Flow Evenness (normalised
+2. ``compute_flow_shares`` -- Metacoupled Flow Shares (IFS / PFS /
+   TFS) per focal system.
+3. ``compute_mfe`` -- Metacoupled Flow Evenness (normalised
    Shannon entropy).
-4. ``compute_mfci`` -- Metacoupling Flow Concentration Index
+4. ``compute_mfci`` -- Metacoupled Flow Concentration Index
    (normalised HHI within each coupling type).
 5. ``summarize_metacoupling`` -- one-shot combined indicator table.
 
@@ -228,7 +229,7 @@ def compute_mfe(
     data: "pd.DataFrame",
     share_cols: tuple[str, str, str] = ("IFS", "PFS", "TFS"),
 ) -> "pd.DataFrame":
-    """Compute Metacoupling Flow Evenness (MFE) for each row.
+    """Compute Metacoupled Flow Evenness (MFE) for each row.
 
     Per spec §7: normalised Shannon entropy over (IFS, PFS, TFS).
 
@@ -270,7 +271,7 @@ def compute_mfci(
     weight_col: str = "flow_value",
     group_cols: list[str] | None = None,
 ) -> "pd.DataFrame":
-    """Compute Metacoupling Flow Concentration Index per coupling type.
+    """Compute Metacoupled Flow Concentration Index per coupling type.
 
     Per spec §8: normalised HHI computed from partner-level shares
     within each coupling type.
@@ -278,7 +279,7 @@ def compute_mfci(
     Returns
     -------
     pd.DataFrame with one row per (system, *group_cols, coupling_type)
-    carrying [m_partners, HHI, MFCI, effective_n_partners].
+    carrying [n_partners, HHI, MFCI, effective_n_partners].
     Coupling-type values are ``"I"`` / ``"P"`` / ``"T"`` (always
     all three rows per group, even when ``F_ic = 0``, with numeric
     columns set to ``NaN`` per spec §8 edge cases).
@@ -286,7 +287,7 @@ def compute_mfci(
     Edge cases
     ----------
     - ``F_ic == 0``: ``MFCI = NaN`` + ``UserWarning`` (spec §8).
-    - ``m_ic == 1``: ``MFCI = 1`` by convention + ``UserWarning``
+    - ``n_ic == 1``: ``MFCI = 1`` by convention + ``UserWarning``
       (spec §8 + §14.6 -- intracoupling self-loop case).
     """
     pd = _require_pandas()
@@ -324,11 +325,11 @@ def compute_mfci(
                 .loc[lambda s: s > 0]
             )
             f_ic = float(partner_totals.sum())
-            m_ic = int(partner_totals.size)
+            n_ic = int(partner_totals.size)
             row = {k: v for k, v in zip(group_keys, group_vals)}
             row[coupling_col] = cat
             if f_ic == 0:
-                row["m_partners"] = 0
+                row["n_partners"] = 0
                 row["HHI"] = float("nan")
                 row["MFCI"] = float("nan")
                 row["effective_n_partners"] = float("nan")
@@ -342,7 +343,7 @@ def compute_mfci(
                 shares = partner_totals.to_numpy()
                 hhi = raw_hhi(shares)
                 mfci_val = normalised_hhi(shares)
-                row["m_partners"] = m_ic
+                row["n_partners"] = n_ic
                 row["HHI"] = hhi
                 row["MFCI"] = mfci_val
                 row["effective_n_partners"] = (
@@ -378,7 +379,7 @@ def summarize_metacoupling(
         [system_col, *group_cols, F_I, F_P, F_T, F_total,
          IFS, PFS, TFS, MFE,
          IFCI, PFCI, TFCI,
-         m_I, m_P, m_T,
+         n_I, n_P, n_T,
          ENP_I, ENP_P, ENP_T]
     """
     pd = _require_pandas()
@@ -406,17 +407,17 @@ def summarize_metacoupling(
     mfci_wide = mfci_df.pivot_table(
         index=group_keys,
         columns=coupling_col,
-        values=["m_partners", "MFCI", "effective_n_partners"],
+        values=["n_partners", "MFCI", "effective_n_partners"],
         aggfunc="first",
     )
-    # Flatten the MultiIndex columns to IFCI / PFCI / TFCI / m_I / ...
+    # Flatten the MultiIndex columns to IFCI / PFCI / TFCI / n_I / ...
     rename_map = {
         ("MFCI", "I"): "IFCI",
         ("MFCI", "P"): "PFCI",
         ("MFCI", "T"): "TFCI",
-        ("m_partners", "I"): "m_I",
-        ("m_partners", "P"): "m_P",
-        ("m_partners", "T"): "m_T",
+        ("n_partners", "I"): "n_I",
+        ("n_partners", "P"): "n_P",
+        ("n_partners", "T"): "n_T",
         ("effective_n_partners", "I"): "ENP_I",
         ("effective_n_partners", "P"): "ENP_P",
         ("effective_n_partners", "T"): "ENP_T",
@@ -435,7 +436,7 @@ def summarize_metacoupling(
         "F_I", "F_P", "F_T", "F_total",
         "IFS", "PFS", "TFS", "MFE",
         "IFCI", "PFCI", "TFCI",
-        "m_I", "m_P", "m_T",
+        "n_I", "n_P", "n_T",
         "ENP_I", "ENP_P", "ENP_T",
     ]
     # Keep only columns that actually exist (e.g., merge fills with
