@@ -1,6 +1,6 @@
 # Metacoupling Package — User Manual
 
-**Version 0.1.0**
+**Version 0.1.3**
 
 A Python package that helps researchers apply the telecoupling and metacoupling
 frameworks (Liu et al., 2013; Liu, 2017) to their research using Large Language
@@ -89,6 +89,18 @@ Pulls in `python-docx`, required only for `result.to_docx(...)`.
 `result.to_markdown(...)` and `result.abstract` work without this extra
 (see §15).
 
+### With web-search fallback (ddgs)
+
+```bash
+pip install "metacouplingllm[search]"
+```
+
+Pulls in `ddgs`, used only by the free DuckDuckGo fallback that
+`web_search=True` runs when the provider's native search backend fails
+or returns nothing. Native provider web search needs no extra, and a
+slower stdlib-only DuckDuckGo fallback exists even without this
+(see §14).
+
 ### Install everything
 
 ```bash
@@ -172,7 +184,9 @@ Every telecoupling/metacoupling analysis identifies five components:
 
 1. **Systems** — Sending, receiving, and spillover systems (each with human
    and natural subsystems)
-2. **Flows** — Material, energy, information, financial, and people transfers
+2. **Flows** — Material (matter), energy, information, financial (capital),
+   organism (species invasion, seed dispersal, animal migration), and people
+   transfers
 3. **Agents** — Decision-makers and active entities grouped as individuals / households;
    firms / traders / corporations; governments / policymakers; organizations / NGOs;
    and non-human agents
@@ -335,8 +349,8 @@ Each adapter auto-wires its **native** web-search backend when you set
 | `OpenAIAdapter` | `OpenAIWebSearchBackend` (`web_search` tool) | #17 |
 | `AnthropicAdapter` | `AnthropicWebSearchBackend` (`web_search_20250305` tool) | #28 |
 | `GeminiAdapter` | `GeminiWebSearchBackend` (Google Search grounding) | #29 |
-| `GrokAdapter` | `GrokWebSearchBackend` (Live Search incl. X/Twitter) | #29 |
-| Custom client | `DuckDuckGoBackend` (free, no API key) | — |
+| `GrokAdapter` | `GrokWebSearchBackend` (server-side `web_search` tool) | #29 |
+| Custom client | DuckDuckGo fallback cascade (free, no API key; no backend class) | — |
 
 All four native backends share the same rich prompt + strict structured
 output + `blocked_domains` + scaled `max_output_tokens` + supranational
@@ -474,8 +488,14 @@ result.formatted     # str — Human-readable report (print this)
 result.parsed        # ParsedAnalysis — Structured data for programmatic use
 result.raw           # str — Unprocessed LLM response
 result.turn_number   # int — Which conversation turn (1 for first analysis)
-result.usage         # dict | None — Token usage (prompt_tokens, etc.)
+result.usage         # dict | None — Token usage (keys vary by provider)
 ```
+
+> **Note:** the `usage` keys are provider-dependent: OpenAI and Grok
+> report `prompt_tokens` / `completion_tokens` / `total_tokens`;
+> Anthropic reports `input_tokens` / `output_tokens`; Gemini reports
+> `prompt_token_count` / `candidates_token_count` / `total_token_count`.
+> Use `result.usage.get(...)` rather than assuming a key exists.
 
 ### RAG-only mode (`coupling_analysis=False`)
 
@@ -594,70 +614,84 @@ advisor.reset()
 
 `"systems"`, `"flows"`, `"agents"`, `"causes"`, `"effects"`, `"suggestions"`
 
+These are recommended values matching the report's section names —
+`focus_component` is not validated; it is a free-form hint passed
+verbatim into the refinement prompt, so any descriptive string works.
+
 ---
 
 ## 7. Understanding the Output
 
 ### The formatted report
 
-A typical `result.formatted` output contains these sections:
+A typical `result.formatted` output uses a **coupling-first numbered
+layout**: §1 is the classification, §§2–4 are per-coupling-type
+analysis blocks (2 = Intracoupling, 3 = Pericoupling,
+4 = Telecoupling — each with N.1 Systems Identification, N.2 Flows
+Analysis, N.3 Agents, N.4 Causes, N.5 Effects), §5 is Cross-coupling
+Interactions, §6 Research Gaps, §7 Evidence Coverage. Coupling types
+with no content are skipped, so the numbering can jump (e.g. 1 → 4 in
+a purely telecoupled analysis):
 
 ```
 ========================================================================
 METACOUPLING FRAMEWORK ANALYSIS
 ========================================================================
 
-COUPLING CLASSIFICATION
+1. Coupling Classification
 ----------------------------------------
-Telecoupling — The study involves interactions between Brazil (sending)
-and China (receiving) through soybean trade...
+Telecoupling (primary) — the study involves interactions between
+Brazil (sending) and China (receiving) through soybean trade...
 
-SYSTEMS IDENTIFICATION
+4. Telecoupling Analysis
 ----------------------------------------
-  [Sending]
+  4.1 Systems Identification
+  [Sending System]
     Brazil soybean production regions
     Human subsystem: Farmers, agribusiness corporations
     Natural subsystem: Cerrado biome, Amazon rainforest
     Geographic scope: Mato Grosso, Goiás, Bahia
-  [Receiving]
+  [Receiving System]
     China consumer markets
     ...
-  [Spillover]
+  [Spillover System]
     ...
 
-FLOWS ANALYSIS
-----------------------------------------
+  4.2 Flows Analysis
   1. [Matter] Brazil → China
      Soybeans exported...
-  2. [Financial] China → Brazil
+  2. [Capital] China → Brazil
      Payment for soybean imports...
 
-AGENTS
-----------------------------------------
-  - [Organizations / NGOs] World Trade Organization
-  - [Governments / policymakers] Chinese Ministry of Commerce
+  4.3 Agents
+  - [Organizations / Ngos] World Trade Organization
+  - [Governments / Policymakers] Chinese Ministry of Commerce
   ...
 
-CAUSES
-----------------------------------------
+  4.4 Causes
   Economic:
     - Growing demand for animal feed in China
   Ecological / Biological:
     - Favorable climate for soybean cultivation
   ...
 
-EFFECTS
-----------------------------------------
-  Sending System:
+  4.5 Effects
+  Environmental:
     - Deforestation of Amazon and Cerrado biomes
-  Receiving System:
-    - Improved food security
+  Socioeconomic:
+    - Improved food security in receiving system
   ...
 
-RESEARCH GAPS & SUGGESTIONS
+6. Research Gaps and Suggestions
 ----------------------------------------
   - Consider investigating spillover effects on...
   - Quantify carbon footprint of transportation flows
+
+7. Evidence Coverage
+----------------------------------------
+  The trade-volume claims are grounded in retrieved literature
+  [T1:2] and recent export statistics; spillover-system evidence
+  is thinner and partly relies on framework reasoning...
 
 COUPLING DATABASE VALIDATION
 ----------------------------------------
@@ -706,42 +740,45 @@ the partner?).
 
 ### Accessing structured data programmatically
 
+Structured data lives in per-coupling-type `CouplingSection` objects;
+the `iter_*` accessor methods walk all of them for you (each yields
+plain dicts/strings, optionally filtered with `coupling_type=`):
+
 ```python
 parsed = result.parsed
 
 # Coupling type
 print(parsed.coupling_classification)
 
-# Systems (may be str or dict depending on LLM output)
+# System details (always returned as str; empty string when missing)
 sending = parsed.get_system_detail("sending", "name")
 scope = parsed.get_system_detail("sending", "geographic_scope")
 
-# Flows
-for flow in parsed.flows:
-    print(f"  {flow['category']}: {flow['direction']} — {flow['description']}")
+# Flows (dicts; keys e.g. category/direction/description)
+for flow in parsed.iter_flow_entries():
+    print(f"  {flow.get('category')}: {flow.get('direction')} — {flow.get('description')}")
 
-# Agents
-for agent in parsed.agents:
-    print(f"  [{agent['level']}] {agent['name']}")
+# Agents (dicts; keys e.g. level/name)
+for agent in parsed.iter_agent_entries():
+    print(f"  [{agent.get('level')}] {agent.get('name')}")
 
-# Causes (dict of category → list of causes)
-for category, items in parsed.causes.items():
-    for item in items:
-        print(f"  {category}: {item}")
+# Causes and effects — (coupling_type, category, item) triples
+for ctype, category, item in parsed.iter_category_items("causes"):
+    print(f"  [{ctype}] {category}: {item}")
 
-# Effects (dict of system/type → list of effects)
-for category, items in parsed.effects.items():
-    for item in items:
-        print(f"  {category}: {item}")
+for ctype, category, item in parsed.iter_category_items("effects"):
+    print(f"  [{ctype}] {category}: {item}")
 
-# Suggestions
-for suggestion in parsed.suggestions:
+# Research gaps / suggestions (plain list attribute)
+for suggestion in parsed.research_gaps:
     print(f"  - {suggestion}")
 
 # Coupling-database validation results.  Country-level (always
 # populated when ≥2 countries are detected) and subnational ADM1
-# (populated only when the focal region resolves to an ADM1 code)
-# live in separate fields and can both be present at once.
+# (populated only for subnational-scope queries — i.e. the user
+# named a region that resolves to an ADM1 code; skipped in
+# national mode) live in separate fields and can both be present
+# at once.
 if parsed.country_pericoupling_info:   # country-level (PR #27)
     print(parsed.country_pericoupling_info.get("pair_results", ""))
     print(parsed.country_pericoupling_info.get("note", ""))
@@ -763,10 +800,12 @@ print(formatter.format_full(parsed))
 # Brief summary
 print(formatter.format_summary(parsed))
 
-# Single component
-print(formatter.format_component(parsed, "flows"))
-print(formatter.format_component(parsed, "systems"))
-print(formatter.format_component(parsed, "causes"))
+# Single component — valid names: "classification" / "coupling",
+# "intracoupling", "pericoupling", "telecoupling",
+# "cross_coupling" / "interactions", "research_gaps" / "suggestions"
+print(formatter.format_component(parsed, "classification"))
+print(formatter.format_component(parsed, "telecoupling"))
+print(formatter.format_component(parsed, "suggestions"))
 
 # Compare multiple analyses side by side
 print(formatter.format_comparison([parsed1, parsed2, parsed3]))
@@ -786,9 +825,10 @@ print(result.abstract)
 #  markets as the receiving system..."
 ```
 
-The abstract reuses the same `[Tk:N]` / `[Tk:Wn]` citation grammar as
-the main report. It's computed once per `analyze()` call and cached on
-the result.
+The abstract is intentionally **standalone**: the generation prompt
+forbids the `[Tk:N]` / `[Tk:Wn]` citation markers used in the main
+report, so it can be pasted into a manuscript as-is. It's computed
+once per `analyze()` call and cached on the result.
 
 ### Markdown + Word export (`result.to_markdown` / `result.to_docx`, PR #31, #32)
 
@@ -809,8 +849,8 @@ The exporters carry over:
 - the scholar **abstract**
 - bold sub-field labels (Sending / Receiving / Spillover system names,
   flow `direction`, agent `level`, etc.)
-- per-category **Flows** subsections (Matter, Energy, Information,
-  Financial, People)
+- per-category **Flows** subsections (Matter, Capital, Information,
+  Energy, People, Organisms)
 - per-category **Causes** + **Effects** subsections matching the eight
   fixed categories
 - **RAG evidence** + **web sources** blocks (PR #31 follow-up)
@@ -819,11 +859,13 @@ The exporters carry over:
 
 ### Evidence coverage note (`result.parsed.evidence_coverage_note`, PR #20)
 
-When `web_search=True` is enabled, the LLM also emits a one-paragraph
-self-assessment summarising **what kinds of web sources** were
-available, **what coverage gaps remain**, and **whether the analysis
-relied on training memory** to fill those gaps.  Surface it alongside
-the formatted report so reviewers can audit evidence provenance:
+Every framework analysis requests a §7 **Evidence Coverage**
+self-assessment (2–5 short paragraphs) summarising **what evidence
+was available** (retrieved literature, web sources when
+`web_search=True`), **what coverage gaps remain**, and **whether the
+analysis relied on training memory** to fill those gaps.  Surface it
+alongside the formatted report so reviewers can audit evidence
+provenance:
 
 ```python
 print(result.parsed.evidence_coverage_note)
@@ -837,11 +879,14 @@ print(result.parsed.evidence_coverage_note)
 
 ## 8. Pericoupling Database
 
-The package includes a curated database of 325 symmetric country
-land-border pairs classified as pericoupled (geographically adjacent)
-or telecoupled (geographically distant), based on current ISO 3166-1
-alpha-3 country codes (World Bank Official Boundaries, 2026-05-14
-release; see `data/PROVENANCE.md`).
+The package includes a curated country-pair database in which 325
+symmetric country pairs share a border; under the default adjacency
+settings (`de_facto_borders=True`, `coupling_standard="moderate"`)
+**322** of them are exposed as pericoupled (geographically adjacent) —
+the moderate standard drops 3 water-only pairs with no fixed crossing.
+All other pairs are telecoupled (geographically distant). Based on
+current ISO 3166-1 alpha-3 country codes (World Bank Official
+Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`).
 
 ### Automatic integration
 
@@ -879,7 +924,7 @@ print(is_pericoupled("Atlantis", "USA"))   # None  (unknown)
 # Get all pericoupled neighbors of a country
 neighbors = get_pericoupled_neighbors("China")
 print(neighbors)
-# {'RUS', 'IND', 'PAK', 'MNG', 'MMR', 'LAO', 'VNM', 'PRK', 'KOR', ...}
+# {'RUS', 'IND', 'PAK', 'MNG', 'MMR', 'LAO', 'VNM', 'PRK', 'KAZ', ...}
 
 neighbors = get_pericoupled_neighbors("MEX")
 print(neighbors)
@@ -950,7 +995,7 @@ get_country_name("GBR")  # "United Kingdom"
 ## 9. Literature Recommendations
 
 The package bundles a BibTeX database of 265 empirical telecoupling
-and metacoupling journal articles (2013–2025, filtered from a larger
+and metacoupling journal articles (2013–2026, filtered from a larger
 Web of Science collection).  Call `get_database_info()` for the live count if
 the corpus drifts.  You can get relevant paper recommendations
 based on keyword matching.
@@ -991,14 +1036,14 @@ The engine scores each paper in the database against your query:
 |---|---|---|
 | Author-assigned keywords | 3.0 per match | Most precise — curated by authors |
 | Title words | 2.0 per match | Captures the paper's core topic |
-| Abstract (first 200 chars) | 0.5 per match | Topic sentence, noisier signal |
+| Full-text relevance (RAG index over bundled paper texts) | up to 3.0 (cosine similarity × 3.0) | Matches the paper body, not just the front matter (TF-IDF, or embeddings when available) |
 | Citation count | up to 2.0 (log-scaled) | Highly-cited papers are more influential |
 
 Papers are ranked by total score, then by citation count, then by year.
 
 ### Exploring the database
 
-Live values as of v0.1.0; call `get_database_info()` for
+Live values as of v0.1.3; call `get_database_info()` for
 current counts:
 
 ```python
@@ -1049,7 +1094,17 @@ pip install "metacouplingllm[viz]"
 | Yellow-green (`#D4E79E`) | **Intracoupling** — The focal country itself |
 | Green (`#4CAF50`) | **Pericoupling** — Geographically adjacent countries |
 | Light blue (`#ADD8E6`) | **Telecoupling** — Geographically distant countries |
-| Grey (`#D3D3D3`) | **N/A** — Countries not in the database |
+| Grey (`#D3D3D3`) | **N/A** — Countries not colored by the database/analysis |
+| Hatched grey (`#BFBFBF`, `///`) | **Disputed / Indeterminate** — World Bank disputed or indeterminate territories, overlaid on every map |
+
+On **database-only** maps every country in the adjacency database is
+colored (all non-adjacent countries show as telecoupled). On
+**analysis-based** maps (next subsections) coloring is
+analysis-driven: only countries the LLM identified — plus validated
+web-extraction targets — are colored; everything else stays grey.
+Map adjacency always uses the package defaults
+(`de_facto_borders=True`, `coupling_standard="moderate"`; see §8) —
+the plot functions don't currently expose those knobs.
 
 ### Database-only map (no LLM needed)
 
@@ -1059,6 +1114,8 @@ from metacouplingllm import plot_focal_country_map
 # By country name
 fig = plot_focal_country_map("China")
 fig.savefig("china_metacoupling.png", dpi=150, bbox_inches="tight")
+# First render downloads + caches the World Bank ADM0 basemap
+# (internet required once; cached afterwards)
 
 # By ISO code
 fig = plot_focal_country_map("MEX")
@@ -1084,6 +1141,13 @@ fig.savefig("avocado_trade_map.png", dpi=150, bbox_inches="tight")
 
 # Specify which system role is the focal country
 fig = plot_analysis_map(result.parsed, focal_role="sending")
+```
+
+Analysis-based maps also draw **flow arrows** extracted from the
+parsed analysis, color-coded by flow category with their own legend
+entries (matter, capital, information, energy, people, organisms).
+
+```python
 ```
 
 ### Custom colors
@@ -1245,8 +1309,8 @@ methods-section drafting around the deterministic core.
 | `OpenAIAdapter` / `AnthropicAdapter` / `GeminiAdapter` / `GrokAdapter` | LLM-provider adapters; each auto-wires its native web-search backend. See "LLM Adapters" below for signatures. |
 | `LLMClient` | Protocol any custom client can implement (just a `chat()` method). |
 | `AnalysisResult` | Container for parsed + formatted + raw + abstract + exporter output. |
-| `ParsedAnalysis` | Structured data extracted from LLM response (incl. `evidence_coverage_note`). |
-| `AnalysisFormatter` | Formats ParsedAnalysis into various text representations. |
+| `ParsedAnalysis` | Structured data extracted from LLM response (incl. `evidence_coverage_note`). Import from `metacouplingllm.llm.parser` (not the top-level package). |
+| `AnalysisFormatter` | Formats ParsedAnalysis into various text representations. Import from `metacouplingllm.output.formatter` (not the top-level package). |
 | `RAGResult` | Container returned when `coupling_analysis=False` (RAG-only Q&A mode). |
 
 ### AnalysisResult properties + exporters (PR #31, #32)
@@ -1261,7 +1325,7 @@ methods-section drafting around the deterministic core.
 | `result.map` | `Figure \| None` | Generated map (when `auto_map=True`). |
 | `result.abstract` | `str` | Scholar-ready one-paragraph abstract. |
 | `result.to_markdown(path=None)` | `str` | Manuscript-ready Markdown; writes to `path` if given. |
-| `result.to_docx(path)` | `None` | Word document (requires `metacouplingllm[export]`). |
+| `result.to_docx(path=None)` | `Path` | Word document; defaults to `./metacoupling_report.docx` and returns the written `Path` (requires `metacouplingllm[export]`). |
 
 ### LLM Adapters
 
@@ -1280,27 +1344,31 @@ methods-section drafting around the deterministic core.
 | `OpenAIWebSearchBackend` | OpenAI `web_search` tool | #17, #18, #21 |
 | `AnthropicWebSearchBackend` | Anthropic `web_search_20250305` tool | #28 |
 | `GeminiWebSearchBackend` | Google Search grounding | #29 |
-| `GrokWebSearchBackend` | xAI Live Search (web + X/Twitter) | #29 |
-| `DuckDuckGoBackend` | `ddgs` → `duckduckgo_search` → stdlib | — |
+| `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool | #29 |
+| `search_web()` built-in fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) | — |
 
 ### Pericoupling Functions (country level)
 
 | Function | Returns | Description |
 |---|---|---|
-| `lookup_pericoupling(a, b)` | `PericouplingResult` | Full lookup with pair type and codes. |
-| `is_pericoupled(a, b)` | `bool \| None` | Quick check: True/False/None. |
-| `get_pericoupled_neighbors(country)` | `set[str]` | All pericoupled ISO codes. |
+| `lookup_pericoupling(a, b, de_facto_borders=True, coupling_standard="moderate")` | `PericouplingResult` | Full lookup with pair type and codes. |
+| `is_pericoupled(a, b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick check: True/False/None. |
+| `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All pericoupled ISO codes. |
 | `resolve_country_code(name)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3. |
 | `get_country_name(code)` | `str` | ISO alpha-3 code to canonical English name. |
+
+`de_facto_borders` toggles the disputed-territory overlay;
+`coupling_standard` (`"stringent"`/`"moderate"`/`"lenient"`) controls
+water-only pairs — see §8 "Adjacency standards".
 
 ### ADM1 (Subnational) Pericoupling Functions
 
 | Function | Returns | Description |
 |---|---|---|
-| `lookup_adm1_pericoupling(a, b)` | `Adm1PericouplingResult` | Full ADM1 lookup with pair type. |
-| `is_adm1_pericoupled(a, b)` | `bool \| None` | Quick adjacency check at the ADM1 scale. |
-| `get_adm1_neighbors(code)` | `set[str]` | All ADM1 neighbors (domestic + cross-border). |
-| `get_cross_border_neighbors(code)` | `set[str]` | ADM1 neighbors in other countries only. |
+| `lookup_adm1_pericoupling(a, b, de_facto_borders=True, coupling_standard="moderate")` | `Adm1PericouplingResult` | Full ADM1 lookup with pair type. |
+| `is_adm1_pericoupled(a, b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick adjacency check at the ADM1 scale. |
+| `get_adm1_neighbors(code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All ADM1 neighbors (domestic + cross-border). |
+| `get_cross_border_neighbors(code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | ADM1 neighbors in other countries only. |
 | `get_adm1_codes_for_country(iso)` | `set[str]` | All ADM1 codes inside the given country. |
 | `get_adm1_info(code)` | `dict \| None` | ADM1 metadata (canonical name, country, region). |
 | `get_adm1_country(code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
@@ -1310,7 +1378,7 @@ methods-section drafting around the deterministic core.
 
 | Function | Returns | Description |
 |---|---|---|
-| `recommend_papers(query, max_results=5)` | `list[Paper]` | Recommend papers by keyword matching. |
+| `recommend_papers(query, *, max_results=5)` | `list[Paper]` | Rank papers by keywords/title + full-text relevance + citations; `query` may be a string or a `ParsedAnalysis`. |
 | `format_recommendations(papers)` | `str` | Format papers as readable text. |
 | `get_database_info()` | `dict` | Summary statistics of the literature database. |
 
@@ -1328,18 +1396,18 @@ methods-section drafting around the deterministic core.
 |---|---|---|
 | `classify_coupling(edges, focal_id, adjacency, ...)` | `pd.DataFrame` | Add I/P/T column to an edge table (optional `llm_client=` for ambiguous edges). |
 | `compute_flow_shares(data, ...)` | `pd.DataFrame` | IFS / PFS / TFS per focal system. |
-| `compute_mfe(data, ...)` | `pd.DataFrame` | Normalised Shannon entropy across coupling types. |
-| `compute_mfci(data, ...)` | `pd.DataFrame` | Normalised HHI (IFCI / PFCI / TFCI) within each coupling type. |
-| `summarize_metacoupling(data, ...)` | `pd.DataFrame` | One-shot combined indicator table. |
+| `compute_mfe(data, ...)` | `pd.DataFrame` | Normalised Shannon entropy across coupling types; input is the **shares table from `compute_flow_shares`** (needs IFS/PFS/TFS columns), not the raw edge table. |
+| `compute_mfci(data, ...)` | `pd.DataFrame` | Normalised HHI per coupling type (long-format: one row per system × coupling type). |
+| `summarize_metacoupling(data, ...)` | `pd.DataFrame` | One-shot combined indicator table (this is what produces the wide IFCI/PFCI/TFCI + ENP_* columns). |
 
 ### LLM-Assisted Indicator Helpers (PR #36 — `metacouplingllm.indicators`)
 
 | Function | Returns | Description |
 |---|---|---|
 | `define_study(description, *, llm_client)` | `(dict, LLMTrace)` | Natural-language → structured study config. |
-| `check_inputs(data_summary, sample_rows, *, llm_client)` | `(dict, LLMTrace)` | Validate user data; flag missing inputs / unit issues. |
+| `check_inputs(data_summary, sample_rows=None, *, llm_client)` | `(dict, LLMTrace)` | Validate user data; flag missing inputs / unit issues. `data_summary` needs at least `"columns"` and `"row_count"`. |
 | `classify_ambiguous_edges(edges, study_config, *, llm_client)` | `(pd.DataFrame, LLMTrace)` | Classify edges the deterministic pass couldn't resolve. |
-| `interpret_results(results, *, llm_client, audience)` | `(str, LLMTrace)` | Plain-language interpretation (`"academic"` / `"general"` / `"policy"`). |
+| `interpret_results(results, *, llm_client, audience="academic")` | `(str, LLMTrace)` | Plain-language interpretation of an indicator **DataFrame** (`"academic"` / `"general"` / `"policy"`). |
 | `write_methods(indicator_spec, *, llm_client)` | `(str, LLMTrace)` | Manuscript-ready Methods text with formulas + standard citations. |
 | `LLMTrace` | dataclass | `timestamp_utc`, `model`, `prompt_version`, `system_prompt`, `user_prompt`, `raw_response`, `usage`. |
 
@@ -1353,6 +1421,7 @@ methods-section drafting around the deterministic core.
 | `AgentLevel` | `INDIVIDUALS_HOUSEHOLDS`, `FIRMS_TRADERS_CORPORATIONS`, `GOVERNMENTS_POLICYMAKERS`, `ORGANIZATIONS_NGOS`, `NON_HUMAN_AGENTS` |
 | `CauseCategory` / `EffectCategory` | `ECONOMIC`, `POLITICAL_INSTITUTIONAL`, `ECOLOGICAL_BIOLOGICAL`, `TECHNOLOGICAL_INFRASTRUCTURAL`, `CULTURAL_SOCIAL_DEMOGRAPHIC`, `HYDROLOGICAL`, `CLIMATIC_ATMOSPHERIC`, `GEOLOGICAL_GEOMORPHOLOGICAL` |
 | `PairCouplingType` | `PERICOUPLED`, `TELECOUPLED`, `UNKNOWN` |
+| `Adm1PairType` | `PERICOUPLED`, `TELECOUPLED`, `SAME_REGION`, `UNKNOWN` |
 
 ---
 
@@ -1403,7 +1472,7 @@ the `[indicators]` extra:
 !pip install "metacouplingllm[indicators]"
 ```
 
-### `ImportError: python-docx is required for result.to_docx`
+### `ImportError: render_docx requires the optional python-docx dependency`
 
 The Word exporter (PR #31, #32) needs `python-docx`. Install the
 `[export]` extra:
@@ -1415,11 +1484,11 @@ The Word exporter (PR #31, #32) needs `python-docx`. Install the
 `result.to_markdown(...)` and `result.abstract` work without this
 extra.
 
-### `ImportError` or `AttributeError` related to `naturalearth`
+### `FileNotFoundError: No World Bank ... GeoPackage found` / map download failures
 
-The package downloads the needed World Bank boundary files on first use and
-caches them locally. Ensure you have internet access for the first map
-generation.
+The package downloads the needed World Bank boundary GeoPackages on
+first use and caches them locally. Ensure you have internet access for
+the first map generation; subsequent renders use the cache.
 
 ### Map shows `TclError: Can't find a usable tk.tcl`
 
@@ -1468,17 +1537,20 @@ few edge cases still slip through:
   `"especially Michoacán"`. The cleaner's hedge-marker bailout filters
   these to avoid false positives from speculative language.
 
-To diagnose, inspect `result.parsed.systems` + `result.parsed.flows` for
-where the region is mentioned, and try
+To diagnose, inspect the parsed systems and flows
+(`list(result.parsed.iter_system_entries())` +
+`list(result.parsed.iter_flow_entries())`) for where the region is
+mentioned, and try
 `from metacouplingllm.knowledge.adm1_pericoupling import resolve_adm1_code`
 to confirm whether the resolver finds it at all.
 
 ### Literature recommendations seem unrelated
 
-The recommendation engine uses keyword matching (not semantic similarity).
-Try more specific terms in your research description. The engine searches
-paper titles, author-assigned keywords, and the first 200 characters of
-abstracts.
+The engine ranks papers by author-assigned keywords, title words,
+full-text relevance from the bundled RAG index (TF-IDF, or embeddings
+when available), and citation count — see §9 "How recommendations
+work". Try more specific terms in your research description so the
+keyword and full-text components have something to bite on.
 
 ### `RuntimeError: Cannot refine before an initial analysis`
 
@@ -1504,33 +1576,44 @@ advisor = MetacouplingAssistant(
     web_search=True,                  # turn on web search
     web_search_max_results=10,        # number of hits per query (default; PR #24 raised from 5)
     web_structured_extraction=True,   # Stage-3 validated countries + flows
-    web_map_signals=True,             # surface validated payload on result
 )
 ```
+
+When structured extraction runs, the validated payload is surfaced as
+an **output** field at `result.web_map_signals` (it is not a
+constructor setting).
 
 Set `web_search=True` and the right backend is selected automatically
 from the adapter type — see §4 LLM Setup, "Web-search auto-wiring".
 
 ### Backend matrix
 
-| Adapter | Backend | Native API | First shipped in |
+| Adapter | Backend | Native API | Parity/upgrade PR |
 |---|---|---|---|
 | `OpenAIAdapter` | `OpenAIWebSearchBackend` | OpenAI `web_search` tool with `tool_choice="required"` (PR #18, #21) | PR #17 |
 | `AnthropicAdapter` | `AnthropicWebSearchBackend` | Claude `web_search_20250305` tool + `submit_results` strict-output tool | PR #28 |
-| `GeminiAdapter` | `GeminiWebSearchBackend` | Google Search grounding (Gemini 3.1 Pro default) | PR #29 |
-| `GrokAdapter` | `GrokWebSearchBackend` | xAI Live Search (web + X/Twitter, Grok 4.3 default) | PR #29 |
-| Custom client | `DuckDuckGoBackend` | `ddgs` → `duckduckgo_search` → stdlib | — |
+| `GeminiAdapter` | `GeminiWebSearchBackend` | Google Search grounding | PR #29 |
+| `GrokAdapter` | `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool (the older Live Search API was retired 2026-01) | PR #29 |
+| Custom client | DuckDuckGo fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) | — |
+
+Auto-wiring reuses **your adapter's model** for the search call; the
+backend dataclasses' own model defaults only apply if you instantiate
+a backend directly.
 
 ### Configuration knobs
 
 | Setting | Default | Notes |
 |---|---|---|
-| `web_search` | `False` | Master switch. |
+| `web_search` | `False` | Master switch (constructor kwarg). |
 | `web_search_max_results` | `10` | Number of hits requested per query. Scales `max_output_tokens` automatically (PR #24). |
-| `web_structured_extraction` | `False` | Runs a second, strict-JSON LLM pass over the snippets to extract validated receiving countries, spillover countries, and map-ready flows. Recommended whenever `auto_map=True`. |
-| `web_map_signals` | `False` | Exposes the validated structured-extraction payload at `result.web_map_signals` so callers can render their own maps. |
-| `blocked_domains` | `None` | Per-adapter denylist passed through to the native backend (PR #18, #28-#30). |
-| `search_context_size`, `return_token_budget` | provider defaults | Forwarded to OpenAI backends (PR #18). |
+| `web_structured_extraction` | `False` | Runs a second, strict-JSON LLM pass over the snippets to extract validated receiving countries, spillover countries, and map-ready flows. **Auto-enabled** when `web_search=True` and `auto_map=True` (the map needs structured data). |
+| `web_structured_min_confidence` | `0.7` | Minimum confidence for a Stage-3 country/flow to be kept in the validated payload. |
+| `web_structured_max_targets` | `6` | Cap on validated receiving/spillover targets kept per analysis. |
+| `blocked_domains` | `["reddit.com", "quora.com", "pinterest.com"]` | Field of the backend dataclasses (not an adapter kwarg): low-authority domains are excluded **out of the box**; override it by instantiating the backend yourself. |
+| `search_context_size`, `return_token_budget` | `"high"` / `"default"` | Fields of `OpenAIWebSearchBackend` (PR #18) — `"high"` deliberately maximises evidence depth. Only configurable when you instantiate the backend yourself. |
+
+The validated structured-extraction payload appears at
+`result.web_map_signals` (an output field, not a setting).
 
 ### Citation grammar
 
@@ -1593,7 +1676,9 @@ turn it into something a co-author or reviewer can read:
 
 - `result.abstract` (PR #31) — a one-paragraph scholar abstract
 - `result.to_markdown(path=None)` (PR #31) — manuscript-ready Markdown
-- `result.to_docx(path)` (PR #31, #32) — Word document with headings
+- `result.to_docx(path=None)` (PR #31, #32) — Word document with
+  headings; defaults to `./metacoupling_report.docx` and returns the
+  written `Path`
 
 Markdown export works with the core install. Word export needs
 `metacouplingllm[export]` (python-docx).
@@ -1640,7 +1725,7 @@ Both exporters carry over (PR #31 + follow-up + PR #32 + PR #33):
 | Title from research description | ✓ | ✓ |
 | Scholar abstract | ✓ | ✓ |
 | Bold sub-field labels (system names, flow direction, agent level, ...) | ✓ | ✓ |
-| Per-category Flows subsections (Matter / Energy / Information / Financial / People) | ✓ | ✓ |
+| Per-category Flows subsections (Matter / Capital / Information / Energy / People / Organisms) | ✓ | ✓ |
 | Per-category Causes + Effects subsections (eight fixed categories) | ✓ | ✓ |
 | RAG evidence + web sources block | ✓ | ✓ |
 | Classification bullets at top of each system role section (PR #33) | ✓ | ✓ |
@@ -1649,10 +1734,13 @@ Both exporters carry over (PR #31 + follow-up + PR #32 + PR #33):
 
 ### Customising the abstract pass
 
-The abstract is computed at `analyze()` time and cached on the result.
-If you want to regenerate it (e.g., after editing `result.parsed`),
-call the underlying assistant method again with the updated parsed
-object — see §12 API Reference for the helper signatures.
+The abstract is computed at `analyze()` time and cached on the result
+as a plain attribute — to customise it, simply reassign
+`result.abstract = "..."` before exporting (both exporters read the
+attribute). There is no public regeneration API; the internal hook is
+private (`advisor._generate_abstract(formatted_text)`) and takes the
+fully-assembled formatted report string, so editing `result.parsed`
+alone does not change the abstract.
 
 ---
 
@@ -1660,8 +1748,8 @@ object — see §12 API Reference for the helper signatures.
 
 The `metacouplingllm.indicators` submodule (PR #35) computes
 deterministic metacoupling indicators on the user's own flow data.
-The math is documented in spec §6 / §10 / §11; this section is the
-operator's manual for the public functions.
+The formulas are given below; this section is the operator's manual
+for the public functions.
 
 Install: `pip install "metacouplingllm[indicators]"` (pulls in pandas).
 
@@ -1708,8 +1796,18 @@ $$
 
 where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_i^{c} = \sum_j f_{ij}^{c}$, $n_{ic}$ is the number of partners, and ENP is the equivalent number of partners.
 
-Produces `IFCI` / `PFCI` / `TFCI` columns plus `ENP_I` / `ENP_P` /
-`ENP_T`.
+Two edge-case conventions (each emits a `UserWarning`): when
+$n_{ic} = 1$ the normalisation is undefined and MFCI is defined as
+**1** by convention (a single partner is maximal concentration —
+e.g. the intracoupling self-loop, which is why `IFCI = 1.00` in the
+worked example below); when $F_{ic} = 0$ MFCI is **NaN**. In the MFE
+sum, $0 \ln 0 = 0$ by convention.
+
+`compute_mfci` itself returns a **long-format** table (one row per
+system × coupling type, with `m_partners`, `HHI`, `MFCI`,
+`effective_n_partners`); the wide `IFCI` / `PFCI` / `TFCI` columns
+plus `ENP_I` / `ENP_P` / `ENP_T` are produced by
+`summarize_metacoupling`.
 
 ### Brazil-soybean worked example
 
@@ -1724,6 +1822,7 @@ edges = pd.DataFrame({
     "origin_id":         ["Brazil"] * 6,
     "destination_id":    ["Brazil", "Argentina", "Paraguay", "China", "EU", "USA"],
     "flow_value":        [10.0, 5.0, 15.0, 50.0, 12.0, 8.0],   # million tonnes
+    "flow_type":         ["matter"] * 6,   # enables per-flow-type grouping below
 })
 adjacency = pd.DataFrame({
     "origin_id":      ["Brazil", "Brazil"],
@@ -1733,9 +1832,13 @@ adjacency = pd.DataFrame({
 
 classified = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
 summary    = summarize_metacoupling(classified)
-print(summary)
-#    focal_system_id   IFS   PFS   TFS   MFE   IFCI   PFCI   TFCI
-# 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.25   0.33
+
+# summary has 18 columns (raw F_I/F_P/F_T/F_total magnitudes, shares,
+# MFE, concentration, partner counts, ENPs); print a subset:
+cols = ["focal_system_id", "IFS", "PFS", "TFS", "MFE", "IFCI", "PFCI", "TFCI"]
+print(summary[cols].round(2))
+#   focal_system_id  IFS  PFS  TFS   MFE  IFCI  PFCI  TFCI
+# 0          Brazil  0.1  0.2  0.7  0.73   1.0  0.25  0.33
 ```
 
 Interpretation: 70% of Brazil's classified soybean-equivalent flow is
@@ -1839,22 +1942,35 @@ automatically calls `classify_ambiguous_edges()` on just those rows
 and merges the results back:
 
 ```python
+llm_client = OpenAIAdapter(client, model="gpt-4o")  # the adapter you built in §4
+
 classified = classify_coupling(
     edges,
     focal_id="Brazil",
     adjacency=partial_adjacency,    # missing some cross-border pairs
-    llm_client=advisor.llm_client,  # ← opt-in LLM fallback
+    llm_client=llm_client,          # ← opt-in LLM fallback
     study_config={"focal_system": "Brazil", "flow_unit": "Mt"},
 )
 
-# Inspect what the LLM suggested
-trace = classified.attrs["llm_classify_trace"]
+# Inspect what the LLM suggested.  The trace is attached to the
+# DataFrame's metadata ONLY when the LLM actually ran (llm_client
+# passed AND at least one edge was unresolved) — use .get() so a
+# fully-deterministic run doesn't raise KeyError:
+trace = classified.attrs.get("llm_classify_trace")
+if trace is not None:
+    print(trace.raw_response)
+# trace is None  ⇒  every edge was classified deterministically.
 ```
 
 When the LLM returns `"unknown"`, the row stays `NaN` (per spec §16
 item 3: the package never lets the LLM invent adjacency facts
 silently). Backwards-compat: omit the new kwargs to get exact
 PR #35 behaviour.
+
+> **Why no `(result, trace)` pair here?** Unlike the five helpers,
+> `classify_coupling` predates the LLM feature and keeps its original
+> single-DataFrame return type for backwards compatibility — the trace
+> rides along in `DataFrame.attrs` instead.
 
 ### End-to-end workflow
 
@@ -1882,7 +1998,7 @@ study_config, trace_def = define_study(
 import pandas as pd
 edges = pd.read_csv("brazil_soybean_flows.csv")
 check, trace_chk = check_inputs(
-    data_summary={"n_rows": len(edges), "columns": list(edges.columns)},
+    data_summary={"row_count": len(edges), "columns": list(edges.columns)},
     sample_rows=edges.head(5).to_dict("records"),
     llm_client=llm_client,
 )
@@ -1898,8 +2014,9 @@ classified = classify_coupling(
 summary = summarize_metacoupling(classified)
 
 # 5. Plain-language interpretation for a target audience
+#    (pass the indicator DataFrame itself, not a list of dicts)
 interpretation, trace_int = interpret_results(
-    summary.to_dict("records"),
+    summary,
     llm_client=llm_client,
     audience="academic",
 )

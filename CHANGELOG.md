@@ -7,6 +7,29 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Docs
+
+- **MANUAL accuracy pass (55 verified fixes + 2 §17 gaps).**  A full
+  code-grounded scan of MANUAL.md (every claim checked against source /
+  live runs, each finding adversarially re-verified) surfaced 9 high-,
+  26 medium- and 20 low-severity issues; all are fixed.  Highlights:
+  repaired broken examples (§7 structured-data access now uses the real
+  `iter_*` API; §7 `format_component` valid names; §17 end-to-end
+  workflow — `row_count` key, DataFrame input to `interpret_results`,
+  adapter instead of nonexistent `advisor.llm_client`; §14
+  `web_map_signals` is an output field, not a kwarg); replaced the §7
+  sample report with the real coupling-first numbered layout; updated
+  §8 to the moderate-default counts (322 exposed of 325) and §12
+  pericoupling signatures to show `de_facto_borders` +
+  `coupling_standard`; removed the fictional `DuckDuckGoBackend` class
+  (3×); corrected `blocked_domains` / `search_context_size` defaults
+  and the auto-enabled `web_structured_extraction`; documented the
+  MFCI edge-case conventions, the long-format `compute_mfci` output,
+  six flow categories (organisms was omitted), the
+  `attrs.get("llm_classify_trace")` pattern, the §10 disputed-overlay
+  legend entry, and the abstract's standalone (citation-free) design.
+  Every corrected executable claim was re-run live (15/15 pass).
+
 ### Added
 
 - **`coupling_standard` for water-separated adjacency (`stringent` /
