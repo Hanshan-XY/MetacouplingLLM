@@ -118,9 +118,10 @@ manuscript prose around the deterministic numbers.
 
 ### Quantitative indicators (PR #35, new)
 - `compute_flow_shares` — IFS / PFS / TFS per focal system
-- `compute_mfe` — normalised Shannon entropy across coupling types
-- `compute_mfci` — normalised HHI (IFCI / PFCI / TFCI) within each coupling
-  type, plus the equivalent-number-of-partners (ENP)
+- `compute_mfe` — Metacoupled Flow Evenness (normalised Shannon entropy across coupling types)
+- `compute_mfci` — Metacoupled Flow Concentration Index: normalised HHI
+  (IFCI / PFCI / TFCI) within each coupling type, plus the Equivalent
+  Number of Intra-/Peri-/Telecoupled Partners (ENP_I / ENP_P / ENP_T)
 - `summarize_metacoupling` — one-shot combined indicator table
 
 ### Optional LLM-assisted helpers (PR #36, new)

@@ -3317,6 +3317,81 @@ class TestStructuredMapData:
             f"got {codes}"
         )
 
+    def test_extract_mentioned_adm1_acronyms_are_not_country_mentions(self):
+        """Non-country all-caps acronyms (GDP, USD, ...) must not enter
+        the country-mention set behind the relevance guard.
+
+        Regression test: ``get_country_name()`` returns the input code
+        itself for unknown codes, so a truthiness check on its result
+        treated EVERY 3-letter acronym as a country mention.  A token
+        like "GDP" made the mention set non-empty, which activated the
+        relevance guard and rejected a directly-named region whose
+        country was not restated anywhere in the text.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="Soybean telecoupling assessment.",
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Mato Grosso → overseas markets",
+                    "description": (
+                        "Soybean exports raise the GDP share of "
+                        "agriculture, settled in USD"
+                    ),
+                },
+            ],
+        )
+
+        codes = MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
+        # "Mato Grosso" is named substantively in a flow direction.  No
+        # country is mentioned anywhere, so the mention set must stay
+        # empty (guard bypassed) — GDP/USD must not count as countries
+        # and suppress the resolution.
+        assert "BRA011" in codes, (
+            f"Expected BRA011 (Mato Grosso); acronyms like GDP/USD must "
+            f"not enter the relevance guard as country mentions. "
+            f"Got {codes}"
+        )
+
+    def test_extract_mentioned_adm1_guard_holds_despite_acronyms(self):
+        """The relevance guard still blocks an unrelated ADM1 match
+        ("Gulf" → PNG008, Papua New Guinea) when the analysis genuinely
+        discusses Brazil and merely contains acronyms like GDP/USD.
+        """
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="Mato Grosso, Brazil soybean exports.",
+            systems={
+                "sending": {
+                    "name": "Mato Grosso",
+                    "geographic_scope": "Mato Grosso, Brazil",
+                },
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Mato Grosso, Brazil → Gulf",
+                    "description": (
+                        "GDP gains from soybean exports routed through "
+                        "Gulf ports, settled in USD"
+                    ),
+                },
+            ],
+        )
+
+        codes = MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
+        assert not any(c.startswith("PNG") for c in codes), (
+            f"'Gulf' must not resolve to Papua New Guinea when PNG is "
+            f"never discussed in the analysis. Got {codes}"
+        )
+        assert "BRA011" in codes, (
+            f"Expected BRA011 (Mato Grosso) to survive the guard, "
+            f"got {codes}"
+        )
+
     def test_stage3_map_extraction_retries_once_on_nonjson(self):
         """PR #47: when Stage-3 returns prose on the first call, the
         extractor retries once and recovers from the second (valid-JSON)

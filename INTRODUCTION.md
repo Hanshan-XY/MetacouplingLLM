@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-**Metacoupling** is a Python package (v0.1.0) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
+**Metacoupling** is a Python package (v0.1.3) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
 
 **Key capabilities:**
 
@@ -341,11 +341,11 @@ The `metacouplingllm.indicators` submodule computes deterministic metacoupling i
 |---|---|
 | `classify_coupling(edges, focal_id, adjacency, ...)` | Add `coupling_type` (I / P / T) to an edge table using a user-supplied adjacency table. |
 | `compute_flow_shares(data, ...)` | Intracoupled / Pericoupled / Telecoupled Flow Shares (IFS / PFS / TFS) per focal system. |
-| `compute_mfe(data, ...)` | Metacoupling Flow Evenness — normalised Shannon entropy across coupling types. |
-| `compute_mfci(data, ...)` | Metacoupling Flow Concentration Index — normalised HHI (IFCI / PFCI / TFCI) within each coupling type. |
+| `compute_mfe(data, ...)` | Metacoupled Flow Evenness — normalised Shannon entropy across coupling types. |
+| `compute_mfci(data, ...)` | Metacoupled Flow Concentration Index — normalised HHI (IFCI / PFCI / TFCI) within each coupling type. |
 | `summarize_metacoupling(data, ...)` | One-shot combined indicator table. |
 
-Built on established statistics (Shannon 1948 entropy, Hirschman 1945 / Cracau & Lima 2016 normalised HHI), not invented indices. Brazil-soybean worked example: IFS = 0.10, PFS = 0.20, TFS = 0.70, MFE ≈ 0.73, TFCI ≈ 0.33. See MANUAL §16 for the full math + code.
+Built on established statistics (Shannon 1948 entropy; Hirschman 1945 HHI, normalised per Hannah & Kay 1977; Equivalent Number of Partners per Laakso & Taagepera 1979), not invented indices. Brazil-soybean worked example: IFS = 0.10, PFS = 0.20, TFS = 0.70, MFE ≈ 0.73, TFCI ≈ 0.33. See MANUAL §16 for the full math + code.
 
 Pandas is the only added dependency; install via `pip install "metacouplingllm[indicators]"`.
 
@@ -359,7 +359,7 @@ Five optional helpers in `metacouplingllm.indicators` wrap natural-language judg
 | `check_inputs(data_summary, sample_rows, *, llm_client)` | Validate user data; flag missing inputs, unit issues, self-loop intracoupling. |
 | `classify_ambiguous_edges(edges, study_config, *, llm_client)` | Classify edges the deterministic pass couldn't resolve; returns `"I"` / `"P"` / `"T"` / `"unknown"` per edge with confidence and reason. |
 | `interpret_results(results, *, llm_client, audience)` | Plain-language interpretation of an indicator table; audience presets `"academic"` / `"general"` / `"policy"`. |
-| `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Cracau & Lima 2016, Liu 2017). |
+| `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Hannah & Kay 1977, Laakso & Taagepera 1979, Liu 2017). |
 
 The `LLMTrace` dataclass carries `timestamp_utc`, `model`, `prompt_version`, `system_prompt`, `user_prompt`, `raw_response`, `usage` so old traces stay attributable when prompt wording evolves.
 
@@ -538,7 +538,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | ADM1 edge list (CSV) | 8,381 subnational shared-border pairs across 3,373 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 
-*Counts above are as of v0.1.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
+*Counts above are as of v0.1.3.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
 
 ---
 

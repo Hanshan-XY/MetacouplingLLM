@@ -96,7 +96,32 @@ from metacouplingllm.llm.client import (
     OpenAIAdapter,
 )
 
-__version__ = "0.1.0"
+def _resolve_version() -> str:
+    # Installed distribution metadata is authoritative when available.
+    try:
+        from importlib.metadata import PackageNotFoundError, version
+
+        return version("MetacouplingLLM")
+    except PackageNotFoundError:
+        pass
+    # Source-tree import (running from src/ without pip-installing):
+    # read the version from pyproject.toml so it cannot drift.
+    import re
+    from pathlib import Path
+
+    pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    try:
+        match = re.search(
+            r'^version\s*=\s*"([^"]+)"',
+            pyproject.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+    except OSError:
+        match = None
+    return match.group(1) if match else "0.1.3"
+
+
+__version__ = _resolve_version()
 
 
 # ---------------------------------------------------------------------------
