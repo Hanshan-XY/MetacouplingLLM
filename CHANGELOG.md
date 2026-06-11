@@ -30,7 +30,30 @@ file. The format is loosely based on
   legend entry, and the abstract's standalone (citation-free) design.
   Every corrected executable claim was re-run live (15/15 pass).
 
+- **Executable-docs CI guard (`tests/test_docs_examples.py`).**  Turns
+  the accuracy pass into a build break: every fenced `python` block in
+  MANUAL.md must compile, and an allowlist of deterministic sections
+  (§7 structured access + formatting, §8 standalone pericoupling, §16
+  worked example incl. `group_cols`) is *executed* with assertions that
+  the documented outputs still match the package.  Allowlisted blocks
+  are checked to stay LLM/network-free.
+
 ### Added
+
+- **`__version__` now derives from the installed distribution metadata**
+  (falling back to `pyproject.toml` for source-tree imports), so it can
+  no longer drift from the packaged version the way the hardcoded
+  `"0.1.0"` had (actual version: 0.1.3).
+
+### Fixed
+
+- **3-letter acronyms no longer count as country mentions.**
+  `get_country_name()` returns the input code itself for unknown codes,
+  so the truthiness checks in the ADM1 mention-extraction and relevance
+  guards treated any all-caps token (`GDP`, `USD`, `PNG`…) as a country
+  mention — which could activate the relevance guard and suppress a
+  directly-named region.  All three sites now use an explicit
+  `ISO_ALPHA3_NAMES` membership check; 2 regression tests added.
 
 - **`coupling_standard` for water-separated adjacency (`stringent` /
   `moderate` / `lenient`, default `moderate`).**  The pericoupling loaders
