@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-**Metacoupling** is a Python package (v0.1.0) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
+**Metacoupling** is a Python package (v0.1.3) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
 
 **Key capabilities:**
 
