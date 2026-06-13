@@ -280,7 +280,7 @@ Two geographic adjacency databases validate LLM coupling classifications:
 | Database | Scope | Coverage |
 |---|---|---|
 | Country-level | Sovereign states | Full global (ISO alpha-3) |
-| ADM1 (subnational) | First-level administrative regions | 3,373 regions, 8,381 shared-border pairs (8,234 under the default `moderate` coupling standard), 196 countries |
+| ADM1 (subnational) | First-level administrative regions | 3,373 regions, 8,381 shared-border pairs (8,235 under the default `moderate` coupling standard), 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
 

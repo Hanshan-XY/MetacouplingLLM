@@ -12,7 +12,7 @@ limitations of the two bundled adjacency datasets.
 | `PeriTelecoupling_clean.csv` | 325 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-land-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
-| `water_separated_pairs.csv` | 315 ADM1 + 18 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (see *Water-separated pairs* below) |
+| `water_separated_pairs.csv` | 314 ADM1 + 17 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (see *Water-separated pairs* below) |
 
 Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 `TLS`). ADM1 codes are World Bank `ADM1CD_c` (e.g. `MEX014`).
@@ -95,13 +95,13 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   pair); ADM1 borders spanning several administering provinces are split among
   them by nearest province. The full per-tract candidate audit is shipped at
   `docs/ndlsa_tract_audit.csv` (see `docs/METHODS_adjacency.md`).
-- **Water-separated pairs (`coupling_standard`).** 315 ADM1 pairs (and 18
+- **Water-separated pairs (`coupling_standard`).** 314 ADM1 pairs (and 17
   rolled-up ADM0 country pairs) share **only** a river/lake border with no land
   segment. The runtime loaders accept `coupling_standard` (default `"moderate"`),
   orthogonal to `de_facto_borders`: `lenient` keeps all water borders; `moderate`
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair (ADM1 default-view edges 8,381 →
-  **8,234**; ADM0 325 → **322**). Each pair's `has_bridge` flag was classified
+  **8,235**; ADM0 325 → **323**). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
   search, a deterministic geocode + province-polygon check, and manual review.
@@ -111,7 +111,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   border counts (pericoupling is structural); under-construction/proposed links
   do not. Mid-lake "median-line" meetings are already removed by the inland-water
   filter (Method step 3) and so are out of scope for all three standards. Full
-  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
+  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`. One post-classification correction: Italy↔Vatican (`ITA007`↔`VAT001`) was review-reclassified from water-only to a **land border** (the Vatican is a ~2.7 km land enclave within Rome; the Tiber is ~0.6 km away, not the border), so the shipped artifact is **314** ADM1 water-only pairs, not the 315 first geometrically flagged. ITA↔VAT is therefore pericoupled under every `coupling_standard`.
 - **Correctly-absent pairs.** `ARE/QAT`, `KEN/SDN`, `SDN/UGA` are *not* land
   neighbours (separated by Saudi Arabia / South Sudan respectively) and are
   rightly absent — these differ from the older dataset, which listed them.

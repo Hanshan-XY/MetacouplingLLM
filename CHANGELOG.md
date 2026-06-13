@@ -64,6 +64,8 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **Italy↔Vatican corrected from water-only to a land border.**  The Lazio↔Vatican pair (`ITA007`↔`VAT001`) was geometrically mis-flagged as a Tiber water-only crossing and so was wrongly dropped under the default `coupling_standard="moderate"`.  The Vatican is a ~2.7 km land enclave within Rome (the Tiber is ~0.6 km away, not the border), so it is now a land border, pericoupled under every standard.  Shipped water-only counts: ADM1 315→**314** (108/206), ADM0 18→**17** (15/2).  Default-view effective edges: ADM1 8,234→**8,235**, ADM0 322→**323**; stringent ADM1 8,129→**8,130**, ADM0 307→**308**.  Regression test added.
+
 - **3-letter acronyms no longer count as country mentions.**
   `get_country_name()` returns the input code itself for unknown codes,
   so the truthiness checks in the ADM1 mention-extraction and relevance
@@ -75,7 +77,7 @@ file. The format is loosely based on
 - **`coupling_standard` for water-separated adjacency (`stringent` /
   `moderate` / `lenient`, default `moderate`).**  The pericoupling loaders
   (`pericoupling.py`, `adm1_pericoupling.py`) accept `coupling_standard`,
-  orthogonal to `de_facto_borders`.  For the 315 ADM1 (and 18 rolled-up ADM0)
+  orthogonal to `de_facto_borders`.  For the 314 ADM1 (and 17 rolled-up ADM0)
   pairs that share **only** a river/lake border, `moderate` (the new default)
   keeps a pair only if a **fixed crossing open to traffic** links the two units;
   `stringent` drops every water-only pair; `lenient` keeps all (the prior
@@ -85,7 +87,7 @@ file. The format is loosely based on
   **independently verified** (web search + a geometric province check + manual
   review); see `data/water_separated_pairs.csv` and
   `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.  ADM1 pericoupled edges under the
-  default fall 8,381 → **8,234**; ADM0 country pairs 325 → **322**.  A
+  default fall 8,381 → **8,235**; ADM0 country pairs 325 → **323**.  A
   structurally complete bridge on a politically *closed* border still counts
   (pericoupling is structural; under-construction links do not).
 
