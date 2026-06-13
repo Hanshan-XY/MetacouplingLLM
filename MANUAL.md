@@ -882,8 +882,8 @@ print(result.parsed.evidence_coverage_note)
 The package includes a curated country-pair database in which 325
 symmetric country pairs share a border; under the default adjacency
 settings (`de_facto_borders=True`, `coupling_standard="moderate"`)
-**322** of them are exposed as pericoupled (geographically adjacent) —
-the moderate standard drops 3 water-only pairs with no fixed crossing.
+**323** of them are exposed as pericoupled (geographically adjacent) —
+the moderate standard drops 2 water-only pairs with no fixed crossing.
 All other pairs are telecoupled (geographically distant). Based on
 current ISO 3166-1 alpha-3 country codes (World Bank Official
 Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`).

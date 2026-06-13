@@ -217,9 +217,21 @@ class TestCouplingStandardAdm0:
         lenient = _get_pairs(coupling_standard="lenient")
         moderate = _get_pairs(coupling_standard="moderate")
         stringent = _get_pairs(coupling_standard="stringent")
-        # moderate drops the 3 no-bridge water-only country pairs; stringent
-        # drops all 18 water-only country pairs.
-        assert len(lenient) - len(moderate) == 3
-        assert len(lenient) - len(stringent) == 18
+        # moderate drops the 2 no-bridge water-only country pairs (COD/CAF,
+        # MRT/SEN); stringent drops all 17 water-only country pairs.
+        assert len(lenient) - len(moderate) == 2
+        assert len(lenient) - len(stringent) == 17
         assert frozenset({"COD", "CAF"}) in lenient
         assert frozenset({"COD", "CAF"}) not in moderate
+
+    def test_vatican_is_a_land_border_not_water_only(self):
+        # Italy <-> Vatican City is a ~2.7 km LAND border (the Vatican is an
+        # enclave within Rome; the Tiber is ~0.6 km away, not the border).
+        # It was once mis-flagged water-only ("Tevere") and wrongly dropped
+        # under moderate; it must now be pericoupled under EVERY standard.
+        for s in ("lenient", "moderate", "stringent"):
+            assert is_pericoupled("ITA", "VAT", coupling_standard=s) is True
+        assert frozenset({"ITA", "VAT"}) not in (
+            _get_pairs(coupling_standard="lenient")
+            - _get_pairs(coupling_standard="stringent")
+        )

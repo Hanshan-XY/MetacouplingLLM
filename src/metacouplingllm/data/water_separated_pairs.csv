@@ -202,7 +202,6 @@ adm1,CHE016,LIE011,True,river,Rhein,
 adm1,MDA013,UKR021,False,river,Dniester,
 adm1,ISR005,JOR009,False,lake,Dead Sea,
 adm1,CHE016,LIE006,True,river,Rhein,
-adm1,ITA007,VAT001,False,river,Tevere,
 adm1,ARG007,URY015,False,river,Uruguay,
 adm1,HUN016,SVK003,False,river,Tisza,
 adm1,POL011,RUS023,False,lake,Zalew Wislany,
@@ -324,7 +323,6 @@ adm0,CAF,COD,False,,,adm1-rollup
 adm0,CHN,PRK,True,,,adm1-rollup
 adm0,FIN,SWE,True,,,adm1-rollup
 adm0,GRC,TUR,True,,,adm1-rollup
-adm0,ITA,VAT,False,,,adm1-rollup
 adm0,JOR,PSE,True,,,adm1-rollup
 adm0,LAO,MMR,True,,,adm1-rollup
 adm0,MDA,ROU,True,,,adm1-rollup

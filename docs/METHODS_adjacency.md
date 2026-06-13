@@ -311,11 +311,11 @@ orthogonal to `de_facto_borders`:
 | `moderate` *(default)* | a **fixed crossing open to traffic** links the two units |
 | `stringent` | never (water never counts) |
 
-**Data.** `data/water_separated_pairs.csv` lists the **315 ADM1** water-only
-pairs with a `has_bridge` flag, plus **18 ADM0** country pairs rolled up from
+**Data.** `data/water_separated_pairs.csv` lists the **314 ADM1** water-only
+pairs with a `has_bridge` flag, plus **17 ADM0** country pairs rolled up from
 them (a country pair is water-only iff *all* its ADM1 crossings are, and has a
 bridge iff *any* does). Under the default, ADM1 pericoupled edges fall
-8,381 → **8,234** and ADM0 country pairs 325 → **322**.
+8,381 → **8,235** and ADM0 country pairs 325 → **323**.
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
