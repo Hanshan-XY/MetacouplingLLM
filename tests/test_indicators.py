@@ -20,6 +20,7 @@ import pytest
 pd = pytest.importorskip("pandas")
 
 from metacouplingllm.indicators import (  # noqa: E402
+    build_adjacency,
     classify_coupling,
     compute_flow_shares,
     compute_mfci,
@@ -283,6 +284,237 @@ class TestClassifyCoupling:
         ])
         with pytest.raises(ValueError, match="adjacency"):
             classify_coupling(edges, focal_id="Brazil", adjacency=None)
+
+    def test_na_adjacency_flag_is_not_treated_as_adjacent(self):
+        """A <NA> flag (e.g. from build_adjacency) means 'unknown' and
+        must NOT be read as adjacent.  bool(NaN) is True in Python, so
+        classify_coupling guards it explicitly -> the edge is T, not P."""
+        edges = pd.DataFrame([
+            {"origin_id": "Brazil", "destination_id": "EU"},
+        ])
+        adjacency = pd.DataFrame({
+            "origin_id": ["Brazil"],
+            "destination_id": ["EU"],
+            "adjacent": pd.array([pd.NA], dtype="Int64"),
+        })
+        out = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
+        assert out.iloc[0]["coupling_type"] == "T"
+
+
+# ---------------------------------------------------------------------------
+# TestBuildAdjacency (14 cases)
+# ---------------------------------------------------------------------------
+
+
+def _flag(adj: "pd.DataFrame", dest: str):
+    """Pull the single `adjacent` value for a destination row."""
+    return adj.loc[adj["destination_id"] == dest, "adjacent"].iloc[0]
+
+
+class TestBuildAdjacency:
+    def test_adm0_country_names(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil", "Brazil"],
+            "destination_id": ["Argentina", "China"],
+        })
+        adj = build_adjacency(pairs, level="adm0")
+        assert _flag(adj, "Argentina") == 1   # shared border -> pericoupled
+        assert _flag(adj, "China") == 0        # distant -> telecoupled
+
+    def test_adm0_iso_codes(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["MEX"],
+            "destination_id": ["USA"],
+        })
+        adj = build_adjacency(pairs, level="adm0")
+        assert _flag(adj, "USA") == 1
+
+    def test_adm0_unknown_id_is_na_and_warns(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil"],
+            "destination_id": ["EU"],   # a bloc, not a country in the DB
+        })
+        with pytest.warns(UserWarning, match="could not be resolved"):
+            adj = build_adjacency(pairs, level="adm0")
+        assert pd.isna(_flag(adj, "EU"))
+
+    def test_self_pair_dropped(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil", "Brazil"],
+            "destination_id": ["Brazil", "Argentina"],
+        })
+        adj = build_adjacency(pairs, level="adm0")
+        assert list(adj["destination_id"]) == ["Argentina"]
+
+    def test_duplicate_pairs_collapsed(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil", "Brazil", "Brazil"],
+            "destination_id": ["Argentina", "Argentina", "China"],
+        })
+        adj = build_adjacency(pairs, level="adm0")
+        assert len(adj) == 2
+
+    def test_adm1_codes(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["MEX008"],            # Chihuahua
+            "destination_id": ["USA044"],       # Texas
+        })
+        adj = build_adjacency(pairs, level="adm1")
+        assert _flag(adj, "USA044") == 1
+
+    def test_adm1_names_and_region_country(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["Chihuahua", "Chihuahua, Mexico"],
+            "destination_id": ["Texas, United States", "Florida, United States"],
+        })
+        adj = build_adjacency(pairs, level="adm1")
+        assert _flag(adj, "Texas, United States") == 1     # adjacent
+        assert _flag(adj, "Florida, United States") == 0   # not adjacent
+
+    def test_adm1_unresolved_name_is_na_and_warns(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["Chihuahua, Mexico"],
+            "destination_id": ["Atlantis"],
+        })
+        with pytest.warns(UserWarning, match="could not be resolved"):
+            adj = build_adjacency(pairs, level="adm1")
+        assert pd.isna(_flag(adj, "Atlantis"))
+
+    def test_custom_column_names(self):
+        pairs = pd.DataFrame({
+            "from": ["Brazil"],
+            "to": ["Argentina"],
+        })
+        adj = build_adjacency(
+            pairs, level="adm0", origin_col="from", destination_col="to",
+            flag_col="is_adj",
+        )
+        assert list(adj.columns) == ["from", "to", "is_adj"]
+        assert adj["is_adj"].iloc[0] == 1
+
+    def test_de_facto_borders_passthrough(self):
+        pairs = pd.DataFrame({
+            "origin_id": ["China"],
+            "destination_id": ["Pakistan"],
+        })
+        on = build_adjacency(pairs, level="adm0", de_facto_borders=True)
+        off = build_adjacency(pairs, level="adm0", de_facto_borders=False)
+        assert _flag(on, "Pakistan") == 1    # disputed land folded in
+        assert _flag(off, "Pakistan") == 0   # strict standard layer
+
+    def test_coupling_standard_passthrough(self):
+        # BRA004 <-> PER016: a no-bridge river pair -> telecoupled under
+        # moderate, pericoupled under lenient.
+        pairs = pd.DataFrame({
+            "origin_id": ["BRA004"],
+            "destination_id": ["PER016"],
+        })
+        moderate = build_adjacency(pairs, level="adm1", coupling_standard="moderate")
+        lenient = build_adjacency(pairs, level="adm1", coupling_standard="lenient")
+        assert _flag(moderate, "PER016") == 0
+        assert _flag(lenient, "PER016") == 1
+
+    def test_invalid_level_raises(self):
+        pairs = pd.DataFrame({"origin_id": ["A"], "destination_id": ["B"]})
+        with pytest.raises(ValueError, match="adm0.*adm1"):
+            build_adjacency(pairs, level="county")
+
+    def test_missing_columns_raises(self):
+        pairs = pd.DataFrame({"origin_id": ["A"], "dest": ["B"]})
+        with pytest.raises(KeyError, match="destination_id"):
+            build_adjacency(pairs, level="adm0")
+
+    def test_feeds_classify_coupling_end_to_end(self):
+        """build_adjacency output plugs straight into classify_coupling and
+        reproduces the same I/P/T the hand-authored adjacency would."""
+        edges = pd.DataFrame([
+            {"focal_system_id": "Brazil", "origin_id": "Brazil",
+             "destination_id": "Brazil", "flow_value": 10},
+            {"focal_system_id": "Brazil", "origin_id": "Brazil",
+             "destination_id": "Argentina", "flow_value": 20},
+            {"focal_system_id": "Brazil", "origin_id": "Brazil",
+             "destination_id": "China", "flow_value": 70},
+        ])
+        adj = build_adjacency(edges, level="adm0")
+        out = classify_coupling(edges, focal_id="Brazil", adjacency=adj)
+        by_dest = out.set_index("destination_id")["coupling_type"]
+        assert by_dest["Brazil"] == "I"
+        assert by_dest["Argentina"] == "P"
+        assert by_dest["China"] == "T"
+
+    def test_adm1_same_region_two_forms_dropped(self):
+        """Regression: the same ADM1 region written two ways (code vs
+        'Region, Country') is a self-pair -> dropped, not flagged 0.
+        Both resolve to MEX008; is_adm1_pericoupled maps same-region to
+        False, which would otherwise be emitted as adjacent=0."""
+        pairs = pd.DataFrame({
+            "origin_id": ["MEX008"],
+            "destination_id": ["Chihuahua, Mexico"],
+        })
+        adj = build_adjacency(pairs, level="adm1")
+        assert len(adj) == 0
+
+    def test_adm0_same_country_two_forms_dropped(self):
+        """Regression: the same country written two ways (name vs ISO) is a
+        self-pair -> dropped silently, not a spurious <NA> + warning."""
+        pairs = pd.DataFrame({
+            "origin_id": ["Mexico"],
+            "destination_id": ["MEX"],
+        })
+        with warnings.catch_warnings(record=True) as rec:
+            warnings.simplefilter("always")
+            adj = build_adjacency(pairs, level="adm0")
+        assert len(adj) == 0
+        assert len(rec) == 0     # not reported as "unresolved"
+
+    def test_flag_column_is_nullable_int64(self):
+        """The flag dtype is load-bearing (lets 1/0/<NA> coexist and feeds
+        classify_coupling's pd.isna guard) -- pin it explicitly so a float /
+        object regression can't pass via numeric coercion."""
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil", "Brazil", "Brazil"],
+            "destination_id": ["Argentina", "China", "EU"],
+        })
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            adj = build_adjacency(pairs, level="adm0")
+        assert str(adj["adjacent"].dtype) == "Int64"
+
+    def test_single_aggregated_warning_lists_all_unresolved(self):
+        """All unresolved pairs are reported in exactly ONE UserWarning."""
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil", "Brazil"],
+            "destination_id": ["EU", "Atlantis"],
+        })
+        with pytest.warns(UserWarning) as rec:
+            adj = build_adjacency(pairs, level="adm0")
+        assert len(rec) == 1
+        msg = str(rec[0].message)
+        assert "EU" in msg and "Atlantis" in msg
+        assert pd.isna(_flag(adj, "EU")) and pd.isna(_flag(adj, "Atlantis"))
+
+    def test_warning_truncates_after_ten_unresolved(self):
+        """>10 unresolved pairs -> the single message truncates with
+        '(and N more)' rather than listing all of them."""
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil"] * 12,
+            "destination_id": [f"Atlantis{i}" for i in range(12)],
+        })
+        with pytest.warns(UserWarning) as rec:
+            build_adjacency(pairs, level="adm0")
+        assert len(rec) == 1
+        assert "(and 2 more)" in str(rec[0].message)
+
+    def test_null_cells_dropped(self):
+        """Rows with a null origin or destination are dropped (not coerced
+        to a 'nan' string or kept as <NA>)."""
+        pairs = pd.DataFrame({
+            "origin_id": ["Brazil", None, "Brazil"],
+            "destination_id": ["Argentina", "China", np.nan],
+        })
+        adj = build_adjacency(pairs, level="adm0")
+        assert list(adj["destination_id"]) == ["Argentina"]
+        assert "nan" not in [str(x) for x in adj["origin_id"]]
 
 
 # ---------------------------------------------------------------------------

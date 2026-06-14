@@ -7,6 +7,10 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Added
+
+- **`build_adjacency` — auto-fill the `adjacent` flag from the bundled pericoupling DB.**  New helper in `metacouplingllm.indicators` that bridges the curated ADM0 / ADM1 pericoupling databases (§8) with the indicator pipeline: pass a table of `origin_id` / `destination_id` pairs and it fills `adjacent` with `1` (pericoupled / bordering) or `0` (telecoupled / not bordering).  Works at country level (`level="adm0"`; IDs may be country names or ISO alpha-3) and subnational level (`level="adm1"`; IDs may be WB ADM1 codes like `MEX008`, region names like `Chihuahua`, or `"Region, Country"` like `Chihuahua, Mexico`).  Self-pairs are dropped — *entity-level*, so the same place written two ways (a code and a name, e.g. `MEX008` and `Chihuahua, Mexico`) is recognised as one and dropped, not mislabelled — and duplicate pairs collapsed; any ID the database cannot resolve is left as `<NA>` and reported in a single `UserWarning` (never silently assumed telecoupled).  `de_facto_borders` / `coupling_standard` pass through to the lookups, and the result plugs straight into `classify_coupling`.  Documented in MANUAL §16 ("Auto-filling `adjacent` from the bundled database") with a verifying test.  As part of this, `classify_coupling` now treats a `<NA>` / `NaN` adjacency flag as not-adjacent (previously `bool(NaN)` was truthy in the symmetric-set build).
+
 ### Docs
 
 - **MANUAL §16 reworked around file-based input.**  Formulas now lead the section; a new "Preparing your data (CSV or Excel)" subsection documents the flows + adjacency table schema, the column-name kwargs, and the openpyxl-for-xlsx caveat; and the worked example now reads shipped sample files (`examples/brazil_soybean_flows.csv`, `examples/brazil_soybean_adjacency.csv`) via `pd.read_csv` instead of an in-line DataFrame literal.  A new `test_shipped_indicator_csvs_match_manual` runs those sample CSVs through the pipeline and asserts the documented indicator values (IFS/PFS/TFS 0.1/0.2/0.7, MFE 0.73, IFCI 1.00, PFCI 0.25, TFCI 0.33).

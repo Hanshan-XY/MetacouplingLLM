@@ -437,6 +437,47 @@ def test_shipped_indicator_csvs_match_manual():
     assert by_flow.iloc[0]["IFCI"] == 1.0
 
 
+# The §16 "Auto-filling adjacent ..." subsection shows build_adjacency on the
+# shipped flows file (an IO-gated block, syntax-checked only).  This verifies
+# the documented 1/0/<NA> output and that it reproduces the same I/P/T as the
+# hand-authored adjacency file.
+
+def test_build_adjacency_matches_manual():
+    pd = pytest.importorskip("pandas")
+    from metacouplingllm.indicators import build_adjacency, classify_coupling
+
+    flows_csv = REPO_ROOT / "examples" / "brazil_soybean_flows.csv"
+    assert flows_csv.exists()
+    edges = pd.read_csv(flows_csv)
+
+    with pytest.warns(UserWarning) as rec:
+        adj = build_adjacency(edges, level="adm0")
+    # Exactly one aggregated warning, naming the lone unresolvable partner.
+    assert len(rec) == 1
+    assert "could not be resolved" in str(rec[0].message)
+    assert "EU" in str(rec[0].message)
+    # The flag dtype is the load-bearing nullable-Int64 contract.
+    assert str(adj["adjacent"].dtype) == "Int64"
+
+    flag = {r.destination_id: r.adjacent for r in adj.itertuples()}
+    # Documented printed table (MANUAL.md §16 auto-fill subsection):
+    assert flag["Argentina"] == 1
+    assert flag["Paraguay"] == 1
+    assert flag["China"] == 0
+    assert flag["USA"] == 0
+    assert pd.isna(flag["EU"])      # a bloc, not a country -> unresolved <NA>
+    assert "Brazil" not in flag     # self-pair dropped
+
+    # Built adjacency reproduces the hand-authored classification: <NA>/0
+    # both count as not-adjacent (telecoupled).
+    classified = classify_coupling(edges, focal_id="Brazil", adjacency=adj)
+    by_dest = classified.set_index("destination_id")["coupling_type"]
+    assert by_dest["Brazil"] == "I"
+    assert by_dest["Argentina"] == "P"
+    assert by_dest["China"] == "T"
+    assert by_dest["EU"] == "T"
+
+
 EXECUTABLE_SECTIONS: list[ExecSpec] = [
     ExecSpec(
         id="s7-structured-data",
