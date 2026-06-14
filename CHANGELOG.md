@@ -9,6 +9,8 @@ file. The format is loosely based on
 
 ### Docs
 
+- **MANUAL §16 reworked around file-based input.**  Formulas now lead the section; a new "Preparing your data (CSV or Excel)" subsection documents the flows + adjacency table schema, the column-name kwargs, and the openpyxl-for-xlsx caveat; and the worked example now reads shipped sample files (`examples/brazil_soybean_flows.csv`, `examples/brazil_soybean_adjacency.csv`) via `pd.read_csv` instead of an in-line DataFrame literal.  A new `test_shipped_indicator_csvs_match_manual` runs those sample CSVs through the pipeline and asserts the documented indicator values (IFS/PFS/TFS 0.1/0.2/0.7, MFE 0.73, IFCI 1.00, PFCI 0.25, TFCI 0.33).
+
 - **MANUAL accuracy pass (55 verified fixes + 2 §17 gaps).**  A full
   code-grounded scan of MANUAL.md (every claim checked against source /
   live runs, each finding adversarially re-verified) surfaced 9 high-,

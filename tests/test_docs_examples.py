@@ -385,32 +385,53 @@ def _check_country_resolution(ns: dict[str, Any], out: str) -> None:
     assert get_name("GBR") == "United Kingdom"
 
 
-# --- §16 Brazil-soybean worked example --------------------------------------
+# --- §16 worked example: verify the SHIPPED sample CSVs ---------------------
+# The §16 worked example reads examples/brazil_soybean_*.csv via pd.read_csv,
+# so its doc block is IO-gated (NEEDS_LLM_OR_NETWORK) and only syntax-checked
+# by test_python_block_compiles.  This test instead runs the *shipped* sample
+# files through the pipeline and asserts they reproduce the documented numbers,
+# which is what the §16 read_csv example actually loads.
 
-def _check_brazil_soybean(ns: dict[str, Any], out: str) -> None:
-    summary = ns["summary"]
-    assert list(summary["focal_system_id"]) == ["Brazil"]
+def test_shipped_indicator_csvs_match_manual():
+    pd = pytest.importorskip("pandas")
+    from metacouplingllm.indicators import (
+        classify_coupling,
+        summarize_metacoupling,
+    )
+
+    flows_csv = REPO_ROOT / "examples" / "brazil_soybean_flows.csv"
+    adj_csv = REPO_ROOT / "examples" / "brazil_soybean_adjacency.csv"
+    assert flows_csv.exists() and adj_csv.exists(), (
+        "MANUAL.md §16 documents examples/brazil_soybean_{flows,adjacency}.csv; "
+        "ship those sample files or update the §16 worked example."
+    )
+
+    edges = pd.read_csv(flows_csv)
+    adjacency = pd.read_csv(adj_csv)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # n=1 MFCI convention warning
+        classified = classify_coupling(
+            edges, focal_id="Brazil", adjacency=adjacency
+        )
+        summary = summarize_metacoupling(classified)
+        by_flow = summarize_metacoupling(classified, group_cols=["flow_type"])
+
     row = summary.iloc[0]
-    # Documented printed table:
+    # Documented printed table (MANUAL.md §16):
     #   focal_system_id  IFS  PFS  TFS   MFE  IFCI  PFCI  TFCI
-    # 0          Brazil  0.1  0.2  0.7  0.73   1.0  0.25  0.33
+    # 0          Brazil  0.1  0.2  0.7  0.73  1.00  0.25  0.33
+    assert list(summary["focal_system_id"]) == ["Brazil"]
     assert row["IFS"] == pytest.approx(0.1)
     assert row["PFS"] == pytest.approx(0.2)
     assert row["TFS"] == pytest.approx(0.7)
     assert row["MFE"] == pytest.approx(0.73, abs=0.005)
-    # Single-partner convention: the intracoupling self-loop gives
-    # IFCI exactly 1 (maximal concentration), as §16 calls out.
+    # Single-partner convention: the intracoupling self-loop gives IFCI
+    # exactly 1 (maximal concentration), as §16 calls out.
     assert row["IFCI"] == 1.0
     assert row["PFCI"] == pytest.approx(0.25, abs=0.005)
     assert row["TFCI"] == pytest.approx(0.33, abs=0.005)
-    # The snippet's print(summary[cols].round(2)) shows the doc values.
-    assert "Brazil" in out
-    assert "0.73" in out
-
-    # "Orthogonal flow_type × coupling_type" continuation block —
-    # the single matter-flow group must reproduce the same indicators.
-    by_flow = ns["summary_by_flow"]
-    assert "flow_type" in by_flow.columns
+    # group_cols=["flow_type"] continuation: the single matter group
+    # reproduces the same indicators.
     assert list(by_flow["flow_type"]) == ["matter"]
     assert by_flow.iloc[0]["MFE"] == pytest.approx(row["MFE"])
     assert by_flow.iloc[0]["IFCI"] == 1.0
@@ -444,16 +465,9 @@ EXECUTABLE_SECTIONS: list[ExecSpec] = [
         setup=dict,
         check=_check_country_resolution,
     ),
-    ExecSpec(
-        id="s16-brazil-soybean",
-        subsections=(
-            "Brazil-soybean worked example",
-            "Orthogonal flow_type × coupling_type analysis",
-        ),
-        setup=dict,
-        check=_check_brazil_soybean,
-        requires=("pandas",),
-    ),
+    # §16's worked example reads CSVs (IO-gated → syntax-checked only); its
+    # numbers are verified against the shipped sample files in
+    # test_shipped_indicator_csvs_match_manual() above.
 ]
 
 
