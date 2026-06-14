@@ -1,0 +1,7 @@
+focal_system_id,origin_id,destination_id,flow_value,flow_type
+Brazil,Brazil,Brazil,10,matter
+Brazil,Brazil,Argentina,5,matter
+Brazil,Brazil,Paraguay,15,matter
+Brazil,Brazil,China,50,matter
+Brazil,Brazil,EU,12,matter
+Brazil,Brazil,USA,8,matter

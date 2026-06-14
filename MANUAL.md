@@ -1748,20 +1748,10 @@ alone does not change the abstract.
 
 The `metacouplingllm.indicators` submodule (PR #35) computes
 deterministic metacoupling indicators on the user's own flow data.
-The formulas are given below; this section is the operator's manual
-for the public functions.
+This section gives the formulas first, then the public functions and
+how to feed them your data.
 
 Install: `pip install "metacouplingllm[indicators]"` (pulls in pandas).
-
-### Five public functions
-
-| Function | What it does |
-|---|---|
-| `classify_coupling(edges, focal_id, adjacency, ...)` | Add `coupling_type` column (`I` / `P` / `T`) to an edge table using a user-supplied adjacency table. |
-| `compute_flow_shares(data, ...)` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
-| `compute_mfe(data, ...)` | Metacoupled Flow Evenness — normalised Shannon entropy. |
-| `compute_mfci(data, ...)` | Metacoupled Flow Concentration Index — normalised HHI per coupling type. |
-| `summarize_metacoupling(data, ...)` | One-shot combined indicator table. |
 
 ### Formulas
 
@@ -1803,94 +1793,151 @@ e.g. the intracoupling self-loop, which is why `IFCI = 1.00` in the
 worked example below); when $F_{ic} = 0$ MFCI is **NaN**. In the MFE
 sum, $0 \ln 0 = 0$ by convention.
 
-`compute_mfci` itself returns a **long-format** table (one row per
-system × coupling type, with `n_partners`, `HHI`, `MFCI`,
-`effective_n_partners`); the wide `IFCI` / `PFCI` / `TFCI` columns
-plus `ENP_I` / `ENP_P` / `ENP_T` are produced by
-`summarize_metacoupling`.
+### Five public functions
 
-### Brazil-soybean worked example
+| Function | What it does |
+|---|---|
+| `classify_coupling(edges, focal_id, adjacency, ...)` | Add `coupling_type` column (`I` / `P` / `T`) to an edge table using a user-supplied adjacency table. |
+| `compute_flow_shares(data, ...)` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
+| `compute_mfe(data, ...)` | Metacoupled Flow Evenness — normalised Shannon entropy. |
+| `compute_mfci(data, ...)` | Metacoupled Flow Concentration Index — normalised HHI per coupling type. |
+| `summarize_metacoupling(data, ...)` | One-shot combined indicator table. |
+
+`compute_mfci` returns a **long-format** table (one row per system ×
+coupling type, with `n_partners`, `HHI`, `MFCI`,
+`effective_n_partners`); the wide `IFCI` / `PFCI` / `TFCI` columns plus
+`ENP_I` / `ENP_P` / `ENP_T` are produced by `summarize_metacoupling`.
+
+### Preparing your data (CSV or Excel)
+
+The indicators are **DataFrame-in / DataFrame-out** — you load your own
+data with pandas and pass it in; the package never reads files itself.
+A real study has tens to thousands of flows, so the natural workflow is
+to keep them in a spreadsheet and read it.
+
+You provide **two tables**:
+
+**1. A flows table** — one row per flow (the unit of analysis):
+
+| column | meaning | required |
+|---|---|---|
+| `focal_system_id` | the system the analysis is centred on (e.g. `Brazil`) | ✓ |
+| `origin_id` | where the flow starts | ✓ |
+| `destination_id` | where the flow ends | ✓ |
+| `flow_value` | the flow magnitude (tonnes, USD, head, …; use one unit per analysis) | ✓ |
+| `flow_type` | optional Liu-2017 category (`matter`, `capital`, …) for per-type breakdowns | optional |
+
+**2. An adjacency table** — which partners physically border the focal
+system (this is what distinguishes *peri-* from *telecoupling*):
+
+| column | meaning |
+|---|---|
+| `origin_id`, `destination_id` | a bordering pair |
+| `adjacent` | `1` if they share a border |
+
+> **CSV needs nothing beyond pandas.** **Excel** (`.xlsx`) additionally
+> needs `pip install openpyxl`. If your spreadsheet uses different
+> headers, you don't have to rename anything — every function takes
+> `*_col` keyword arguments (e.g. `origin_col="from"`, `weight_col="tonnes"`).
+
+### Worked example: Brazil soybean (from CSV files)
+
+A sample dataset ships at `examples/brazil_soybean_flows.csv` and
+`examples/brazil_soybean_adjacency.csv`. The flows file looks like this
+(a real study would have many more rows and several focal systems):
+
+```csv
+focal_system_id,origin_id,destination_id,flow_value,flow_type
+Brazil,Brazil,Brazil,10,matter
+Brazil,Brazil,Argentina,5,matter
+Brazil,Brazil,Paraguay,15,matter
+Brazil,Brazil,China,50,matter
+Brazil,Brazil,EU,12,matter
+Brazil,Brazil,USA,8,matter
+```
+
+and the adjacency file marks Brazil's land neighbours:
+
+```csv
+origin_id,destination_id,adjacent
+Brazil,Argentina,1
+Brazil,Paraguay,1
+```
+
+Load, classify, compute, and save the results:
 
 ```python
 import pandas as pd
-from metacouplingllm.indicators import (
-    classify_coupling, summarize_metacoupling,
-)
+from metacouplingllm.indicators import classify_coupling, summarize_metacoupling
 
-edges = pd.DataFrame({
-    "focal_system_id":   ["Brazil"] * 6,
-    "origin_id":         ["Brazil"] * 6,
-    "destination_id":    ["Brazil", "Argentina", "Paraguay", "China", "EU", "USA"],
-    "flow_value":        [10.0, 5.0, 15.0, 50.0, 12.0, 8.0],   # million tonnes
-    "flow_type":         ["matter"] * 6,   # enables per-flow-type grouping below
-})
-adjacency = pd.DataFrame({
-    "origin_id":      ["Brazil", "Brazil"],
-    "destination_id": ["Argentina", "Paraguay"],
-    "adjacent":       [1, 1],
-})
+edges     = pd.read_csv("examples/brazil_soybean_flows.csv")
+adjacency = pd.read_csv("examples/brazil_soybean_adjacency.csv")
+# Excel instead?  edges = pd.read_excel("flows.xlsx")   # needs: pip install openpyxl
 
 classified = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
 summary    = summarize_metacoupling(classified)
+summary.to_csv("indicators.csv", index=False)          # write results back out
 
-# summary has 18 columns (raw F_I/F_P/F_T/F_total magnitudes, shares,
-# MFE, concentration, partner counts, ENPs); print a subset:
 cols = ["focal_system_id", "IFS", "PFS", "TFS", "MFE", "IFCI", "PFCI", "TFCI"]
 print(summary[cols].round(2))
 #   focal_system_id  IFS  PFS  TFS   MFE  IFCI  PFCI  TFCI
-# 0          Brazil  0.1  0.2  0.7  0.73   1.0  0.25  0.33
+# 0          Brazil  0.1  0.2  0.7  0.73  1.00  0.25  0.33
 ```
 
-Interpretation: 70% of Brazil's classified soybean-equivalent flow is
-**telecoupled** (China + EU + USA), 20% is **pericoupled**
-(Argentina + Paraguay), and 10% is **intracoupled**. `MFE ≈ 0.73`
-shows the flow mix is moderately even across coupling types.
-`TFCI ≈ 0.33` shows the telecoupled flows are moderately
-concentrated (China is the largest single partner but the EU and
-USA share the remainder).
+`classify_coupling` checks each `destination_id` against the adjacency
+table: the focal system itself → `I`, a listed neighbour → `P`,
+anything else → `T`. The full `indicators.csv` carries 18 columns —
+raw magnitudes (`F_I`/`F_P`/`F_T`/`F_total`), shares, `MFE`,
+concentration (`IFCI`/`PFCI`/`TFCI`), partner counts
+(`n_I`/`n_P`/`n_T`), and equivalent partners (`ENP_I`/`ENP_P`/`ENP_T`).
+
+Interpretation: 70 % of Brazil's classified soybean-equivalent flow is
+**telecoupled** (China + EU + USA), 20 % **pericoupled** (Argentina +
+Paraguay), 10 % **intracoupled**. `MFE ≈ 0.73` shows a moderately even
+mix across coupling types; `TFCI ≈ 0.33` shows the telecoupled flows
+are moderately concentrated (China dominates, with the EU and USA
+sharing the remainder).
 
 ### Orthogonal flow_type × coupling_type analysis
 
-Pass `group_cols=["flow_type"]` to compute indicators **per flow
-type** (matter, energy, information, ...) **and** per coupling type:
+If your flows file carries a `flow_type` column, pass
+`group_cols=["flow_type"]` to break the indicators down **per flow
+type** as well as per coupling type:
 
 ```python
-summary_by_flow = summarize_metacoupling(
-    classified,
-    group_cols=["flow_type"],
-)
+summary_by_flow = summarize_metacoupling(classified, group_cols=["flow_type"])
 ```
 
-Useful when you want to see, for example, whether telecoupling is
-dominated by matter flows (soybean tonnage) while pericoupling is
-dominated by financial flows (cross-border payments).
+Useful to see, for example, whether telecoupling is dominated by matter
+flows (soybean tonnage) while pericoupling is dominated by financial
+flows (cross-border payments).
 
 ### Guardrails
 
 The functions emit `UserWarning`s when:
 
-- **`F_total == 0`** — IFS/PFS/TFS are returned as NaN (per spec §13).
-- **`F_I == 0`** but P or T is non-zero — `IFS = 0` is shown but may
-  be a data artifact. The package warns so users don't misread
-  "missing intracoupling data" as "no intracoupling".
-- **Unrecognised coupling-type labels** in the input — silently
-  dropped from totals but a one-shot warning is emitted.
+- **`F_total == 0`** — IFS/PFS/TFS are returned as NaN.
+- **`F_I == 0`** but P or T is non-zero — `IFS = 0` is shown but may be
+  a data artifact; the warning stops users misreading "missing
+  intracoupling data" as "no intracoupling".
+- **Unrecognised coupling-type labels** in the input — dropped from
+  totals, with a one-shot warning.
 
 `classify_coupling` raises `ValueError` when called without an
-adjacency table on cross-system edges (refuses to silently guess
-geography per spec §4); pass `llm_client=` to opt into LLM-assisted
-classification of ambiguous edges (see §17).
+adjacency table on cross-system edges (it refuses to silently guess
+geography); pass `llm_client=` to opt into LLM-assisted classification
+of ambiguous edges (see §17).
 
 ### Design principles
 
-- **Deterministic-first.** The indicator math never calls an LLM.
-  Numbers are reproducible.
+- **Deterministic-first.** The indicator math never calls an LLM;
+  identical input → identical output.
 - **Established statistics, not invented indices.** Shannon (1948)
   entropy; Hirschman (1945) HHI, normalised per Hannah & Kay (1977);
   Equivalent Number of Partners per Laakso & Taagepera (1979).
 - **User supplies adjacency** — no hardcoded geography.
-- **Intracoupling data required** — package warns when `F_I = 0` so
-  users don't misread missing data as "no intracoupling".
+- **Intracoupling data required** — the package warns when `F_I = 0`
+  so missing data isn't misread as "no intracoupling".
 
 ---
 
