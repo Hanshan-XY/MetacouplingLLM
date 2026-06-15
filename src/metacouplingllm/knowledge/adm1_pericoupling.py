@@ -613,8 +613,17 @@ _DIRECTION_A_CONNECTORS: frozenset[str] = frozenset({
     "the", "of", "de", "del", "la", "el", "da", "do",
     "und", "and", "du", "des", "van", "von",
 })
+_DIRECTION_A_ADMIN_NOUNS: frozenset[str] = frozenset({
+    # Romance / other-language equivalents of the English nouns already in
+    # _ADM1_NAME_SUFFIXES.  These appear in caller queries (e.g. LLM output
+    # in Spanish: "Estado de Jalisco") but NOT in the WB canonical names for
+    # most regions, so they end up as Direction-A leftovers.  'ciudad' is
+    # deliberately excluded so "Mexico City" → None stays intact.
+    "estado", "provincia", "comunidad", "departamento",
+    "prefectura", "gobernacion", "distrito",
+})
 _IGNORABLE_SUBSTRING_WORDS: frozenset[str] = (
-    frozenset(_ADM1_NAME_SUFFIXES) | _DIRECTION_A_CONNECTORS
+    frozenset(_ADM1_NAME_SUFFIXES) | _DIRECTION_A_CONNECTORS | _DIRECTION_A_ADMIN_NOUNS
 )
 
 

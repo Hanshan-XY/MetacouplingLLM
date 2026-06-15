@@ -496,6 +496,16 @@ class TestResolveAdm1Code:
         assert resolve_adm1_code("Mexico State", country="Mexico") == "MEX015"
         assert resolve_adm1_code("State of Yucatan", country="MEX") == "MEX031"
 
+    def test_direction_a_romance_qualifier_still_resolves(self):
+        """Spanish/Romance administrative qualifiers ('estado', 'provincia',
+        'comunidad', 'departamento') are ignorable just like their English
+        counterparts ('state', 'province').  A country hint is required when
+        the bare core name is ambiguous or resolves as a country."""
+        assert resolve_adm1_code("Estado de Yucatan", country="MEX") == "MEX031"
+        assert resolve_adm1_code("Estado de Jalisco", country="MEX") == "MEX014"
+        assert resolve_adm1_code("Provincia de Buenos Aires", country="ARG") == "ARG001"
+        assert resolve_adm1_code("Departamento de Antioquia", country="COL") == "COL002"
+
     def test_direction_b_partial_name_preserved(self):
         """Direction B (a short query inside a longer official name) stays
         intact through the tightened guard."""
