@@ -1395,6 +1395,7 @@ water-only pairs — see §8 "Adjacency standards".
 | Function | Returns | Description |
 |---|---|---|
 | `classify_coupling(edges, focal_id, adjacency, ...)` | `pd.DataFrame` | Add I/P/T column to an edge table (optional `llm_client=` for ambiguous edges). |
+| `build_adjacency(pairs, level="adm0", ...)` | `pd.DataFrame` | Fill the `adjacent` flag (`1`/`0`/`<NA>`) from the bundled pericoupling DB; `level="adm0"` (countries) or `"adm1"` (WB subnational), with `de_facto_borders=` / `coupling_standard=` passthrough. |
 | `compute_flow_shares(data, ...)` | `pd.DataFrame` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
 | `compute_mfe(data, ...)` | `pd.DataFrame` | Normalised Shannon entropy across coupling types; input is the **shares table from `compute_flow_shares`** (needs IFS/PFS/TFS columns), not the raw edge table. |
 | `compute_mfci(data, ...)` | `pd.DataFrame` | Normalised HHI per coupling type (long-format: one row per system × coupling type). |
@@ -1793,11 +1794,12 @@ e.g. the intracoupling self-loop, which is why `IFCI = 1.00` in the
 worked example below); when $F_{ic} = 0$ MFCI is **NaN**. In the MFE
 sum, $0 \ln 0 = 0$ by convention.
 
-### Five public functions
+### Six public functions
 
 | Function | What it does |
 |---|---|
 | `classify_coupling(edges, focal_id, adjacency, ...)` | Add `coupling_type` column (`I` / `P` / `T`) to an edge table using a user-supplied adjacency table. |
+| `build_adjacency(pairs, level, ...)` | Fill the `adjacent` flag (`1` / `0` / `<NA>`) from the bundled pericoupling DB (`level="adm0"` or `"adm1"`) — feeds `classify_coupling` (see below). |
 | `compute_flow_shares(data, ...)` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
 | `compute_mfe(data, ...)` | Metacoupled Flow Evenness — normalised Shannon entropy. |
 | `compute_mfci(data, ...)` | Metacoupled Flow Concentration Index — normalised HHI per coupling type. |
@@ -1840,6 +1842,65 @@ system (this is what distinguishes *peri-* from *telecoupling*):
 > headers, you don't have to rename anything — every function takes
 > `*_col` keyword arguments (e.g. `origin_col="from"`, `weight_col="tonnes"`).
 
+### Auto-filling `adjacent` from the bundled database (ADM0 & ADM1)
+
+Hand-authoring the adjacency table is tedious for a large study — and
+unnecessary when your partners are countries or World Bank ADM1 regions.
+`build_adjacency` fills the `adjacent` flag for you from the package's
+curated pericoupling databases (§8): you supply only `origin_id` /
+`destination_id`, and it writes `1` (pericoupled / bordering) or `0`
+(telecoupled / not bordering). It works at both scales:
+
+| `level=` | what `origin_id` / `destination_id` may contain |
+|---|---|
+| `"adm0"` | country **names** (`Brazil`) or **ISO alpha-3** codes (`BRA`) |
+| `"adm1"` | WB ADM1 **codes** (`MEX008`), region **names** (`Chihuahua`), or `"Region, Country"` (`Chihuahua, Mexico`) |
+
+Because the focal system's `origin_id` / `destination_id` columns are
+already in your flows table, you can point it straight at `edges`:
+
+```python
+from metacouplingllm.indicators import build_adjacency
+
+adjacency = build_adjacency(edges, level="adm0")   # fills 1/0 from the DB
+print(adjacency)
+#   origin_id destination_id  adjacent
+# 0    Brazil      Argentina         1
+# 1    Brazil       Paraguay         1
+# 2    Brazil          China         0
+# 3    Brazil             EU      <NA>   ← unresolved (see note)
+# 4    Brazil            USA         0
+```
+
+It **collapses duplicate pairs and drops self-pairs** (`Brazil→Brazil`;
+intracoupling is handled by `classify_coupling` via `focal_id`, not by
+adjacency). Anything the database can't resolve — here `EU`, a bloc
+rather than a country — is left as `<NA>` and reported in a single
+`UserWarning`, so an unknown ID is never silently read as "distant".
+Feeding this table into `classify_coupling` reproduces exactly the same
+classification as the hand-authored file below (`<NA>` and `0` both count
+as not-adjacent).
+
+The same call at the subnational scale, mixing codes and names:
+
+```python
+import pandas as pd
+pairs = pd.DataFrame({
+    "origin_id":      ["MEX008", "Chihuahua, Mexico"],
+    "destination_id": ["USA044", "Florida, United States"],
+})
+build_adjacency(pairs, level="adm1")
+#           origin_id          destination_id  adjacent
+# 0            MEX008                  USA044         1   # Chihuahua–Texas (border)
+# 1 Chihuahua, Mexico  Florida, United States         0   # not adjacent
+```
+
+`build_adjacency` takes the same `de_facto_borders=` and
+`coupling_standard=` arguments as the §8 lookups, so disputed-territory
+and water-separated conventions carry through. **Review the table before
+relying on it** — the helper builds a transparent, editable adjacency
+table; it doesn't replace your judgement.
+
 ### Worked example: Brazil soybean (from CSV files)
 
 A sample dataset ships at `examples/brazil_soybean_flows.csv` and
@@ -1873,6 +1934,8 @@ from metacouplingllm.indicators import classify_coupling, summarize_metacoupling
 edges     = pd.read_csv("examples/brazil_soybean_flows.csv")
 adjacency = pd.read_csv("examples/brazil_soybean_adjacency.csv")
 # Excel instead?  edges = pd.read_excel("flows.xlsx")   # needs: pip install openpyxl
+# Or skip authoring the adjacency file and auto-fill it from the bundled DB:
+#   adjacency = build_adjacency(edges, level="adm0")    # see the subsection above
 
 classified = classify_coupling(edges, focal_id="Brazil", adjacency=adjacency)
 summary    = summarize_metacoupling(classified)
@@ -1935,7 +1998,10 @@ of ambiguous edges (see §17).
 - **Established statistics, not invented indices.** Shannon (1948)
   entropy; Hirschman (1945) HHI, normalised per Hannah & Kay (1977);
   Equivalent Number of Partners per Laakso & Taagepera (1979).
-- **User supplies adjacency** — no hardcoded geography.
+- **User supplies adjacency** — no hardcoded geography in the indicator
+  math. `build_adjacency` is an opt-in helper that fills the `adjacent`
+  flag from the bundled pericoupling DB and warns on anything it can't
+  resolve; you still review the table and pass it to `classify_coupling`.
 - **Intracoupling data required** — the package warns when `F_I = 0`
   so missing data isn't misread as "no intracoupling".
 

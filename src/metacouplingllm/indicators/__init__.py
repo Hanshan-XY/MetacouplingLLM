@@ -10,14 +10,17 @@ Three indicator families documented in
 3. **Metacoupled Flow Concentration Index** (``compute_mfci``) --
    normalised HHI within each coupling type (IFCI, PFCI, TFCI).
 
-Plus two utilities:
+Plus three utilities:
 
 - ``classify_coupling`` -- assign I/P/T to each edge based on
   user-supplied adjacency
+- ``build_adjacency`` -- fill the ``adjacent`` flag from the bundled
+  pericoupling DB (ADM0 / ADM1) so the adjacency table need not be
+  authored by hand
 - ``summarize_metacoupling`` -- one-shot combined indicator table
   (per spec §12.5)
 
-All five functions take a ``pandas.DataFrame`` and return a
+All of these functions take a ``pandas.DataFrame`` and return a
 ``pandas.DataFrame``.  Pandas is an OPTIONAL dependency; install
 with ``pip install metacouplingllm[indicators]``.
 
@@ -29,13 +32,18 @@ Design principles:
 - **Established statistics, not invented indices**: Shannon (1948)
   entropy; Hirschman (1945) HHI, normalised per Hannah & Kay (1977);
   Equivalent Number of Partners per Laakso & Taagepera (1979).
-- **User supplies adjacency**: no hardcoded geography (spec §4).
+- **User supplies adjacency**: no hardcoded geography in the indicator
+  math (spec §4).  ``build_adjacency`` is an opt-in helper that fills the
+  ``adjacent`` flag from the bundled pericoupling DB (ADM0 / ADM1) and
+  warns on anything it cannot resolve; the user still reviews the table
+  and passes it to ``classify_coupling``.
 - **Intracoupling data required**: package warns when ``F_I = 0``
   so users don't misread missing data as "no intracoupling".
 """
 
 from __future__ import annotations
 
+from metacouplingllm.indicators.adjacency import build_adjacency
 from metacouplingllm.indicators.classify import classify_coupling
 from metacouplingllm.indicators.core import (
     compute_flow_shares,
@@ -62,6 +70,7 @@ from metacouplingllm.indicators.llm import (
 __all__ = [
     # PR #35 deterministic core
     "classify_coupling",
+    "build_adjacency",
     "compute_flow_shares",
     "compute_mfe",
     "compute_mfci",

@@ -111,7 +111,10 @@ def classify_coupling(
                 f"Available: {list(adjacency.columns)}."
             )
         for _, arow in adjacency.iterrows():
-            if not bool(arow[adjacency_flag_col]):
+            flag = arow[adjacency_flag_col]
+            # NaN / <NA> means "unknown" (e.g. from build_adjacency) -- treat
+            # as not-adjacent.  bool(NaN) is True in Python, so guard explicitly.
+            if pd.isna(flag) or not bool(flag):
                 continue
             a = str(arow[adjacency_origin_col])
             b = str(arow[adjacency_destination_col])
