@@ -82,6 +82,7 @@ _adm1_metadata: dict[str, dict[str, str]] | None = None
 _adm1_disputed_overlay: frozenset[frozenset[str]] | None = None
 _adm1_water_all: frozenset[frozenset[str]] | None = None
 _adm1_water_nobridge: frozenset[frozenset[str]] | None = None
+_adm1_aliases: dict[str, list[tuple[str, str]]] | None = None
 
 _COUPLING_STANDARDS = ("stringent", "moderate", "lenient")
 
@@ -229,10 +230,37 @@ def _load_water_separated() -> tuple[
     return frozenset(all_water), frozenset(no_bridge)
 
 
+def _load_adm1_aliases() -> dict[str, list[tuple[str, str]]]:
+    """Load the English-exonym alias table from ``adm1_aliases.csv``.
+
+    Returns a dict mapping lowercase alias key → [(adm1_code, iso_a3), ...]
+    in the same format as the name index, so ``_pick_best_candidate`` can
+    be reused for country filtering.  Returns ``{}`` if the file is absent
+    (graceful — callers see an empty strategy, not an error).
+    """
+    try:
+        data_pkg = resources.files("metacouplingllm") / "data"
+        path = Path(str(data_pkg / "adm1_aliases.csv"))
+    except (TypeError, ModuleNotFoundError):
+        return {}
+    if not path.is_file():
+        return {}
+    aliases: dict[str, list[tuple[str, str]]] = {}
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            key = row["alias_key"].strip()
+            code = row["code"].strip()
+            iso = row["iso_a3"].strip()
+            if key and code and iso:
+                aliases.setdefault(key, []).append((code, iso))
+    return aliases
+
+
 def _ensure_loaded() -> None:
     """Lazily load and cache all ADM1 data."""
     global _adm1_pairs, _adm1_neighbors, _adm1_country, _adm1_metadata
     global _adm1_disputed_overlay, _adm1_water_all, _adm1_water_nobridge
+    global _adm1_aliases
     if _adm1_pairs is None:
         _adm1_pairs, _adm1_neighbors, _adm1_country, _adm1_metadata = (
             _load_adm1_data()
@@ -241,6 +269,8 @@ def _ensure_loaded() -> None:
         _adm1_disputed_overlay = _load_disputed_overlay()
     if _adm1_water_all is None:
         _adm1_water_all, _adm1_water_nobridge = _load_water_separated()
+    if _adm1_aliases is None:
+        _adm1_aliases = _load_adm1_aliases()
 
 
 def _water_dropped(coupling_standard: str) -> frozenset[frozenset[str]]:
@@ -538,6 +568,29 @@ def get_adm1_info(adm1_code: str) -> dict[str, str] | None:
     return _adm1_metadata.get(adm1_code.strip())
 
 
+def get_adm1_aliases(adm1_code: str) -> list[str]:
+    """Return alias keys for an ADM1 region from the exonym table.
+
+    Parameters
+    ----------
+    adm1_code:
+        ADM1 code (e.g., ``"DEU002"``).
+
+    Returns
+    -------
+    List of lowercase alias keys (e.g., ``["bavaria"]``), or ``[]`` if
+    the code has no aliases or ``adm1_aliases.csv`` is absent.  Keys are
+    the normalized lookup strings, not display-form strings.
+    """
+    _ensure_loaded()
+    assert _adm1_aliases is not None
+    return [
+        key
+        for key, entries in _adm1_aliases.items()
+        if any(code == adm1_code.strip() for code, _ in entries)
+    ]
+
+
 def is_adm1_pericoupled(
     adm1_a: str,
     adm1_b: str,
@@ -805,9 +858,14 @@ def resolve_adm1_code(
 ) -> str | None:
     """Resolve an ADM1 region name to its World Bank ADM1 code.
 
-    Three resolution strategies, applied in order, returning the
+    Four resolution strategies, applied in order, returning the
     first successful match:
 
+    0. **(PR #60)** English-exonym alias table (``adm1_aliases.csv``):
+       exact match against the pre-validated alias index.  Covers
+       common English names that differ from the WB canonical form
+       (e.g. ``"Mexico City"`` → ``MEX009``, ``"Bavaria"`` → ``DEU02``).
+       No-op when the CSV is absent (graceful fallback to strategies 1–3).
     1. Direct lookup against the accented index built from the DB
        canonical names plus suffix-stripped and slash-split
        variants.
@@ -905,6 +963,20 @@ def resolve_adm1_code(
     # folding changes it.
     if country_iso is None and _is_cross_country_folded_collision(name_lower):
         return None
+
+    # --- Strategy 0: English-exonym alias table (PR #60) ---
+    # Keys in the CSV are pre-validated lowercase NFKD-folded forms.  Try
+    # the raw lower form first; if different, also try the NFKD-folded form
+    # so accented callers (e.g. "Múnich") still resolve.  Country filter
+    # respected via _pick_best_candidate (miss → fall through to 1-3).
+    if _adm1_aliases:
+        _folded_lower = _fold_diacritics(name_lower)
+        for _alias_key in dict.fromkeys((name_lower, _folded_lower)):
+            _alias_entries = _adm1_aliases.get(_alias_key)
+            if _alias_entries:
+                result = _pick_best_candidate(_alias_entries, country_iso)
+                if result:
+                    return result
 
     # --- Strategy 1: Direct index lookup ---
     candidates = index.get(name_lower)
