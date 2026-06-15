@@ -957,6 +957,16 @@ The same `coupling_standard` argument is accepted by the ADM1 functions
 `get_cross_border_neighbors`).  See `data/PROVENANCE.md`,
 `docs/METHODS_adjacency.md` §8, and `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
+`resolve_adm1_code` also consults a bundled **English-exonym alias table**
+(`data/adm1_aliases.csv`, 1,145 validated aliases for 863 regions across 136
+countries; PR #60/#61) before its name/substring strategies, so common English
+names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
+(Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The
+table is additions-only and deterministically validated; a name that is
+ambiguous or denotes a different place (e.g. `"Mexico City"` vs the State of
+México) returns `None` rather than a confident wrong answer.  See
+`data/PROVENANCE.md` for the generation and validation methodology.
+
 ### Country name resolution
 
 The package accepts country names in many formats:
@@ -1372,7 +1382,8 @@ water-only pairs — see §8 "Adjacency standards".
 | `get_adm1_codes_for_country(iso)` | `set[str]` | All ADM1 codes inside the given country. |
 | `get_adm1_info(code)` | `dict \| None` | ADM1 metadata (canonical name, country, region). |
 | `get_adm1_country(code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
-| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve region name (possessives, hyphens, unaccented forms supported — PR #45) to ADM1 code. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles possessives, hyphens and unaccented forms (PR #45) and **English exonyms / alternative spellings** via a bundled alias table (PR #60/#61) — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
+| `get_adm1_aliases(code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
 
 ### Literature Functions
 
@@ -1520,15 +1531,18 @@ to check what the LLM detected.
 The validator can only show regions whose name `resolve_adm1_code` can
 match against the bundled ADM1 database. PR #45 broadened recognition to
 include unaccented forms (`Michoacan` → `Michoacán de Ocampo`), possessives
-(`Michoacán's`), and hyphenated compounds (`Michoacán-Jalisco`), and now
-surfaces LLM-mentioned ADM1 partners as `pair_results` lines so the
-formatter buckets them into the COUPLING DATABASE VALIDATION block. But a
-few edge cases still slip through:
+(`Michoacán's`), and hyphenated compounds (`Michoacán-Jalisco`); PR #60/#61
+added an English-exonym alias table (`Bavaria` → `Bayern`, `Tuscany` →
+`Toscana`); and the validator now surfaces LLM-mentioned ADM1 partners as
+`pair_results` lines so the formatter buckets them into the COUPLING DATABASE
+VALIDATION block. But a few edge cases still slip through:
 
 - **Non-canonical names.** The DB uses official names (e.g.
   `Michoacán de Ocampo`, not `Michoacan State`). Short or colloquial
-  forms work via the substring / folded fallback, but truly different
-  names (e.g. local short names not in the gazetteer) won't.
+  forms work via the substring / folded fallback, and many English
+  exonyms now resolve through the alias table, but truly different
+  names (e.g. local short names not in the gazetteer or the alias table)
+  won't.
 - **Region mentioned only in `name` or `geographic_scope` fields.**
   By design `_extract_mentioned_adm1_from_text` skips those two fields
   because they often hold echo-back enumerations from the prompt's

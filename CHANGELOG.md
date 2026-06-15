@@ -21,6 +21,8 @@ file. The format is loosely based on
 
 ### Docs
 
+- **Documented the ADM1 English-exonym alias table in MANUAL + INTRODUCTION.**  The user-facing docs now describe the alias capability added in #60/#61: the MANUAL ADM1 API table notes that `resolve_adm1_code` resolves English exonyms / alternative spellings (Bavaria→DEU002, Tuscany→ITA016) and adds a `get_adm1_aliases(code)` row; the subnational-validator troubleshooting note mentions exonym recognition; and both the MANUAL ADM1 section and INTRODUCTION §4.5 + the bundled-data inventory now list `adm1_aliases.csv` (1,145 aliases · 863 regions · 136 countries).  (#62)
+
 - **MANUAL §16 reworked around file-based input.**  Formulas now lead the section; a new "Preparing your data (CSV or Excel)" subsection documents the flows + adjacency table schema, the column-name kwargs, and the openpyxl-for-xlsx caveat; and the worked example now reads shipped sample files (`examples/brazil_soybean_flows.csv`, `examples/brazil_soybean_adjacency.csv`) via `pd.read_csv` instead of an in-line DataFrame literal.  A new `test_shipped_indicator_csvs_match_manual` runs those sample CSVs through the pipeline and asserts the documented indicator values (IFS/PFS/TFS 0.1/0.2/0.7, MFE 0.73, IFCI 1.00, PFCI 0.25, TFCI 0.33).
 
 - **MANUAL accuracy pass (55 verified fixes + 2 §17 gaps).**  A full
