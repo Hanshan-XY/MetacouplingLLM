@@ -1,5 +1,10 @@
 """Tests for knowledge/adm1_pericoupling.py — ADM1 pericoupling database lookup."""
 
+import csv
+from pathlib import Path
+
+import pytest
+
 from metacouplingllm.knowledge.adm1_pericoupling import (
     Adm1PairType,
     Adm1PericouplingResult,
@@ -730,3 +735,135 @@ class TestCouplingStandardAdm1:
         assert "COG002" not in get_adm1_neighbors(
             "COD007", coupling_standard="moderate"
         )
+
+
+# ---------------------------------------------------------------------------
+# Alias table tests (PR #60)
+# ---------------------------------------------------------------------------
+
+_ALIAS_CSV = (
+    Path(__file__).parent.parent / "src" / "metacouplingllm" / "data" / "adm1_aliases.csv"
+)
+_alias_csv_present = pytest.mark.skipif(
+    not _ALIAS_CSV.is_file(),
+    reason="adm1_aliases.csv not yet generated — run scripts/build_adm1_aliases.py first",
+)
+
+
+class TestAdm1AliasLoader:
+    """Tests for the alias loader and Strategy 0 wiring; run without the CSV."""
+
+    def test_get_adm1_aliases_returns_list(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import get_adm1_aliases
+        result = get_adm1_aliases("DEU002")
+        assert isinstance(result, list)
+
+    def test_get_adm1_aliases_unknown_code(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import get_adm1_aliases
+        assert get_adm1_aliases("BOGUS999") == []
+
+    def test_strategy0_bypassed_when_aliases_empty(self, monkeypatch):
+        """Empty alias dict → Strategy 0 is a no-op; existing resolution unaffected."""
+        import metacouplingllm.knowledge.adm1_pericoupling as mod
+        monkeypatch.setattr(mod, "_adm1_aliases", {})
+        assert mod.resolve_adm1_code("Michigan") == "USA023"
+
+    def test_strategy0_country_filter_respected(self, monkeypatch):
+        """Alias entry in DEU: correct hint → code; wrong hint → None (falls through, not found)."""
+        import metacouplingllm.knowledge.adm1_pericoupling as mod
+        fake_key = "zztestaliaszz"
+        monkeypatch.setattr(mod, "_adm1_aliases", {fake_key: [("DEU002", "DEU")]})
+        assert mod.resolve_adm1_code(fake_key, country="DEU") == "DEU002"
+        assert mod.resolve_adm1_code(fake_key, country="ITA") is None
+
+    def test_strategy0_no_hint_single_candidate(self, monkeypatch):
+        """A globally unique alias (one entry, no hint) resolves directly."""
+        import metacouplingllm.knowledge.adm1_pericoupling as mod
+        fake_key = "zztestaliaszz"
+        monkeypatch.setattr(mod, "_adm1_aliases", {fake_key: [("DEU002", "DEU")]})
+        assert mod.resolve_adm1_code(fake_key) == "DEU002"
+
+
+@_alias_csv_present
+class TestAdm1AliasTable:
+    """Data-integrity tests over the shipped adm1_aliases.csv."""
+
+    @pytest.fixture(scope="class")
+    def rows(self):
+        with open(_ALIAS_CSV, newline="", encoding="utf-8-sig") as fh:
+            return list(csv.DictReader(fh))
+
+    @pytest.fixture(scope="class")
+    def adm1_meta(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import _load_adm1_data
+        _, _, _, meta = _load_adm1_data()
+        return meta
+
+    def test_keys_unique(self, rows):
+        keys = [r["alias_key"] for r in rows]
+        assert len(keys) == len(set(keys)), "Duplicate alias_key values in shipped CSV"
+
+    def test_codes_valid(self, rows, adm1_meta):
+        bad = [r["alias_key"] for r in rows if r["code"] not in adm1_meta]
+        assert not bad, f"Unknown ADM1 codes: {bad[:5]}"
+
+    def test_no_country_name_keys(self, rows):
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        bad = [r["alias_key"] for r in rows if resolve_country_code(r["alias_key"]) is not None]
+        assert not bad, f"Alias keys that are country names: {bad[:5]}"
+
+    def test_no_u3_collision(self, rows):
+        from metacouplingllm.knowledge.adm1_pericoupling import _get_adm1_name_index
+        name_index = _get_adm1_name_index()
+        bad = []
+        for r in rows:
+            existing = name_index.get(r["alias_key"])
+            if existing:
+                existing_codes = {c for c, _ in existing}
+                if existing_codes != {r["code"]}:
+                    bad.append(r["alias_key"])
+        assert not bad, f"Alias keys shadow canonical names for different codes: {bad[:5]}"
+
+    def test_at_most_3_per_code(self, rows):
+        from collections import Counter
+        counts = Counter(r["code"] for r in rows)
+        violations = [(code, n) for code, n in counts.items() if n > 3]
+        assert not violations, f"More than 3 aliases for code(s): {violations[:5]}"
+
+    def test_round_trip_all_rows(self, rows):
+        """Every shipped alias must resolve back to its code under the country hint."""
+        failed = []
+        for r in rows:
+            result = resolve_adm1_code(r["alias_key"], country=r["iso_a3"])
+            if result != r["code"]:
+                failed.append((r["alias_key"], r["iso_a3"], r["code"], result))
+        assert not failed, (
+            f"{len(failed)} alias round-trips failed; first 3: {failed[:3]}"
+        )
+
+
+@_alias_csv_present
+class TestAdm1AliasStrategy0:
+    """Spot-check Strategy 0 for canonical English exonyms."""
+
+    def test_bavaria_with_country_hint(self):
+        # Bayern (DEU002) → Bavaria
+        assert resolve_adm1_code("Bavaria", country="DEU") == "DEU002"
+
+    def test_bavaria_no_hint(self):
+        # Bavaria is globally unique → resolves without a country hint
+        assert resolve_adm1_code("Bavaria") == "DEU002"
+
+    def test_bavaria_wrong_country_returns_none(self):
+        # Bavaria with an ITA hint: Strategy 0 country filter rejects it,
+        # and no other strategy finds "bavaria" in ITA data.
+        assert resolve_adm1_code("Bavaria", country="ITA") is None
+
+    def test_saxony_resolves(self):
+        # Sachsen (DEU013) → Saxony
+        assert resolve_adm1_code("Saxony", country="DEU") == "DEU013"
+
+    def test_get_adm1_aliases_bavaria(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import get_adm1_aliases
+        aliases = get_adm1_aliases("DEU002")
+        assert "bavaria" in aliases

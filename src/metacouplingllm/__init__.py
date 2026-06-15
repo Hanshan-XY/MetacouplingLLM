@@ -48,6 +48,7 @@ from metacouplingllm.knowledge.literature import (
 from metacouplingllm.knowledge.adm1_pericoupling import (
     Adm1PairType,
     Adm1PericouplingResult,
+    get_adm1_aliases,
     get_adm1_codes_for_country,
     get_adm1_country,
     get_adm1_info,
@@ -219,6 +220,7 @@ __all__ = [
     "get_adm1_neighbors",
     "get_cross_border_neighbors",
     "get_adm1_codes_for_country",
+    "get_adm1_aliases",
     "get_adm1_info",
     "get_adm1_country",
     "resolve_adm1_code",
