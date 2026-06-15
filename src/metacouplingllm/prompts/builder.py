@@ -431,15 +431,20 @@ class PromptBuilder:
 
         Returns ``None`` if no ADM1 region is found in the text.
         """
-        # Scan for ADM1 region names via overlapping n-grams (up to 4 words).
+        # Scan for ADM1 region names via sliding-window n-grams (up to 5
+        # tokens, longest-first at each start position).  Strip possessive
+        # suffixes first so "Michigan's" is tokenised as "Michigan".
         focal_code: str | None = None
-        words = re.findall(
-            r"[A-Za-z'']+(?:\s+[A-Za-z'']+){0,3}", research_context,
-        )
-        for phrase in words:
-            code = resolve_adm1_code(phrase)
-            if code:
-                focal_code = code
+        clean_ctx = re.sub(r"[''’]s\b", "", research_context)
+        tokens = re.findall(r"[A-Za-zÀ-ɏ]+", clean_ctx)
+        for start in range(len(tokens)):
+            for length in range(min(5, len(tokens) - start), 0, -1):
+                phrase = " ".join(tokens[start : start + length])
+                code = resolve_adm1_code(phrase)
+                if code:
+                    focal_code = code
+                    break
+            if focal_code:
                 break
 
         if focal_code is None:

@@ -1957,6 +1957,29 @@ class MetacouplingAssistant:
                     continue
                 if get_adm1_info(code) is not None:
                     return code
+            # Fallback: the comma-split path found nothing. The resolver's
+            # Direction-A guard now correctly rejects multi-word phrases that
+            # merely *contain* a region name (e.g. "Jalisco corridors carry
+            # inputs"), but the region name itself resolves cleanly. Slide a
+            # window over individual tokens (longest n-gram first at each
+            # position) so clean sub-phrases like "Jalisco" or "Mato Grosso
+            # do Sul" get tried against the strict resolver individually.
+            tokens = re.findall(r"[A-Za-zÀ-ɏ]+", cleaned)
+            for start in range(len(tokens)):
+                for length in range(min(5, len(tokens) - start), 0, -1):
+                    phrase = " ".join(tokens[start : start + length])
+                    if len(phrase) < 3:
+                        continue
+                    code = resolve_adm1_code(phrase, country=country_hint)
+                    if code is None:
+                        continue
+                    adm1_country = get_adm1_country(code)
+                    if adm1_country and country_mentions and (
+                        adm1_country not in country_mentions
+                    ):
+                        continue
+                    if get_adm1_info(code) is not None:
+                        return code
             return None
 
         found: set[str] = set()
