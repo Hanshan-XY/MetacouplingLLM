@@ -236,7 +236,9 @@ def _load_adm1_aliases() -> dict[str, list[tuple[str, str]]]:
     Returns a dict mapping lowercase alias key → [(adm1_code, iso_a3), ...]
     in the same format as the name index, so ``_pick_best_candidate`` can
     be reused for country filtering.  Returns ``{}`` if the file is absent
-    (graceful — callers see an empty strategy, not an error).
+    OR malformed (graceful — a corrupt alias file degrades to "no Strategy 0",
+    it must never break the unrelated ADM1 lookups that share ``_ensure_loaded``).
+    Rows missing any of the three required columns are skipped individually.
     """
     try:
         data_pkg = resources.files("metacouplingllm") / "data"
@@ -246,13 +248,18 @@ def _load_adm1_aliases() -> dict[str, list[tuple[str, str]]]:
     if not path.is_file():
         return {}
     aliases: dict[str, list[tuple[str, str]]] = {}
-    with open(path, newline="", encoding="utf-8-sig") as fh:
-        for row in csv.DictReader(fh):
-            key = row["alias_key"].strip()
-            code = row["code"].strip()
-            iso = row["iso_a3"].strip()
-            if key and code and iso:
-                aliases.setdefault(key, []).append((code, iso))
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as fh:
+            for row in csv.DictReader(fh):
+                # row.get(...) tolerates missing columns / short rows
+                # (DictReader fills absent trailing fields with None).
+                key = (row.get("alias_key") or "").strip()
+                code = (row.get("code") or "").strip()
+                iso = (row.get("iso_a3") or "").strip()
+                if key and code and iso:
+                    aliases.setdefault(key, []).append((code, iso))
+    except (OSError, csv.Error):
+        return {}
     return aliases
 
 
@@ -686,24 +693,52 @@ def _contains_phrase(haystack: str, needle: str) -> bool:
     return re.search(pattern, haystack) is not None
 
 
+# Split a name into words on whitespace AND hyphens, so a hyphen-joined
+# qualifier (the French "nouveau-brunswick" = New Brunswick) is treated the
+# same as a space-separated one ("new brunswick").
+_WORD_SPLIT_RE = re.compile(r"[\s\-]+")
+
+
+def _name_words(text: str) -> list[str]:
+    return [w for w in _WORD_SPLIT_RE.split(text) if w]
+
+
 def _substring_match(query: str, db_name: str) -> bool:
     """Direction-aware substring match between a query and a DB name.
 
     **Direction B** (the canonical ``db_name`` contains the ``query`` as a
-    whole phrase) is a legitimate short / common-name match and is always
-    accepted -- e.g. ``"michoacan"`` inside ``"michoacan de ocampo"``.
+    whole phrase) is a legitimate short / common-name match -- e.g.
+    ``"michoacan"`` inside ``"michoacan de ocampo"`` -- and is accepted only
+    when the words *preceding* the query in ``db_name`` are all ignorable
+    (connectors / admin nouns).  A meaningful preceding word makes the
+    canonical a *different*, more-specific region: ``"york"`` ⊂ ``"new york"``
+    (preceded by ``new``) and ``"brunswick"`` ⊂ ``"nouveau-brunswick"``
+    (preceded by ``nouveau``) are rejected, so a stray token does not
+    confidently resolve to New York / New Brunswick.  Trailing words are fine
+    (they are the official long-form suffix, ``"… de ocampo"``).
 
-    **Direction A** (the ``query`` contains the ``db_name``) is accepted only
-    when every leftover query word is an ignorable administrative / connector
-    token.  A meaningful extra word means the query denotes a *different* place
-    -- ``"mexico city"`` ⊃ ``"mexico"`` leaves ``{"city"}`` and is rejected --
-    which is the class of confident-wrong-answer this guard exists to prevent.
+    **Direction A** (the ``query`` contains the ``db_name``) is symmetric:
+    accepted only when every leftover query word is ignorable.  A meaningful
+    extra word means the query denotes a different place -- ``"mexico city"`` ⊃
+    ``"mexico"`` leaves ``{"city"}`` and is rejected.
+
+    Both directions reject the "qualifier + name" form, which is the class of
+    confident-wrong-answer this guard exists to prevent.
     """
     if _contains_phrase(db_name, query):
+        d = _name_words(db_name)
+        q = _name_words(query)
+        n = len(q)
+        for i in range(len(d) - n + 1):
+            if d[i:i + n] == q:
+                # Accept iff only ignorable words precede the query (head match).
+                return all(w in _IGNORABLE_SUBSTRING_WORDS for w in d[:i])
+        # Matched as a substring but not as a clean token run (punctuation
+        # quirk) -- preserve the prior permissive behaviour for that edge.
         return True
     if _contains_phrase(query, db_name):
-        db_words = set(db_name.split())
-        leftover = [w for w in query.split() if w not in db_words]
+        db_words = set(_name_words(db_name))
+        leftover = [w for w in _name_words(query) if w not in db_words]
         return bool(leftover) and all(
             w in _IGNORABLE_SUBSTRING_WORDS for w in leftover
         )

@@ -13,15 +13,24 @@ N0  Normalize key: lowercase, strip, collapse spaces, NFKD-fold.
 G   Drop if the key resolves as a country name.
 S1  Drop keys shorter than 4 characters.
 W1  Drop generic single geo-words (direction/type words, ADM1 suffixes).
+DR  Drop curated manual-review rejections (_REVIEW_DENYLIST): semantic scope
+    violations (historical/former names, capital-city namesakes, multi-region
+    labels, acronyms) the deterministic rules cannot detect.  From the Opus
+    double-check of PR #60 (see PR #61).
 R1  Drop if resolve_adm1_code(key, country=iso) already returns the same code
     (redundant — the existing resolver already handles it).
-O1  If the resolver returns a DIFFERENT non-None code → mark as override;
-    exclude from the shipped CSV, list in the audit for manual review.
+O1  If the resolver (with hint) returns a DIFFERENT non-None code → mark as
+    override; exclude from the shipped CSV, list in the audit for review.
+X1  Drop if resolve_adm1_code(key) with NO hint returns a different non-None
+    code (fold-aware no-hint shadow — Strategy 0 runs first and would otherwise
+    shadow another region's natural resolution; catches folded cross-country
+    collisions U3 misses).
 U1  Intra-country: if two aliases in the same country share a key → drop both.
 U2  Cross-country: if a key maps to regions in more than one country → drop
     (global key ambiguity; callers would need a country hint, reducing value).
 U3  Drop if key matches an existing canonical index entry for a different code
     (would shadow a real region name).
+D0  Deduplicate identical (code, alias_key) pairs from parallel generation.
 C1  Cap at 3 aliases per code (highest confidence first, then alphabetical).
 
 Usage
@@ -63,6 +72,77 @@ _W1_WORDS: frozenset[str] = frozenset({
     "department", "territory", "island", "islands", "coast",
     "sheng", "oblast", "okrug", "kray", "pradesh", "laen",
     "novads", "maakond", "zizhiqu", "rep", "giang",
+})
+
+# ---------------------------------------------------------------------------
+# DR: manual review denylist (Opus double-check of PR #60, see PR #61)
+# ---------------------------------------------------------------------------
+# The deterministic rules above cannot detect *semantic* scope violations that
+# leaked from the LLM generation prompt: historical/former names, capital-city-
+# for-region namesakes, multi-region cultural labels, and acronyms that slipped
+# the S1 length floor.  A full Opus audit of all 1,178 generated aliases (each
+# finding independently verified) confirmed the (alias_key, code) pairs below as
+# out-of-scope or wrong-region.  Four still-extremely-common former names were
+# deliberately KEPT (saigon→VNM029, rangoon→MMR015, orissa→IND026,
+# pondicherry→IND027) as a curated allowance, so they are absent here.
+# Keys are NFKD-folded lowercase, matching ``_normalize_key``.
+_REVIEW_DENYLIST: frozenset[tuple[str, str]] = frozenset({
+    # wrong_region (points at a different/adjacent place than the WB region)
+    ("jubaland", "SOM010"),
+    ("loire valley", "FRA019"),
+    ("ust-orda buryat autonomous okrug", "RUS002"),
+    ("auvergne-rhone-alpes", "FRA023"),
+    ("cappadocia", "TUR060"),
+    ("windhoek region", "NAM006"),
+    # namesake / capital-city-for-region / sub-region
+    ("balkanabat region", "TKM002"),
+    ("golan", "SYR012"),
+    ("kavango east", "NAM005"),
+    ("kavango west", "NAM005"),
+    ("mosul", "IRQ015"),
+    ("nasiriyah", "IRQ017"),
+    ("new delhi", "IND010"),
+    ("okavango", "BWA007"),
+    ("santo domingo de los colorados", "ECU023"),
+    ("south tyrol", "ITA017"),
+    # too_generic / multi-region label / feature-not-region
+    ("plain of jars", "LAO018"),
+    ("basseterre parish", "KNA003"),
+    ("central province", "IND020"),
+    ("westfjords", "ISL022"),
+    # historical / former names (excluded by v1 scope)
+    ("antioch", "TUR036"),
+    ("caesarea", "TUR047"),
+    ("dacca", "BGD003"),
+    ("diego suarez", "MDG030"),
+    ("dvinsk", "LVA025"),
+    ("iconium", "TUR053"),
+    ("kirovabad", "AZE019"),
+    ("kronstadt", "ROU009"),
+    ("mangyshlak region", "KAZ010"),
+    ("mocamedes", "AGO016"),
+    ("mysore", "IND017"),
+    ("north atlantic autonomous region", "NIC014"),
+    ("nukha", "AZE059"),
+    ("san blas", "PAN008"),
+    ("smyrna", "TUR041"),
+    ("south atlantic autonomous region", "NIC015"),
+    ("tamim", "IRQ013"),
+    ("tenasserim", "MMR014"),
+    ("trebizond", "TUR074"),
+    ("united provinces", "IND034"),
+    ("uttaranchal", "IND035"),
+    ("west sepik", "PNG018"),
+    ("zabaykalsky krai", "RUS014"),
+    # other (false rename claim / acronyms / nicknames / over-literal calques)
+    ("kropyvnytskyi oblast", "UKR011"),
+    ("gbao", "TJK001"),
+    ("raccn", "NIC014"),
+    ("raccs", "NIC015"),
+    ("snnpr", "ETH010"),
+    ("bicolandia", "PHL005"),
+    ("mother of god", "PER017"),
+    ("silent city", "MLT029"),
 })
 
 
@@ -145,6 +225,12 @@ def main(argv: list[str] | None = None) -> None:
             drop_counts["W1_generic"] += 1
             continue
 
+        # DR: manual review denylist (semantic scope violations the
+        # deterministic rules cannot detect — see _REVIEW_DENYLIST)
+        if (key, code) in _REVIEW_DENYLIST:
+            drop_counts["DR_review_denylist"] += 1
+            continue
+
         # R1 / O1
         resolved = resolve_adm1_code(key, country=iso)
         if resolved == code:
@@ -153,6 +239,17 @@ def main(argv: list[str] | None = None) -> None:
         override = False
         if resolved is not None and resolved != code:
             override = True
+
+        # X1: fold-aware no-hint shadow.  Strategy 0 runs FIRST and, with no
+        # country hint, would shadow another region's natural resolution.  Drop
+        # any alias whose key — resolved with NO hint (aliases cleared above) —
+        # lands on a DIFFERENT code.  Catches folded cross-country collisions
+        # that U3 misses because U3 only consults the accented name index
+        # (e.g. folded "ash sharqiyah" → SAU008 while the alias claims OMN002).
+        nohint = resolve_adm1_code(key)
+        if nohint is not None and nohint != code:
+            drop_counts["X1_nohint_shadow"] += 1
+            continue
 
         records.append({
             "code": code,
@@ -165,7 +262,7 @@ def main(argv: list[str] | None = None) -> None:
             "override": override,
         })
 
-    print(f"  After N0/G/S1/W1/R1/O1: {len(records)} candidates remain")
+    print(f"  After N0/G/S1/W1/DR/R1/O1/X1: {len(records)} candidates remain")
     for rule, count in sorted(drop_counts.items()):
         print(f"    dropped by {rule}: {count}")
 
@@ -243,9 +340,8 @@ def main(argv: list[str] | None = None) -> None:
     final_audit: list[dict] = []
     for code_key, recs in by_code.items():
         recs_sorted = sorted(recs, key=_sort_key)
-        # Split overrides out (not shipped)
+        # Split overrides out (audit-only, never shipped)
         non_override = [r for r in recs_sorted if not r["override"]]
-        override_recs = [r for r in recs_sorted if r["override"]]
         shipped = non_override[:3]
         final_shipped.extend(shipped)
         # Audit includes everything (overrides flagged)
