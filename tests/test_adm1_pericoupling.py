@@ -478,6 +478,37 @@ class TestResolveAdm1Code:
                     % (name, iso, resolved, iso)
                 )
 
+    # --- Direction-aware substring guard (loose-match correctness) ---
+
+    def test_direction_a_extra_meaningful_word_returns_none(self):
+        """A query that merely CONTAINS a region name plus a meaningful extra
+        word must not resolve to that region -- it denotes a different place.
+        Previously 'Mexico City' wrongly returned MEX015 (the *State* of
+        México) instead of CDMX, and 'New Mexico' (a US state) likewise."""
+        assert resolve_adm1_code("Mexico City", country="Mexico") is None
+        assert resolve_adm1_code("New Mexico", country="Mexico") is None
+        assert resolve_adm1_code("Greater Mexico", country="Mexico") is None
+        assert resolve_adm1_code("Chihuahua Desert", country="Mexico") is None
+
+    def test_direction_a_ignorable_word_still_resolves(self):
+        """Padding a region name with only administrative / connector words
+        ('State', 'of') does not change the place and still resolves."""
+        assert resolve_adm1_code("Mexico State", country="Mexico") == "MEX015"
+        assert resolve_adm1_code("State of Yucatan", country="MEX") == "MEX031"
+
+    def test_direction_b_partial_name_preserved(self):
+        """Direction B (a short query inside a longer official name) stays
+        intact through the tightened guard."""
+        assert resolve_adm1_code("Michoacan", country="MEX") == "MEX016"
+        assert resolve_adm1_code("Coahuila", country="MEX") == "MEX005"
+
+    def test_substring_ambiguity_returns_none(self):
+        """When a query substring-matches more than one distinct region, the
+        resolver refuses to guess (no first-match-wins).  'Carolina' matches
+        both North (USA034) and South (USA041) Carolina."""
+        assert resolve_adm1_code("Carolina") is None
+        assert resolve_adm1_code("Carolina", country="USA") is None
+
 
 class TestIsoCodeCoverage:
     """PR #50 guard: every ISO-3 code used in the bundled pericoupling

@@ -605,6 +605,49 @@ _ADM1_NAME_SUFFIXES: tuple[str, ...] = (
     "giang",
 )
 
+# Connector / article words that may pad a query around a region name without
+# changing which region it denotes ("State of Bavaria").  Combined with the
+# administrative suffixes above, these are the ONLY extra words tolerated when
+# a *query* contains a canonical name (Direction A, see ``_substring_match``).
+_DIRECTION_A_CONNECTORS: frozenset[str] = frozenset({
+    "the", "of", "de", "del", "la", "el", "da", "do",
+    "und", "and", "du", "des", "van", "von",
+})
+_IGNORABLE_SUBSTRING_WORDS: frozenset[str] = (
+    frozenset(_ADM1_NAME_SUFFIXES) | _DIRECTION_A_CONNECTORS
+)
+
+
+def _contains_phrase(haystack: str, needle: str) -> bool:
+    """Whole-word (word-boundary) containment of ``needle`` in ``haystack``."""
+    pattern = rf"(?<![a-z]){re.escape(needle)}(?![a-z])"
+    return re.search(pattern, haystack) is not None
+
+
+def _substring_match(query: str, db_name: str) -> bool:
+    """Direction-aware substring match between a query and a DB name.
+
+    **Direction B** (the canonical ``db_name`` contains the ``query`` as a
+    whole phrase) is a legitimate short / common-name match and is always
+    accepted -- e.g. ``"michoacan"`` inside ``"michoacan de ocampo"``.
+
+    **Direction A** (the ``query`` contains the ``db_name``) is accepted only
+    when every leftover query word is an ignorable administrative / connector
+    token.  A meaningful extra word means the query denotes a *different* place
+    -- ``"mexico city"`` ⊃ ``"mexico"`` leaves ``{"city"}`` and is rejected --
+    which is the class of confident-wrong-answer this guard exists to prevent.
+    """
+    if _contains_phrase(db_name, query):
+        return True
+    if _contains_phrase(query, db_name):
+        db_words = set(db_name.split())
+        leftover = [w for w in query.split() if w not in db_words]
+        return bool(leftover) and all(
+            w in _IGNORABLE_SUBSTRING_WORDS for w in leftover
+        )
+    return False
+
+
 _adm1_name_index: dict[str, list[tuple[str, str]]] | None = None
 
 
@@ -861,24 +904,24 @@ def resolve_adm1_code(
         if result:
             return result
 
-    def _contains_phrase(haystack: str, needle: str) -> bool:
-        pattern = rf"(?<![a-z]){re.escape(needle)}(?![a-z])"
-        return re.search(pattern, haystack) is not None
-
-    # --- Strategy 2: Substring match ---
-    # Only if name is at least 4 chars and the matching DB name is also
-    # at least 4 chars, to avoid false positives from short fragments.
+    # --- Strategy 2: Substring match (direction-aware, ambiguity-guarded) ---
+    # ``_substring_match`` accepts a shorter query inside a longer canonical
+    # name (Direction B) but rejects a query padded with meaningful extra words
+    # (Direction A).  Collect ALL matches and resolve to distinct codes; return
+    # only when exactly one region matches -- refuse to guess on ambiguity, and
+    # never let the first matching name win over a conflicting second.  On 0 or
+    # >1 matches, fall through so the folded strategies still get a chance.
     if len(name_lower) >= 4:
+        matches: set[str] = set()
         for db_name, entries in index.items():
             if len(db_name) < 4:
                 continue
-            if (
-                _contains_phrase(db_name, name_lower)
-                or _contains_phrase(name_lower, db_name)
-            ):
-                result = _pick_best_candidate(entries, country_iso)
-                if result:
-                    return result
+            if _substring_match(name_lower, db_name):
+                picked = _pick_best_candidate(entries, country_iso)
+                if picked:
+                    matches.add(picked)
+        if len(matches) == 1:
+            return next(iter(matches))
 
     # --- Strategy 3: Accent-folded fallback (PR #45) ---
     # Last resort: fold diacritics on both sides and retry direct
@@ -899,19 +942,19 @@ def resolve_adm1_code(
             result = _pick_best_candidate(candidates, country_iso)
             if result:
                 return result
-        # Strategy 3b: folded substring match (same length guard
-        # as Strategy 2).
+        # Strategy 3b: folded substring match (direction-aware + ambiguity
+        # guard, same as Strategy 2).
         if len(folded_query) >= 4:
+            matches = set()
             for db_name, entries in folded_index.items():
                 if len(db_name) < 4:
                     continue
-                if (
-                    _contains_phrase(db_name, folded_query)
-                    or _contains_phrase(folded_query, db_name)
-                ):
-                    result = _pick_best_candidate(entries, country_iso)
-                    if result:
-                        return result
+                if _substring_match(folded_query, db_name):
+                    picked = _pick_best_candidate(entries, country_iso)
+                    if picked:
+                        matches.add(picked)
+            if len(matches) == 1:
+                return next(iter(matches))
 
     return None
 
