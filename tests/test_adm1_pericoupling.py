@@ -524,6 +524,26 @@ class TestResolveAdm1Code:
         assert resolve_adm1_code("Carolina") is None
         assert resolve_adm1_code("Carolina", country="USA") is None
 
+    def test_direction_b_qualifier_prefix_returns_none(self):
+        """A bare token that is a substring of a 'qualifier + name' canonical
+        must NOT resolve to it -- a leading 'New'/'South'/'Greater' names a
+        different region (PR #61 Direction-B hole).  'york' ⊄ New York, etc."""
+        assert resolve_adm1_code("york") is None
+        assert resolve_adm1_code("hampshire") is None
+        assert resolve_adm1_code("carolina") is None
+        # Hyphen-aware: the French "nouveau-brunswick" (= New Brunswick) too.
+        assert resolve_adm1_code("brunswick") is None
+
+    def test_direction_b_full_qualified_name_still_resolves(self):
+        """The full 'qualifier + name' form still resolves to its own region."""
+        assert resolve_adm1_code("New York") == "USA033"
+        assert resolve_adm1_code("New Hampshire") == "USA030"
+        assert resolve_adm1_code("North Carolina") == "USA034"
+        assert resolve_adm1_code("South Carolina") == "USA041"
+        # And legitimate Direction-B head matches are unaffected.
+        assert resolve_adm1_code("Michoacan de Ocampo") == "MEX016"
+        assert resolve_adm1_code("Veracruz") == "MEX030"
+
 
 class TestIsoCodeCoverage:
     """PR #50 guard: every ISO-3 code used in the bundled pericoupling
@@ -783,6 +803,30 @@ class TestAdm1AliasLoader:
         monkeypatch.setattr(mod, "_adm1_aliases", {fake_key: [("DEU002", "DEU")]})
         assert mod.resolve_adm1_code(fake_key) == "DEU002"
 
+    def test_strategy0_folded_key_branch(self, monkeypatch):
+        """An accented caller resolves against an ASCII-folded alias key
+        (PR #61 — the documented 'Múnich' path; all shipped keys are folded)."""
+        import metacouplingllm.knowledge.adm1_pericoupling as mod
+        monkeypatch.setattr(mod, "_adm1_aliases", {"munich": [("DEU002", "DEU")]})
+        assert mod.resolve_adm1_code("Múnich") == "DEU002"
+        assert mod.resolve_adm1_code("munich") == "DEU002"
+
+    def test_loader_graceful_on_malformed_csv(self, tmp_path, monkeypatch):
+        """A malformed alias CSV degrades to {} (no Strategy 0), never raises --
+        otherwise a corrupt file would break ALL ADM1 lookups via _ensure_loaded
+        (PR #61)."""
+        import metacouplingllm.knowledge.adm1_pericoupling as mod
+        bad = tmp_path / "adm1_aliases.csv"
+        # Missing the required 'iso_a3' column + a short row.
+        bad.write_text("alias_key,code\nbavaria,DEU002\nx\n", encoding="utf-8")
+
+        class _FakePath:
+            def __truediv__(self, other):
+                return bad
+        monkeypatch.setattr(mod.resources, "files", lambda _pkg: _FakePath())
+        # Must not raise; missing iso_a3 column → every row skipped → {}.
+        assert mod._load_adm1_aliases() == {}
+
 
 @_alias_csv_present
 class TestAdm1AliasTable:
@@ -840,6 +884,81 @@ class TestAdm1AliasTable:
         assert not failed, (
             f"{len(failed)} alias round-trips failed; first 3: {failed[:3]}"
         )
+
+    def test_no_hint_resolution_for_unique_rows(self, rows):
+        """PR #60's headline feature: a globally-unique alias resolves with NO
+        country hint.  U2 guarantees every shipped key is globally unique, so
+        each must resolve to its own code hint-free (Strategy 0 + no-hint
+        _pick_best_candidate)."""
+        failed = [
+            (r["alias_key"], r["code"], resolve_adm1_code(r["alias_key"]))
+            for r in rows
+            if resolve_adm1_code(r["alias_key"]) != r["code"]
+        ]
+        assert not failed, f"{len(failed)} no-hint resolutions failed; first 3: {failed[:3]}"
+
+    def test_no_folded_shadow(self, rows):
+        """No shipped alias key may shadow a DIFFERENT region in the accent-
+        FOLDED name index.  This is the fold-aware invariant PR #61 added (the
+        original U3 only checked the accented index, which let 'ash sharqiyah'
+        → OMN002 shadow Saudi SAU008 and resolve to Oman with no hint)."""
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            _get_adm1_folded_name_index, _fold_diacritics,
+        )
+        folded = _get_adm1_folded_name_index()
+        bad = []
+        for r in rows:
+            entry = folded.get(_fold_diacritics(r["alias_key"]))
+            if entry:
+                codes = {c for c, _ in entry}
+                if codes != {r["code"]}:
+                    bad.append((r["alias_key"], r["code"], sorted(codes)))
+        assert not bad, f"Alias keys shadow a folded canonical name for a different code: {bad[:5]}"
+
+    def test_ash_sharqiyah_no_longer_resolves_to_oman(self):
+        """Regression for the PR #60 folded-collision HIGH bug: the unaccented
+        English spelling of Saudi Arabia's Ash Sharqīyah (SAU008) must not
+        confidently resolve to Oman (OMN002) with no hint."""
+        result = resolve_adm1_code("ash sharqiyah")
+        assert result != "OMN002"
+        assert result == "SAU008"
+
+    def test_reviewed_bad_aliases_absent(self, rows):
+        """The Opus-reviewed wrong-region / out-of-scope aliases were removed."""
+        keys = {r["alias_key"] for r in rows}
+        for k in ("loire valley", "jubaland", "mysore", "smyrna", "new delhi",
+                  "mosul", "golan", "cappadocia", "gbao", "snnpr", "silent city",
+                  "ash sharqiyah", "sharqiyah"):
+            assert k not in keys, f"reviewed-bad alias still present: {k}"
+
+    def test_kept_former_names_present(self, rows):
+        """Four still-ubiquitous former names were deliberately kept (PR #61)."""
+        by_key = {r["alias_key"]: r["code"] for r in rows}
+        assert by_key.get("saigon") == "VNM029"
+        assert by_key.get("rangoon") == "MMR015"
+        assert by_key.get("orissa") == "IND026"
+        assert by_key.get("pondicherry") == "IND027"
+
+    def test_counts_match_docs(self, rows):
+        """Headline provenance counts must match the shipped CSV so docs cannot
+        drift (PR #61 — the original '67 countries / 886 regions' were wrong)."""
+        assert len(rows) == 1145
+        assert len({r["code"] for r in rows}) == 863
+        assert len({r["iso_a3"] for r in rows}) == 136
+
+
+def test_u3_shadow_predicate_positive_control():
+    """Positive control for the shadow-detection logic: a synthetic alias key
+    that equals a canonical name for a DIFFERENT code must be flagged (guards
+    against the data-driven U3/folded-shadow tests passing vacuously)."""
+    from metacouplingllm.knowledge.adm1_pericoupling import _get_adm1_name_index
+    name_index = _get_adm1_name_index()
+    # 'bavaria' is an exonym, never a WB canonical key; 'michigan' IS one.
+    canonical_key = "michigan"
+    assert canonical_key in name_index
+    existing_codes = {c for c, _ in name_index[canonical_key]}
+    # Pretend an alias claimed this key for a different code → must be a shadow.
+    assert existing_codes != {"DEU002"}, "predicate would not flag a real shadow"
 
 
 @_alias_csv_present

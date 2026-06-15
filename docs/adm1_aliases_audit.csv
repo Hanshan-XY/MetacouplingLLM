@@ -20,7 +20,6 @@ north cuanza,North Cuanza,AGO006,AGO,"English translation of 'Cuanza Norte', use
 south cuanza,South Cuanza,AGO007,AGO,"English translation of 'Cuanza Sul', used in some English-language references.",pretraining,medium,False
 north lunda,North Lunda,AGO012,AGO,"English translation of 'Lunda Norte', the northern Lunda province.",pretraining,medium,False
 south lunda,South Lunda,AGO013,AGO,"English translation of 'Lunda Sul', the southern Lunda province.",pretraining,medium,False
-mocamedes,Moçâmedes,AGO016,AGO,"Former name of Namibe province and its capital city, still widely referenced in historical and some current English sources.",pretraining,medium,False
 dibra,Dibra,ALB005,ALB,Dibra is the historical and commonly used English alternative name for the Diber district of Albania.,pretraining,medium,False
 gjirokastra,Gjirokastra,ALB009,ALB,Gjirokastra is an alternative romanization of Gjirokaster used in English sources and UNESCO documentation.,pretraining,high,False
 korca,Korca,ALB014,ALB,Korca (also spelled Korça) is the commonly used English alternative romanization for the Korce district.,pretraining,high,False
@@ -51,7 +50,6 @@ fizuli,Fizuli,AZE015,AZE,Fuzuli is the WB canonical spelling but 'Fizuli' is an 
 qabala,Qabala,AZE016,AZE,Gabala is the WB canonical spelling but 'Qabala' is a widely used alternative romanization found in many English-language sources.,pretraining,high,False
 gedabek,Gedabek,AZE017,AZE,"Gadabay is the WB canonical spelling but 'Gedabek' is an alternative English romanization used in some sources, notably for the mining area.",pretraining,medium,False
 gyanja,Gyanja,AZE019,AZE,Ganja is the standard English name but 'Gyanja' is an alternative romanization encountered in some English-language texts.,pretraining,medium,False
-kirovabad,Kirovabad,AZE019,AZE,Ganja was known as Kirovabad during the Soviet era and this name appears in historical English-language references.,pretraining,medium,False
 kazakh,Kazakh,AZE020,AZE,"Gazakh district is sometimes referred to as 'Kazakh' in older English-language sources, reflecting an alternative romanization.",pretraining,medium,False
 djulfa,Djulfa,AZE033,AZE,Djulfa is an older alternative English romanization of Julfa (Culfa district) used in some historical and geographical English-language sources.,pretraining,medium,False
 kelbajar,Kelbajar,AZE034,AZE,Kelbajar is a common alternative English romanization of Kalbajar used in many English-language sources and international reporting.,pretraining,high,False
@@ -60,7 +58,6 @@ khojali,Khojali,AZE039,AZE,Khojali is an alternative English romanization of Kho
 nakhchivan autonomous republic,Nakhchivan Autonomous Republic,AZE048,AZE,Nakhchivan is an autonomous republic exclave of Azerbaijan and is frequently referred to by this full official English name in geopolitical contexts.,pretraining,high,False
 nakhichevan,Nakhichevan,AZE048,AZE,"Older English romanization of Nakhchivan derived from the Russian 'Nakhichevan', still found in some English-language sources.",pretraining,medium,False
 naxcivan,Naxcivan,AZE048,AZE,"Alternative romanization of Nakhchivan used in some transliteration systems, appearing in academic and geographic literature.",pretraining,medium,False
-nukha,Nukha,AZE059,AZE,"Former Soviet-era name for Shaki/Sheki, still appearing in some historical English references.",pretraining,medium,False
 sheki,Sheki,AZE059,AZE,Alternative common English spelling of the Azerbaijani district and city of Shaki; 'Sheki' is widely used in English-language travel and geographic sources.,pretraining,high,False
 shamakha,Shamakha,AZE060,AZE,"Alternative English romanization of Shamakhy, derived from the Russian 'Shemakha', commonly used in historical and some contemporary English sources.",pretraining,high,False
 shemakha,Shemakha,AZE060,AZE,"Russian-derived English transliteration of Shamakhy, found frequently in older English-language geographic and historical texts.",pretraining,high,False
@@ -83,7 +80,6 @@ upper basins,Upper Basins,BFA009,BFA,"English translation of the French 'Hauts-B
 central plateau,Central Plateau,BFA011,BFA,"English translation of 'Plateau Central', with word order reversed per standard English adjective placement, used in English-language references.",pretraining,high,False
 south-west,South-West,BFA013,BFA,"Hyphenated English translation of the French 'Sud-ouest', an alternate spelling used in some English documents.",pretraining,high,False
 chittagong,Chittagong,BGD002,BGD,"Chittagong is the widely used English name for the Chattogram division, the older anglicized spelling still commonly used in English-language sources.",pretraining,high,False
-dacca,Dacca,BGD003,BGD,Dacca is a historical English spelling of Dhaka that still appears in many English-language sources and international references.,pretraining,medium,False
 rajshahi division,Rajshahi Division,BGD006,BGD,Rajshahi Division is the full formal English name used to distinguish the administrative division from Rajshahi city.,pretraining,medium,False
 yambol,Yambol,BGR006,BGR,The WB canonical name 'Jambol' uses a J-based romanization; 'Yambol' is the standard English spelling used in most English-language sources.,pretraining,high,False
 kyustendil,Kyustendil,BGR008,BGR,The WB canonical name 'Kustendil' is an older romanization; 'Kyustendil' is the modern standard English spelling used in most contemporary English sources.,pretraining,high,False
@@ -91,6 +87,7 @@ rousse,Rousse,BGR016,BGR,"The Bulgarian city and province of Ruse is also common
 smolyan,Smolyan,BGR020,BGR,The WB canonical name 'Smoljan' uses a J-based romanization; 'Smolyan' is the standard modern English spelling used in most English-language sources.,pretraining,high,False
 sofia city,Sofia City,BGR022,BGR,The province surrounding the capital is commonly referred to in English as 'Sofia City' or 'Sofia City Province' to distinguish it from the surrounding Sofia Province.,pretraining,high,False
 sofia city province,Sofia City Province,BGR022,BGR,English sources frequently use 'Sofia City Province' to distinguish the capital administrative unit from the surrounding Sofia Province.,pretraining,high,False
+tarnovo,Tarnovo,BGR026,BGR,"Shortened informal English reference used for the region, dropping the 'Veliko' qualifier.",pretraining,medium,False
 veliko turnovo,Veliko Turnovo,BGR026,BGR,"Alternative English romanization of the Bulgarian name, with 'u' instead of 'a' in the second syllable, commonly seen in older or alternative transliterations.",pretraining,medium,False
 vratsa,Vratsa,BGR028,BGR,The WB canonical name 'Vratca' uses a less common romanization; 'Vratsa' is the standard English-language spelling used in most English sources and maps.,pretraining,high,False
 central governorate,Central Governorate,BHR001,BHR,Central Region is the WB name for what is officially called the Central Governorate in English administrative usage.,pretraining,high,False
@@ -114,7 +111,6 @@ wangdi phodrang,Wangdi Phodrang,BTN019,BTN,"Wangduephodrang is the WB canonical 
 wangdue phodrang,Wangdue Phodrang,BTN019,BTN,Wangduephodrang written as two words is a common English-language rendering of this Bhutanese district name.,pretraining,high,False
 ghanzi district,Ghanzi District,BWA003,BWA,The region is commonly referred to with the 'District' suffix in English-language sources about Botswana.,pretraining,medium,False
 kalahari,Kalahari,BWA004,BWA,"Kgalagadi District is commonly known in English as the Kalahari region, named after the Kalahari Desert that dominates it.",pretraining,medium,False
-okavango,Okavango,BWA007,BWA,"Ngamiland District is frequently referred to in English as the Okavango region, home to the famous Okavango Delta.",pretraining,medium,False
 equator,Equator,CAF002,CAF,"Equateur is the French word for Equator, and English-language sources sometimes refer to this region by the English translation.",pretraining,medium,False
 appenzell outer rhodes,Appenzell Outer Rhodes,CHE002,CHE,"The German 'Ausser-rhoden' translates to 'Outer Rhodes' in English, used in anglophone sources.",pretraining,high,False
 appenzell inner rhodes,Appenzell Inner Rhodes,CHE003,CHE,"The German 'Inner-rhoden' translates to 'Inner Rhodes' in English, used in anglophone sources.",pretraining,high,False
@@ -131,6 +127,7 @@ st. gallen,St. Gallen,CHE016,CHE,Abbreviated English form 'St. Gallen' is the mo
 wallis,Wallis,CHE023,CHE,Wallis is the German co-official name for the bilingual canton canonically listed as Valais (French); both names appear regularly in English-language sources about Switzerland.,pretraining,high,False
 aysen,Aysén,CHL001,CHL,"The region is commonly referred to in English as Aysén or Aysen, dropping the full honorary name of General Carlos Ibáñez del Campo.",pretraining,high,False
 aysen region,Aysén Region,CHL001,CHL,English-language sources commonly refer to this region simply as the Aysén Region.,pretraining,high,False
+o'higgins,O'Higgins,CHL008,CHL,"The region is widely known in English simply as O'Higgins, omitting the full official name.",pretraining,high,False
 o'higgins region,O'Higgins Region,CHL008,CHL,"English-language sources consistently shorten the full name to O'Higgins Region, dropping the honorary title.",pretraining,high,False
 metropolitan region,Metropolitan Region,CHL013,CHL,The Región Metropolitana is universally referred to in English as the Metropolitan Region.,pretraining,high,False
 santiago metropolitan region,Santiago Metropolitan Region,CHL013,CHL,English sources often specify 'Santiago Metropolitan Region' to distinguish it from other metropolitan regions in the world.,pretraining,high,False
@@ -146,7 +143,6 @@ mountains,Mountains,CIV031,CIV,Montagnes is the French word for mountains and so
 savannas,Savannas,CIV033,CIV,Savanes is the French plural for savannas and English-language texts sometimes render the district as Savannas.,pretraining,medium,False
 bandama valley,Bandama Valley,CIV034,CIV,Some English-language sources translate Vallée du Bandama as Bandama Valley.,pretraining,medium,False
 far north,Far North,CMR004,CMR,Extrême-Nord is the French name; 'Far North' is the standard English name used in official Cameroonian government documents and international sources.,pretraining,high,False
-south west,South West,CMR010,CMR,Sud-Ouest is the French name; 'South West' is the official English name used in Cameroon (which is bilingual) and by international organizations.,pretraining,high,False
 north kivu,North Kivu,COD009,COD,"Nord-Kivu is French; 'North Kivu' is the standard English exonym widely used in UN, media, and humanitarian reporting.",pretraining,high,False
 south kivu,South Kivu,COD011,COD,"Sud-Kivu is French; 'South Kivu' is the standard English exonym widely used in UN, media, and humanitarian reporting.",pretraining,high,False
 equator province,Equator Province,COD013,COD,Some English sources translate Équateur as 'Equator Province' due to its location straddling the equator.,pretraining,medium,False
@@ -204,7 +200,6 @@ hermanas mirabal,Hermanas Mirabal,DOM022,DOM,Salcedo province was renamed Herman
 algiers,Algiers,DZA004,DZA,"Algiers is the standard English exonym for Alger, the capital city and province of Algeria.",pretraining,high,False
 msila,Msila,DZA026,DZA,English sources frequently drop the apostrophe and write the province name as 'Msila' rather than the canonical 'M'Sila'.,pretraining,high,False
 souk ahras,Souk Ahras,DZA040,DZA,English sources commonly write the province name without the hyphen as 'Souk Ahras' rather than the canonical 'Souk-Ahras'.,pretraining,high,False
-santo domingo de los colorados,Santo Domingo de los Colorados,ECU023,ECU,The province was formerly known as Santo Domingo de los Colorados (after the indigenous Tsachila people's practice of dyeing their hair red); this older name is still widely used in English-language sources.,pretraining,high,False
 el iskandariyah,El Iskandariyah,EGY001,EGY,Arabic romanization of Alexandria used in some international databases.,pretraining,medium,False
 assyut,Assyut,EGY002,EGY,Another common English spelling variant of this Upper Egypt governorate.,pretraining,medium,False
 asyut,Asyut,EGY002,EGY,Common alternative romanization of the governorate also spelled Assiut or Asyut in English sources.,pretraining,high,False
@@ -247,10 +242,12 @@ castile-la mancha,Castile-La Mancha,ESP007,ESP,"English rendering of Castilla-La
 catalonia,Catalonia,ESP008,ESP,Standard English exonym for the autonomous community known in Spanish as Cataluña and in Catalan as Catalunya.,pretraining,high,False
 community of madrid,Community of Madrid,ESP011,ESP,"English translation of Comunidad de Madrid, the autonomous community surrounding Spain's capital.",pretraining,high,False
 foral community of navarre,Foral Community of Navarre,ESP012,ESP,Full English translation of the official name Comunidad Foral de Navarra.,pretraining,medium,False
+navarra,Navarra,ESP012,ESP,The Spanish/Basque name used widely in English-language sources as an alternative to the exonym Navarre.,pretraining,high,False
 navarre,Navarre,ESP012,ESP,Standard English exonym for the Foral Community of Navarra (Comunidad Foral de Navarra).,pretraining,high,False
 valencia,Valencia,ESP013,ESP,Common shortened English name for the Comunitat Valenciana autonomous community.,pretraining,high,False
 valencian community,Valencian Community,ESP013,ESP,"Standard English translation of Comunitat Valenciana, used widely in English sources.",pretraining,high,False
 basque country,Basque Country,ESP018,ESP,"Standard English exonym for País Vasco/Euskadi, the autonomous community of the Basque people in northern Spain.",pretraining,high,False
+asturias,Asturias,ESP019,ESP,"Common shortened English reference to the Principado de Asturias, dropping the Principado de prefix.",pretraining,high,False
 principality of asturias,Principality of Asturias,ESP019,ESP,"English translation of Principado de Asturias, the full official name of the autonomous community.",pretraining,high,False
 region of murcia,Region of Murcia,ESP020,ESP,"English translation of Región de Murcia, the official name of this autonomous community.",pretraining,high,False
 harju county,Harju County,EST002,EST,"Estonian 'maakond' means 'county' in English, and 'Harju County' is the standard English exonym used in official and international contexts.",pretraining,high,False
@@ -270,7 +267,6 @@ voru county,Võru County,EST016,EST,"Estonian 'maakond' means 'county' in Englis
 addis ababa city administration,Addis Ababa City Administration,ETH001,ETH,The federal chartered city of Addis Ababa is sometimes referred to by its full administrative title in official contexts.,pretraining,medium,False
 benishangul-gumuz,Benishangul-Gumuz,ETH004,ETH,The hyphenated spelling 'Benishangul-Gumuz' is commonly used in English-language sources and differs from the WB canonical 'Benishangul Gumz'.,pretraining,high,False
 gambella,Gambella,ETH006,ETH,The double-l spelling 'Gambella' is widely used in English-language reporting and UN documents as an alternative to 'Gambela'.,pretraining,high,False
-snnpr,SNNPR,ETH010,ETH,"SNNPR (Southern Nations, Nationalities, and Peoples Region) is a widely used acronym in academic and policy literature, distinct from the WB canonical abbreviation SNNP.",pretraining,medium,False
 southern nations nationalities and peoples region,Southern Nations Nationalities and Peoples Region,ETH010,ETH,"Common variant without the serial comma, widely used in English-language academic and policy literature.",pretraining,high,False
 "southern nations, nationalities, and peoples region","Southern Nations, Nationalities, and Peoples Region",ETH010,ETH,"SNNP is the initialism for the full English name 'Southern Nations, Nationalities, and Peoples Region', which is the standard expanded English form.",pretraining,high,False
 lappi,Lappi,FIN002,FIN,"Lappi is the Finnish-language name for Lapland, but the canonical WB name 'Lapland' is already the English exonym, so this native form is not an alias needed for English resolution.",pretraining,medium,False
@@ -279,16 +275,15 @@ burgundy,Burgundy,FRA006,FRA,Bourgogne is the French name for the region; 'Burgu
 brittany,Brittany,FRA007,FRA,Bretagne is the French name; 'Brittany' is the standard English exonym widely used in English-language contexts.,pretraining,high,False
 upper normandy,Upper Normandy,FRA012,FRA,Haute-Normandie is the French name; 'Upper Normandy' is the standard English translation used in English-language sources.,pretraining,high,False
 languedoc-roussillon,Languedoc-Roussillon,FRA014,FRA,The canonical WB name 'Languedoc-Rousillon' appears to have a spelling error (single 's'); the correct spelling 'Languedoc-Roussillon' is how the region is known in English.,pretraining,high,False
-loire valley,Loire Valley,FRA019,FRA,"Pays-de-la-Loire is sometimes informally referred to in English as the 'Loire Valley' region, though strictly Loire Valley (Val de Loire) is a subset; medium confidence due to overlap.",pretraining,medium,False
 picardy,Picardy,FRA020,FRA,"Picardie is the French name; 'Picardy' is the traditional English exonym for this region, well known in English-language history and geography.",pretraining,high,False
 provence-alpes-cote d'azur,Provence-Alpes-Cote d'Azur,FRA022,FRA,The canonical name uses a hyphen in Cote-d'Azur; the common English rendering drops the hyphen between Cote and d'Azur.,pretraining,medium,False
-auvergne-rhone-alpes,Auvergne-Rhône-Alpes,FRA023,FRA,Since 2016 the region was merged and officially renamed Auvergne-Rhône-Alpes; English sources commonly use this current name to refer to the same territory.,pretraining,high,False
 upper ogooue,Upper Ogooue,GAB002,GAB,Haut-Ogooué is the French name; 'Upper Ogooue' is the standard English translation used in some English-language sources.,pretraining,medium,False
 middle ogooue,Middle Ogooue,GAB003,GAB,Moyen-Ogooué is the French name; 'Middle Ogooue' is the standard English translation of 'Moyen'.,pretraining,medium,False
-north east region,North East Region,GHA015,GHA,"The official Ghanaian government name for this region is 'North East Region', differing from the WB canonical 'Northern East'.",pretraining,high,False
+akrotiri and dhekelia,Akrotiri and Dhekelia,GBR001,GBR,Common shorthand dropping the 'Sovereign Base Areas of' prefix and the '(U.K.)' suffix when referring to this territory.,pretraining,high,False
 central river region north,Central River Region North,GMB002,GMB,Central River North is sometimes referred to with the word 'Region' included in administrative documents.,pretraining,medium,False
 central river region south,Central River Region South,GMB003,GMB,Central River South is sometimes referred to with the word 'Region' included in administrative documents.,pretraining,medium,False
 bolama-bijagos,Bolama-Bijagos,GNB003,GNB,The canonical name uses a slash separator; the hyphenated form is commonly used in English sources for this archipelago region.,pretraining,high,False
+bissau,Bissau,GNB008,GNB,"The Autonomous Sector of Bissau is commonly referred to simply as Bissau in English usage, as it is the capital city region.",pretraining,high,False
 bissau autonomous sector,Bissau Autonomous Sector,GNB008,GNB,English translation of the canonical Portuguese name 'Sector Autonomo De Bissau'.,pretraining,high,False
 bioko north,Bioko North,GNQ002,GNQ,"English translation of 'Bioko Norte', where Norte means North in Spanish.",pretraining,medium,False
 bioko south,Bioko South,GNQ003,GNQ,"English translation of 'Bioko Sur', where Sur means South in Spanish.",pretraining,medium,False
@@ -334,16 +329,16 @@ split-dalmatia,Split-Dalmatia,HRV016,HRV,English-language sources consistently u
 vukovar-syrmia,Vukovar-Syrmia,HRV019,HRV,"The Croatian 'Vukovar-Srijem' county is often rendered in English as 'Vukovar-Syrmia', using the Latin/English exonym for the Srijem/Syrmia region.",pretraining,high,False
 zadar county,Zadar County,HRV020,HRV,The county was renamed to simply 'Zadar County' after reorganization; the WB form 'Zadar-Knin' reflects an older administrative name.,pretraining,high,False
 zagreb county,Zagreb County,HRV021,HRV,"The WB region 'Zagreb' refers to Zagreb County (Zagrebačka županija), distinct from the City of Zagreb, and English sources often use 'Zagreb County' to disambiguate.",pretraining,medium,False
-grand anse,Grand Anse,HTI003,HTI,Grand-Anse is sometimes written without the hyphen in English-language sources.,pretraining,medium,False
-northwest,Northwest,HTI007,HTI,Nord-Ouest is French for Northwest; English translation is commonly used in English-language sources.,pretraining,medium,False
 budapest capital region,Budapest Capital Region,HUN005,HUN,Budapest is sometimes referred to as the Budapest Capital Region in English administrative contexts to distinguish the city-county from the surrounding Pest county.,pretraining,medium,False
 csongrad-csanad,Csongrad-Csanad,HUN006,HUN,The county was officially renamed Csongrad-Csanad in 2020; the WB canonical name Csongrad reflects the older name.,pretraining,medium,False
 north sumatra,North Sumatra,IDN002,IDN,Sumatera Utara is the Indonesian name; 'North Sumatra' is the standard English translation widely used in English-language sources.,pretraining,high,False
 west sumatra,West Sumatra,IDN003,IDN,Sumatera Barat is the Indonesian name; 'West Sumatra' is the standard English translation widely used in English-language sources.,pretraining,high,False
 south sumatra,South Sumatra,IDN006,IDN,Sumatera Selatan is the Indonesian name; 'South Sumatra' is the standard English translation widely used in English-language sources.,pretraining,high,False
+jakarta,Jakarta,IDN011,IDN,DKI Jakarta (Daerah Khusus Ibukota Jakarta) is the full official name; 'Jakarta' is the universally used short English name for the capital region.,pretraining,high,False
 west java,West Java,IDN012,IDN,Jawa Barat is the Indonesian name; 'West Java' is the standard English translation widely used in English-language sources.,pretraining,high,False
 central java,Central Java,IDN013,IDN,Jawa Tengah is the Indonesian name; 'Central Java' is the standard English translation widely used in English-language sources.,pretraining,high,False
 special region of yogyakarta,Special Region of Yogyakarta,IDN014,IDN,"Daerah Istimewa Yogyakarta translates directly to 'Special Region of Yogyakarta', the English translation used in official and academic contexts.",pretraining,high,False
+yogyakarta,Yogyakarta,IDN014,IDN,Daerah Istimewa Yogyakarta means 'Special Region of Yogyakarta'; 'Yogyakarta' is the common English short form used universally.,pretraining,high,False
 east java,East Java,IDN015,IDN,Jawa Timur is the Indonesian name; 'East Java' is the standard English translation widely used in English-language sources.,pretraining,high,False
 east nusa tenggara,East Nusa Tenggara,IDN019,IDN,Nusa Tenggara Timur translates to 'East Nusa Tenggara'; this English translation is widely used in academic and official English-language sources.,pretraining,high,False
 west kalimantan,West Kalimantan,IDN020,IDN,Kalimantan Barat is the Indonesian name; 'West Kalimantan' is the standard English translation widely used in English-language sources.,pretraining,high,False
@@ -363,14 +358,9 @@ central papua,Central Papua,IDN037,IDN,"Standard English translation of 'Papua T
 highland papua,Highland Papua,IDN038,IDN,"Standard English translation of 'Papua Pegunungan' (Pegunungan means Mountains/Highlands in Indonesian), a province created in 2022.",pretraining,high,False
 papua highlands,Papua Highlands,IDN038,IDN,Alternative English rendering of 'Papua Pegunungan' used in some English-language sources.,pretraining,medium,False
 national capital territory,National Capital Territory,IND010,IND,"Delhi is officially designated the National Capital Territory of Delhi, often referenced by this descriptive English name.",pretraining,medium,False
-new delhi,New Delhi,IND010,IND,"Delhi's capital territory is commonly referred to as New Delhi in English, though the full canonical name is Delhi (National Capital Territory).",pretraining,high,False
-mysore,Mysore,IND017,IND,Karnataka was formerly known as Mysore State until 1973; the name Mysore remains widely used in English contexts to refer to the region.,pretraining,medium,False
-central province,Central Province,IND020,IND,"Madhya Pradesh translates literally to 'Central Province' in English, an accurate English exonym for this Hindi name.",pretraining,medium,False
 orissa,Orissa,IND026,IND,Odisha was officially renamed from Orissa in 2011; Orissa remains widely used in English contexts and historical references.,pretraining,high,False
 pondicherry,Pondicherry,IND027,IND,Puducherry was officially renamed from Pondicherry in 2006; the former name remains the most widely recognized English form internationally.,pretraining,high,False
 tamilnadu,Tamilnadu,IND031,IND,Common alternate single-word spelling of Tamil Nadu used in some English sources and URLs.,pretraining,medium,False
-united provinces,United Provinces,IND034,IND,Historical British colonial name for Uttar Pradesh; still encountered in historical English documents though now outdated.,pretraining,medium,False
-uttaranchal,Uttaranchal,IND035,IND,Uttarakhand was known as Uttaranchal from its creation in 2000 until it was renamed in 2007; the former name is still used in many English sources.,pretraining,high,False
 ardabil,Ardabil,IRN001,IRN,"Alternative common English romanization of the province name, widely used in academic and geographic sources.",pretraining,high,False
 chaharmahal and bakhtiari,Chaharmahal and Bakhtiari,IRN003,IRN,Standard English rendering uses 'and' instead of '-o' and the full form 'Bakhtiari' instead of 'bakhtiyar'.,pretraining,high,False
 isfahan,Isfahan,IRN005,IRN,"Widely used English/international spelling of the province and city name, more common than 'Esfahan' in English sources.",pretraining,high,False
@@ -381,22 +371,24 @@ sistan and balochestan,Sistan and Balochestan,IRN024,IRN,"Alternative English ro
 sistan and baluchestan,Sistan and Baluchestan,IRN024,IRN,The WB canonical name uses a Persian-style connector '-o-' but English sources consistently write 'Sistan and Baluchestan'.,pretraining,high,False
 sistan-baluchestan,Sistan-Baluchestan,IRN024,IRN,Hyphenated English shorthand commonly used in international reporting and maps.,pretraining,medium,False
 west azerbayjan,West Azerbayjan,IRN026,IRN,Alternative English romanization occasionally seen in older or transliteration-heavy sources.,pretraining,medium,False
+anbar,Anbar,IRQ001,IRQ,Al-Anbar is commonly referred to simply as Anbar in English-language news and government sources.,pretraining,high,False
 basra,Basra,IRQ002,IRQ,"Al-Basrah is widely known in English as Basra, Iraq's second-largest city and the province named after it.",pretraining,high,False
+basrah,Basrah,IRQ002,IRQ,Alternative English romanization of Al-Basrah used in many official and journalistic sources.,pretraining,high,False
+muthanna,Muthanna,IRQ003,IRQ,"Al-Muthanna is commonly referred to as Muthanna in English sources, dropping the Arabic article.",pretraining,high,False
+najaf,Najaf,IRQ004,IRQ,"Al-Najaf is widely known in English simply as Najaf, a major Shia holy city and province.",pretraining,high,False
 diwaniyah,Diwaniyah,IRQ005,IRQ,"Al-Qadissiya governorate is often referred to by the name of its capital city, Diwaniyah, in English-language sources.",pretraining,medium,False
 qadisiyyah,Qadisiyyah,IRQ005,IRQ,"Al-Qadissiya is also romanized as Qadisiyyah in English sources, an alternate transliteration of the same Arabic name.",pretraining,high,False
 sulaimaniya,Sulaimaniya,IRQ006,IRQ,Alternative English romanization of the Kurdish province name used in many journalistic and official sources.,pretraining,high,False
+sulaymaniyah,Sulaymaniyah,IRQ006,IRQ,"Al-Sulaymaniyah is commonly written as Sulaymaniyah in English, dropping the Arabic article.",pretraining,high,False
 dohuk,Dohuk,IRQ010,IRQ,Dohuk is a widely used alternative English spelling of the Duhok governorate in Iraqi Kurdistan.,pretraining,high,False
 arbil,Arbil,IRQ011,IRQ,Arbil is another common English romanization of the Kurdish capital city and governorate Erbil.,pretraining,high,False
 irbil,Irbil,IRQ011,IRQ,Erbil is also romanized as Irbil in many English sources including the UN and US government documents.,pretraining,high,False
 karbala,Karbala,IRQ012,IRQ,"Kerbala is more commonly spelled Karbala in English, the major Shia holy city and Iraqi governorate.",pretraining,high,False
-tamim,Tamim,IRQ013,IRQ,"At-Tamim is the formal Arabic name for the Kirkuk governorate, used in some official documents.",pretraining,medium,False
 missan,Missan,IRQ014,IRQ,Maysan governorate is also romanized as Missan in some English and official Iraqi sources.,pretraining,medium,False
-mosul,Mosul,IRQ015,IRQ,Ninewa governorate is frequently referred to by its capital Mosul in English-language news and international sources.,pretraining,medium,False
 nineveh,Nineveh,IRQ015,IRQ,"Ninewa is the modern Arabic romanization, but Nineveh is the widely-used English name for this governorate, referencing the ancient Assyrian city.",pretraining,high,False
 saladin,Saladin,IRQ016,IRQ,"Salah Al-Din is the Arabic name; Saladin is the well-known English form of this name, referencing the famous historical figure.",pretraining,high,False
 salah ad-din,Salah ad-Din,IRQ016,IRQ,"Alternative English romanization of the governorate name, used in academic and some official sources.",pretraining,high,False
 dhi qar,Dhi Qar,IRQ017,IRQ,Thi Qar is also commonly romanized as Dhi Qar in English-language sources including UN documents.,pretraining,high,False
-nasiriyah,Nasiriyah,IRQ017,IRQ,Thi Qar governorate is often referred to by its capital Nasiriyah in English media and international sources.,pretraining,medium,False
 wasit,Wasit,IRQ018,IRQ,"Wassit is also commonly spelled Wasit in English, an alternative romanization of the governorate name.",pretraining,high,False
 east bardastrands,East Bardastrands,ISL002,ISL,"Austur-baroastrandar is the Icelandic name; 'Austur' means 'East' and 'baroastrandar' refers to Bardastrands, giving the English form East Bardastrands.",pretraining,medium,False
 east hunavatns,East Hunavatns,ISL003,ISL,Austur-hunavatns means 'East Hunavatns' in Icelandic; 'Austur' translates to 'East'.,pretraining,medium,False
@@ -411,7 +403,6 @@ south thingeyjarsysla,South Thingeyjarsysla,ISL019,ISL,Suour-pingeyjar is the Ic
 west bardastrands,West Bardastrands,ISL020,ISL,Vestur-baroastrandar means 'West Bardastrands' in Icelandic; 'Vestur' translates to 'West'.,pretraining,medium,False
 west hunavatn,West Hunavatn,ISL021,ISL,"Vestur-hunavatns is Icelandic for West Hunavatn, with 'vestur' meaning west and 'hunavatns' being the genitive of Hunavatn (a lake/region name).",pretraining,medium,False
 west isafjord,West Isafjord,ISL022,ISL,"Vestur-isafjaroar is Icelandic for West Isafjord, with 'vestur' meaning west and 'isafjaroar' being the genitive of Isafjordur (a fjord/town).",pretraining,medium,False
-westfjords,Westfjords,ISL022,ISL,"The Vestur-isafjaroar region is part of the broader Westfjords area of Iceland, a name commonly used in English-language tourism and geography.",pretraining,medium,False
 west skaftafell,West Skaftafell,ISL023,ISL,"Vestur-skaftafells is Icelandic for West Skaftafell, with 'vestur' meaning west and 'skaftafells' being the genitive of Skaftafell (a region in southeast Iceland).",pretraining,medium,False
 center district,Center District,ISR001,ISR,The Central District of Israel is commonly referred to as 'Center District' in English-language sources.,pretraining,medium,False
 haifa district,Haifa District,ISR002,ISR,"The region named 'Haifa' in the WB database is officially the Haifa District, and callers commonly include the word 'District'.",pretraining,medium,False
@@ -423,7 +414,6 @@ lombardy,Lombardy,ITA009,ITA,The standard English exonym for the Italian region 
 piedmont,Piedmont,ITA012,ITA,The standard English exonym for the Italian region 'Piemonte' is 'Piedmont'.,pretraining,high,False
 apulia,Apulia,ITA013,ITA,The standard English/Latin exonym for the Italian region 'Puglia' is 'Apulia'.,pretraining,high,False
 tuscany,Tuscany,ITA016,ITA,The standard English exonym for the Italian region 'Toscana' is 'Tuscany'.,pretraining,high,False
-south tyrol,South Tyrol,ITA017,ITA,The English exonym 'South Tyrol' is widely used for the German-speaking autonomous province that gives this region its name.,pretraining,high,False
 trentino-south tyrol,Trentino-South Tyrol,ITA017,ITA,Common English hybrid name combining the Italian name Trentino with the English exonym South Tyrol for this bilingual region.,pretraining,medium,False
 aosta valley,Aosta Valley,ITA019,ITA,The standard English exonym for the Italian region 'Valle d'Aosta' is 'Aosta Valley'.,pretraining,high,False
 ajlun,Ajlun,JOR001,JOR,"Alternative common English romanization of the Arabic name, widely used in travel and geographic sources.",pretraining,high,False
@@ -475,7 +465,6 @@ kostanay region,Kostanay Region,KAZ008,KAZ,The standard modern English name for 
 qostanay region,Qostanay Region,KAZ008,KAZ,Qostanay is the Kazakh-script romanization used in some English official documents.,pretraining,medium,False
 kyzylorda,Kyzylorda,KAZ009,KAZ,Kyzylorda is the widely used English short form for this oblast.,pretraining,high,False
 kyzylorda region,Kyzylorda Region,KAZ009,KAZ,The standard English name for Kyzylordinskaya Oblast is Kyzylorda Region.,pretraining,high,False
-mangyshlak region,Mangyshlak Region,KAZ010,KAZ,Mangyshlak is an older English name for this oblast sometimes encountered in historical sources.,pretraining,medium,False
 mangystau,Mangystau,KAZ010,KAZ,Mangystau is the commonly used English short form for this oblast.,pretraining,high,False
 mangystau region,Mangystau Region,KAZ010,KAZ,The standard English name for Mangistauskaya Oblast is Mangystau Region.,pretraining,high,False
 pavlodar,Pavlodar,KAZ011,KAZ,Pavlodar is the widely used English short form for this oblast.,pretraining,high,False
@@ -500,7 +489,6 @@ ratanakiri,Ratanakiri,KHM019,KHM,Single-word English spelling Ratanakiri is comm
 siem reap,Siem Reap,KHM020,KHM,"The canonical WB name 'Siemreap' is a compressed romanization; 'Siem Reap' is the standard English spelling widely used in travel, news, and official English-language sources.",pretraining,high,False
 sihanoukville,Sihanoukville,KHM021,KHM,"Preah Sihanouk province is commonly referred to in English by its capital city name, Sihanoukville, which is the dominant English exonym used in tourism, media, and international references.",pretraining,high,False
 tbong khmum,Tbong Khmum,KHM025,KHM,Alternative English romanization of the WB canonical 'Tboung Khmum'; the spelling 'Tbong Khmum' appears in English news and government sources and differs materially from the WB canonical form.,pretraining,high,False
-basseterre parish,Basseterre Parish,KNA003,KNA,"Saint George Basseterre is commonly referred to by its principal town name Basseterre, the capital of Saint Kitts.",pretraining,medium,False
 charlestown parish,Charlestown Parish,KNA010,KNA,"Saint Paul Charlestown is commonly referred to by its principal town Charlestown, the capital of Nevis.",pretraining,medium,False
 jeollabuk-do,Jeollabuk-do,KOR002,KOR,"Official Revised Romanization spelling, widely used in modern English sources as an alternative to the WB McCune-Reischauer form Chollabuk-do.",pretraining,high,False
 north jeolla,North Jeolla,KOR002,KOR,"Chollabuk-do is the McCune-Reischauer romanization of 전라북도; the modern Revised Romanization renders this as Jeollabuk-do, and the standard English exonym is North Jeolla Province.",pretraining,high,False
@@ -523,6 +511,7 @@ south gyeongsang,South Gyeongsang,KOR011,KOR,Kyongsangnam-do is the McCune-Reisc
 busan,Busan,KOR012,KOR,"Pusan is the McCune-Reischauer romanization of 부산; Busan is the Revised Romanization form now universally used in English (official city name, international port).",pretraining,high,False
 daegu,Daegu,KOR014,KOR,Taegu is the McCune-Reischauer romanization of 대구; Daegu is the Revised Romanization form now universally used in English for this major city.,pretraining,high,False
 daejeon,Daejeon,KOR015,KOR,Taejon is the McCune-Reischauer romanization of 대전; Daejeon is the Revised Romanization form now universally used in English for this major city.,pretraining,high,False
+ahmadi,Ahmadi,KWT001,KWT,"Al Ahmadi is commonly referred to as Ahmadi in English, dropping the Arabic definite article.",pretraining,high,False
 farwaniya,Farwaniya,KWT002,KWT,"Al Farwaniyah is frequently shortened to Farwaniya in English usage, dropping the Arabic article.",pretraining,high,False
 jahra,Jahra,KWT003,KWT,Al Jahrah is commonly anglicized and shortened to Jahra in English-language sources and maps.,pretraining,high,False
 attapeu,Attapeu,LAO001,LAO,"Attapeu is the common English spelling used in news media and travel sources, differing from the WB canonical 'Attapu'.",pretraining,high,False
@@ -537,7 +526,6 @@ salavan,Salavan,LAO011,LAO,Salavan is a common alternative English romanization 
 sayaboury,Sayaboury,LAO015,LAO,Sayaboury is an alternative English romanization of Xaignabouri province used in some English sources.,pretraining,medium,False
 xayaburi,Xayaburi,LAO015,LAO,"Xayaburi is the common English name for this province, differing from the WB canonical 'Xaignabouri'.",pretraining,high,False
 sekong,Sekong,LAO017,LAO,"Sekong is the common English name for this province, differing from the WB canonical 'Xékong'.",pretraining,high,False
-plain of jars,Plain of Jars,LAO018,LAO,"The Plain of Jars is a well-known English name for the landscape/region of Xiangkhoang province, sometimes used to refer to the province itself.",pretraining,medium,False
 xieng khouang,Xieng Khouang,LAO018,LAO,"Xieng Khouang is the standard English spelling of this province, differing from the WB canonical 'Xiangkhoang'.",pretraining,high,False
 bekaa valley,Bekaa Valley,LBN004,LBN,"English-language sources frequently refer to the Bekaa governorate as the Bekaa Valley, emphasizing the geographic feature.",pretraining,high,False
 beqaa,Beqaa,LBN004,LBN,"Beqaa is a common alternative English romanization of the Bekaa Valley governorate, widely used in news and academic sources.",pretraining,high,False
@@ -581,8 +569,6 @@ aluksne municipality,Aluksne Municipality,LVA008,LVA,"Alūksnes novads is common
 balvi municipality,Balvi Municipality,LVA015,LVA,Balvu novads is the Latvian genitive form; English sources use Balvi Municipality as the standard English rendering.,pretraining,medium,False
 bauska municipality,Bauska Municipality,LVA016,LVA,"Bauskas novads is rendered in English as Bauska Municipality, using the nominative form of the town name.",pretraining,medium,False
 daugavpils city,Daugavpils City,LVA025,LVA,Daugavpils is a city (not a novads/municipality) and is sometimes referred to as 'Daugavpils City' in English to distinguish it from Daugavpils novads.,pretraining,medium,False
-dvinsk,Dvinsk,LVA025,LVA,"Daugavpils was historically known as Dvinsk in English (and Daugavpils in Latvian), and 'Dvinsk' appears in some older English-language sources.",pretraining,medium,False
-jekabpils,Jekabpils,LVA042,LVA,"Accent-stripped English rendering of Jēkabpils, commonly used in English-language sources.",pretraining,high,True
 karsava municipality,Karsava Municipality,LVA048,LVA,"Accent-stripped English rendering of Kārsavas novads, with 'municipality' as the English equivalent of 'novads'.",pretraining,medium,False
 kraslava municipality,Kraslava Municipality,LVA053,LVA,"Accent-stripped English rendering of Krāslavas novads, used in English-language administrative references.",pretraining,medium,False
 kuldiga municipality,Kuldiga Municipality,LVA056,LVA,Accent-stripped English rendering of Kuldīgas novads; Kuldiga is also the historically recognized English form of this western Latvian town.,pretraining,medium,False
@@ -604,7 +590,7 @@ pridnestrovie,Pridnestrovie,MDA035,MDA,"Romanized form of the Russian name for t
 trans-dniester,Trans-Dniester,MDA035,MDA,"Hyphenated English exonym for the breakaway Moldovan territory, used in English-language reporting.",pretraining,high,False
 transdniestria,Transdniestria,MDA035,MDA,Common English alternative spelling for the breakaway region of Transnistria/Transdniestria.,pretraining,high,False
 autonomous territorial unit of gagauzia,Autonomous Territorial Unit of Gagauzia,MDA037,MDA,Full official English-language name of the Gagauzian autonomous unit within Moldova.,pretraining,high,False
-diego suarez,Diego Suarez,MDG030,MDG,"Antsiranana is the official name but the city and province are widely known in English sources as Diego Suarez, the former colonial name still commonly used in navigation and travel contexts.",pretraining,medium,False
+gagauzia,Gagauzia,MDA037,MDA,"Standard short English name for the Autonomous Territorial Unit of Gagauzia, widely used in English sources.",pretraining,high,False
 majunga,Majunga,MDG032,MDG,"Mahajanga is commonly referred to as Majunga in English and French sources, a name that remains widely used in travel literature and historical texts.",pretraining,high,False
 tamatave,Tamatave,MDG033,MDG,"Toamasina is the official name but the city and region were long known as Tamatave in English sources, a name still commonly encountered in historical and some current references.",pretraining,medium,False
 tulear,Tulear,MDG034,MDG,"Toliara is widely referred to as Tulear in English sources, especially in older literature and marine charts, and remains a common alternative name.",pretraining,high,False
@@ -620,7 +606,6 @@ timbuktu region,Timbuktu Region,MLI009,MLI,The administrative region of Tombouct
 vittoriosa,Vittoriosa,MLT003,MLT,"Birgu is officially known in English as Vittoriosa, the name given by the Knights of St John and widely used in English-language contexts.",pretraining,high,False
 cospicua,Cospicua,MLT006,MLT,"Bormla is commonly referred to in English as Cospicua, one of the Three Cities in Malta.",pretraining,high,False
 senglea,Senglea,MLT020,MLT,"Isla is the Maltese name for the city known in English as Senglea, one of Malta's historic Three Cities.",pretraining,high,False
-silent city,Silent City,MLT029,MLT,"Mdina is widely known in English as 'The Silent City', a common English nickname used in tourism and media.",pretraining,high,False
 rahal gdid,Rahal Gdid,MLT038,MLT,"Paola is the official name but the locality is also known by its Maltese name Rahal Gdid (meaning 'New Village'), used in some official and colloquial contexts.",pretraining,medium,False
 rabat,Rabat,MLT044,MLT,"Rabat Malta is commonly referred to simply as 'Rabat' in English contexts, distinguishing it from Rabat Morocco by context or country specification.",pretraining,high,False
 rabat gozo,Rabat Gozo,MLT045,MLT,The older name Rabat (Victoria) on Gozo island is commonly referenced as 'Rabat Gozo' to distinguish it from Rabat Malta.,pretraining,high,False
@@ -640,7 +625,6 @@ magwe,Magwe,MMR007,MMR,Magway is the modern romanization; Magwe is the older and
 nay pyi taw,Nay Pyi Taw,MMR010,MMR,Naypyidaw is frequently written as Nay Pyi Taw in international English-language sources including UN and diplomatic usage.,pretraining,high,False
 naypyidaw union territory,Naypyidaw Union Territory,MMR010,MMR,"Naypyidaw has the formal designation of Union Territory in English-language sources, distinguishing it from states and regions.",pretraining,medium,False
 arakan,Arakan,MMR011,MMR,"Rakhine State is historically and commonly known in English as Arakan, the name used widely in international media and academic literature.",pretraining,high,False
-tenasserim,Tenasserim,MMR014,MMR,Tanintharyi is the modern Burmese name; Tenasserim is the traditional English exonym for this southern peninsular region.,pretraining,high,False
 rangoon,Rangoon,MMR015,MMR,Yangon is the modern official name; Rangoon is the longstanding English exonym still widely used in international contexts.,pretraining,high,False
 rozaje,Rozaje,MNE017,MNE,The WB canonical name 'Rozaj' is one romanization of the municipality; 'Rozaje' (from the native 'Rožaje') appears in many English-language sources and travel references.,pretraining,medium,False
 ulaanbaatar city,Ulaanbaatar City,MNG011,MNG,Ulaanbaatar is often referred to as 'Ulaanbaatar City' to distinguish the capital city region from the city itself.,pretraining,medium,False
@@ -657,6 +641,7 @@ ubsunur,Ubsunur,MNG085,MNG,"Uvs aimag is sometimes referred to as Ubsunur in Eng
 uvs province,Uvs Province,MNG085,MNG,Mongolian aimags are commonly referred to in English with the suffix 'Province' appended to the name.,pretraining,medium,False
 maputo city,Maputo City,MOZ002,MOZ,Cidade de Maputo is the Portuguese name for the capital city province; English speakers commonly refer to it as Maputo City to distinguish it from Maputo Province.,pretraining,high,False
 dakhlet nouadhibou,Dakhlet Nouadhibou,MRT004,MRT,"The canonical name uses a hyphen between Dakhlet and Nouadhibou, but the unhyphenated form is commonly used in English sources.",pretraining,medium,False
+nouadhibou,Nouadhibou,MRT004,MRT,The region is commonly referred to simply as Nouadhibou after its capital city in many English-language contexts.,pretraining,medium,False
 hodh ech chargui,Hodh Ech Chargui,MRT007,MRT,"Alternative English romanization of the region name, with 'Chargui' instead of 'Chargi', used in various English sources.",pretraining,medium,False
 hodh el chargui,Hodh el Chargui,MRT007,MRT,Common alternative English romanization substituting 'el' for 'ech' and using 'Chargui' spelling.,pretraining,medium,False
 hodh el gharby,Hodh El Gharby,MRT008,MRT,Alternative romanization of the western Hodh region appearing in some English-language sources.,pretraining,medium,False
@@ -668,19 +653,13 @@ malacca,Malacca,MYS006,MYS,Melaka is the Malay spelling; Malacca is the traditio
 penang,Penang,MYS011,MYS,Pulau Pinang is the Malay name; Penang is the standard English exonym widely used internationally and in English-language media.,pretraining,high,False
 caprivi strip,Caprivi Strip,NAM001,NAM,"The Caprivi region is very commonly referred to as the 'Caprivi Strip' in English, referencing its narrow geographic shape.",pretraining,high,False
 zambezi region,Zambezi Region,NAM001,NAM,Caprivi was officially renamed Zambezi Region in 2013; this is the current official English name used by the Namibian government.,pretraining,high,False
-kavango east,Kavango East,NAM005,NAM,Kavango was split into Kavango East and Kavango West in 2013; Kavango East is one of the successor regions that callers may use.,pretraining,medium,False
-kavango west,Kavango West,NAM005,NAM,Kavango was split into Kavango West and Kavango East in 2013; Kavango West is one of the successor regions that callers may use.,pretraining,medium,False
-windhoek region,Windhoek Region,NAM006,NAM,Khomas is the region containing the capital Windhoek and is sometimes informally referred to by the capital city name in English contexts.,pretraining,medium,False
+niamey,Niamey,NER008,NER,"The Communauté Urbaine de Niamey is universally known in English simply as 'Niamey', the capital city of Niger.",pretraining,high,False
 niamey capital district,Niamey Capital District,NER008,NER,The Communauté Urbaine de Niamey is commonly referred to in English as the Niamey Capital District or simply the Niamey urban community.,pretraining,medium,False
 niamey urban community,Niamey Urban Community,NER008,NER,"Direct English translation of 'Communauté Urbaine de Niamey', used in English-language administrative and geographic sources.",pretraining,high,False
 akwa ibom,Akwa Ibom,NGA003,NGA,The canonical name 'Akwa lbom' contains a lowercase 'l' instead of uppercase 'I' (typographic error); the correct spelling universally used in English is 'Akwa Ibom'.,pretraining,high,False
 abuja,Abuja,NGA015,NGA,"The Federal Capital Territory is widely known internationally by the name of its capital city, Abuja, and callers frequently use 'Abuja' to refer to the entire territory.",pretraining,high,False
 nasarawa,Nasarawa,NGA026,NGA,"The WB canonical name 'Nassarawa' uses a double-s spelling, while the official and more common English spelling is 'Nasarawa'.",pretraining,high,False
-north atlantic autonomous region,North Atlantic Autonomous Region,NIC014,NIC,"Former English name for this region before the 2014 rename from RAAN to RACCN, still widely encountered in older English sources.",pretraining,medium,False
 north caribbean coast autonomous region,North Caribbean Coast Autonomous Region,NIC014,NIC,The official English name used by the Nicaraguan government and international sources for Región Autónoma del Caribe Norte.,pretraining,high,False
-raccn,RACCN,NIC014,NIC,Common acronym for the North Caribbean Coast Autonomous Region used in English-language sources.,pretraining,medium,False
-raccs,RACCS,NIC015,NIC,Common acronym for the South Caribbean Coast Autonomous Region used in English-language sources.,pretraining,medium,False
-south atlantic autonomous region,South Atlantic Autonomous Region,NIC015,NIC,"Former English name for this region before the 2014 rename from RAAS to RACCS, still widely encountered in older English sources.",pretraining,medium,False
 south caribbean coast autonomous region,South Caribbean Coast Autonomous Region,NIC015,NIC,The official English name used by the Nicaraguan government and international sources for Región Autónoma del Caribe Sur.,pretraining,high,False
 frisia,Frisia,NLD003,NLD,"Friesland is the Dutch province whose historical English exonym is Frisia, used in academic and historical contexts.",pretraining,medium,False
 north brabant,North Brabant,NLD007,NLD,"Noord-brabant translates directly to North Brabant in English, the standard English-language name for this Dutch province.",pretraining,high,False
@@ -695,26 +674,23 @@ manawatu-whanganui,Manawatu-Whanganui,NZL08,NZL,"The region was renamed from Man
 ad dakhiliyah,Ad Dakhiliyah,OMN001,OMN,The WB canonical name 'A Dakhliya' is a shortened romanization; 'Ad Dakhiliyah' is the more complete and commonly used English transliteration of this Omani governorate.,pretraining,high,False
 dakhiliyah,Dakhiliyah,OMN001,OMN,Common abbreviated English form used in reference materials for the Ad Dakhiliyah governorate of Oman.,pretraining,high,False
 dakhliyah,Dakhliyah,OMN001,OMN,Alternative romanization of the governorate name used in some English-language sources.,pretraining,medium,False
-ash sharqiyah,Ash Sharqiyah,OMN002,OMN,The WB canonical name 'A Sharqiya' is a shortened romanization; 'Ash Sharqiyah' is the more complete English transliteration used for this Omani governorate.,pretraining,high,False
 east region,East Region,OMN002,OMN,"'Sharqiyah' derives from the Arabic word for 'eastern', and 'East Region' is sometimes used as an English translation in administrative contexts.",pretraining,medium,False
-sharqiyah,Sharqiyah,OMN002,OMN,Commonly used abbreviated English form for the Ash Sharqiyah governorate of Oman.,pretraining,high,False
 al batinah,Al Batinah,OMN003,OMN,Alternative common romanization of the Al Batnah governorate name used widely in English-language sources.,pretraining,high,False
 batinah,Batinah,OMN003,OMN,Abbreviated English form of the Al Batinah/Al Batnah governorate name commonly used in travel and geographic references.,pretraining,high,False
 ad dhahirah,Ad Dhahirah,OMN004,OMN,"More complete romanization of the Al Dhahira governorate name, commonly used in English-language references to Oman.",pretraining,high,False
+dhahira,Dhahira,OMN004,OMN,Abbreviated English form of the Dhahirah/Dhahira governorate used in many English sources.,pretraining,high,False
+wusta,Wusta,OMN005,OMN,The article-stripped form 'Wusta' is commonly used in English references for this Omani governorate.,pretraining,high,False
 dhufar,Dhufar,OMN006,OMN,"Common alternative English spelling of the Dhofar governorate, used in many academic and geographic references.",pretraining,high,False
 zufar,Zufar,OMN006,OMN,Alternative romanization of the Dhofar governorate name used in some historical and geographic English texts.,pretraining,medium,False
 musandam peninsula,Musandam Peninsula,OMN007,OMN,The Musandam governorate is frequently referred to as the 'Musandam Peninsula' in English-language geographic and travel sources.,pretraining,high,False
 islamabad capital territory,Islamabad Capital Territory,PAK003,PAK,"The Federal Capital Territory of Pakistan is commonly referred to as Islamabad Capital Territory (ICT) in English-language sources, news, and official documents.",pretraining,high,False
 guna yala,Guna Yala,PAN008,PAN,The official spelling was updated from Kuna Yala to Guna Yala; both spellings appear in English sources.,pretraining,high,False
-san blas,San Blas,PAN008,PAN,Kuna Yala was formerly and is still widely known in English as San Blas or the San Blas Islands/Province.,pretraining,high,False
 ngobe bugle,Ngobe Bugle,PAN010,PAN,Ngäbe Buglé is frequently rendered without diacritics as 'Ngobe Bugle' in English-language documents.,pretraining,high,False
 cuzco,Cuzco,PER008,PER,"Cuzco is a widely used alternative English spelling of Cusco, the historic Inca capital city and region.",pretraining,high,False
-mother of god,Mother of God,PER017,PER,Madre de Dios translates directly to 'Mother of God' in English and is occasionally used in English-language texts to refer to the region.,pretraining,medium,False
-bicolandia,Bicolandia,PHL005,PHL,Bicolandia is a commonly used informal English name referring to the Bicol Region (Region V) of the Philippines.,pretraining,medium,False
 metro manila,Metro Manila,PHL013,PHL,Metro Manila is the widely used English name for the National Capital Region (NCR) of the Philippines.,pretraining,high,False
+muslim mindanao,Muslim Mindanao,PHL015,PHL,Muslim Mindanao is a common English shorthand for the Autonomous Region in Muslim Mindanao (ARMM) in the Philippines.,pretraining,high,False
 simbu,Simbu,PNG003,PNG,"Chimbu Province is commonly referred to as Simbu Province, an alternative spelling widely used in PNG and international contexts.",pretraining,high,False
 port moresby,Port Moresby,PNG015,PNG,"National Capital District is commonly identified by the name of its capital city, Port Moresby, in everyday usage.",pretraining,medium,False
-west sepik,West Sepik,PNG018,PNG,"Sandaun Province is the official name but is widely known as West Sepik Province, its former name still in common use.",pretraining,high,False
 lower silesia,Lower Silesia,POL001,POL,"Dolnoslaskie is the Polish name for Lower Silesia, the well-established English exonym for this region in southwestern Poland.",pretraining,high,False
 kuyavian-pomeranian,Kuyavian-Pomeranian,POL002,POL,"Kujawsko-Pomorskie is rendered in English as Kuyavian-Pomeranian Voivodeship, referencing the two historical regions of Kujawy and Pomerania it encompasses.",pretraining,high,False
 lodz,Lodz,POL003,POL,Lodzkie (Łódzkie) is named after the city Łódź; English sources commonly refer to this voivodeship as Lodz or Łódź Voivodeship.,pretraining,high,False
@@ -763,12 +739,11 @@ al khor,Al Khor,QAT004,QAT,Al Khawr is commonly romanized as Al Khor in English-
 al wakrah,Al Wakrah,QAT005,QAT,The canonical name Al-wakrah uses a hyphen; the standard English form omits it and is written Al Wakrah.,pretraining,high,False
 al rayyan,Al Rayyan,QAT006,QAT,"Ar Rayyan is commonly spelled Al Rayyan in English, including in FIFA World Cup 2022 coverage where the city hosted matches.",pretraining,high,False
 al shamal,Al Shamal,QAT007,QAT,"Ash Shamal is sometimes rendered as Al Shamal in English sources, reflecting an alternate romanization of the Arabic definite article.",pretraining,medium,False
-kronstadt,Kronstadt,ROU009,ROU,"German name for Braşov historically used in English-language contexts, though now largely historical",pretraining,medium,False
+shamal,Shamal,QAT007,QAT,"The region is often referred to simply as Shamal in English-language references, dropping the Arabic article.",pretraining,medium,False
 bucharest,Bucharest,ROU010,ROU,"Standard English exonym for Bucureşti, the capital city of Romania",pretraining,high,False
 adygea,Adygea,RUS001,RUS,"The standard English exonym for Adygeya Rep. is Adygea, dropping the Russian transliteration suffix.",pretraining,high,False
 republic of adygea,Republic of Adygea,RUS001,RUS,The full English administrative name for this republic.,pretraining,high,False
 agin-buryat autonomous okrug,Agin-Buryat Autonomous Okrug,RUS002,RUS,"Standard English name for Aginskiy Buryatskiy A. Okrug, using the Anglicized form Agin-Buryat.",pretraining,high,False
-ust-orda buryat autonomous okrug,Ust-Orda Buryat Autonomous Okrug,RUS002,RUS,"An alternative English name sometimes used for the Aginskiy Buryatskiy Autonomous Okrug, though this refers to a distinct but related entity; included as it is used in some English sources.",pretraining,medium,False
 altai republic,Altai Republic,RUS003,RUS,"Standard English name for Altay Rep., using the common Anglicized spelling Altai.",pretraining,high,False
 republic of altai,Republic of Altai,RUS003,RUS,Alternative English form with word order matching English administrative conventions.,pretraining,high,False
 altai krai,Altai Krai,RUS004,RUS,"Standard English transliteration of Altayskiy Kray, using Altai spelling and Krai for Kray.",pretraining,high,False
@@ -784,7 +759,6 @@ chechen republic,Chechen Republic,RUS012,RUS,"Alternative English name using the
 republic of chechnya,Republic of Chechnya,RUS012,RUS,Full English administrative name for this republic.,pretraining,high,False
 chelyabinsk oblast,Chelyabinsk Oblast,RUS013,RUS,Shortened English form of Chelyabinskaya Oblast using the root city name Chelyabinsk.,pretraining,high,False
 chita oblast,Chita Oblast,RUS014,RUS,Shortened English form of Chitinskaya Oblast using the root city name Chita.,pretraining,high,False
-zabaykalsky krai,Zabaykalsky Krai,RUS014,RUS,Chitinskaya Oblast was merged and renamed Zabaykalsky Krai in 2008; this is the current name widely used in English sources.,pretraining,medium,False
 chukotka,Chukotka,RUS015,RUS,Commonly used shortened English name for the Chukotka Autonomous Okrug.,pretraining,high,False
 chukotka autonomous okrug,Chukotka Autonomous Okrug,RUS015,RUS,"Full English name for Chukotskiy Okrug, using the root name Chukotka.",pretraining,high,False
 chuvash republic,Chuvash Republic,RUS016,RUS,"The official English name of this federal subject, widely used in English-language sources.",pretraining,high,False
@@ -840,7 +814,6 @@ oryol oblast,Oryol Oblast,RUS057,RUS,"Standard English exonym for Orlovskaya Obl
 penza oblast,Penza Oblast,RUS058,RUS,"Standard English form dropping the adjectival suffix '-skaya', as used in English-language sources.",pretraining,high,False
 perm krai,Perm Krai,RUS059,RUS,"After the 2005 merger with Komi-Permyak Okrug, the region was redesignated as Perm Krai, which is the current official English-language name.",pretraining,high,False
 perm oblast,Perm Oblast,RUS059,RUS,"Standard English form dropping the adjectival suffix '-skaya', as used in English-language sources.",pretraining,high,False
-maritime province,Maritime Province,RUS060,RUS,"English translation of Primorskiy Kray, where 'primorskiy' means 'maritime/coastal' and 'kray' means territory/province.",pretraining,medium,False
 maritime territory,Maritime Territory,RUS060,RUS,Alternative English translation of Primorskiy Kray used in some English-language academic and geopolitical sources.,pretraining,medium,False
 primorsky krai,Primorsky Krai,RUS060,RUS,"Standard English romanization of Primorskiy Kray, the common English spelling used in geopolitical and academic sources.",pretraining,high,False
 pskov oblast,Pskov Oblast,RUS061,RUS,English-language sources routinely drop the adjectival '-skaya' suffix and use 'Pskov Oblast' as the standard English form.,pretraining,high,False
@@ -886,6 +859,8 @@ western province,Western Province,RWA005,RWA,Rwanda's Western Province is the st
 aseer,Aseer,SAU001,SAU,Aseer is an alternative English romanization used in some Saudi and international sources for this region.,pretraining,medium,False
 northern border region,Northern Border Region,SAU003,SAU,Northern Border Region is another common English-language name used for Al Hudud ash Shamaliyah in administrative and geographic sources.,pretraining,high,False
 northern borders,Northern Borders,SAU003,SAU,"Northern Borders is the standard English translation of Al Hudud ash Shamaliyah, the northernmost region of Saudi Arabia.",pretraining,high,False
+jawf,Jawf,SAU004,SAU,"Jawf is the simplified English romanization of Al Jawf, dropping the Arabic definite article.",pretraining,high,False
+madinah,Madinah,SAU005,SAU,Madinah is a common alternative English romanization of Al Madinah used in many international and Saudi sources.,pretraining,high,False
 al qassim,Al Qassim,SAU006,SAU,Al Qassim is a common English romanization variant of Al Qasim retaining the Arabic article.,pretraining,high,False
 qassim,Qassim,SAU006,SAU,"Qassim is the widely-used English name for Al Qasim region, appearing in Saudi government and international sources.",pretraining,high,False
 riyadh,Riyadh,SAU007,SAU,"Riyadh is the standard English exonym for Ar Riyadh, the capital city and region, universally used in English-language sources.",pretraining,high,False
@@ -904,7 +879,6 @@ saint-louis,Saint-Louis,SEN015,SEN,"The region is commonly written with a hyphen
 galguduud,Galguduud,SOM006,SOM,Alternative common romanization of Galgaduud used in many English-language sources.,pretraining,medium,False
 hiran,Hiran,SOM008,SOM,Commonly used English alternative spelling of Hiraan region in Somalia.,pretraining,high,False
 middle juba,Middle Juba,SOM009,SOM,"Standard English translation of Juba Dhexe, where dhexe means middle in Somali.",pretraining,high,False
-jubaland,Jubaland,SOM010,SOM,"Lower Juba is widely referred to as Jubaland in English-language sources, particularly in the context of the autonomous Jubaland administration.",pretraining,medium,False
 lower juba,Lower Juba,SOM010,SOM,"Standard English translation of Juba Hoose, where hoose means lower in Somali.",pretraining,high,False
 middle shabelle,Middle Shabelle,SOM014,SOM,"Standard English translation of Shabelle Dhexe, where dhexe means middle in Somali.",pretraining,high,False
 middle shebelle,Middle Shebelle,SOM014,SOM,"Alternative English spelling using Shebelle for Shabelle, widely found in humanitarian and news reporting.",pretraining,medium,False
@@ -998,7 +972,6 @@ deir ez-zor,Deir ez-Zor,SYR007,SYR,Standard English spelling of the Dayr az Zawr
 homs,Homs,SYR009,SYR,"Standard English name for the Ḥimṣ governorate, widely used in English-language media and reference sources.",pretraining,high,False
 lattakia,Lattakia,SYR011,SYR,Alternate English spelling of Latakia governorate found in some English-language sources.,pretraining,medium,False
 al quneitra,Al Quneitra,SYR012,SYR,Common English name including the Arabic article for the Quneitra governorate.,pretraining,high,False
-golan,Golan,SYR012,SYR,The Quneitra governorate encompasses much of what is internationally referred to as the Golan Heights area; commonly referenced by this name in English.,pretraining,medium,False
 damascus countryside,Damascus Countryside,SYR013,SYR,Alternative English rendering of Rif Dimashq used in English-language news and reference texts.,pretraining,high,False
 rural damascus,Rural Damascus,SYR013,SYR,"Standard English translation of Rif Dimashq (rif = rural/countryside in Arabic), widely used in English-language sources.",pretraining,high,False
 tartous,Tartous,SYR014,SYR,Common alternative English romanization of the Tartus governorate used in some English-language sources.,pretraining,medium,False
@@ -1011,6 +984,7 @@ west mayo-kebbi,West Mayo-Kebbi,TCD015,TCD,"English translation of 'Mayo-Kebbi O
 middle chari,Middle Chari,TCD016,TCD,"English translation of 'Moyen-Chari', used in some English-language sources.",pretraining,medium,False
 ouadai,Ouadai,TCD017,TCD,"Alternative English romanization of 'Ouaddaï', dropping the diaeresis, found in many English-language sources.",pretraining,high,False
 wadai,Wadai,TCD017,TCD,"Traditional English name for the Ouaddaï region, historically used in English geographic and historical texts.",pretraining,high,False
+n'djamena,N'Djamena,TCD022,TCD,The canonical name 'Ville de N'Djamena' includes the French word 'Ville de' (City of); the standard English and international name is simply N'Djamena.,pretraining,high,False
 ndjamena,Ndjamena,TCD022,TCD,"Common alternate romanization of the capital city name without the apostrophe, widely used in English-language sources.",pretraining,high,False
 savannas region,Savannas Region,TGO005,TGO,"Direct English translation of the French 'Savanes' (savannas), sometimes used in English-language geographic sources.",pretraining,medium,False
 bangkok metropolis,Bangkok Metropolis,THA003,THA,Bangkok is officially known as the Bangkok Metropolitan Area or Bangkok Metropolis in administrative contexts.,pretraining,medium,False
@@ -1021,6 +995,7 @@ nakhon si tammarat,Nakhon Si Tammarat,THA030,THA,"Alternative English romanizati
 patani,Patani,THA037,THA,Pattani province is frequently spelled Patani in English-language historical and political science literature referring to the region.,pretraining,medium,False
 phang nga,Phang Nga,THA039,THA,Phangnga is commonly written as two words 'Phang Nga' in English travel and geographic sources.,pretraining,high,False
 phang-nga,Phang-nga,THA039,THA,Hyphenated romanization 'Phang-nga' appears in some English-language maps and tourism materials.,pretraining,medium,False
+ayudhya,Ayudhya,THA046,THA,"Alternative romanization of the province name used in some English-language sources, derived directly from the canonical spelling.",pretraining,medium,False
 ayutthaya,Ayutthaya,THA046,THA,"Phra Nakhon Si Ayudhya is commonly known in English as Ayutthaya, the name of the famous historical capital city that gives the province its identity.",pretraining,high,False
 phuket island,Phuket Island,THA048,THA,Phuket is widely referred to as Phuket Island in English-language tourism and geographic contexts due to its island geography.,pretraining,medium,False
 prachuap khiri khan,Prachuap Khiri Khan,THA049,THA,Prachuap Khilikhan is more commonly spelled Prachuap Khiri Khan in English-language maps and official Thai romanizations.,pretraining,high,False
@@ -1028,12 +1003,10 @@ samut prakan,Samut Prakan,THA056,THA,Samut Prakarn is also romanized as Samut Pr
 samut songkhram,Samut Songkhram,THA058,THA,Samut Songkham is more commonly romanized as Samut Songkhram in English-language sources including official Thai government transliterations.,pretraining,high,False
 songkla,Songkla,THA063,THA,Alternative romanization of Songkhla province sometimes used in English sources.,pretraining,medium,False
 trat,Trat,THA069,THA,Trad province is commonly romanized as Trat in English-language travel and geographic sources.,pretraining,high,False
-gbao,GBAO,TJK001,TJK,GBAO (Gorno-Badakhshan Autonomous Oblast) is a common abbreviation used in English-language sources for this region.,pretraining,medium,False
 gorno-badakhshan,Gorno-Badakhshan,TJK001,TJK,Gorno-Badakhshan Autonomous Oblast (or Region) is the widely used English name for the Badakhshan Autonomous Mountainous Region of Tajikistan.,pretraining,high,False
 gorno-badakhshan autonomous oblast,Gorno-Badakhshan Autonomous Oblast,TJK001,TJK,The full English-language name using the Soviet-era 'Oblast' designation is commonly used in geographic and political science literature.,pretraining,high,False
 dushanbe city,Dushanbe City,TJK003,TJK,Dushanbe is the capital city of Tajikistan and is commonly referred to simply as Dushanbe or Dushanbe City in English sources.,pretraining,medium,False
 sogd province,Sogd Province,TJK005,TJK,Sogd is an alternative English romanization of Sughd used in some geographic and historical sources.,pretraining,medium,False
-balkanabat region,Balkanabat Region,TKM002,TKM,The Balkan Province of Turkmenistan is sometimes referred to by its capital city Balkanabat in English sources.,pretraining,medium,False
 charjew,Charjew,TKM003,TKM,Charjew is an alternative romanization of Chardzhou used in some English-language sources.,pretraining,medium,False
 lebap,Lebap,TKM003,TKM,Chardzhou (also spelled Charjew/Chardzou) was renamed Lebap Province in 1992; Lebap is the current and widely used English name for this region.,pretraining,high,False
 dashhowuz,Dashhowuz,TKM005,TKM,Dashhowuz is an alternative romanization of Dashoguz used in some English-language sources for the region formerly known as Tashauz.,pretraining,medium,False
@@ -1047,16 +1020,10 @@ zaghouan governorate,Zaghouan Governorate,TUN023,TUN,English sources commonly ap
 ariana governorate,Ariana Governorate,TUN024,TUN,English sources commonly append 'Governorate' to Tunisian region names; 'Ariana Governorate' is the standard English form used in reference works.,pretraining,medium,False
 manouba governorate,Manouba Governorate,TUN025,TUN,English sources commonly append 'Governorate' to Tunisian region names; 'Manouba Governorate' is the standard English form used in reference works.,pretraining,medium,False
 afyonkarahisar,Afyonkarahisar,TUR003,TUR,"The WB canonical name 'Afyon' is a common shortened form; the full official name is Afyonkarahisar, which is widely used in English sources.",pretraining,high,False
-antioch,Antioch,TUR036,TUR,"Antioch is the traditional English exonym for the city of Antakya in Hatay province, and English sources sometimes refer to the province by this name.",pretraining,medium,False
 mersin,Mersin,TUR037,TUR,Icel province was officially renamed Mersin in 2002 and English sources universally use Mersin; Icel is the outdated WB canonical name.,pretraining,high,False
-smyrna,Smyrna,TUR041,TUR,"Smyrna is the classical and historical English exonym for Izmir, still widely used in historical and academic English contexts.",pretraining,medium,False
 kahramanmaras,Kahramanmaras,TUR042,TUR,The WB canonical name 'K.maras' is an abbreviated form; the full official name Kahramanmaras is the form widely used in English sources and what callers would search for.,pretraining,high,False
-caesarea,Caesarea,TUR047,TUR,"Caesarea is the classical Latin/English exonym for Kayseri, used in historical and religious English texts referring to the ancient city Caesarea Mazaca.",pretraining,medium,False
 izmit,Izmit,TUR052,TUR,"Izmit is the name of the principal city in Kocaeli province and is widely used in English to refer to the province or region, especially after the 1999 Izmit earthquake.",pretraining,high,False
-iconium,Iconium,TUR053,TUR,"Iconium is the classical Latin/English exonym for Konya, used in historical and biblical English texts.",pretraining,medium,False
-cappadocia,Cappadocia,TUR060,TUR,"Cappadocia is a well-known English historical and geographical region name closely associated with Nevsehir province, which contains most of the famous Cappadocia tourist sites.",pretraining,medium,False
 urfa,Urfa,TUR067,TUR,Sanliurfa is commonly referred to simply as Urfa in English-language sources and by international audiences.,pretraining,high,False
-trebizond,Trebizond,TUR074,TUR,"Trabzon is the historic city and province known in English as Trebizond, widely used in historical and geographic English texts.",pretraining,high,False
 lake van province,Lake Van Province,TUR077,TUR,Van province is sometimes referred to in English as Lake Van Province due to its association with the famous lake.,pretraining,medium,False
 dar es salaam,Dar es Salaam,TZA002,TZA,The canonical name uses a hyphenated form 'Dar-es-salaam' but the standard English spelling omits hyphens.,pretraining,high,False
 north pemba,North Pemba,TZA007,TZA,"'Kaskazini' means 'north' in Swahili, so the English exonym for this Pemba Island region is 'North Pemba'.",pretraining,high,False
@@ -1095,7 +1062,6 @@ khmelnitsky oblast,Khmelnitsky Oblast,UKR010,UKR,Older Russian-based translitera
 khmelnytskyi,Khmelnytskyi,UKR010,UKR,Common shortened English reference to the oblast by its capital city name.,pretraining,high,False
 khmelnytskyi oblast,Khmelnytskyi Oblast,UKR010,UKR,"Standard modern English romanization of the oblast, differing from WB's Khmel'nyts'ka.",pretraining,high,False
 kirovohrad oblast,Kirovohrad Oblast,UKR011,UKR,Standard English name for the region using the city name Kirovohrad; the oblast was renamed Kropyvnytskyi Oblast in 2016 but Kirovohrad remains common in older English sources.,pretraining,high,False
-kropyvnytskyi oblast,Kropyvnytskyi Oblast,UKR011,UKR,Current official English name of the oblast after the 2016 decommunization renaming.,pretraining,high,False
 kiev oblast,Kiev Oblast,UKR012,UKR,"Older English name using the Russian-based romanization Kiev, still widely seen in English sources.",pretraining,high,False
 kyiv oblast,Kyiv Oblast,UKR012,UKR,"Standard English name for the region surrounding the capital, using the modern English exonym Kyiv instead of the WB transliteration Kyyivs'ka.",pretraining,high,False
 lviv,Lviv,UKR013,UKR,Common shortened English reference to the oblast by its capital city name.,pretraining,high,False
