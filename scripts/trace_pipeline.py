@@ -27,7 +27,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-OUT_DIR = Path("runs/avocado_trace")
+OUT_DIR = Path("runs/avocado_2026-06-16_gpt-5.5_builtin-trace")
 MODEL = "gpt-5.5"
 API_KEY_PATH = Path(
     r"D:\Onedrive\OneDrive - Michigan State University\Desktop\api.env"

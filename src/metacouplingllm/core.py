@@ -1499,7 +1499,15 @@ class MetacouplingAssistant:
                                 extract_web_map_signals(
                                     research_description.strip(),
                                     self._last_web_results,
-                                    self._client,
+                                    # Pass the UNWRAPPED client: the strict
+                                    # json_schema dispatch inside
+                                    # extract_web_map_signals branches on the
+                                    # concrete adapter type, which the tracing
+                                    # proxy would defeat.  (The web-extraction
+                                    # call is therefore summarised from the
+                                    # web-results/signals intermediates in the
+                                    # trace rather than captured as a chat call.)
+                                    self._client_inner,
                                     min_confidence=(
                                         self._web_structured_min_confidence
                                     ),
