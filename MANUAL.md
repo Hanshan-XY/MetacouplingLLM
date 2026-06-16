@@ -382,8 +382,82 @@ advisor = MetacouplingAssistant(
     recommend_papers=False,    # Auto-append literature recommendations
     max_recommendations=5,     # Number of papers to recommend
     rag_top_k=8,               # passages retrieved per query
+    de_facto_borders=True,     # Pericoupling validation: fold disputed land
+                               #   into its de-facto administrator (vs strict WB)
+    coupling_standard="moderate",  # "stringent"/"moderate"/"lenient" — how
+                               #   water-only borders are treated in validation
+    trace=True,                # Write a run-trace folder per analyze()/refine()
+    trace_dir=None,            # Where to write it (default: runs/<utc>_<slug>/)
 )
 ```
+
+`de_facto_borders` and `coupling_standard` set the policy the **pericoupling
+validation block** uses when it cross-checks the LLM's coupling claims against
+the bundled adjacency databases (§8). They mirror the same-named arguments on
+the standalone lookup functions: `coupling_standard="stringent"` drops every
+water-only border (so a river-only neighbour validates as *telecoupled* rather
+than *pericoupled*), `"lenient"` keeps them all, and `de_facto_borders=False`
+uses the strict World Bank standard layer instead of the de-facto view. Defaults
+(`True` / `"moderate"`) match the database defaults; see §8 for the full
+semantics.
+
+### Run tracing (`trace`, `trace_dir`)
+
+Tracing is **on by default**. Each `analyze()` / `refine()` captures every
+model call (prompts, response, token usage, duration) plus the pipeline
+intermediates (raw web results, RAG chunks, parsed analysis, map data,
+formatted output) and run metadata (model, git SHA, environment), then writes
+a folder of human-readable artifacts:
+
+```text
+runs/<utc-timestamp>_<query-slug>/turn1/
+    00_run_config.md … 10_pipeline_metadata.md
+    README.md
+    map.png            # when a map was rendered
+```
+
+A multi-turn session writes `turn1/`, `turn2/`, … under one session root. The
+same trace is attached to the result as `result.trace` (a `RunTrace`);
+`result.trace.out_dir` is the folder on disk, and `result.trace.calls` is the
+list of captured `CallRecord`s.
+
+```python
+result = advisor.analyze("…")
+print(result.trace.out_dir)          # runs/2026…_…/turn1
+print(result.trace.total_tokens)     # input + output across all calls
+```
+
+- **Disable it** with `trace=False`, or globally with the
+  `METACOUPLINGLLM_DISABLE_TRACE=1` environment variable.
+- **Choose the location** with `trace_dir="my/path"` (the per-turn subfolders
+  are written underneath it).
+- The default `runs/` directory is **gitignored**; commit a specific run with
+  `git add -f runs/<slug>/`.
+- Tracing never breaks an analysis: if writing fails, the result is returned
+  normally with `result.trace.out_dir = None`.
+
+> **Note.** The web-search extraction call is issued by the provider's native
+> web-search backend (not the assistant's traced client), so it is summarised
+> from the intermediates in `01`/`03` rather than captured as a model call.
+
+### What's in the RAG corpus
+
+The RAG evidence corpus is a curated set of **420 telecoupling and
+metacoupling papers**, shipped with the package as `Papers.zip` and indexed
+on first use (embeddings by default, TF-IDF fallback).  It is split by what
+can be redistributed, not by topic: **192 papers are indexed as full text**
+and the other **228 as structured, paraphrased summaries** (metadata + key
+findings, no source text) — those 228 being papers that cannot be
+redistributed in full (paywalled, or open-to-read but restrictively
+licensed).  Retrieval runs over both, so a summary-only paper can still
+surface as supporting evidence.  See INTRODUCTION §4.3 and
+`data/PROVENANCE.md` for the corpus composition and methodology.
+
+> **Not the same as the recommendation database.**  This 420-paper RAG corpus
+> (quoted as evidence passages) is distinct from the 265-article BibTeX
+> literature database used by `recommend_papers` / `get_database_info` (§9).
+> RAG *grounds* the analysis with passages; the recommendation database
+> *suggests* further reading.
 
 ### How RAG citations work
 
@@ -1009,6 +1083,11 @@ and metacoupling journal articles (2013–2026, filtered from a larger
 Web of Science collection).  Call `get_database_info()` for the live count if
 the corpus drifts.  You can get relevant paper recommendations
 based on keyword matching.
+
+> This 265-article recommendation database is **separate** from the 420-paper
+> RAG evidence corpus (§5, "What's in the RAG corpus"): this one drives
+> `recommend_papers` (suggested reading); the RAG corpus supplies quoted
+> evidence passages during analysis.
 
 ### Standalone usage
 

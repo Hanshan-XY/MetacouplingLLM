@@ -19,6 +19,19 @@ from metacouplingllm.llm.client import LLMResponse, Message
 
 
 # ---------------------------------------------------------------------------
+# Run tracing: OFF by default during the test suite
+# ---------------------------------------------------------------------------
+# The package defaults ``trace=True``, which would make every analyze()/refine()
+# in the suite write a ``runs/<...>/`` artifact folder to disk.  Flip the
+# module-level default off for all tests; the dedicated trace tests opt back in
+# with ``trace=True, trace_dir=tmp_path``.
+@pytest.fixture(autouse=True)
+def _disable_tracing_by_default(monkeypatch):
+    import metacouplingllm.tracing as _t
+    monkeypatch.setattr(_t, "_DEFAULT_TRACE", False)
+
+
+# ---------------------------------------------------------------------------
 # Mock LLM client
 # ---------------------------------------------------------------------------
 

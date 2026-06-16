@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
     from metacouplingllm.knowledge.rag import RetrievalResult
+    from metacouplingllm.tracing import RunTrace
 
 
 logger = logging.getLogger(__name__)
@@ -322,6 +323,10 @@ class AnalysisResult:
     # ``_build_result``).  Rendered at the top of both
     # ``to_markdown()`` and ``to_docx()`` exports.
     abstract: str = ""
+    # Built-in run trace (PR: run tracing).  Populated by ``_build_result``
+    # when tracing is enabled; ``None`` otherwise.  ``trace.out_dir`` is the
+    # artifact folder on disk (or ``None`` if writing was disabled/failed).
+    trace: "RunTrace | None" = None
 
     def to_markdown(self, path: str | Path | None = None) -> str:
         """Render this result as scholar-friendly Markdown.
@@ -438,6 +443,8 @@ class RAGResult:
     # bibliography renderer so its labels match the inline citations
     # exactly. Empty when ``references`` is empty.
     reference_passage_ids: list[int] = field(default_factory=list)
+    # Built-in run trace (PR: run tracing); None when tracing is disabled.
+    trace: "RunTrace | None" = None
 
     @property
     def formatted(self) -> str:
@@ -796,13 +803,45 @@ class MetacouplingAssistant:
         web_structured_max_targets: int = 6,
         rag_min_score: float | None = None,
         coupling_analysis: bool = True,
+        # Pericoupling-validation policy toggles, threaded into the
+        # post-analysis validators.  ``de_facto_borders=True`` folds disputed
+        # land into its de-facto administrator (vs the strict WB standard
+        # layer); ``coupling_standard`` (``"stringent"``/``"moderate"``/
+        # ``"lenient"``) controls how water-only borders are treated.  Defaults
+        # match the underlying lookup defaults.
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
         # PR #31: opt out of the dedicated abstract LLM call.  Defaults
         # to True so scholars get ``result.abstract`` for free; set to
         # False in unit tests / batch jobs that need to count calls
         # exactly or skip the small extra LLM cost.
         generate_abstract: bool = True,
+        # Built-in run tracing.  When on, every analyze()/refine() writes a
+        # folder of artifacts (00–10 + README + map.png) to ``trace_dir`` and
+        # attaches a ``RunTrace`` to the result.  ``trace=None`` uses the
+        # package default (ON); set ``trace=False`` to disable.  ``trace_dir``
+        # defaults to ``runs/<utc>_<slug>/`` (gitignored) when unset.
+        trace: bool | None = None,
+        trace_dir: str | Path | None = None,
     ) -> None:
-        self._client = llm_client
+        # --- Run tracing setup (wrap the client so all chat() calls are
+        # captured).  Keep ``_client_inner`` for isinstance-based dispatch
+        # (e.g. web-search auto-wiring), which must see the real adapter. ---
+        if trace is None:
+            from metacouplingllm.tracing import default_trace_enabled
+            trace = default_trace_enabled()
+        self._trace_enabled = bool(trace)
+        self._trace_dir = Path(trace_dir) if trace_dir is not None else None
+        self._client_inner = llm_client
+        self._trace_proxy = None
+        self._trace_session_dir: Path | None = None
+        self._trace_run_t0: float | None = None
+        if self._trace_enabled:
+            from metacouplingllm.tracing import _RecordingClient
+            self._client = _RecordingClient(llm_client)
+            self._trace_proxy = self._client
+        else:
+            self._client = llm_client
         self._temperature = temperature
         self._max_tokens = max_tokens
         self._verbose = verbose
@@ -826,6 +865,15 @@ class MetacouplingAssistant:
         self._web_structured_max_targets = web_structured_max_targets
         self._rag_min_score = rag_min_score
         self._generate_abstract_enabled = generate_abstract
+        self._de_facto_borders = bool(de_facto_borders)
+        _std = str(coupling_standard).strip().lower()
+        if _std not in ("stringent", "moderate", "lenient"):
+            raise ValueError(
+                "coupling_standard must be one of "
+                "'stringent'/'moderate'/'lenient', got "
+                f"{coupling_standard!r}"
+            )
+        self._coupling_standard = _std
         self._last_web_results: list[dict[str, str]] = []
         self._last_web_map_signals: dict[str, object] | None = None
         self._last_map_notice: str | None = None
@@ -1006,6 +1054,10 @@ class MetacouplingAssistant:
         if not query or not query.strip():
             raise ValueError("query must be a non-empty string")
 
+        # Record the query for the run trace and reset per-run trace state.
+        self._original_query = query
+        self._trace_run_start(new_session=True)
+
         next_turn = self._rag_turn + 1
 
         # Optional web search (per-turn). The map-signal extraction is
@@ -1025,26 +1077,30 @@ class MetacouplingAssistant:
 
                 print("[MetacouplingAssistant] (RAG mode) Searching the web...")
                 web_backend = None
-                if isinstance(self._client, OpenAIAdapter):
+                # Use the UNWRAPPED client for isinstance dispatch: when
+                # tracing is on, ``self._client`` is a _RecordingClient proxy
+                # that is not an adapter subclass.
+                _wc = self._client_inner
+                if isinstance(_wc, OpenAIAdapter):
                     web_backend = OpenAIWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                         reasoning="default",
                     )
-                elif isinstance(self._client, AnthropicAdapter):
+                elif isinstance(_wc, AnthropicAdapter):
                     web_backend = AnthropicWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                     )
-                elif isinstance(self._client, GeminiAdapter):
+                elif isinstance(_wc, GeminiAdapter):
                     web_backend = GeminiWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                     )
-                elif isinstance(self._client, GrokAdapter):
+                elif isinstance(_wc, GrokAdapter):
                     web_backend = GrokWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                     )
                 web_search_metadata: dict[str, object] = {}
                 web_sources = search_web(
@@ -1181,11 +1237,12 @@ class MetacouplingAssistant:
                 )
 
         # LLM call (uses full RAG history, NOT framework `_history`).
-        response = self._client.chat(
-            messages=list(self._rag_history),
-            temperature=self._temperature,
-            max_tokens=self._max_tokens,
-        )
+        with self._trace_label("rag_qa"):
+            response = self._client.chat(
+                messages=list(self._rag_history),
+                temperature=self._temperature,
+                max_tokens=self._max_tokens,
+            )
 
         # Sanitize turn-scoped citations. Keeps `[Tk:N]` for any prior
         # or current turn k whose recorded passage / web counts agree,
@@ -1230,7 +1287,7 @@ class MetacouplingAssistant:
             except Exception:
                 retrieval_backend = "embeddings"
 
-        return RAGResult(
+        rag_result = RAGResult(
             answer=sanitized,
             references=references,
             retrieved_passages=passages,
@@ -1241,6 +1298,13 @@ class MetacouplingAssistant:
             retrieval_backend=retrieval_backend,
             reference_passage_ids=reference_passage_ids,
         )
+        # Built-in run tracing (RAG-only mode): never raises into the caller.
+        if self._trace_proxy is not None:
+            try:
+                self._emit_trace(rag_result)
+            except Exception as exc:
+                logger.warning("Run tracing failed: %s", exc)
+        return rag_result
 
     @staticmethod
     def _build_references_from_citations(
@@ -1353,6 +1417,7 @@ class MetacouplingAssistant:
         # leaving stale hits from a previous session would be wrong.
         self._last_rag_hits = None
         self._original_query = research_description
+        self._trace_run_start(new_session=True)
 
         next_turn = self._turn + 1
 
@@ -1378,26 +1443,30 @@ class MetacouplingAssistant:
                 # provider. If the backend fails or returns no results,
                 # search_web() falls back to the DuckDuckGo cascade.
                 web_backend = None
-                if isinstance(self._client, OpenAIAdapter):
+                # Use the UNWRAPPED client for isinstance dispatch: when
+                # tracing is on, ``self._client`` is a _RecordingClient proxy
+                # that is not an adapter subclass.
+                _wc = self._client_inner
+                if isinstance(_wc, OpenAIAdapter):
                     web_backend = OpenAIWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                         reasoning="default",
                     )
-                elif isinstance(self._client, AnthropicAdapter):
+                elif isinstance(_wc, AnthropicAdapter):
                     web_backend = AnthropicWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                     )
-                elif isinstance(self._client, GeminiAdapter):
+                elif isinstance(_wc, GeminiAdapter):
                     web_backend = GeminiWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                     )
-                elif isinstance(self._client, GrokAdapter):
+                elif isinstance(_wc, GrokAdapter):
                     web_backend = GrokWebSearchBackend(
-                        client=self._client.raw_client,
-                        model=self._client.model,
+                        client=_wc.raw_client,
+                        model=_wc.model,
                     )
                 web_search_metadata: dict[str, object] = {}
                 self._last_web_results = search_web(
@@ -1430,7 +1499,15 @@ class MetacouplingAssistant:
                                 extract_web_map_signals(
                                     research_description.strip(),
                                     self._last_web_results,
-                                    self._client,
+                                    # Pass the UNWRAPPED client: the strict
+                                    # json_schema dispatch inside
+                                    # extract_web_map_signals branches on the
+                                    # concrete adapter type, which the tracing
+                                    # proxy would defeat.  (The web-extraction
+                                    # call is therefore summarised from the
+                                    # web-results/signals intermediates in the
+                                    # trace rather than captured as a chat call.)
+                                    self._client_inner,
                                     min_confidence=(
                                         self._web_structured_min_confidence
                                     ),
@@ -1605,6 +1682,9 @@ class MetacouplingAssistant:
                 "Call `analyze()` first."
             )
 
+        # Reuse the analyze() session root so the refine writes turn2/, etc.
+        self._trace_run_start(new_session=False)
+
         next_turn = self._turn + 1
 
         # Pre-retrieval RAG on refinement: re-retrieve with the merged
@@ -1695,11 +1775,73 @@ class MetacouplingAssistant:
 
     def _call_llm(self) -> LLMResponse:
         """Send the current history to the LLM client."""
-        return self._client.chat(
-            messages=list(self._history),
-            temperature=self._temperature,
-            max_tokens=self._max_tokens,
+        with self._trace_label("main_analysis"):
+            return self._client.chat(
+                messages=list(self._history),
+                temperature=self._temperature,
+                max_tokens=self._max_tokens,
+            )
+
+    def _trace_label(self, name: str):
+        """Context manager that labels the next chat() call for the trace
+        (no-op when tracing is disabled)."""
+        if self._trace_proxy is not None:
+            return self._trace_proxy.label(name)
+        from contextlib import nullcontext
+        return nullcontext()
+
+    def _emit_trace(self, result: object) -> None:
+        """Build the RunTrace, write artifacts, attach to ``result.trace``.
+
+        Called at the end of a traced run.  Never raises into the caller.
+        """
+        import time as _time
+        from metacouplingllm import tracing as _tracing
+
+        if self._trace_proxy is None:
+            return
+        wall = 0.0
+        if self._trace_run_t0 is not None:
+            wall = _time.perf_counter() - self._trace_run_t0
+        trace = _tracing.build_run_trace(
+            self._trace_proxy,
+            query=self._original_query or "",
+            model=getattr(self._client_inner, "model", "unknown"),
+            wall_clock_s=wall,
         )
+        # Resolve the per-turn output directory under the session root.
+        try:
+            base = self._trace_dir
+            if self._trace_session_dir is None:
+                if base is not None:
+                    self._trace_session_dir = base
+                else:
+                    self._trace_session_dir = _tracing.slug_dir(
+                        Path("runs"), self._original_query or "run"
+                    )
+            turn = getattr(self, "_turn", 0) or getattr(self, "_rag_turn", 0) or 1
+            out_dir = self._trace_session_dir / f"turn{turn}"
+            written = _tracing.write_run_artifacts(
+                out_dir, trace=trace, assistant=self, result=result
+            )
+            trace.out_dir = out_dir if written else None
+        except Exception as exc:  # never break the run
+            logger.warning("Run tracing failed: %s", exc)
+            trace.out_dir = None
+        try:
+            result.trace = trace  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    def _trace_run_start(self, *, new_session: bool) -> None:
+        """Reset per-run trace state at the start of analyze()/refine()."""
+        if self._trace_proxy is None:
+            return
+        import time as _time
+        self._trace_proxy.captured_calls.clear()
+        self._trace_run_t0 = _time.perf_counter()
+        if new_session:
+            self._trace_session_dir = None
 
     # ------------------------------------------------------------------
     # Auto-map helpers
@@ -2964,14 +3106,15 @@ class MetacouplingAssistant:
         raw_obj: object | None = None
         for _attempt in range(_MAX_ATTEMPTS):
             try:
-                response = self._client.chat(
-                    messages=[
-                        Message(role="system", content=system_text),
-                        Message(role="user", content=user_text),
-                    ],
-                    temperature=0.0,
-                    max_tokens=8192,
-                )
+                with self._trace_label("map_extraction"):
+                    response = self._client.chat(
+                        messages=[
+                            Message(role="system", content=system_text),
+                            Message(role="user", content=user_text),
+                        ],
+                        temperature=0.0,
+                        max_tokens=8192,
+                    )
             except Exception as exc:
                 logger.warning(
                     "Map data extraction LLM call failed "
@@ -3415,14 +3558,15 @@ class MetacouplingAssistant:
         )
 
         try:
-            response = self._client.chat(
-                messages=[
-                    Message(role="system", content=system_text),
-                    Message(role="user", content=user_text),
-                ],
-                temperature=0.0,
-                max_tokens=self._max_tokens,
-            )
+            with self._trace_label("structured_supplement"):
+                response = self._client.chat(
+                    messages=[
+                        Message(role="system", content=system_text),
+                        Message(role="user", content=user_text),
+                    ],
+                    temperature=0.0,
+                    max_tokens=self._max_tokens,
+                )
         except Exception as exc:
             logger.warning(
                 "Structured extraction LLM call failed: %s. "
@@ -4699,6 +4843,8 @@ class MetacouplingAssistant:
         self._validate_pericoupling(
             parsed,
             national_mode=not self._user_query_mentions_adm1(),
+            de_facto_borders=self._de_facto_borders,
+            coupling_standard=self._coupling_standard,
         )
 
         formatted = self._formatter.format_full(parsed)
@@ -4944,6 +5090,13 @@ class MetacouplingAssistant:
         # research description is provided.
         if self._original_query:
             result._original_query_for_export = self._original_query
+        # Built-in run tracing: assemble + write artifacts, attach to result.
+        # Never raises into the caller.
+        if self._trace_proxy is not None:
+            try:
+                self._emit_trace(result)
+            except Exception as exc:
+                logger.warning("Run tracing failed: %s", exc)
         return result
 
     def _generate_abstract(self, formatted_analysis: str) -> str:
@@ -4983,29 +5136,30 @@ class MetacouplingAssistant:
                     "[MetacouplingAssistant] Generating abstract "
                     f"({len(formatted_analysis)}-char analysis input)..."
                 )
-            response = self._client.chat(
-                messages=[
-                    Message(role="system", content=ABSTRACT_GENERATION_SYSTEM),
-                    Message(role="user", content=user_text),
-                ],
-                # 1.0 is GPT-5's only supported temperature and the
-                # OpenAI default for every other model -- the OpenAI
-                # adapter explicitly short-circuits the
-                # retry-without-temperature path when temperature
-                # equals 1.  Prose generation isn't sensitive to a
-                # slightly higher temperature.
-                temperature=1.0,
-                # GPT-5-family bills against ``max_completion_tokens``
-                # which includes the (sometimes substantial) hidden
-                # reasoning tokens.  A 600-token budget can be
-                # entirely consumed by reasoning, leaving an empty
-                # visible response.  4096 is generous enough to cover
-                # reasoning + a 150-250 word visible abstract on any
-                # current GPT-5 / Claude / Gemini / Grok model.  The
-                # adapter retries max_tokens -> max_completion_tokens
-                # for GPT-5 transparently.
-                max_tokens=4096,
-            )
+            with self._trace_label("abstract"):
+                response = self._client.chat(
+                    messages=[
+                        Message(role="system", content=ABSTRACT_GENERATION_SYSTEM),
+                        Message(role="user", content=user_text),
+                    ],
+                    # 1.0 is GPT-5's only supported temperature and the
+                    # OpenAI default for every other model -- the OpenAI
+                    # adapter explicitly short-circuits the
+                    # retry-without-temperature path when temperature
+                    # equals 1.  Prose generation isn't sensitive to a
+                    # slightly higher temperature.
+                    temperature=1.0,
+                    # GPT-5-family bills against ``max_completion_tokens``
+                    # which includes the (sometimes substantial) hidden
+                    # reasoning tokens.  A 600-token budget can be
+                    # entirely consumed by reasoning, leaving an empty
+                    # visible response.  4096 is generous enough to cover
+                    # reasoning + a 150-250 word visible abstract on any
+                    # current GPT-5 / Claude / Gemini / Grok model.  The
+                    # adapter retries max_tokens -> max_completion_tokens
+                    # for GPT-5 transparently.
+                    max_tokens=4096,
+                )
             text = (response.content or "").strip()
             # Strip accidental leading/trailing fence markers some
             # models add even with formal-prose instructions.
@@ -5033,7 +5187,12 @@ class MetacouplingAssistant:
             return ""
 
     @staticmethod
-    def _validate_adm1_pericoupling(parsed: ParsedAnalysis) -> bool:
+    def _validate_adm1_pericoupling(
+        parsed: ParsedAnalysis,
+        *,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
+    ) -> bool:
         """Try to validate at the ADM1 (subnational) level.
 
         If the analysis contains a resolvable subnational region,
@@ -5055,8 +5214,16 @@ class MetacouplingAssistant:
         if not focal_info:
             return False
 
-        all_neighbors = get_adm1_neighbors(adm1_code)
-        cross_border = get_cross_border_neighbors(adm1_code)
+        all_neighbors = get_adm1_neighbors(
+            adm1_code,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
+        )
+        cross_border = get_cross_border_neighbors(
+            adm1_code,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
+        )
         domestic = all_neighbors - cross_border
 
         def _names(codes: set[str]) -> str:
@@ -5186,6 +5353,8 @@ class MetacouplingAssistant:
         parsed: ParsedAnalysis,
         *,
         national_mode: bool = False,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
     ) -> None:
         """Run ADM1 (subnational) and country-level validations.
 
@@ -5221,7 +5390,11 @@ class MetacouplingAssistant:
             # ADM1-mode query: run ADM1 validator (populates
             # parsed.pericoupling_info when a focal subnational
             # region is resolvable from the analysis text).
-            MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+            MetacouplingAssistant._validate_adm1_pericoupling(
+                parsed,
+                de_facto_borders=de_facto_borders,
+                coupling_standard=coupling_standard,
+            )
 
         # Country-level: always runs.  Populates
         # parsed.country_pericoupling_info, including the new
@@ -5229,6 +5402,8 @@ class MetacouplingAssistant:
         MetacouplingAssistant._validate_country_pericoupling(
             parsed,
             national_mode=national_mode,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
         )
 
     @staticmethod
@@ -5236,6 +5411,8 @@ class MetacouplingAssistant:
         parsed: ParsedAnalysis,
         *,
         national_mode: bool = False,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
     ) -> None:
         """Country-level pericoupling validation.
 
@@ -5350,7 +5527,11 @@ class MetacouplingAssistant:
                 a_info = get_adm1_info(focal_adm1)
                 if a_info:
                     focal_region_label = f"{a_info['name']} ({focal_adm1})"
-                    for xb_code in get_cross_border_neighbors(focal_adm1):
+                    for xb_code in get_cross_border_neighbors(
+                        focal_adm1,
+                        de_facto_borders=de_facto_borders,
+                        coupling_standard=coupling_standard,
+                    ):
                         xb_info = get_adm1_info(xb_code)
                         if xb_info and xb_info.get("iso_a3"):
                             cross_border_countries.add(xb_info["iso_a3"])
@@ -5381,7 +5562,11 @@ class MetacouplingAssistant:
                 )
             # National mode (or no resolvable focal region): classify
             # at the country scale.
-            result = lookup_pericoupling(focal_code, code_b)
+            result = lookup_pericoupling(
+                focal_code, code_b,
+                de_facto_borders=de_facto_borders,
+                coupling_standard=coupling_standard,
+            )
             if result.pair_type == PairCouplingType.PERICOUPLED:
                 return "PERICOUPLED"
             if result.pair_type == PairCouplingType.TELECOUPLED:

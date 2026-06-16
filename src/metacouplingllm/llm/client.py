@@ -152,6 +152,18 @@ class OpenAIAdapter:
         if response_format is not None:
             kwargs["response_format"] = response_format
 
+        # GPT-5 family: proactively apply both known constraints up front.
+        # These models accept only the default temperature (1) and require
+        # ``max_completion_tokens`` instead of ``max_tokens``.  The catch/retry
+        # path below only repairs whichever constraint the *first* error
+        # reports, so a call that violates BOTH (e.g. temperature=0 + max_tokens,
+        # as in structured extraction) would otherwise fail.  Coercing here
+        # makes every GPT-5 call work in one shot.
+        if self._model.startswith("gpt-5"):
+            kwargs["temperature"] = 1
+            if "max_tokens" in kwargs:
+                kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+
         try:
             response = self._client.chat.completions.create(**kwargs)
         except Exception as exc:

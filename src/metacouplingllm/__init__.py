@@ -26,6 +26,7 @@ from metacouplingllm.core import (
     MetacouplingAssistant,
     RAGResult,
 )
+from metacouplingllm.tracing import CallRecord, RunTrace
 from metacouplingllm.knowledge.countries import (
     get_country_name,
     resolve_country_code,
@@ -187,6 +188,8 @@ __all__ = [
     "MetacouplingAssistant",
     "AnalysisResult",
     "RAGResult",
+    "RunTrace",
+    "CallRecord",
     "JOURNAL_ARTICLES_2025",
     # LLM client
     "LLMClient",

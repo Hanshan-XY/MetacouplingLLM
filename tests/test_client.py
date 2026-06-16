@@ -173,7 +173,10 @@ class TestOpenAIAdapter:
                     "completions": FakeCompletions()
                 })()
 
-        adapter = OpenAIAdapter(FakeOpenAI(), model="gpt-5.4")
+        # Non-gpt-5 model so the proactive gpt-5 coercion does NOT pre-empt
+        # the error-driven retry path this test exercises (o-series models
+        # also require max_completion_tokens, surfaced via the error message).
+        adapter = OpenAIAdapter(FakeOpenAI(), model="o3-mini")
         messages = [Message(role="user", content="Hi")]
 
         result = adapter.chat(messages, max_tokens=100)
@@ -183,6 +186,47 @@ class TestOpenAIAdapter:
         assert "max_tokens" in calls[0]
         assert "max_tokens" not in calls[1]
         assert calls[1]["max_completion_tokens"] == 100
+
+    def test_chat_gpt5_proactively_coerces_temperature_and_max_tokens(self):
+        """GPT-5 family: temperature->1 and max_tokens->max_completion_tokens
+        are applied up front (one call, no failed first attempt)."""
+
+        class FakeChoice:
+            def __init__(self):
+                self.message = type("Msg", (), {"content": "OK"})()
+
+        class FakeUsage:
+            prompt_tokens = 1
+            completion_tokens = 1
+            total_tokens = 2
+
+        class FakeResponse:
+            choices = [FakeChoice()]
+            usage = FakeUsage()
+
+        calls = []
+
+        class FakeCompletions:
+            @staticmethod
+            def create(**kwargs):
+                calls.append(dict(kwargs))
+                return FakeResponse()
+
+        class FakeOpenAI:
+            def __init__(self):
+                self.chat = type("Chat", (), {"completions": FakeCompletions()})()
+
+        adapter = OpenAIAdapter(FakeOpenAI(), model="gpt-5.5")
+        adapter.chat(
+            [Message(role="user", content="Hi")],
+            temperature=0.0, max_tokens=100,
+        )
+
+        # Exactly one call — no failed first attempt.
+        assert len(calls) == 1
+        assert calls[0]["temperature"] == 1
+        assert "max_tokens" not in calls[0]
+        assert calls[0]["max_completion_tokens"] == 100
 
     def test_chat_handles_empty_choices(self):
         """Adapter should return empty content for empty choices array."""
