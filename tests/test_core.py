@@ -4132,6 +4132,41 @@ class TestValidateAdm1Pericoupling:
         assert "TELECOUPLED" in country_info.get("pair_results", "")
         assert "CHN" in country_info.get("pair_results", "")
 
+    def test_coupling_standard_toggle_flips_water_only_pair(self):
+        """coupling_standard threads into the country validator: Romania↔Moldova
+        (Prut river, bridged) is PERICOUPLED under moderate but TELECOUPLED
+        under stringent (water-only dropped)."""
+        from ._helpers import make_parsed_analysis
+
+        def _classify(standard):
+            parsed = make_parsed_analysis(
+                coupling_classification="pericoupling",
+                systems={
+                    "sending": {"name": "Romania", "geographic_scope": "Romania"},
+                    "receiving": {"name": "Moldova", "geographic_scope": "Moldova"},
+                },
+            )
+            MetacouplingAssistant._validate_country_pericoupling(
+                parsed, coupling_standard=standard,
+            )
+            return parsed.country_pericoupling_info.get("pair_results", "")
+
+        assert "PERICOUPLED" in _classify("moderate")
+        assert "TELECOUPLED" in _classify("stringent")
+
+    def test_assistant_stores_and_validates_pericoupling_toggles(self):
+        """The constructor stores the toggles and rejects a bad standard."""
+        import pytest
+
+        adv = MetacouplingAssistant(
+            MockLLMClient(), max_examples=0, generate_abstract=False,
+            de_facto_borders=False, coupling_standard="stringent",
+        )
+        assert adv._de_facto_borders is False
+        assert adv._coupling_standard == "stringent"
+        with pytest.raises(ValueError):
+            MetacouplingAssistant(MockLLMClient(), coupling_standard="bogus")
+
     def test_formatter_renders_both_blocks_when_both_pericoupling_fields_populated(self):
         """The formatter must emit two separate pericoupling validation
         sections when both pericoupling_info (ADM1) and

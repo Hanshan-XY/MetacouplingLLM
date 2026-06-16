@@ -382,10 +382,24 @@ advisor = MetacouplingAssistant(
     recommend_papers=False,    # Auto-append literature recommendations
     max_recommendations=5,     # Number of papers to recommend
     rag_top_k=8,               # passages retrieved per query
+    de_facto_borders=True,     # Pericoupling validation: fold disputed land
+                               #   into its de-facto administrator (vs strict WB)
+    coupling_standard="moderate",  # "stringent"/"moderate"/"lenient" — how
+                               #   water-only borders are treated in validation
     trace=True,                # Write a run-trace folder per analyze()/refine()
     trace_dir=None,            # Where to write it (default: runs/<utc>_<slug>/)
 )
 ```
+
+`de_facto_borders` and `coupling_standard` set the policy the **pericoupling
+validation block** uses when it cross-checks the LLM's coupling claims against
+the bundled adjacency databases (§8). They mirror the same-named arguments on
+the standalone lookup functions: `coupling_standard="stringent"` drops every
+water-only border (so a river-only neighbour validates as *telecoupled* rather
+than *pericoupled*), `"lenient"` keeps them all, and `de_facto_borders=False`
+uses the strict World Bank standard layer instead of the de-facto view. Defaults
+(`True` / `"moderate"`) match the database defaults; see §8 for the full
+semantics.
 
 ### Run tracing (`trace`, `trace_dir`)
 

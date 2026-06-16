@@ -803,6 +803,14 @@ class MetacouplingAssistant:
         web_structured_max_targets: int = 6,
         rag_min_score: float | None = None,
         coupling_analysis: bool = True,
+        # Pericoupling-validation policy toggles, threaded into the
+        # post-analysis validators.  ``de_facto_borders=True`` folds disputed
+        # land into its de-facto administrator (vs the strict WB standard
+        # layer); ``coupling_standard`` (``"stringent"``/``"moderate"``/
+        # ``"lenient"``) controls how water-only borders are treated.  Defaults
+        # match the underlying lookup defaults.
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
         # PR #31: opt out of the dedicated abstract LLM call.  Defaults
         # to True so scholars get ``result.abstract`` for free; set to
         # False in unit tests / batch jobs that need to count calls
@@ -857,6 +865,15 @@ class MetacouplingAssistant:
         self._web_structured_max_targets = web_structured_max_targets
         self._rag_min_score = rag_min_score
         self._generate_abstract_enabled = generate_abstract
+        self._de_facto_borders = bool(de_facto_borders)
+        _std = str(coupling_standard).strip().lower()
+        if _std not in ("stringent", "moderate", "lenient"):
+            raise ValueError(
+                "coupling_standard must be one of "
+                "'stringent'/'moderate'/'lenient', got "
+                f"{coupling_standard!r}"
+            )
+        self._coupling_standard = _std
         self._last_web_results: list[dict[str, str]] = []
         self._last_web_map_signals: dict[str, object] | None = None
         self._last_map_notice: str | None = None
@@ -4818,6 +4835,8 @@ class MetacouplingAssistant:
         self._validate_pericoupling(
             parsed,
             national_mode=not self._user_query_mentions_adm1(),
+            de_facto_borders=self._de_facto_borders,
+            coupling_standard=self._coupling_standard,
         )
 
         formatted = self._formatter.format_full(parsed)
@@ -5160,7 +5179,12 @@ class MetacouplingAssistant:
             return ""
 
     @staticmethod
-    def _validate_adm1_pericoupling(parsed: ParsedAnalysis) -> bool:
+    def _validate_adm1_pericoupling(
+        parsed: ParsedAnalysis,
+        *,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
+    ) -> bool:
         """Try to validate at the ADM1 (subnational) level.
 
         If the analysis contains a resolvable subnational region,
@@ -5182,8 +5206,16 @@ class MetacouplingAssistant:
         if not focal_info:
             return False
 
-        all_neighbors = get_adm1_neighbors(adm1_code)
-        cross_border = get_cross_border_neighbors(adm1_code)
+        all_neighbors = get_adm1_neighbors(
+            adm1_code,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
+        )
+        cross_border = get_cross_border_neighbors(
+            adm1_code,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
+        )
         domestic = all_neighbors - cross_border
 
         def _names(codes: set[str]) -> str:
@@ -5313,6 +5345,8 @@ class MetacouplingAssistant:
         parsed: ParsedAnalysis,
         *,
         national_mode: bool = False,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
     ) -> None:
         """Run ADM1 (subnational) and country-level validations.
 
@@ -5348,7 +5382,11 @@ class MetacouplingAssistant:
             # ADM1-mode query: run ADM1 validator (populates
             # parsed.pericoupling_info when a focal subnational
             # region is resolvable from the analysis text).
-            MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+            MetacouplingAssistant._validate_adm1_pericoupling(
+                parsed,
+                de_facto_borders=de_facto_borders,
+                coupling_standard=coupling_standard,
+            )
 
         # Country-level: always runs.  Populates
         # parsed.country_pericoupling_info, including the new
@@ -5356,6 +5394,8 @@ class MetacouplingAssistant:
         MetacouplingAssistant._validate_country_pericoupling(
             parsed,
             national_mode=national_mode,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
         )
 
     @staticmethod
@@ -5363,6 +5403,8 @@ class MetacouplingAssistant:
         parsed: ParsedAnalysis,
         *,
         national_mode: bool = False,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
     ) -> None:
         """Country-level pericoupling validation.
 
@@ -5477,7 +5519,11 @@ class MetacouplingAssistant:
                 a_info = get_adm1_info(focal_adm1)
                 if a_info:
                     focal_region_label = f"{a_info['name']} ({focal_adm1})"
-                    for xb_code in get_cross_border_neighbors(focal_adm1):
+                    for xb_code in get_cross_border_neighbors(
+                        focal_adm1,
+                        de_facto_borders=de_facto_borders,
+                        coupling_standard=coupling_standard,
+                    ):
                         xb_info = get_adm1_info(xb_code)
                         if xb_info and xb_info.get("iso_a3"):
                             cross_border_countries.add(xb_info["iso_a3"])
@@ -5508,7 +5554,11 @@ class MetacouplingAssistant:
                 )
             # National mode (or no resolvable focal region): classify
             # at the country scale.
-            result = lookup_pericoupling(focal_code, code_b)
+            result = lookup_pericoupling(
+                focal_code, code_b,
+                de_facto_borders=de_facto_borders,
+                coupling_standard=coupling_standard,
+            )
             if result.pair_type == PairCouplingType.PERICOUPLED:
                 return "PERICOUPLED"
             if result.pair_type == PairCouplingType.TELECOUPLED:
