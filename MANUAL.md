@@ -385,6 +385,25 @@ advisor = MetacouplingAssistant(
 )
 ```
 
+### What's in the RAG corpus
+
+The RAG evidence corpus is a curated set of **420 telecoupling and
+metacoupling papers**, shipped with the package as `Papers.zip` and indexed
+on first use (embeddings by default, TF-IDF fallback).  It is split by what
+can be redistributed, not by topic: **192 papers are indexed as full text**
+and the other **228 as structured, paraphrased summaries** (metadata + key
+findings, no source text) — those 228 being papers that cannot be
+redistributed in full (paywalled, or open-to-read but restrictively
+licensed).  Retrieval runs over both, so a summary-only paper can still
+surface as supporting evidence.  See INTRODUCTION §4.3 and
+`data/PROVENANCE.md` for the corpus composition and methodology.
+
+> **Not the same as the recommendation database.**  This 420-paper RAG corpus
+> (quoted as evidence passages) is distinct from the 265-article BibTeX
+> literature database used by `recommend_papers` / `get_database_info` (§9).
+> RAG *grounds* the analysis with passages; the recommendation database
+> *suggests* further reading.
+
 ### How RAG citations work
 
 When a RAG corpus is configured, the package retrieves corpus passages
@@ -1009,6 +1028,11 @@ and metacoupling journal articles (2013–2026, filtered from a larger
 Web of Science collection).  Call `get_database_info()` for the live count if
 the corpus drifts.  You can get relevant paper recommendations
 based on keyword matching.
+
+> This 265-article recommendation database is **separate** from the 420-paper
+> RAG evidence corpus (§5, "What's in the RAG corpus"): this one drives
+> `recommend_papers` (suggested reading); the RAG corpus supplies quoted
+> evidence passages during analysis.
 
 ### Standalone usage
 
