@@ -18,6 +18,7 @@
 - **Scholar-ready export**: `result.abstract`, `result.to_markdown()`, `result.to_docx()` for manuscript-ready output
 - **Quantitative metacoupling indicators** (`metacouplingllm.indicators`) — IFS / PFS / TFS, MFE, MFCI computed on user-supplied flow data
 - **Optional LLM-assisted indicator helpers** — `define_study`, `check_inputs`, `classify_ambiguous_edges`, `interpret_results`, `write_methods`, each returning `(result, LLMTrace)` for reproducibility
+- **Built-in run tracing** (on by default) — every `analyze()`/`refine()` records a `RunTrace` (all model calls, intermediates, token usage, git SHA) and writes an inspectable artifact folder under `runs/`; disable with `trace=False`
 
 **Requirements:** Python 3.10+, no hard runtime dependencies. Optional extras: `openai`, `anthropic`, `gemini`, `grok`, `geopandas`+`matplotlib` (visualization), `ddgs` (web search), `pandas` (quantitative indicators), `python-docx` (Word export).
 

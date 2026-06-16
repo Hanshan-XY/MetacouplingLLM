@@ -382,8 +382,49 @@ advisor = MetacouplingAssistant(
     recommend_papers=False,    # Auto-append literature recommendations
     max_recommendations=5,     # Number of papers to recommend
     rag_top_k=8,               # passages retrieved per query
+    trace=True,                # Write a run-trace folder per analyze()/refine()
+    trace_dir=None,            # Where to write it (default: runs/<utc>_<slug>/)
 )
 ```
+
+### Run tracing (`trace`, `trace_dir`)
+
+Tracing is **on by default**. Each `analyze()` / `refine()` captures every
+model call (prompts, response, token usage, duration) plus the pipeline
+intermediates (raw web results, RAG chunks, parsed analysis, map data,
+formatted output) and run metadata (model, git SHA, environment), then writes
+a folder of human-readable artifacts:
+
+```text
+runs/<utc-timestamp>_<query-slug>/turn1/
+    00_run_config.md … 10_pipeline_metadata.md
+    README.md
+    map.png            # when a map was rendered
+```
+
+A multi-turn session writes `turn1/`, `turn2/`, … under one session root. The
+same trace is attached to the result as `result.trace` (a `RunTrace`);
+`result.trace.out_dir` is the folder on disk, and `result.trace.calls` is the
+list of captured `CallRecord`s.
+
+```python
+result = advisor.analyze("…")
+print(result.trace.out_dir)          # runs/2026…_…/turn1
+print(result.trace.total_tokens)     # input + output across all calls
+```
+
+- **Disable it** with `trace=False`, or globally with the
+  `METACOUPLINGLLM_DISABLE_TRACE=1` environment variable.
+- **Choose the location** with `trace_dir="my/path"` (the per-turn subfolders
+  are written underneath it).
+- The default `runs/` directory is **gitignored**; commit a specific run with
+  `git add -f runs/<slug>/`.
+- Tracing never breaks an analysis: if writing fails, the result is returned
+  normally with `result.trace.out_dir = None`.
+
+> **Note.** The web-search extraction call is issued by the provider's native
+> web-search backend (not the assistant's traced client), so it is summarised
+> from the intermediates in `01`/`03` rather than captured as a model call.
 
 ### How RAG citations work
 
