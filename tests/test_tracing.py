@@ -57,6 +57,12 @@ def test_analyze_writes_turn1_and_attaches_runtrace(tmp_path):
     assert result.trace.total_output_tokens > 0
     assert any(c.label == "main_analysis" for c in result.trace.calls)
 
+    # README documents the numbering convention so a first-time reader is
+    # not tripped up (pipeline-stage order; web-extraction summarized).
+    readme = (out / "README.md").read_text(encoding="utf-8")
+    assert "Reading this trace" in readme
+    assert "summarized rather than chat-captured" in readme
+
 
 # ---------------------------------------------------------------------------
 # 2. trace=False writes nothing and attaches no trace
