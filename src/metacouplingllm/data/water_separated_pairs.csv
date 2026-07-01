@@ -313,12 +313,32 @@ adm1,UGA015,UGA075,False,lake,Lake Victoria,
 adm1,NLD002,NLD010,False,lake,IJsselmeer,
 adm1,BOL001,BRA026,False,river,Guaporé; Madeira; Madre de Dios,
 adm1,USA044,MEX005,True,river,Pecos; Rio Grande,
+adm1,ROU019,UKR016,False,river,Danube,river-gap overlay (audited near-miss)
+adm1,ROU039,UKR016,False,river,Danube; Chilia branch,river-gap overlay (audited near-miss)
+adm1,ROU013,SRB001,False,river,Danube; Iron Gates,river-gap overlay (audited near-miss)
+adm1,MDA006,ROU041,False,river,Prut,river-gap overlay (audited near-miss)
+adm1,DEU012,LUX002,True,river,Moselle,river-gap overlay (audited near-miss)
+adm1,GUF001,SUR004,False,river,Maroni,river-gap overlay (audited near-miss)
+adm1,BGR018,ROU012,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR016,ROU020,True,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR013,ROU037,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR010,ROU018,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR028,ROU018,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR013,ROU031,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR026,ROU037,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR016,ROU037,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
+adm1,MOZ008,TZA025,True,river,Ruvuma,wide-river overlay (5km re-screen + ground-truth)
+adm1,ALB031,MNE020,True,river,Bojana,wide-river overlay (5km re-screen + ground-truth)
+adm1,DEU011,LUX002,True,river,Moselle; Sauer,wide-river overlay (5km re-screen + ground-truth)
+adm1,PRK002,RUS060,True,river,Tumen,wide-river overlay (5km re-screen + ground-truth)
+adm1,BWA002,ZMB109,True,river,Chobe; Zambezi,wide-river overlay (5km re-screen + ground-truth)
 adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
 adm0,ARG,PRY,True,,,adm1-rollup
 adm0,ARM,IRN,True,,,adm1-rollup
 adm0,AZE,TUR,True,,,adm1-rollup
 adm0,BDI,COD,True,,,adm1-rollup
+adm0,BWA,ZMB,True,,,adm1-rollup
 adm0,CAF,COD,False,,,adm1-rollup
 adm0,CHN,PRK,True,,,adm1-rollup
 adm0,FIN,SWE,True,,,adm1-rollup
@@ -326,7 +346,9 @@ adm0,GRC,TUR,True,,,adm1-rollup
 adm0,JOR,PSE,True,,,adm1-rollup
 adm0,LAO,MMR,True,,,adm1-rollup
 adm0,MDA,ROU,True,,,adm1-rollup
+adm0,MOZ,TZA,True,,,adm1-rollup
 adm0,MRT,SEN,False,,,adm1-rollup
+adm0,PRK,RUS,True,,,adm1-rollup
 adm0,RWA,TZA,True,,,adm1-rollup
 adm0,ZAF,ZWE,True,,,adm1-rollup
 adm0,ZMB,ZWE,True,,,adm1-rollup

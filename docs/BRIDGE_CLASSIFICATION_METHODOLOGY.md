@@ -47,7 +47,7 @@ Ferries/boats are excluded (they are OSM relations, and are not fixed links).
 
 | input | source / version | role |
 |---|---|---|
-| **Water-only ADM1 candidate pairs** | derived in the pericoupling build from Natural Earth `ne_10m_rivers` + `ne_10m_lakes` vs the WB ADM1 layer | the 315 pairs whose shared border is water with no land segment |
+| **Water-only ADM1 candidate pairs** | derived in the pericoupling build from Natural Earth hydrography vs the WB ADM1 layer: the `ne_10m_lakes` lake filter for lake borders, and a generous river-centerline screen for river borders (a pair is a wide-river candidate when >60% of its shared border lies within ~2.4 km of a major named `ne_10m_rivers` centerline), which captures wide rivers the thin 220 m advisory buffer misses. **OpenStreetMap is not used to detect water-only borders** (a prototype OSM water-polygon test was abandoned because rural riverbanks are unmapped); OSM supplies only the bridge flag below | the 315 pairs whose shared border is water with no land segment |
 | **ADM1 unit polygons** | World Bank Official Boundaries ADM1 (2026-05-14), code field `ADM1CD_c` | the "both units" geometry for the crossing test |
 | **`colab_candidates.gpkg`** (12.5 MB) | built from the above; layers `pairs` (315) + `units` (387) | the OSM-pipeline input |
 | **OpenStreetMap** via **Overpass API** | live snapshot, 2026-06-03/04 | bridge/road/rail geometry |
@@ -282,7 +282,7 @@ direction for a connectivity dataset; the verification removed those.
 - OpenStreetMap contributors — way/relation geometry & tags. © OpenStreetMap, ODbL.
 - Overpass API — `https://overpass-api.de`, `https://overpass.kumi.systems`, `https://overpass.openstreetmap.fr`.
 - Nominatim — `https://nominatim.openstreetmap.org` (geocoding; usage-policy compliant: 1 req/s, UA set).
-- Natural Earth — `ne_10m_rivers`, `ne_10m_lakes` (water-only candidate detection).
+- Natural Earth — `ne_10m_rivers`, `ne_10m_lakes` (the water-only call: the `ne_10m_lakes` lake filter for lake borders and a ~2.4 km `ne_10m_rivers` centerline screen for river borders). OpenStreetMap is used only for the bridge flag, not to detect water-only borders.
 - World Bank Official Boundaries — ADM1 (2026-05-14), field `ADM1CD_c`.
 
 **Method notes**
