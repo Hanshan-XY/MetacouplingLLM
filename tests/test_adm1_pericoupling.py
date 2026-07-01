@@ -36,16 +36,16 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8387, (
-            f"Expected 8387 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8450, (
+            f"Expected 8450 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_country
         assert _adm1_country is not None
-        assert len(_adm1_country) == 3373, (
-            f"Expected 3373 unique ADM1 codes, got {len(_adm1_country)}"
+        assert len(_adm1_country) == 3375, (
+            f"Expected 3375 unique ADM1 codes, got {len(_adm1_country)}"
         )
 
     def test_expected_country_count(self):
@@ -748,6 +748,30 @@ class TestCouplingStandardAdm1:
         # ferry-only Danube span (Silistra<->Calarasi): dropped under moderate
         assert is_adm1_pericoupled("BGR018", "ROU012", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("BGR018", "ROU012", coupling_standard="moderate") is False
+
+    def test_lake_overlay_pairs(self):
+        # 63-pair lake overlay: audited lake-only pairs restored as edges so
+        # coupling_standard governs lakes exactly like rivers.  Bridged lake
+        # pairs are kept under moderate (Houtribdijk, Hjulstabron); unbridged
+        # ones are lenient-only (mid-lake meetings).
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        # Flevoland <-> Noord-Holland: Houtribdijk/Stichtse Brug -> moderate
+        assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="moderate") is True
+        assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="stringent") is False
+        # Sodermanland <-> Uppsala: Hjulstabron across Malaren -> moderate
+        assert is_adm1_pericoupled("SWE014", "SWE016", coupling_standard="moderate") is True
+        # Flevoland <-> Utrecht: no direct fixed link -> lenient only
+        assert is_adm1_pericoupled("NLD002", "NLD010", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("NLD002", "NLD010", coupling_standard="moderate") is False
+        # Illinois <-> Michigan across Lake Michigan: no crossing -> lenient only
+        assert is_adm1_pericoupled("USA014", "USA023", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("USA014", "USA023", coupling_standard="moderate") is False
+        # Tanganyika <-> Kigoma across Lake Tanganyika: lenient only
+        assert is_adm1_pericoupled("COD030", "TZA010", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("COD030", "TZA010", coupling_standard="moderate") is False
 
     def test_land_pair_unaffected_by_standard(self):
         # AFG001 <-> PAK005 is a land border -> pericoupled under every standard.

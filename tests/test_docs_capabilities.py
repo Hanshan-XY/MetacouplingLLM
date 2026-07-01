@@ -423,3 +423,57 @@ def test_manual_section12_api_reference_covers_all_features():
         "Quantitative Indicator Functions / LLM-Assisted Helpers "
         "/ Enums), or update EXPECTED_FEATURES."
     )
+
+
+# ---------------------------------------------------------------------------
+# docs/METHODS_adjacency.md count-drift guard
+# ---------------------------------------------------------------------------
+
+METHODS_ADJACENCY_MD = REPO_ROOT / "docs" / "METHODS_adjacency.md"
+
+
+def test_methods_adjacency_doc_counts_match_live_data():
+    """docs/METHODS_adjacency.md must carry the CURRENT shipped counts.
+
+    The methodology doc once drifted three overlay generations behind
+    (shipped 8,381 / water-only 314 / moderate 8,235 / ADM0 325) because
+    the doc guards only covered MANUAL.md and INTRODUCTION.md.  This test
+    derives the headline counts from the live loaders and requires each
+    to appear in the doc, so any future data change (a new overlay, a
+    rebuild) breaks the build until the methodology doc is updated too.
+    """
+    from metacouplingllm.knowledge import adm1_pericoupling as adm1
+    from metacouplingllm.knowledge import pericoupling as adm0
+
+    adm1.is_adm1_pericoupled("USA044", "MEX028")  # warm the loaders
+    adm0.is_pericoupled("USA", "MEX")
+
+    base = adm1._adm1_pairs
+    assert base is not None and adm1._adm1_water_nobridge is not None
+    shipped_adm1 = len(base)
+    moderate_adm1 = len(base - adm1._adm1_water_nobridge)
+    water_adm1 = len(adm1._adm1_water_all)
+    shipped_adm0 = len(adm0._pericoupled_pairs)
+    water_adm0 = len(adm0._water_all_adm0)
+
+    text = METHODS_ADJACENCY_MD.read_text(encoding="utf-8")
+    expected = {
+        f"{shipped_adm1:,}": "shipped ADM1 edge count",
+        f"{moderate_adm1:,}": "moderate-view ADM1 edge count",
+        f"{water_adm1} ADM1": "water-only ADM1 pair count",
+        f"{shipped_adm0}": "shipped ADM0 pair count",
+        f"{water_adm0} ADM0": "ADM0 water-only roll-up count",
+    }
+    missing = [
+        f"{desc}: {token!r}"
+        for token, desc in expected.items()
+        if token not in text
+    ]
+    assert not missing, (
+        "docs/METHODS_adjacency.md is out of date with the shipped "
+        "adjacency data; these current counts are missing from the doc:"
+        "\n  - " + "\n  - ".join(missing)
+        + "\n\nUpdate the shipped-count footnote (section 3), the Malta "
+        "paragraph (section 7), and the coupling-standard Data paragraph "
+        "(section 8)."
+    )

@@ -1,7 +1,7 @@
 # Bridge / water-crossing classification — methodology, code & references
 
 **Status:** verification complete & human-validated · **Date:** 2026-06-03/04
-**Final dataset:** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — so the shipped `water_separated_pairs.csv` is **314 pairs: 108 / 206**. The 315 figures below describe the original OSM classification run.)*
+**Final dataset:** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — leaving **314 pairs: 108 / 206** from this run. Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **333 ADM1 pairs (115 / 218)** plus **21 ADM0 roll-ups**: +6 river-gap and +13 wide-river pairs, and the 63 lake pairs of this run are restored as edges by the lake overlay so `coupling_standard` governs lakes like rivers; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
 
 This document records, in detail, how the bridge-classification database was built: why it
 exists, the inputs, the OpenStreetMap (OSM) detection method and its evolution, the

@@ -953,11 +953,11 @@ print(result.parsed.evidence_coverage_note)
 
 ## 8. Pericoupling Database
 
-The package includes a curated country-pair database in which 325
+The package includes a curated country-pair database in which 326
 symmetric country pairs share a border; under the default adjacency
 settings (`de_facto_borders=True`, `coupling_standard="moderate"`)
 **323** of them are exposed as pericoupled (geographically adjacent) —
-the moderate standard drops 2 water-only pairs with no fixed crossing.
+the moderate standard drops 3 water-only pairs with no fixed crossing.
 All other pairs are telecoupled (geographically distant). Based on
 current ISO 3166-1 alpha-3 country codes (World Bank Official
 Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`).
@@ -1024,6 +1024,10 @@ is_pericoupled("Romania", "Moldova", coupling_standard="stringent") # False (wat
 # DR Congo <-> Central African Republic share only rivers, no bridge:
 is_pericoupled("COD", "CAF")                                        # False (moderate default)
 is_pericoupled("COD", "CAF", coupling_standard="lenient")           # True
+# Lakes follow the same logic — DR Congo <-> Tanzania meet only across
+# Lake Tanganyika (no fixed crossing):
+is_pericoupled("COD", "TZA")                                        # False (moderate default)
+is_pericoupled("COD", "TZA", coupling_standard="lenient")           # True
 ```
 
 The same `coupling_standard` argument is accepted by the ADM1 functions

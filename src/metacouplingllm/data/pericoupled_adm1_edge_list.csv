@@ -8386,3 +8386,66 @@ ROU013,Caraş-Severin,Romania,ROU,ECA,SRB001,Borski,Serbia,SRB,ECA,True,0.6200,T
 MDA006,Cahul,Moldova,MDA,ECA,ROU041,Vaslui,Romania,ROU,ECA,True,1.7000,True,False
 DEU012,Saarland,Germany,DEU,Other,LUX002,Grevenmacher,Luxembourg,LUX,Other,True,6.6500,False,False
 GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.3600,True,False
+CHE016,Sankt Gallen,Switzerland,CHE,Other,DEU001,Baden-Wuerttemberg,Germany,DEU,Other,True,6.9,False,False
+AUT008,Vorarlberg,Austria,AUT,Other,DEU001,Baden-Wuerttemberg,Germany,DEU,Other,True,1.2,True,False
+JOR009,Madaba,Jordan,JOR,MENA,PSE004,Bethlehem,West Bank and Gaza,PSE,MENA,True,26.5,False,False
+JOR004,Balqa,Jordan,JOR,MENA,PSE004,Bethlehem,West Bank and Gaza,PSE,MENA,True,4.5,True,False
+PSE003,Ariha (Jericho),West Bank and Gaza,PSE,MENA,PSE004,Bethlehem,West Bank and Gaza,PSE,MENA,False,4.2,True,False
+ISR005,Southern District,Israel,ISR,Other,JOR009,Madaba,Jordan,JOR,MENA,True,3.9,True,False
+NLD002,Flevoland,Netherlands,NLD,Other,NLD004,Gelderland,Netherlands,NLD,Other,False,46.8,False,False
+NLD002,Flevoland,Netherlands,NLD,Other,NLD008,Noord-holland,Netherlands,NLD,Other,False,15.3,False,False
+NLD002,Flevoland,Netherlands,NLD,Other,NLD010,Utrecht,Netherlands,NLD,Other,False,5.0,False,False
+CAN003,Manitoba,Canada,CAN,Other,CAN006,Northwest Territories / Territoires du Nord-Ouest,Canada,CAN,Other,False,0.4,True,True
+CIV029,Lacs,Côte d'Ivoire,CIV,AFR,CIV032,Sassandra-Marahoué,Côte d'Ivoire,CIV,AFR,False,40.5,False,False
+CIV032,Sassandra-Marahoué,Côte d'Ivoire,CIV,AFR,CIV034,Vallée du Bandama,Côte d'Ivoire,CIV,AFR,False,39.3,False,False
+NIC004,Chontales,Nicaragua,NIC,LCR,NIC017,Rivas,Nicaragua,NIC,LCR,False,56.2,False,False
+NIC004,Chontales,Nicaragua,NIC,LCR,NIC006,Granada,Nicaragua,NIC,LCR,False,32.2,False,False
+BRA025,Rio Grande Do Sul,Brazil,BRA,LCR,URY019,Treinta Y Tres,Uruguay,URY,LCR,True,62.1,False,False
+COD017,Ituri,Democratic Republic of Congo,COD,AFR,UGA031,Hoima,Uganda,UGA,AFR,True,88.1,False,False
+COD017,Ituri,Democratic Republic of Congo,COD,AFR,UGA020,Buliisa,Uganda,UGA,AFR,True,43.5,False,False
+UGA020,Buliisa,Uganda,UGA,AFR,UGA091,Nebbi,Uganda,UGA,AFR,False,11.1,False,False
+UGA031,Hoima,Uganda,UGA,AFR,UGA093,Ntoroko,Uganda,UGA,AFR,False,9.7,False,False
+COD009,Nord-Kivu,Democratic Republic of Congo,COD,AFR,UGA101,Rubirizi,Uganda,UGA,AFR,True,14.5,False,False
+COD009,Nord-Kivu,Democratic Republic of Congo,COD,AFR,UGA102,Rukungiri,Uganda,UGA,AFR,True,0.8,True,True
+CAN009,Ontario,Canada,CAN,Other,USA036,Ohio,United States of America,USA,Other,True,246.7,False,False
+CAN009,Ontario,Canada,CAN,Other,USA039,Pennsylvania,United States of America,USA,Other,True,66.4,False,False
+UGA005,Amolatar,Uganda,UGA,AFR,UGA027,Buyende,Uganda,UGA,AFR,False,17.2,False,False
+UGA027,Buyende,Uganda,UGA,AFR,UGA039,Kaberamaido,Uganda,UGA,AFR,False,5.0,False,False
+MOZXXX,Area under National Administration,Mozambique,MOZ,AFR,MWI002,Northern Region,Malawi,MWI,AFR,True,79.0,False,False
+USA014,Illinois,United States of America,USA,Other,USA023,Michigan,United States of America,USA,Other,False,83.0,False,False
+RUS061,Pskovskaya Oblast,Russian Federation,RUS,ECA,EST013,Tartu maakond,Estonia,EST,ECA,True,67.8,False,False
+USA023,Michigan,United States of America,USA,Other,USA024,Minnesota,United States of America,USA,Other,False,87.8,False,False
+COD030,Tanganyika,Democratic Republic of Congo,COD,AFR,TZA010,Kigoma,Tanzania,TZA,AFR,True,233.5,False,False
+COD030,Tanganyika,Democratic Republic of Congo,COD,AFR,TZA024,Rukwa,Tanzania,TZA,AFR,True,142.9,False,False
+BDI020,Rumonge,Burundi,BDI,AFR,COD011,Sud-Kivu,Democratic Republic of Congo,COD,AFR,True,77.8,False,False
+COD011,Sud-Kivu,Democratic Republic of Congo,COD,AFR,TZA010,Kigoma,Tanzania,TZA,AFR,True,64.5,False,False
+COD030,Tanganyika,Democratic Republic of Congo,COD,AFR,TZA009,Katavi,Tanzania,TZA,AFR,True,37.6,False,False
+BDI011,Makamba,Burundi,BDI,AFR,COD011,Sud-Kivu,Democratic Republic of Congo,COD,AFR,True,22.1,False,False
+BDI002,Mairie de Bujumbura,Burundi,BDI,AFR,COD011,Sud-Kivu,Democratic Republic of Congo,COD,AFR,True,7.1,False,False
+TZA016,Mara,Tanzania,TZA,AFR,TZA021,Mwanza,Tanzania,TZA,AFR,False,196.9,False,False
+UGA026,Buvuma,Uganda,UGA,AFR,UGA075,Mayuge,Uganda,UGA,AFR,False,164.6,False,False
+TZA006,Kagera,Tanzania,TZA,AFR,TZA021,Mwanza,Tanzania,TZA,AFR,False,124.9,False,False
+UGA026,Buvuma,Uganda,UGA,AFR,UGA040,Kalangala,Uganda,UGA,AFR,False,94.0,False,False
+TZA006,Kagera,Tanzania,TZA,AFR,UGA040,Kalangala,Uganda,UGA,AFR,True,83.5,False,False
+UGA040,Kalangala,Uganda,UGA,AFR,UGA073,Masaka,Uganda,UGA,AFR,False,78.8,False,False
+TZA016,Mara,Tanzania,TZA,AFR,UGA026,Buvuma,Uganda,UGA,AFR,True,71.8,False,False
+KEN008,Homa Bay,Kenya,KEN,AFR,KEN038,Siaya,Kenya,KEN,AFR,False,70.4,False,False
+UGA026,Buvuma,Uganda,UGA,AFR,UGA015,Buikwe,Uganda,UGA,AFR,False,61.7,False,False
+KEN008,Homa Bay,Kenya,KEN,AFR,UGA088,Namayingo,Uganda,UGA,AFR,True,51.8,False,False
+TZA006,Kagera,Tanzania,TZA,AFR,TZA016,Mara,Tanzania,TZA,AFR,False,51.0,False,False
+UGA040,Kalangala,Uganda,UGA,AFR,UGA084,Mukono,Uganda,UGA,AFR,False,41.9,False,False
+KEN038,Siaya,Kenya,KEN,AFR,UGA088,Namayingo,Uganda,UGA,AFR,True,35.4,False,False
+TZA016,Mara,Tanzania,TZA,AFR,UGA088,Namayingo,Uganda,UGA,AFR,True,30.6,False,False
+UGA040,Kalangala,Uganda,UGA,AFR,UGA109,Wakiso,Uganda,UGA,AFR,False,27.9,False,False
+UGA040,Kalangala,Uganda,UGA,AFR,UGA082,Mpigi,Uganda,UGA,AFR,False,27.8,False,False
+UGA026,Buvuma,Uganda,UGA,AFR,UGA084,Mukono,Uganda,UGA,AFR,False,25.5,False,False
+KEN027,Migori,Kenya,KEN,AFR,UGA088,Namayingo,Uganda,UGA,AFR,True,21.6,False,False
+UGA040,Kalangala,Uganda,UGA,AFR,UGA100,Rakai,Uganda,UGA,AFR,False,20.3,False,False
+TZA016,Mara,Tanzania,TZA,AFR,UGA075,Mayuge,Uganda,UGA,AFR,True,15.5,False,False
+TZA016,Mara,Tanzania,TZA,AFR,UGA040,Kalangala,Uganda,UGA,AFR,True,13.8,False,False
+UGA015,Buikwe,Uganda,UGA,AFR,UGA075,Mayuge,Uganda,UGA,AFR,False,3.7,True,False
+GHA004,Eastern,Ghana,GHA,AFR,GHA016,Oti,Ghana,GHA,AFR,False,14.3,False,False
+SWE014,Soedermanlands Laen,Sweden,SWE,Other,SWE016,Uppsala Laen,Sweden,SWE,Other,False,35.7,False,False
+BRA020,Parana,Brazil,BRA,LCR,PRY007,Canindeyu,Paraguay,PRY,LCR,True,85.5,False,False
+SWE012,Oestergoetlands Laen,Sweden,SWE,Other,SWE021,Vaestra Goetalands Laen,Sweden,SWE,Other,False,56.2,False,False
+POL011,Pomorskie,Poland,POL,ECA,RUS023,Kaliningradskaya Oblast,Russian Federation,RUS,ECA,True,0.9,True,True
