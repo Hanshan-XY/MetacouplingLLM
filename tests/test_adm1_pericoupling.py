@@ -400,6 +400,17 @@ class TestResolveAdm1Code:
         assert resolve_adm1_code("Michoacán") == "MEX016"
         assert resolve_adm1_code("São Paulo") == "BRA029"
 
+    def test_non_decomposable_letters_fold(self):
+        """Native-script queries with letters NFKD cannot decompose
+        (Ł, Đ, ø, ...) transliterate to the ASCII names the DB stores.
+        Previously these returned None while their ASCII forms worked."""
+        assert resolve_adm1_code("Łódź") == "POL003"
+        assert resolve_adm1_code("Đắk Lắk") == "VNM016"
+        assert resolve_adm1_code("Đồng Nai") == "VNM019"
+        # the ASCII forms keep resolving identically
+        assert resolve_adm1_code("Lodz") == "POL003"
+        assert resolve_adm1_code("Dak Lak") == "VNM016"
+
     def test_folded_ambiguity_respects_country_filter(self):
         """Folded match honors the country filter — if a folded
         candidate exists outside the requested country, it's
