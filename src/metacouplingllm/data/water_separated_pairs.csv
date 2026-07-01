@@ -341,6 +341,7 @@ adm0,BDI,COD,True,,,adm1-rollup
 adm0,BWA,ZMB,True,,,adm1-rollup
 adm0,CAF,COD,False,,,adm1-rollup
 adm0,CHN,PRK,True,,,adm1-rollup
+adm0,COD,TZA,False,,,adm1-rollup
 adm0,FIN,SWE,True,,,adm1-rollup
 adm0,GRC,TUR,True,,,adm1-rollup
 adm0,JOR,PSE,True,,,adm1-rollup

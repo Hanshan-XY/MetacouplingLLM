@@ -217,13 +217,23 @@ class TestCouplingStandardAdm0:
         lenient = _get_pairs(coupling_standard="lenient")
         moderate = _get_pairs(coupling_standard="moderate")
         stringent = _get_pairs(coupling_standard="stringent")
-        # moderate drops the 2 no-bridge water-only country pairs (COD/CAF,
-        # MRT/SEN); stringent drops all 20 water-only country pairs (17 + the
-        # 3 wide-river-overlay roll-ups MOZ/TZA, PRK/RUS, BWA/ZMB, all bridged).
-        assert len(lenient) - len(moderate) == 2
-        assert len(lenient) - len(stringent) == 20
+        # moderate drops the 3 no-bridge water-only country pairs (COD/CAF,
+        # MRT/SEN, and the lake-overlay COD/TZA across Lake Tanganyika);
+        # stringent drops all 21 water-only country pairs (17 + the 3
+        # wide-river-overlay roll-ups MOZ/TZA, PRK/RUS, BWA/ZMB + COD/TZA).
+        assert len(lenient) - len(moderate) == 3
+        assert len(lenient) - len(stringent) == 21
         assert frozenset({"COD", "CAF"}) in lenient
         assert frozenset({"COD", "CAF"}) not in moderate
+
+    def test_lake_only_country_pair_lenient_only(self):
+        # COD <-> TZA meet only across Lake Tanganyika (lake overlay): the
+        # sole lake-only country pair.  No fixed crossing -> lenient only.
+        assert is_pericoupled("COD", "TZA", coupling_standard="lenient") is True
+        assert is_pericoupled("COD", "TZA", coupling_standard="moderate") is False
+        assert (
+            is_pericoupled("COD", "TZA", coupling_standard="stringent") is False
+        )
 
     def test_vatican_is_a_land_border_not_water_only(self):
         # Italy <-> Vatican City is a ~2.7 km LAND border (the Vatican is an
