@@ -218,9 +218,10 @@ class TestCouplingStandardAdm0:
         moderate = _get_pairs(coupling_standard="moderate")
         stringent = _get_pairs(coupling_standard="stringent")
         # moderate drops the 2 no-bridge water-only country pairs (COD/CAF,
-        # MRT/SEN); stringent drops all 17 water-only country pairs.
+        # MRT/SEN); stringent drops all 20 water-only country pairs (17 + the
+        # 3 wide-river-overlay roll-ups MOZ/TZA, PRK/RUS, BWA/ZMB, all bridged).
         assert len(lenient) - len(moderate) == 2
-        assert len(lenient) - len(stringent) == 17
+        assert len(lenient) - len(stringent) == 20
         assert frozenset({"COD", "CAF"}) in lenient
         assert frozenset({"COD", "CAF"}) not in moderate
 

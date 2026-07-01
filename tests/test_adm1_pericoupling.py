@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8381, (
-            f"Expected 8381 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8387, (
+            f"Expected 8387 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -724,6 +724,30 @@ class TestCouplingStandardAdm1:
         assert is_adm1_pericoupled(
             "CHN019", "RUS014", coupling_standard="stringent"
         ) is False
+
+    def test_wide_river_overlay_pairs(self):
+        # 13-pair wide-river overlay (5 km re-screen + ground-truth): existing
+        # edges reclassified as water-only.  Ruse<->Giurgiu has the Friendship
+        # Bridge (kept under moderate); Silistra<->Calarasi is ferry-only.
+        from metacouplingllm.knowledge import adm1_pericoupling as A
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        is_adm1_pericoupled("USA044", "MEX028")   # warm the loaders
+        wide = [("BGR018", "ROU012"), ("BGR016", "ROU020"), ("BGR013", "ROU037"),
+                ("BGR010", "ROU018"), ("BGR028", "ROU018"), ("BGR013", "ROU031"),
+                ("BGR026", "ROU037"), ("BGR016", "ROU037"), ("MOZ008", "TZA025"),
+                ("ALB031", "MNE020"), ("DEU011", "LUX002"), ("PRK002", "RUS060"),
+                ("BWA002", "ZMB109")]
+        for a, b in wide:                          # all are water-only + edges
+            assert frozenset({a, b}) in A._adm1_water_all
+            assert frozenset({a, b}) in A._adm1_pairs
+        # bridged Danube span (Ruse<->Giurgiu): kept moderate, dropped stringent
+        assert is_adm1_pericoupled("BGR016", "ROU020", coupling_standard="moderate") is True
+        assert is_adm1_pericoupled("BGR016", "ROU020", coupling_standard="stringent") is False
+        # ferry-only Danube span (Silistra<->Calarasi): dropped under moderate
+        assert is_adm1_pericoupled("BGR018", "ROU012", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("BGR018", "ROU012", coupling_standard="moderate") is False
 
     def test_land_pair_unaffected_by_standard(self):
         # AFG001 <-> PAK005 is a land border -> pericoupled under every standard.

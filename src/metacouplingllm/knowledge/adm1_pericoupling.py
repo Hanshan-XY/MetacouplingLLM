@@ -5,9 +5,15 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,381 border pairs** covering **3,373 unique ADM1
+The edge list contains **8,387 border pairs** covering **3,373 unique ADM1
 regions** across **196 countries**, including both within-country and
-cross-country borders.
+cross-country borders.  This total includes a **6-pair river-gap overlay**
+(``river_gap_overlay_pairs.csv``): cross-border river-separated pairs the
+strict topology omits because the source digitizes the two banks as
+non-touching geometry, recovered by the near-miss audit (all are water-only,
+governed by ``coupling_standard``).  A separate **13-pair wide-river overlay**
+(``wide_river_overlay_pairs.csv``) reclassifies *existing* edges as water-only
+(it adds no edges, so the 8,387 total is unchanged); see ``data/PROVENANCE.md``.
 
 Source
 ------

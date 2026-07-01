@@ -8380,3 +8380,9 @@ MAR005,Guelmim-Oued Noun,Morocco,MAR,MENA,MRT012,Tiris-Zemmou,Mauritania,MRT,AFR
 MAR007,Laâyoune-Sakia al Hamra,Morocco,MAR,MENA,MRT001,Adrar,Mauritania,MRT,AFR,True,95.5,False,False
 MAR007,Laâyoune-Sakia al Hamra,Morocco,MAR,MENA,MRT004,Dakhlet-Nouadhibou,Mauritania,MRT,AFR,True,404.7,False,False
 MAR007,Laâyoune-Sakia al Hamra,Morocco,MAR,MENA,MRT012,Tiris-Zemmou,Mauritania,MRT,AFR,True,757.0,False,False
+ROU019,Galaţi,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,0.0200,True,False
+ROU039,Tulcea,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,15.2500,False,False
+ROU013,Caraş-Severin,Romania,ROU,ECA,SRB001,Borski,Serbia,SRB,ECA,True,0.6200,True,False
+MDA006,Cahul,Moldova,MDA,ECA,ROU041,Vaslui,Romania,ROU,ECA,True,1.7000,True,False
+DEU012,Saarland,Germany,DEU,Other,LUX002,Grevenmacher,Luxembourg,LUX,Other,True,6.6500,False,False
+GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.3600,True,False
