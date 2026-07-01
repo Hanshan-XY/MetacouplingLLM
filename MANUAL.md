@@ -1465,7 +1465,7 @@ water-only pairs — see §8 "Adjacency standards".
 | `get_adm1_codes_for_country(iso)` | `set[str]` | All ADM1 codes inside the given country. |
 | `get_adm1_info(code)` | `dict \| None` | ADM1 metadata (canonical name, country, region). |
 | `get_adm1_country(code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
-| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles possessives, hyphens and unaccented forms (PR #45) and **English exonyms / alternative spellings** via a bundled alias table (PR #60/#61) — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles possessives, hyphens, unaccented forms, and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` (PR #45) — and **English exonyms / alternative spellings** via a bundled alias table (PR #60/#61) — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
 | `get_adm1_aliases(code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
 
 ### Literature Functions
@@ -1622,7 +1622,9 @@ VALIDATION block. But a few edge cases still slip through:
 
 - **Non-canonical names.** The DB uses official names (e.g.
   `Michoacán de Ocampo`, not `Michoacan State`). Short or colloquial
-  forms work via the substring / folded fallback, and many English
+  forms work via the substring / folded fallback (which also
+  transliterates letters NFKD cannot decompose, e.g. `Łódź`,
+  `Đắk Lắk`), and many English
   exonyms now resolve through the alias table, but truly different
   names (e.g. local short names not in the gazetteer or the alias table)
   won't.

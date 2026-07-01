@@ -358,3 +358,34 @@ sources: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
   via the Houtribdijk, Flevoland↔Gelderland via the Nijkerkerbrug,
   Södermanland↔Uppsala via the Hjulstabron), and `stringent` keeps none.
   `lenient` therefore equals the shipped base adjacency (8,451 edges).
+
+## 9. Name resolution (lookup layer)
+
+Not part of the geometry build, but part of using the shipped data: the
+runtime lookup layer resolves free-text region names to World Bank ADM1 codes
+(`resolve_adm1_code`) through ordered strategies, each designed to fail to
+`None` rather than guess:
+
+1. **Alias table** (`data/adm1_aliases.csv`; 1,145 validated English exonyms /
+   alternative spellings for 863 regions across 136 countries, PR #60/#61) —
+   `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`. Additions-only,
+   deterministically validated, with a curated review denylist.
+2. **Exact / normalized match** against the official WB names, tolerant of
+   possessives, hyphens, and administrative suffixes.
+3. **Accent-folded fallback** (PR #45): lookup keys and queries are
+   NFKD-normalized with combining marks stripped, so unaccented input matches
+   accented names in either direction (`"Michoacan"` → `Michoacán de Ocampo`;
+   `"Jõgeva"` ≡ `"Jogeva"` → `EST006`). The fold also **transliterates the
+   handful of standalone letters NFKD cannot decompose** (Ł/ł, Đ/đ, Ø/ø, Ð/ð,
+   Þ/þ, Æ/æ, Œ/œ, ß, ı), so native-script queries resolve the ASCII names the
+   database stores — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016`. The same
+   fold builds the index and folds queries, so matching stays symmetric.
+4. **Token-based substring match** with direction guards (PR #61): a query
+   must match whole name tokens, so `"york"` does not match `New York` and
+   grammatically declined stems (`"Krāslava"` vs `Krāslavas novads`) do not
+   stem-match — deliberate strictness; such cases are handled by adding an
+   alias-table entry, not by loosening the matcher.
+
+Ambiguous names (several candidate regions, or a name denoting a different
+place, e.g. `"Mexico City"` vs the State of México) return `None`. Full usage
+documentation: `MANUAL.md` §8 and §12.

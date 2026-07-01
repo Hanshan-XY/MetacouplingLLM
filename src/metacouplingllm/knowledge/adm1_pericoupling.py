@@ -808,20 +808,41 @@ def _get_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
     return _adm1_name_index
 
 
+# Letters NFKD cannot decompose (they are distinct letters, not
+# letter + combining mark), mapped to their conventional ASCII
+# transliterations so native-script queries such as "Łódź" or
+# "Đắk Lắk" fold to the ASCII names the database stores.
+_NON_DECOMPOSABLE = str.maketrans({
+    "Đ": "D", "đ": "d",
+    "Ł": "L", "ł": "l",
+    "Ø": "O", "ø": "o",
+    "Ð": "D", "ð": "d",
+    "Þ": "Th", "þ": "th",
+    "Æ": "AE", "æ": "ae",
+    "Œ": "OE", "œ": "oe",
+    "ß": "ss",
+    "ı": "i",
+})
+
+
 def _fold_diacritics(text: str) -> str:
-    """NFKD-normalize and strip combining marks.
+    """NFKD-normalize, strip combining marks, and transliterate
+    the handful of letters NFKD cannot decompose.
 
     Used by the accent-folded fallback in ``resolve_adm1_code``
     (PR #45) so that unaccented user input — common in English
     text and many LLM outputs — still resolves accented region
     names in the database (e.g. ``"Michoacan"`` → ``MEX016``
-    even though the DB name is ``"Michoacán de Ocampo"``).
+    even though the DB name is ``"Michoacán de Ocampo"``), and
+    conversely so that native-script input with non-decomposable
+    letters (``"Łódź"``, ``"Đắk Lắk"``) still resolves the ASCII
+    names the database stores.
     """
     import unicodedata
     return "".join(
         c for c in unicodedata.normalize("NFKD", text)
         if not unicodedata.combining(c)
-    )
+    ).translate(_NON_DECOMPOSABLE)
 
 
 _adm1_folded_index: dict[str, list[tuple[str, str]]] | None = None
