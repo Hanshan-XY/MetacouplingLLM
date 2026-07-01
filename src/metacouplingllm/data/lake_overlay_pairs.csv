@@ -62,3 +62,4 @@ SWE014,Soedermanlands Laen,SWE,SWE016,Uppsala Laen,SWE,Mälaren,35.7,True,Hjulst
 BRA020,Parana,BRA,PRY007,Canindeyu,PRY,Represa Itaipu,85.5,False,,NE lake filter candidate set; per-pair OSM+web+manual bridge review (2026-06)
 SWE012,Oestergoetlands Laen,SWE,SWE021,Vaestra Goetalands Laen,SWE,Vättern,56.2,False,,NE lake filter candidate set; per-pair OSM+web+manual bridge review (2026-06)
 POL011,Pomorskie,POL,RUS023,Kaliningradskaya Oblast,RUS,Zalew Wislany,0.9,False,,NE lake filter candidate set; per-pair OSM+web+manual bridge review (2026-06)
+EST006,Jõgeva maakond,EST,RUS061,Pskovskaya Oblast,RUS,Lake Peipus,0.5,False,,"lake-gap near-miss (audited: gap ~0.0 km, facing arc ~0.5 km, frac_lake=1.0 in both river layers); human-verified 2026-07-01"

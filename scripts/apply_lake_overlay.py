@@ -105,6 +105,20 @@ def main() -> None:
                               r.get("water_type", "").strip(),
                               r.get("water_body", "").strip(),
                               r.get("note", "").strip()))
+
+    # ensure every manifest pair has an adm1 water row (the original 63 were
+    # already classified; lake-gap additions arrive with the manifest)
+    added_water = 0
+    for m in manifest:
+        pair = frozenset({m["code_a"], m["code_b"]})
+        if pair in water_all:
+            continue
+        br = "True" if str(m["has_bridge"]).strip() == "True" else "False"
+        adm1_rows.append((m["code_a"], m["code_b"], br, "lake", m["lake"],
+                          "lake-gap overlay (audited near-miss)"))
+        water_all.add(pair)
+        has_b[pair] = br == "True"
+        added_water += 1
     edges, iso = set(), {}
     with open(EDGE_LIST, newline="", encoding="utf-8-sig") as fh:
         for r in csv.DictReader(fh):
@@ -132,7 +146,8 @@ def main() -> None:
             w.writerow(["adm0", ia, ib, br, "", "", "adm1-rollup"])
 
     nob = sum(1 for r in adm1_rows if r[2] != "True")
-    print(f"lake overlay applied: +{added} adm1 edge(s); adm0 matrix cells patched: {patched or 'none'}")
+    print(f"lake overlay applied: +{added} adm1 edge(s), +{added_water} water row(s); "
+          f"adm0 matrix cells patched: {patched or 'none'}")
     print(f"  adm1 water-only rows: {len(adm1_rows)}  (bridge {len(adm1_rows)-nob} / no-bridge {nob})")
     print(f"  adm0 roll-up rows:    {len(adm0_out)}")
 

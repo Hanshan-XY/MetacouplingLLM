@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8450, (
-            f"Expected 8450 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8451, (
+            f"Expected 8451 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -772,6 +772,10 @@ class TestCouplingStandardAdm1:
         # Tanganyika <-> Kigoma across Lake Tanganyika: lenient only
         assert is_adm1_pericoupled("COD030", "TZA010", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("COD030", "TZA010", coupling_standard="moderate") is False
+        # Jogeva <-> Pskov across Lake Peipus (lake-gap addition: shores
+        # digitized as non-touching; manually verified): lenient only
+        assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="moderate") is False
 
     def test_land_pair_unaffected_by_standard(self):
         # AFG001 <-> PAK005 is a land border -> pericoupled under every standard.
