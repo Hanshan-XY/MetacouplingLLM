@@ -8449,3 +8449,4 @@ SWE014,Soedermanlands Laen,Sweden,SWE,Other,SWE016,Uppsala Laen,Sweden,SWE,Other
 BRA020,Parana,Brazil,BRA,LCR,PRY007,Canindeyu,Paraguay,PRY,LCR,True,85.5,False,False
 SWE012,Oestergoetlands Laen,Sweden,SWE,Other,SWE021,Vaestra Goetalands Laen,Sweden,SWE,Other,False,56.2,False,False
 POL011,Pomorskie,Poland,POL,ECA,RUS023,Kaliningradskaya Oblast,Russian Federation,RUS,ECA,True,0.9,True,True
+EST006,Jõgeva maakond,Estonia,EST,ECA,RUS061,Pskovskaya Oblast,Russian Federation,RUS,ECA,True,0.5,True,True

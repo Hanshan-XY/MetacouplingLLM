@@ -104,8 +104,8 @@ tolerances:
 | 2×10⁻³ | 222 | 8,391 | +22 (+0.26%) | 325 |
 | 5×10⁻³ | 555 | 8,456 | +87 (+1.04%) | 325 |
 
-\* Raw build figure. The shipped ADM1 count is **8,450** (8,369 − 1 §4 Malta
-removal + 13 §5 de-facto overlay + 6 river-gap overlay + 63 lake overlay, §8);
+\* Raw build figure. The shipped ADM1 count is **8,451** (8,369 − 1 §4 Malta
+removal + 13 §5 de-facto overlay + 6 river-gap overlay + 64 lake overlay, §8);
 the shipped ADM0 count is **326** (the §5 overlay's net addition MAR/MRT plus
 the lake overlay's COD/TZA are tolerance-independent constants — this sweep's
 ADM0 column reflects the 2-pair disputed allowlist in force when it was run).
@@ -143,7 +143,7 @@ Sensitivity (ADM1; snap tolerance and lake filter held fixed):
 
 The **edge count is invariant (8,369) at every width** — empirical confirmation
 that the river buffer is a length-only parameter. (This harness reads the raw
-edge set before the §4 removal and the §5/§8 overlays; the shipped count is 8,450.) Over
+edge set before the §4 removal and the §5/§8 overlays; the shipped count is 8,451.) Over
 [0, 2×10⁻³°] total border length moves only ~1.8% and the advisory-flag counts
 barely change; only at 8×10⁻³° (≈4× the chosen value) does the effect become
 large (length −6%, and 36 short borders erased entirely). About **25% of edges
@@ -192,8 +192,8 @@ load-bearing.
 with no shared frontier; the tolerance fabricated the edge) and is removed via
 `_ADM1_FALSE_POSITIVE_DENYLIST` in the build script (8,369 → 8,368). The
 shipped edge list then adds the **13 de-facto disputed-territory overlay edges**
-(§5), the **6 river-gap overlay edges** and the **63 lake overlay edges** (§8),
-for a final count of **8,450**.
+(§5), the **6 river-gap overlay edges** and the **64 lake overlay edges** (§8),
+for a final count of **8,451**.
 
 **Takeaway.** The snapping tolerance is *necessary* (it recovers real borders
 that exact matching misses) yet *insufficient alone* (it can fabricate edges
@@ -313,18 +313,20 @@ orthogonal to `de_facto_borders`:
 | `moderate` *(default)* | a **fixed crossing open to traffic** links the two units |
 | `stringent` | never (water never counts) |
 
-**Data.** `data/water_separated_pairs.csv` lists the **333 ADM1** water-only
+**Data.** `data/water_separated_pairs.csv` lists the **334 ADM1** water-only
 pairs with a `has_bridge` flag (314 land-classified + 6 river-gap overlay + 13
-wide-river overlay), plus **21 ADM0** country pairs rolled up from them (a
+wide-river overlay + 1 lake-gap overlay), plus **21 ADM0** country pairs rolled up from them (a
 country pair is water-only iff *all* its ADM1 crossings are, and has a bridge
 iff *any* does). Three reviewed overlays feed this set — the **river-gap
 overlay** (6 near-miss river pairs restored as edges), the **wide-river
 overlay** (13 existing edges reclassified water-only after a 5 km candidate
-re-screen), and the **lake overlay** (63 audited lake-only pairs restored as
-edges so the standard governs lakes exactly like rivers) — each shipped as a
+re-screen), and the **lake overlay** (63 audited lake-only pairs plus 1 audited
+lake-gap near-miss — Jõgeva↔Pskov across Lake Peipus, whose shores the source
+digitizes as non-touching — restored as edges so the standard governs lakes
+exactly like rivers) — each shipped as a
 manifest with an idempotent apply script (`data/*_overlay_pairs.csv`,
 `scripts/apply_*_overlay.py`; full provenance in `data/PROVENANCE.md`). Under
-the default, ADM1 pericoupled edges fall 8,450 → **8,232** and ADM0 country
+the default, ADM1 pericoupled edges fall 8,451 → **8,232** and ADM0 country
 pairs 326 → **323**.
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
@@ -355,4 +357,4 @@ sources: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
   keeps only the three lake pairs with a fixed crossing (Flevoland↔Noord-Holland
   via the Houtribdijk, Flevoland↔Gelderland via the Nijkerkerbrug,
   Södermanland↔Uppsala via the Hjulstabron), and `stringent` keeps none.
-  `lenient` therefore equals the shipped base adjacency (8,450 edges).
+  `lenient` therefore equals the shipped base adjacency (8,451 edges).
