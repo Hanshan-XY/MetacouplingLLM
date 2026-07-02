@@ -124,17 +124,23 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
 - **River-separated province pairs (river-gap overlay).** Under the strict
   land-border rule, cross-border ADM1 pairs separated by a river can be missed
   when the WB source digitises the two opposite banks as non-touching polygons.
-  All 48 cross-border near-miss pairs (within ~1 km, not touching) were audited
-  with a Natural-Earth-vs-HydroRIVERS cross-check and per-pair ground-truth
-  against authoritative border geography (`paper/SUPPLEMENT_river_border_audit.md`).
-  This found **six** genuinely omitted river-separated pairs (across the Danube,
+  All 48 cross-border near-miss pairs (within ~1 km, not touching) were screened
+  with a Natural-Earth-vs-HydroRIVERS cross-check
+  (`paper/SUPPLEMENT_river_border_audit.md`); the **29** pairs either river
+  layer flags as water or maritime were then individually ground-truthed
+  against authoritative border geography, while the other **19** — dry slivers
+  on which both river layers and the build agree there is no water feature —
+  were accepted as correctly omitted on that layer agreement, without
+  individual ground-truth. The ground-truth found **six** genuinely omitted
+  river-separated pairs (across the Danube,
   Prut, Moselle, and Maroni), now restored as the reviewed **river-gap overlay**
   (`river_gap_overlay_pairs.csv`, applied by `scripts/apply_river_gap_overlay.py`);
   they are water-only pairs governed by `coupling_standard`. The audit supersedes
-  the earlier rough "~29" estimate, which had conflated all river-adjacent
-  near-miss pairs with genuine omissions; the remaining near-miss pairs are
-  correctly omitted (tripoint/quadripoint corners, sea straits, dry-land or
-  internal boundaries, and one wide-lake case). Genuine river-following borders
+  the earlier rough "~29 omitted river pairs" estimate, which had conflated all
+  river-adjacent near-miss pairs with genuine omissions; the remaining
+  ground-truthed pairs are correctly omitted (tripoint/quadripoint corners, sea
+  straits, dry-land or internal boundaries), apart from the one wide-lake case,
+  which the lake overlay below restores. Genuine river-following borders
   whose polygons already share a line are retained as before (e.g. the DRC–Uganda
   Semliki-corridor districts).
 - **Wide-river overlay (5 km re-screen).** The 2.4 km river-centerline candidate
