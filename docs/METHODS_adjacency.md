@@ -104,8 +104,8 @@ tolerances:
 | 2×10⁻³ | 222 | 8,391 | +22 (+0.26%) | 325 |
 | 5×10⁻³ | 555 | 8,456 | +87 (+1.04%) | 325 |
 
-\* Raw build figure. The shipped ADM1 count is **8,451** (8,369 − 1 §4 Malta
-removal + 13 §5 de-facto overlay + 6 river-gap overlay + 64 lake overlay, §8);
+\* Raw build figure. The shipped ADM1 count is **8,453** (8,369 − 1 §4 Malta
+removal + 13 §5 de-facto overlay + 6 river-gap overlay + 64 lake overlay + 2 land-gap overlay, §8-9);
 the shipped ADM0 count is **326** (the §5 overlay's net addition MAR/MRT plus
 the lake overlay's COD/TZA are tolerance-independent constants — this sweep's
 ADM0 column reflects the 2-pair disputed allowlist in force when it was run).
@@ -116,6 +116,21 @@ the tolerance begins merging genuinely separate units (e.g. across rivers and
 straits); the additions there are increasingly cross-country with multi-km
 "shared" lengths. The result is therefore **insensitive to the precise tolerance
 within the plateau**, and 5×10⁻⁴° lies in its interior.
+
+The **87 pairs added above the shipped tolerance** (7 at 1×10⁻³, +15 at 2×10⁻³,
++65 at 5×10⁻³; 23 cross-border + 64 domestic) were audited per pair with the §4
+recovered-length-vs-tolerance diagnostic: **all 87 show the growing gap-corridor
+signature** and none the flat genuine-border signature. Every cross-border
+addition falls within the ground-truthed 48-pair near-miss set: five are the
+river-gap overlay pairs already restored to the shipped graph, and **two long
+survey-line corridors on the straight-surveyed Kenya-Tanzania border —
+Kajiado↔Kilimanjaro (~54 km) and Narok↔Mara (~70 km), whose dry-land adjacency
+lay outside the river audit's scope — were map-verified as genuine borders and
+restored as the land-gap overlay** (`land_gap_overlay_pairs.csv`, applied by
+`scripts/apply_land_gap_overlay.py`; ordinary land edges, pericoupled under
+every standard). The remaining cross-border additions and all 64 domestic
+additions are confirmed artifact corridors. Per-pair results:
+`build_data/snap_extras_audit/extras.csv` (local audit artifact, not shipped).
 
 ---
 
@@ -143,7 +158,7 @@ Sensitivity (ADM1; snap tolerance and lake filter held fixed):
 
 The **edge count is invariant (8,369) at every width** — empirical confirmation
 that the river buffer is a length-only parameter. (This harness reads the raw
-edge set before the §4 removal and the §5/§8 overlays; the shipped count is 8,451.) Over
+edge set before the §4 removal and the §5/§8 overlays; the shipped count is 8,453.) Over
 [0, 2×10⁻³°] total border length moves only ~1.8% and the advisory-flag counts
 barely change; only at 8×10⁻³° (≈4× the chosen value) does the effect become
 large (length −6%, and 36 short borders erased entirely). About **25% of edges
@@ -192,8 +207,8 @@ load-bearing.
 with no shared frontier; the tolerance fabricated the edge) and is removed via
 `_ADM1_FALSE_POSITIVE_DENYLIST` in the build script (8,369 → 8,368). The
 shipped edge list then adds the **13 de-facto disputed-territory overlay edges**
-(§5), the **6 river-gap overlay edges** and the **64 lake overlay edges** (§8),
-for a final count of **8,451**.
+(§5), the **6 river-gap overlay edges**, the **64 lake overlay edges** (§8), and the
+**2 land-gap overlay edges** (below), for a final count of **8,453**.
 
 **Takeaway.** The snapping tolerance is *necessary* (it recovers real borders
 that exact matching misses) yet *insufficient alone* (it can fabricate edges
@@ -326,7 +341,7 @@ digitizes as non-touching — restored as edges so the standard governs lakes
 exactly like rivers) — each shipped as a
 manifest with an idempotent apply script (`data/*_overlay_pairs.csv`,
 `scripts/apply_*_overlay.py`; full provenance in `data/PROVENANCE.md`). Under
-the default, ADM1 pericoupled edges fall 8,451 → **8,232** and ADM0 country
+the default, ADM1 pericoupled edges fall 8,453 → **8,234** and ADM0 country
 pairs 326 → **323**.
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
@@ -357,7 +372,7 @@ sources: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
   keeps only the three lake pairs with a fixed crossing (Flevoland↔Noord-Holland
   via the Houtribdijk, Flevoland↔Gelderland via the Nijkerkerbrug,
   Södermanland↔Uppsala via the Hjulstabron), and `stringent` keeps none.
-  `lenient` therefore equals the shipped base adjacency (8,451 edges).
+  `lenient` therefore equals the shipped base adjacency (8,453 edges).
 
 ## 9. Name resolution (lookup layer)
 

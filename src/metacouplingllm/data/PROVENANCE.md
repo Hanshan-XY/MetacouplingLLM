@@ -8,7 +8,7 @@ limitations of the two bundled adjacency datasets.
 
 | File | Shape | Content |
 |---|---|---|
-| `pericoupled_adm1_edge_list.csv` | 8,451 edges · 3,375 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
+| `pericoupled_adm1_edge_list.csv` | 8,453 edges · 3,375 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
@@ -104,8 +104,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   orthogonal to `de_facto_borders`: `lenient` keeps all water borders; `moderate`
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
-  borders since the lake overlay below (ADM1 shipped edges 8,451 →
-  **8,232** moderate / **8,117** stringent; ADM0 326 → **323** moderate /
+  borders since the lake overlay below (ADM1 shipped edges 8,453 →
+  **8,234** moderate / **8,119** stringent; ADM0 326 → **323** moderate /
   **305** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -168,9 +168,23 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   `COD`↔`TZA` across Lake Tanganyika (lenient-only) — and resolves the
   previously documented Flevoland limitation (Flevoland↔Utrecht correctly
   stays lenient-only: the Stichtse Brug lands in Noord-Holland). Final shipped
-  counts: ADM1 **8,451** edges (8,232 moderate / 8,117 stringent), ADM0
+  counts: ADM1 **8,453** edges (8,234 moderate / 8,119 stringent), ADM0
   **326** pairs (323 moderate / 305 stringent), water-only **334** ADM1
   (115/219) + **21** ADM0 roll-ups.
+- **Land-gap overlay (survey-line offset corridors).** Along straight-surveyed
+  borders the two countries' polygons can be digitized from different renderings
+  of the same line, leaving an offset corridor wider than the ~55 m snap
+  tolerance, so a genuine land border drops out of the strict build. The
+  snap-tolerance extras audit (all 87 pairs a looser tolerance would add,
+  screened with the recovered-length diagnostic; `build_data/snap_extras_audit/`)
+  surfaced two such cases on the Kenya-Tanzania survey line, both confirmed by
+  human map review (2026-07-01): **Kajiado↔Kilimanjaro** (`KEN010`↔`TZA011`,
+  ~54 km, the Loitokitok-Rombo sector) and **Narok↔Mara** (`KEN033`↔`TZA016`,
+  ~70 km, the Maasai Mara-Serengeti sector). Restored by the **land-gap overlay**
+  (`land_gap_overlay_pairs.csv`, applied by `scripts/apply_land_gap_overlay.py`).
+  Unlike the water overlays these are ordinary land borders, pericoupled under
+  every `coupling_standard`. Final shipped counts: ADM1 **8,453** (8,234
+  moderate / 8,119 stringent); ADM0, regions, and the water-only set unchanged.
 - **Collapsed-node (quadripoint) artifacts.** At a few places the WB source
   snaps two nearby tripoints to a single coordinate, producing a degenerate
   4-province node. This both *manufactures* a false point-contact between the
@@ -202,8 +216,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   **`MLT002`/`MLT019`** (Balzan / Iklin, Malta; polygons ~31 m apart) — is
   removed via a denylist in `scripts/build_pericoupling_db.py`, reducing the
   edge count from 8,369 to **8,368** (the de-facto disputed overlay then adds
-  13, the river-gap overlay 6, and the lake overlay 64, for the shipped total
-  of **8,451**; see the overlay sections above). A
+  13, the river-gap overlay 6, the lake overlay 64, and the land-gap overlay 2, for the shipped total
+  of **8,453**; see the overlay sections above). A
   sensitivity sweep shows adjacency is otherwise stable across snapping
   tolerances in [0, 10⁻³°] (<0.1% of ADM1 edges change; the ADM0 matrix is
   invariant across the plateau — the snap-independent overlays are an additive
