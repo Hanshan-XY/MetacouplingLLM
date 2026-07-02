@@ -221,8 +221,8 @@ class TestCouplingStandardAdm0:
         # MRT/SEN, and the lake-overlay COD/TZA across Lake Tanganyika);
         # stringent drops all 21 water-only country pairs (17 + the 3
         # wide-river-overlay roll-ups MOZ/TZA, PRK/RUS, BWA/ZMB + COD/TZA).
-        assert len(lenient) - len(moderate) == 3
-        assert len(lenient) - len(stringent) == 21
+        assert len(lenient) - len(moderate) == 4
+        assert len(lenient) - len(stringent) == 22
         assert frozenset({"COD", "CAF"}) in lenient
         assert frozenset({"COD", "CAF"}) not in moderate
 

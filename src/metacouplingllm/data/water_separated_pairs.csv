@@ -84,7 +84,6 @@ adm1,COD029,CAF006,False,river,Lobaye; Ubangi; Uele,
 adm1,UGA026,UGA075,False,lake,Lake Victoria,
 adm1,HUN008,SVK007,True,river,Danube,
 adm1,AZE051,IRN004,False,river,Aras,
-adm1,SSD002,UGA081,False,river,Albert Nile; Bahr el Jebel,
 adm1,AFG004,TJK004,False,river,Amu Darya,
 adm1,LAO012,THA071,False,river,Mekong,
 adm1,COD025,COG009,False,river,Congo,
@@ -94,7 +93,7 @@ adm1,MDA024,UKR021,True,river,Dniester,
 adm1,SWE014,SWE016,True,lake,Mälaren,
 adm1,MDA019,ROU007,False,river,Prut,
 adm1,BIH002,SRB020,True,river,Drina; Sava,
-adm1,RUS061,EST004,False,river,Narva,
+adm1,RUS061,EST004,False,lake,Lake Peipus (Chudskoye),
 adm1,HRV018,HUN002,False,river,Mur,
 adm1,ZAF001,LSO006,False,river,Orange,
 adm1,UGA040,UGA082,False,lake,Lake Victoria,
@@ -281,7 +280,6 @@ adm1,AZE015,IRN004,False,river,Aras,
 adm1,HRV010,SRB005,False,river,Danube,
 adm1,IRQ010,SYR001,True,river,Dicle; Tigris,
 adm1,MRT006,SEN014,False,river,Sénégal,
-adm1,HRV010,HUN001,False,river,Danube; Ferenc Csatorna,
 adm1,CHE004,DEU001,True,river,Rhin,
 adm1,CHE016,LIE001,True,river,Rhein,
 adm1,CHE016,LIE003,True,river,Rhein,
@@ -336,6 +334,23 @@ adm1,EST006,RUS061,False,lake,Lake Peipus,lake-gap overlay (audited near-miss)
 adm1,ARM007,TUR045,True,river,Akhurian,audit-water overlay (10km completeness audit + human map verification)
 adm1,BGR028,ROU031,False,river,Danube,audit-water overlay (10km completeness audit + human map verification)
 adm1,TZA006,UGA094,False,river,Kagera,audit-water overlay (10km completeness audit + human map verification)
+adm1,AUT006,SVN009,True,river,Mur; Kucnica,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,BDI013,RWA001,False,river,Kagera,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,BIH002,HRV014,True,river,Una; Sava,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,BLZ003,MEX023,True,river,Rio Hondo,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,BOL006,BRA026,False,river,Madeira; Abuna,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,BRA027,GUY008,False,river,Ireng,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,CIV025,LBR006,False,river,Cavally,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,CIV025,LBR010,False,river,Cavally,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,CIV025,LBR013,False,river,Cavally,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,CMR009,GNQ006,False,river,Ntem (Campo),hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,COG012,GAB006,False,river,Djoua,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,DEU004,POL005,True,river,Oder; Neisse,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,GEO005,AZE018,False,river,Alazani,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,GIN008,SLE001,False,river,Meli; Moa/Makona,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,GUF001,SUR009,False,river,Maroni; Lawa; Litani,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,LBR005,SLE001,False,river,Mano; Morro,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
+adm1,LBR005,SLE004,True,river,Mano,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
 adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
 adm0,ARG,PRY,True,,,adm1-rollup
@@ -348,6 +363,7 @@ adm0,CHN,PRK,True,,,adm1-rollup
 adm0,COD,TZA,False,,,adm1-rollup
 adm0,FIN,SWE,True,,,adm1-rollup
 adm0,GRC,TUR,True,,,adm1-rollup
+adm0,GUF,SUR,False,,,adm1-rollup
 adm0,JOR,PSE,True,,,adm1-rollup
 adm0,LAO,MMR,True,,,adm1-rollup
 adm0,MDA,ROU,True,,,adm1-rollup
