@@ -7,7 +7,7 @@ database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
 The edge list contains **8,453 border pairs** covering **3,375 unique ADM1
 regions** across **196 countries**, including both within-country and
-cross-country borders.  This total includes four reviewed overlays (see
+cross-country borders.  This total includes five reviewed overlays (see
 ``data/PROVENANCE.md``): a **6-pair river-gap overlay**
 (``river_gap_overlay_pairs.csv``): cross-border river-separated pairs the
 strict topology omits because the source digitizes the two banks as
@@ -23,7 +23,12 @@ keeps only those with a fixed crossing, ``stringent`` keeps none); and a
 map-verified dry-land survey-line borders on the Kenya-Tanzania frontier
 (Kajiado<->Kilimanjaro, Narok<->Mara) that the snap tolerance misses because
 the two national boundary renderings sit ~100 m apart; these are ordinary
-land edges, pericoupled under every standard.
+land edges, pericoupled under every standard; and a **3-pair audit-water
+overlay** (``audit_water_overlay_pairs.csv``) reclassifying as water-only three
+existing edges the Natural Earth screens missed (Shirak<->Kars on the Akhurian,
+Vratca<->Olt on a Danube span, Kagera<->Ntungamo on a 402 m Kagera-thalweg
+arc), flagged by the 10 km completeness audit and confirmed by human map review
+(flags only, no new edges).
 
 Source
 ------

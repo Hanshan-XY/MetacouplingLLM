@@ -788,6 +788,23 @@ class TestCouplingStandardAdm1:
         assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="moderate") is False
 
+    def test_audit_water_overlay_pairs(self):
+        # 3-pair audit-water overlay: existing edges reclassified water-only
+        # (10 km completeness audit + human map verification 2026-07-02).
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        # Shirak <-> Kars: Akhurian river, fixed crossing -> kept under moderate.
+        assert is_adm1_pericoupled("ARM007", "TUR045", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("ARM007", "TUR045", coupling_standard="moderate") is True
+        assert is_adm1_pericoupled("ARM007", "TUR045", coupling_standard="stringent") is False
+        # Vratca <-> Olt (Danube, ferry only) and Kagera <-> Ntungamo
+        # (Kagera-thalweg arc, no crossing): lenient-only.
+        for a, b in [("BGR028", "ROU031"), ("TZA006", "UGA094")]:
+            assert is_adm1_pericoupled(a, b, coupling_standard="lenient") is True
+            assert is_adm1_pericoupled(a, b, coupling_standard="moderate") is False
+            assert is_adm1_pericoupled(a, b, coupling_standard="stringent") is False
+
     def test_land_gap_overlay_pairs(self):
         # 2-pair land-gap overlay: genuine survey-line borders hidden by the
         # cross-source offset corridor (Kenya-Tanzania), map-verified and
