@@ -805,6 +805,24 @@ class TestCouplingStandardAdm1:
             assert is_adm1_pericoupled(a, b, coupling_standard="moderate") is False
             assert is_adm1_pericoupled(a, b, coupling_standard="stringent") is False
 
+    def test_hydro_water_overlay_pairs(self):
+        # 17-pair hydro-water overlay: water-only borders the NE screens missed,
+        # found by the HydroRIVERS full-database cross-check and human-verified
+        # (2026-07-02). Spot-check one bridged and one unbridged pair, plus the
+        # two pairs the same audit REMOVED from the water set.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        # Brandenburg <-> Lubuskie: Oder/Neisse, fixed crossings -> moderate keeps it.
+        assert is_adm1_pericoupled("DEU004", "POL005", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("DEU004", "POL005", coupling_standard="moderate") is True
+        assert is_adm1_pericoupled("DEU004", "POL005", coupling_standard="stringent") is False
+        # French Guiana <-> Sipaliwini: Maroni system, ferry only -> lenient-only.
+        assert is_adm1_pericoupled("GUF001", "SUR009", coupling_standard="moderate") is False
+        # Human-verified NOT water-only -> ordinary land edges under every standard.
+        for a, b in [("HRV010", "HUN001"), ("SSD002", "UGA081")]:
+            assert is_adm1_pericoupled(a, b, coupling_standard="stringent") is True
+
     def test_land_gap_overlay_pairs(self):
         # 2-pair land-gap overlay: genuine survey-line borders hidden by the
         # cross-source offset corridor (Kenya-Tanzania), map-verified and

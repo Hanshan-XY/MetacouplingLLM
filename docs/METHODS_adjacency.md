@@ -14,9 +14,9 @@ stages, both committed: **(a)** one deterministic geometry build
 (`scripts/build_pericoupling_db.py`, from SHA-256-pinned inputs — see
 `data/PROVENANCE.md` — including its internal one-entry Malta denylist and the
 geometry-derived 13-pair disputed overlay), and **(b)** one reviewed
-**correction layer**: five manifest CSVs holding **88 pair-rows** (72
-edge-restoring + 16 water-flag-only), each pair individually audited and
-human-verified, plus the 314-row bridge classification, applied in a single
+**correction layer**: six manifest CSVs holding **105 pair-rows** (72
+edge-restoring + 33 water-flag-only), each pair individually audited and
+human-verified, plus the 312-row bridge classification, applied in a single
 pass by the idempotent engine `scripts/apply_overlays.py`. One command
 reproduces the whole database (§7): `python scripts/build_all.py --full ...`
 from the pinned sources, or `python scripts/build_all.py` to re-derive and
@@ -363,9 +363,10 @@ orthogonal to `de_facto_borders`:
 | `moderate` *(default)* | a **fixed crossing open to traffic** links the two units |
 | `stringent` | never (water never counts) |
 
-**Data.** `data/water_separated_pairs.csv` lists the **337 ADM1** water-only
-pairs with a `has_bridge` flag (314 land-classified + 6 river-gap overlay + 13
-wide-river overlay + 1 lake-gap overlay + 3 audit-water overlay), plus **21 ADM0** country pairs rolled up from them (a
+**Data.** `data/water_separated_pairs.csv` lists the **352 ADM1** water-only
+pairs with a `has_bridge` flag (312 land-classified + 6 river-gap overlay + 13
+wide-river overlay + 1 lake-gap overlay + 3 audit-water overlay + 17
+hydro-water overlay), plus **22 ADM0** country pairs rolled up from them (a
 country pair is water-only iff *all* its ADM1 crossings are, and has a bridge
 iff *any* does). Four reviewed overlays feed this set — the **river-gap
 overlay** (6 near-miss river pairs restored as edges), the **wide-river
@@ -373,17 +374,30 @@ overlay** (13 existing edges reclassified water-only after a 5 km candidate
 re-screen), the **lake overlay** (63 audited lake-only pairs plus 1 audited
 lake-gap near-miss — Jõgeva↔Pskov across Lake Peipus, whose shores the source
 digitizes as non-touching — restored as edges so the standard governs lakes
-exactly like rivers), and the **audit-water overlay** (3 existing edges the
+exactly like rivers), the **audit-water overlay** (3 existing edges the
 Natural Earth screens missed — Shirak↔Kars on the Akhurian, Vratca↔Olt on a
 Danube main-stem span absent from the NE river list, Kagera↔Ntungamo on a
 402 m Kagera-thalweg arc — flagged by the 10 km completeness audit's two-pass
 verification and confirmed by human map review 2026-07-02; flags only, no new
-edges) — each shipped as a
+edges), and the **hydro-water overlay** (17 existing edges reclassified
+water-only by the **full-database HydroRIVERS cross-check** — every one of the
+1,800 cross-border edges sampled at ~0.5 km against HydroRIVERS v10 reaches
+within a ~500 m buffer at three discharge tiers, the 34 un-adjudicated flags
+two-stage ground-truthed, and every confirmation human map-verified
+2026-07-02; among them the Oder/Neisse, Rio Hondo, Cavally, Mano, Kagera, and
+Alazani borders. The same audit corrected the base classification itself:
+Pskov↔Ida-Viru reclassified river→lake — the border runs through Lake Peipus —
+and two pairs human-confirmed as NOT water-only were removed,
+Osijek-Baranja↔Bács-Kiskun and Eastern Equatoria↔Moyo, taking the base
+bridge-classified set from 314 to **312** rows with its SHA-256 pin updated) —
+each shipped as a
 reviewed manifest (`data/*_overlay_pairs.csv`) and applied in one pass by the
 idempotent engine `scripts/apply_overlays.py` (full provenance in
 `data/PROVENANCE.md`). Under
-the default, ADM1 pericoupled edges fall 8,453 → **8,232** and ADM0 country
-pairs 326 → **323**.
+the default, ADM1 pericoupled edges fall 8,453 → **8,222** and ADM0 country
+pairs 326 → **322** (the hydro-water overlay's GUF↔SUR roll-up — the Maroni
+system, ferry only — joins COD↔TZA, MRT↔SEN, and CAF↔COD as a default-view
+subtraction).
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and

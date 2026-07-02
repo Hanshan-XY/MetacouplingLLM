@@ -3,10 +3,9 @@ r"""Apply the reviewed overlay correction layer to the shipped adjacency data.
 The pericoupling database is constructed in two stages: a deterministic
 geometry build (``scripts/build_pericoupling_db.py``) and a **reviewed
 correction layer** -- five manifest CSVs in ``src/metacouplingllm/data/``
-holding 88 pair-rows (72 edge-restoring + 16 water-flag-only), each pair
+holding 105 pair-rows (72 edge-restoring + 33 water-flag-only), each pair
 individually audited and human-verified (provenance: ``data/PROVENANCE.md``).
-This engine applies the whole layer in one pass, replacing the five
-per-overlay scripts it supersedes:
+This engine applies the whole layer in one pass:
 
   ========== ================================== ===========================
   registry   manifest                           effect
@@ -17,6 +16,7 @@ per-overlay scripts it supersedes:
                                                 ADM0 matrix patch (COD-TZA)
   land_gap   land_gap_overlay_pairs.csv         +2 land edges
   audit_water audit_water_overlay_pairs.csv     water flags on 3 edges
+  hydro_water hydro_water_overlay_pairs.csv     water flags on 17 edges
   ========== ================================== ===========================
 
 The manifests are the single source of truth for the correction data; this
@@ -66,6 +66,8 @@ REGISTRY = [
      None, None, None),
     ("audit_water", "audit_water_overlay_pairs.csv", False, None,
      "river", "water_body", "audit-water overlay (10km completeness audit + human map verification)"),
+    ("hydro_water", "hydro_water_overlay_pairs.csv", False, None,
+     "river", "water_body", "hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)"),
 ]
 
 
