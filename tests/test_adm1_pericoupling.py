@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8451, (
-            f"Expected 8451 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8453, (
+            f"Expected 8453 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -787,6 +787,17 @@ class TestCouplingStandardAdm1:
         # digitized as non-touching; manually verified): lenient only
         assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="moderate") is False
+
+    def test_land_gap_overlay_pairs(self):
+        # 2-pair land-gap overlay: genuine survey-line borders hidden by the
+        # cross-source offset corridor (Kenya-Tanzania), map-verified and
+        # restored as ordinary LAND edges -> pericoupled under every standard.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        for s in ("lenient", "moderate", "stringent"):
+            assert is_adm1_pericoupled("KEN010", "TZA011", coupling_standard=s) is True
+            assert is_adm1_pericoupled("KEN033", "TZA016", coupling_standard=s) is True
 
     def test_land_pair_unaffected_by_standard(self):
         # AFG001 <-> PAK005 is a land border -> pericoupled under every standard.

@@ -1,0 +1,3 @@
+code_a,name_a,iso_a,code_b,name_b,iso_b,border_km,gap_km,source
+KEN010,Kajiado,KEN,TZA011,Kilimanjaro,TZA,54.4,0.101,"snap-extras audit (survey-line offset corridor along the straight-surveyed Kenya-Tanzania border; recovered length 49.6 km at 5e-3 deg, 54.4 km at 1e-2 deg); human map verification 2026-07-01"
+KEN033,Narok,KEN,TZA016,Mara,TZA,69.8,0.073,"snap-extras audit (survey-line offset corridor along the straight-surveyed Kenya-Tanzania border; recovered length 68.4 km at 5e-3 deg, 69.8 km at 1e-2 deg); human map verification 2026-07-01"
