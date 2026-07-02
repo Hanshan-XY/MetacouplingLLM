@@ -333,6 +333,9 @@ adm1,DEU011,LUX002,True,river,Moselle; Sauer,wide-river overlay (5km re-screen +
 adm1,PRK002,RUS060,True,river,Tumen,wide-river overlay (5km re-screen + ground-truth)
 adm1,BWA002,ZMB109,True,river,Chobe; Zambezi,wide-river overlay (5km re-screen + ground-truth)
 adm1,EST006,RUS061,False,lake,Lake Peipus,lake-gap overlay (audited near-miss)
+adm1,ARM007,TUR045,True,river,Akhurian,audit-water overlay (10km completeness audit + human map verification)
+adm1,BGR028,ROU031,False,river,Danube,audit-water overlay (10km completeness audit + human map verification)
+adm1,TZA006,UGA094,False,river,Kagera,audit-water overlay (10km completeness audit + human map verification)
 adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
 adm0,ARG,PRY,True,,,adm1-rollup
