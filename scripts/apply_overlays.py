@@ -75,9 +75,16 @@ def _read_manifest(path: Path) -> list[dict]:
     return [r for r in rows if r.get("level", "adm1").strip() == "adm1"]
 
 
-def _serialize(rows: list[list], header: list[str] | None = None) -> bytes:
+def _detect_eol(path: Path) -> str:
+    """Match the file's existing line ending (CRLF on autocrlf checkouts,
+    LF on Linux/CI), so the engine is byte-stable on both."""
+    return "\r\n" if b"\r\n" in path.read_bytes()[:4096] else "\n"
+
+
+def _serialize(rows: list[list], header: list[str] | None = None,
+               eol: str = "\r\n") -> bytes:
     buf = io.StringIO()
-    w = csv.writer(buf, lineterminator="\r\n")
+    w = csv.writer(buf, lineterminator=eol)
     if header is not None:
         w.writerow(header)
     w.writerows(rows)
@@ -103,6 +110,9 @@ def main(argv: list[str] | None = None) -> int:
     edge_path = data / "pericoupled_adm1_edge_list.csv"
     water_path = data / "water_separated_pairs.csv"
     adm0_path = data / "PeriTelecoupling_clean.csv"
+    edge_eol = _detect_eol(edge_path)
+    water_eol = _detect_eol(water_path)
+    adm0_eol = _detect_eol(adm0_path)
 
     manifests = {name: _read_manifest(data / fname)
                  for name, fname, *_ in REGISTRY}
@@ -237,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     changed = []
 
     if new_edge_rows:  # append-only, exactly like the superseded scripts
-        content = edge_path.read_bytes() + _serialize(new_edge_rows)
+        content = edge_path.read_bytes() + _serialize(new_edge_rows, eol=edge_eol)
         if _write_if_changed(edge_path, content, args.check):
             changed.append(edge_path.name)
 
@@ -245,13 +255,13 @@ def main(argv: list[str] | None = None) -> int:
     water_out += [["adm0", ia, ib, br, "", "", "adm1-rollup"]
                   for ia, ib, br in sorted(adm0_rows)]
     header = ["level", "code_a", "code_b", "has_bridge", "water_type", "water_body", "note"]
-    if _write_if_changed(water_path, _serialize(water_out, header), args.check):
+    if _write_if_changed(water_path, _serialize(water_out, header, eol=water_eol), args.check):
         changed.append(water_path.name)
 
     if patched:
         buf = io.StringIO()
         w = csv.DictWriter(buf, fieldnames=["Sending", "Receiving", "Intracoupling"],
-                           lineterminator="\r\n")
+                           lineterminator=adm0_eol)
         w.writeheader()
         w.writerows(matrix_rows)
         if _write_if_changed(adm0_path, buf.getvalue().encode("utf-8"), args.check):

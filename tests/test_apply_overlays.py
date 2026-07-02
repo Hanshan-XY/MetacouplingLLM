@@ -49,6 +49,18 @@ class TestApplyOverlays:
         for f in OUTPUT_FILES:
             assert (d / f).read_bytes() == before[f], f"{f} changed bytes"
 
+    def test_noop_on_lf_normalized_data(self, tmp_path):
+        """CI checks out with LF line endings (no autocrlf): still a no-op."""
+        d = _copy_data(tmp_path)
+        for f in OUTPUT_FILES:
+            p = d / f
+            p.write_bytes(p.read_bytes().replace(b"\r\n", b"\n"))
+        before = {f: (d / f).read_bytes() for f in OUTPUT_FILES}
+        mod = _load("apply_overlays")
+        assert mod.main(["--data-dir", str(d)]) == 0
+        for f in OUTPUT_FILES:
+            assert (d / f).read_bytes() == before[f], f"{f} changed bytes (LF)"
+
     def test_check_mode_reports_clean(self, tmp_path):
         d = _copy_data(tmp_path)
         mod = _load("apply_overlays")
@@ -78,8 +90,8 @@ class TestBuildAll:
         """Dropping one edge row must fail verification with a named count."""
         d = _copy_data(tmp_path)
         edge = d / "pericoupled_adm1_edge_list.csv"
-        lines = edge.read_bytes().split(b"\r\n")
-        edge.write_bytes(b"\r\n".join(lines[:-2]) + b"\r\n")  # drop last data row
+        lines = edge.read_bytes().splitlines(keepends=True)
+        edge.write_bytes(b"".join(lines[:-1]))  # drop last data row
         mod = _load("build_all")
         fails = mod.verify_counts(d)
         assert any("adm1_edges" in f for f in fails)
