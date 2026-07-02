@@ -36,7 +36,11 @@ OVERLAY = [
     ("BGR013", "ROU031", False, "Danube"),
     ("BGR026", "ROU037", False, "Danube"),
     ("BGR016", "ROU037", False, "Danube"),
-    ("MOZ008", "TZA025", True,  "Ruvuma"),          # bridge present (Unity Bridge / Mkwenda), domain-confirmed
+    # Niassa<->Ruvuma: public documentation of Unity Bridge 2 (Mkwenda /
+    # Matchedje) is conflicting, and the audit's initial conservative call was
+    # has_bridge=False; True rests on domain confirmation (2026-06-29) that at
+    # least one fixed crossing exists here, not on OSM + web verification alone.
+    ("MOZ008", "TZA025", True,  "Ruvuma"),          # Unity Bridge 2 (Mkwenda), domain-confirmed
     ("ALB031", "MNE020", True,  "Bojana"),          # Muriqan-Sukobin bridge
     ("DEU011", "LUX002", True,  "Moselle; Sauer"),  # Wasserbillig road bridge
     ("PRK002", "RUS060", True,  "Tumen"),           # Korea-Russia Friendship rail bridge
