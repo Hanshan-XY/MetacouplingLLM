@@ -4,6 +4,48 @@ Regenerated in **PR #50** (2026-05-30) from the refreshed World Bank Official
 Boundaries dataset. This file documents the sources, method, and known
 limitations of the two bundled adjacency datasets.
 
+## Reproducing the shipped data
+
+The database is constructed in exactly two stages; one command runs both:
+
+```
+# full rebuild from the pinned sources (SHA-256-verified first):
+python scripts/build_all.py --full --adm1-gpkg ... --adm0-gpkg ... \
+    --ocean-gpkg ... --ndlsa-gpkg ...
+
+# re-derive + verify from the shipped data (no GeoPackages needed):
+python scripts/build_all.py
+```
+
+1. **Deterministic geometry build** (`scripts/build_pericoupling_db.py`): rook
+   contiguity over the pinned World Bank GeoPackages, land-clipped, lake-filtered,
+   snap tolerance 5×10⁻⁴°, including the internal Malta denylist (−1) and the
+   geometry-derived disputed overlay (+13 ADM1).
+2. **Reviewed correction layer** (`scripts/apply_overlays.py`): the five overlay
+   manifests below — **88 pair-rows** (72 edge-restoring + 16 water-flag-only),
+   every pair individually audited and human-verified — applied in one idempotent
+   pass (fixed registry order: river-gap → wide-river → lake → land-gap →
+   audit-water; water rows and the ADM0 roll-up are computed once, at the end).
+   The manifests are the **authoritative correction data**: to change a reviewed
+   pair, edit its manifest and re-run the engine.
+
+The audits recorded in the per-overlay sections below (near-miss ground-truth,
+buffer re-screens, tolerance-band and snap-extras diagnostics, two-pass
+verification, human map review) are how the correction layer was *discovered
+and validated* — reproducing the database does not require re-running them.
+
+Byte-identity scope (verified by a clean-room `--full` rebuild, 2026-07-02,
+geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2): the **adjacency pair set
+reproduces exactly** (8,453/8,453), and `water_separated_pairs.csv`,
+`PeriTelecoupling_clean.csv`, and `disputed_overlay_pairs.csv` are
+**byte-identical**; the advisory `border_length_km` column differs on the
+~25% of edges touched by the river-length measurement (a length-only value —
+it never adds or drops an edge; see `docs/METHODS_adjacency.md` §3), which is
+sensitive to the GEOS/Shapely buffer implementation. Exact byte-identity of
+the lengths therefore additionally requires the original toolchain, as scoped
+in §6.6 of the manuscript. The correction layer is toolchain-independent: the
+engine reproduces the shipped CSVs byte-identically from the raw build state.
+
 ## Datasets
 
 | File | Shape | Content |
@@ -12,9 +54,12 @@ limitations of the two bundled adjacency datasets.
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
-| `river_gap_overlay_pairs.csv` | 6 ADM1 pairs | Reviewed river-gap overlay manifest: cross-border river-separated pairs the strict build omits, recovered by the near-miss audit and applied by `scripts/apply_river_gap_overlay.py` (see *River-separated province pairs* below) |
-| `water_separated_pairs.csv` | 337 ADM1 + 21 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (314 land-classified + 6 river-gap + 13 wide-river + 1 lake-gap overlay; see *Water-separated pairs* below) |
-| `lake_overlay_pairs.csv` | 64 ADM1 pairs | Reviewed lake overlay manifest: the audited lake-only pairs (63) plus one audited lake-gap near-miss (Natural Earth lake-filter candidate set, per-pair bridge review) restored as edges by `scripts/apply_lake_overlay.py` so `coupling_standard` governs lakes like rivers (see *Lake overlay* below) |
+| `river_gap_overlay_pairs.csv` | 6 ADM1 pairs | Reviewed river-gap overlay manifest: cross-border river-separated pairs the strict build omits, recovered by the near-miss audit and applied by `scripts/apply_overlays.py` (see *River-separated province pairs* below) |
+| `water_separated_pairs.csv` | 337 ADM1 + 21 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (314 land-classified + 6 river-gap + 13 wide-river + 1 lake-gap + 3 audit-water overlay; see *Water-separated pairs* below) |
+| `lake_overlay_pairs.csv` | 64 ADM1 pairs | Reviewed lake overlay manifest: the audited lake-only pairs (63) plus one audited lake-gap near-miss (Natural Earth lake-filter candidate set, per-pair bridge review) restored as edges by `scripts/apply_overlays.py` so `coupling_standard` governs lakes like rivers (see *Lake overlay* below) |
+| `wide_river_overlay_pairs.csv` | 13 ADM1 pairs | Reviewed wide-river overlay manifest: existing edges reclassified water-only after the 5 km candidate re-screen + per-pair ground-truth (flags only; see *Wide-river overlay* below) |
+| `land_gap_overlay_pairs.csv` | 2 ADM1 pairs | Reviewed land-gap overlay manifest: map-verified dry-land survey-line borders the offset corridor hides (ordinary land edges; see *Land-gap overlay* below) |
+| `audit_water_overlay_pairs.csv` | 3 ADM1 pairs | Reviewed audit-water overlay manifest: screen-missed water-only borders from the 10 km completeness audit, human-verified (flags only; see *Audit-water overlay* below) |
 | `adm1_aliases.csv` | 1,145 alias entries · 863 ADM1 regions · 136 countries | English exonyms and alternative spellings for WB ADM1 regions (Strategy 0 of `resolve_adm1_code`). Generated by `scripts/build_adm1_aliases.py` (LLM + deterministic validation rules + a curated review denylist). Added in PR #60; cleaned up in PR #61 (Opus review). |
 
 Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
@@ -27,6 +72,15 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   - ADM1 layer `WB_GAD_ADM1` (3,591 features); ADM0 layer `WB_GAD_ADM0`
     (264 features, standard layer — the 24-feature NDLSA disputed-areas layer
     is **excluded**); `WB_GAD_ocean_mask`.
+  - SHA-256 (also pinned in `scripts/build_all.py`; `--full` verifies them):
+    - Admin 1 `dbac29f4ecaabe6a9b3ecf50780e5e57a725c7f0eab3d2514ce54fb717b64b45`
+    - Admin 0 `97f0c8a0fa848b9a8414dbeb2e058fa37d59b13794ec232a87da000bdf4b117e`
+    - Ocean Mask `c2b074fdd691f6d36ba4a89af2761a11b35dea4d4c8c4f186f6132f43c88d702`
+    - NDLSA `159ef2d133d12491eb6ce2f0d0d1032083209b0cf7d28ddda774a503055d2fa4`
+- **Bridge classification** — `build_data/bridge_classified_authoritative.csv`
+  (reviewed static artifact, OSM snapshot 2026-06-03/04 + independent
+  verification; not regenerable from geometry) — SHA-256
+  `a3251c091d3f040c51714c6f013a5b185facb787ac33f5b126b9d24a16204b41`.
 - **Natural Earth** 10m physical — `ne_10m_lakes` (inland-water filter).
   Rivers (`ne_10m_rivers_lake_centerlines`) are used only for advisory flags.
   The WB distribution ships **no inland-hydrography layer** (admin polygons plus
@@ -134,7 +188,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   individual ground-truth. The ground-truth found **six** genuinely omitted
   river-separated pairs (across the Danube,
   Prut, Moselle, and Maroni), now restored as the reviewed **river-gap overlay**
-  (`river_gap_overlay_pairs.csv`, applied by `scripts/apply_river_gap_overlay.py`);
+  (`river_gap_overlay_pairs.csv`, applied by `scripts/apply_overlays.py`, registry entry `river_gap`);
   they are water-only pairs governed by `coupling_standard`. The audit supersedes
   the earlier rough "~29 omitted river pairs" estimate, which had conflated all
   river-adjacent near-miss pairs with genuine omissions; the remaining
@@ -150,7 +204,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   spans plus the Ruvuma, Bojana, Moselle, Tumen, and Zambezi/Kazungula); 54 other
   5 km candidates were rejected as mixed river+land. They are restored as the
   reviewed **wide-river overlay** (`wide_river_overlay_pairs.csv`, applied by
-  `scripts/apply_wide_river_overlay.py`). All are existing edges, so the overlay
+  `scripts/apply_overlays.py`, registry entry `wide_river`). All are existing edges, so the overlay
   adds a water-only flag only (no new edges). This brought the shipped
   water-only set to **333** ADM1 (115 with a fixed crossing / 218 without);
   final counts follow the audit-water overlay below.
@@ -159,7 +213,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   river-only in practice: a *bridged* lake pair (e.g. Flevoland↔Noord-Holland
   via the Houtribdijk) could never be pericoupled because the loaders only
   subtract from the base. The reviewed **lake overlay**
-  (`lake_overlay_pairs.csv`, applied by `scripts/apply_lake_overlay.py`)
+  (`lake_overlay_pairs.csv`, applied by `scripts/apply_overlays.py`, registry entry `lake`)
   restores all **63** audited lake-only pairs (the Natural Earth lake-filter
   candidate set, each with an OSM + web + manual bridge review) as edges —
   plus one audited **lake-gap near-miss**, Jõgeva↔Pskov across Lake Peipus,
@@ -187,7 +241,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   human map review (2026-07-01): **Kajiado↔Kilimanjaro** (`KEN010`↔`TZA011`,
   ~54 km, the Loitokitok-Rombo sector) and **Narok↔Mara** (`KEN033`↔`TZA016`,
   ~70 km, the Maasai Mara-Serengeti sector). Restored by the **land-gap overlay**
-  (`land_gap_overlay_pairs.csv`, applied by `scripts/apply_land_gap_overlay.py`).
+  (`land_gap_overlay_pairs.csv`, applied by `scripts/apply_overlays.py`, registry entry `land_gap`).
   Unlike the water overlays these are ordinary land borders, pericoupled under
   every `coupling_standard`; this overlay left ADM0, regions, and the water-only
   set unchanged.
@@ -204,7 +258,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   (`TZA006`↔`UGA094`, a 402 m Kagera-thalweg arc at the RWA-UGA-TZA tripoint; no
   crossing). Shipped as the **audit-water overlay**
   (`audit_water_overlay_pairs.csv`, applied by
-  `scripts/apply_audit_water_overlay.py`); all are existing edges, so it adds
+  `scripts/apply_overlays.py`, registry entry `audit_water`); all are existing edges, so it adds
   water-only flags only. Audit artifacts: `build_data/wide_river_audit/`.
   Final shipped counts: ADM1 **8,453** edges (**8,232** moderate / **8,116**
   stringent), ADM0 **326** pairs (323 moderate / 305 stringent), water-only
