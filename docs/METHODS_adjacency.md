@@ -9,6 +9,23 @@ All numeric results below were computed from the World Bank Official Boundaries
 2026-05-14 GeoPackages (ADM1 `WB_GAD_ADM1`, 3,591 polygons; ADM0 `WB_GAD_ADM0`,
 264 polygons) with `scripts/build_pericoupling_db.py`.
 
+**Construction at a glance.** The shipped database is the output of exactly two
+stages, both committed: **(a)** one deterministic geometry build
+(`scripts/build_pericoupling_db.py`, from SHA-256-pinned inputs — see
+`data/PROVENANCE.md` — including its internal one-entry Malta denylist and the
+geometry-derived 13-pair disputed overlay), and **(b)** one reviewed
+**correction layer**: five manifest CSVs holding **88 pair-rows** (72
+edge-restoring + 16 water-flag-only), each pair individually audited and
+human-verified, plus the 314-row bridge classification, applied in a single
+pass by the idempotent engine `scripts/apply_overlays.py`. One command
+reproduces the whole database (§7): `python scripts/build_all.py --full ...`
+from the pinned sources, or `python scripts/build_all.py` to re-derive and
+verify from the shipped data. Everything else in this document — the
+sensitivity sweeps, the near-miss and completeness audits, the buffer
+re-screens — is the **discovery and validation record** that produced and
+defends the correction layer; a reader reproducing the database never needs to
+re-run it.
+
 ---
 
 ## 1. Contiguity rule: rook, not queen
@@ -127,7 +144,7 @@ survey-line corridors on the straight-surveyed Kenya-Tanzania border —
 Kajiado↔Kilimanjaro (~54 km) and Narok↔Mara (~70 km), whose dry-land adjacency
 lay outside the river audit's scope — were map-verified as genuine borders and
 restored as the land-gap overlay** (`land_gap_overlay_pairs.csv`, applied by
-`scripts/apply_land_gap_overlay.py`; ordinary land edges, pericoupled under
+`scripts/apply_overlays.py`; ordinary land edges, pericoupled under
 every standard). The remaining cross-border additions and all 64 domestic
 additions are confirmed artifact corridors. Per-pair results:
 `build_data/snap_extras_audit/extras.csv` (local audit artifact, not shipped).
@@ -310,10 +327,28 @@ Pakistan tract, and the Ilemi Triangle (Kenya & South Sudan already share an
 
 ## 7. Reproducibility
 
-The sensitivity sweep and band audit are reproducible from the committed build
-script (`scripts/build_pericoupling_db.py`) by varying `SNAP_TOL_DEG` and
-diffing the resulting edge sets; the shipped CSVs are byte-identical on
-re-running the build against the pinned inputs.
+One command reproduces the shipped database:
+
+```
+# full rebuild from the pinned sources (SHA-256-verified before running):
+python scripts/build_all.py --full \
+    --adm1-gpkg <WB Admin 1 .gpkg> --adm0-gpkg <WB Admin 0 .gpkg> \
+    --ocean-gpkg <WB Ocean Mask .gpkg> --ndlsa-gpkg <WB NDLSA .gpkg>
+
+# re-derive + verify from the shipped data (fast; no GeoPackages needed):
+python scripts/build_all.py
+```
+
+The full mode verifies the inputs' SHA-256 against the pins (in
+`scripts/build_all.py` and `data/PROVENANCE.md`; a mismatch is a hard error),
+runs the geometry build, applies the correction layer with
+`scripts/apply_overlays.py`, checks every headline count (edges, regions,
+countries, water set, roll-ups, all three standard views at both levels), and
+reports byte-identity against the committed CSVs. The refresh mode is a
+byte-stable no-op on an untouched checkout — the day-to-day reproducibility
+check, also enforced by `tests/test_apply_overlays.py`. The sensitivity sweep
+and band audit remain reproducible from the build script by varying
+`SNAP_TOL_DEG` and diffing the resulting edge sets.
 
 ## 8. Coupling standard (water-separated pairs)
 
@@ -344,8 +379,9 @@ Danube main-stem span absent from the NE river list, Kagera↔Ntungamo on a
 402 m Kagera-thalweg arc — flagged by the 10 km completeness audit's two-pass
 verification and confirmed by human map review 2026-07-02; flags only, no new
 edges) — each shipped as a
-manifest with an idempotent apply script (`data/*_overlay_pairs.csv`,
-`scripts/apply_*_overlay.py`; full provenance in `data/PROVENANCE.md`). Under
+reviewed manifest (`data/*_overlay_pairs.csv`) and applied in one pass by the
+idempotent engine `scripts/apply_overlays.py` (full provenance in
+`data/PROVENANCE.md`). Under
 the default, ADM1 pericoupled edges fall 8,453 → **8,232** and ADM0 country
 pairs 326 → **323**.
 
