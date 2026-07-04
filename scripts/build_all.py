@@ -48,15 +48,15 @@ PINNED_SHA256 = {
     "adm0_gpkg": "97f0c8a0fa848b9a8414dbeb2e058fa37d59b13794ec232a87da000bdf4b117e",
     "ocean_gpkg": "c2b074fdd691f6d36ba4a89af2761a11b35dea4d4c8c4f186f6132f43c88d702",
     "ndlsa_gpkg": "159ef2d133d12491eb6ce2f0d0d1032083209b0cf7d28ddda774a503055d2fa4",
-    "bridge_csv": "dd20e3f29c5d6e83949dbefb9d7d0a641237b94960ad2195e0bf123f5224576b",
+    "bridge_csv": "87f03c1d0e02389ed6e739f44118915087173a6e2771f4f5cd5be858f5c2abaa",
 }
 
 EXPECTED = {
-    "adm1_edges": 8453, "adm1_regions": 3375, "adm1_countries": 196,
-    "water_adm1": 352, "water_bridge": 121, "water_nobridge": 231,
+    "adm1_edges": 8451, "adm1_regions": 3375, "adm1_countries": 196,
+    "water_adm1": 361, "water_bridge": 124, "water_nobridge": 237,
     "water_adm0": 22,
-    "adm1_moderate": 8222, "adm1_stringent": 8101,
-    "adm0_pairs": 326, "adm0_moderate": 322, "adm0_stringent": 304,
+    "adm1_moderate": 8214, "adm1_stringent": 8090,
+    "adm0_pairs": 326, "adm0_moderate": 321, "adm0_stringent": 304,
 }
 
 
