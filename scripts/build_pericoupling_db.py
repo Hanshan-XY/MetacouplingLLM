@@ -62,7 +62,14 @@ from shapely.ops import unary_union
 # Tunables
 # ---------------------------------------------------------------------------
 
-SNAP_TOL_DEG = 5e-4          # ~55 m: bridge clip-induced gaps in shared borders
+# v2: the main ADM1/ADM0 topology uses EXACT contact (tolerance 0) -- a
+# parameter-free geometry core.  Every deviation from exact geometry that a
+# non-zero snap would bridge is instead a reviewed manifest row (band-audit
+# pairs) or a source-relabel (sliver corridors).  SNAP_TOL_DEG is retained
+# ONLY for the disputed-overlay derivation's tract-touch validation, where a
+# small tolerance is needed to bridge the NDLSA carve-out gaps.
+TOPOLOGY_TOL_DEG = 0.0       # v2: exact-contact main topology (parameter-free)
+SNAP_TOL_DEG = 5e-4          # disputed-overlay tract-touch tolerance only
 NARROW_KM = 5.0              # narrow_border flag threshold
 ARTIFACT_KM = 1.0           # potential_artifact flag threshold
 RIVER_BUFFER_DEG = 2e-3     # ~220 m buffer around river centerlines (flag calc)
@@ -158,9 +165,12 @@ _ADM1_SAMPLE_DEG = 0.01
 # removed from the ADM1 edge list.  Each entry is a frozenset of ADM1CD_c codes.
 # Verified not-adjacent:
 #   MLT002/MLT019 — Balzan / Iklin (Malta): ~31 m apart, no shared frontier.
-_ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
-    frozenset({"MLT002", "MLT019"}),
-}
+# v2: EMPTY under tolerance-0 topology.  The Malta artifact (MLT002/MLT019,
+# ~31 m apart) only appears when a non-zero snap bridges the gap; at exact
+# contact it never becomes an edge, so no removal is needed.  The five genuine
+# sub-tolerance borders the old snap recovered (Egypt-Libya etc.) now ship as
+# reviewed land-gap manifest rows instead.
+_ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = set()
 
 # Populated by ``derive_disputed_overlay`` (geometry-derived from the NDLSA
 # tracts + _NDLSA_TRACT_ADMIN).  _ADM0_DISPUTED_ALLOWLIST: set of ISO frozensets
@@ -211,18 +221,20 @@ def _geodesic_km(geom: BaseGeometry | None) -> float:
         return 0.0
 
 
-def _shared_border(a: BaseGeometry, b: BaseGeometry) -> BaseGeometry | None:
+def _shared_border(a: BaseGeometry, b: BaseGeometry,
+                   tol: float = SNAP_TOL_DEG) -> BaseGeometry | None:
     """Return the shared-boundary geometry of two polygons, or None.
 
     Uses the boundary∩boundary; if that is empty but the polygons lie within
-    the snapping tolerance, fall back to the intersection of one boundary with
-    the other polygon buffered by ``SNAP_TOL_DEG`` (bridges clip slivers).
+    ``tol``, fall back to the intersection of one boundary with the other
+    polygon buffered by ``tol``.  At ``tol=0`` (the v2 main topology) only the
+    exact boundary∩boundary is used.
     """
     shared = a.boundary.intersection(b.boundary)
     if not shared.is_empty:
         return shared
-    if a.distance(b) <= SNAP_TOL_DEG:
-        shared = a.boundary.intersection(b.buffer(SNAP_TOL_DEG))
+    if tol > 0 and a.distance(b) <= tol:
+        shared = a.boundary.intersection(b.buffer(tol))
         if not shared.is_empty:
             return shared
     return None
@@ -271,80 +283,32 @@ def _load_ne(url: str, cache_dir: Path, name: str) -> gpd.GeoDataFrame:
 # Core adjacency build
 # ---------------------------------------------------------------------------
 
-def build_edges(
-    gdf: gpd.GeoDataFrame,
-    code_col: str,
-    lakes_gdf: gpd.GeoDataFrame | None,
-    rivers_gdf: gpd.GeoDataFrame | None,
-) -> list[dict]:
-    """Compute land-border adjacency edges for a polygon layer.
+def build_edges(gdf: gpd.GeoDataFrame, code_col: str) -> list[dict]:
+    """Compute shared-border adjacency edges for a polygon layer (v2 Stage 1).
 
-    Returns one dict per undirected adjacent pair with shared/true border
-    lengths (km) and the lake/river/artifact flags.
-
-    Lake/river handling is spatially indexed: a global union of all Natural
-    Earth lakes/rivers is huge and differencing every edge against it is
-    prohibitively slow.  Instead we build an STRtree over the lake/river
-    geometries and, per edge, only difference against features whose bbox is
-    near the (small) shared-border geometry — so most edges (nowhere near
-    water) skip the expensive op entirely.
+    Pure World Bank geometry: rook contiguity at **exact contact**
+    (``TOPOLOGY_TOL_DEG = 0``) -- two units are adjacent iff their boundaries
+    share a segment of non-zero geodesic length.  ``border_length_km`` is the
+    **full** shared-boundary length (no Natural Earth lake/river subtraction);
+    the water classification of a border is a separate, purely descriptive
+    layer (Stage 3, ``water_separated_pairs.csv``) that never adds or drops an
+    edge.  Because WB admin polygons include lake water, pairs that meet across
+    a lake are native edges here (e.g. the Great Lakes and Lake-Tanganyika
+    pairs) -- no lake filter removes them, so ``coupling_standard`` governs
+    lakes and rivers uniformly with no restoration overlay.
     """
     gdf = gdf.reset_index(drop=True)
     geoms = list(gdf.geometry)
     n = len(geoms)
-    log(f"  building adjacency over {n} polygons (STRtree)")
+    log(f"  building adjacency over {n} polygons (STRtree, exact contact)")
     tree = STRtree(geoms)
-
-    lake_geoms = (
-        list(lakes_gdf.geometry) if lakes_gdf is not None else []
-    )
-    lake_tree = STRtree(lake_geoms) if lake_geoms else None
-    river_geoms = (
-        list(rivers_gdf.geometry) if rivers_gdf is not None else []
-    )
-    river_tree = STRtree(river_geoms) if river_geoms else None
-
-    def _drop_water(border: BaseGeometry) -> tuple[BaseGeometry, BaseGeometry]:
-        """Return (non_lake_border, true_land_border) for a shared border.
-
-        WB admin polygons INCLUDE lake water (e.g. US states meet down the
-        middle of the Great Lakes; Caspian littoral states meet mid-sea), so
-        a shared boundary running through a lake interior is a false land
-        border.  Subtract the lake **polygon area** (not the shoreline): a
-        mid-lake border lies inside the lake polygon and is removed, while a
-        real land border that merely runs *along* a lake's edge stays (it's
-        outside the polygon).  Pairs whose remaining land border is ~0 are
-        dropped by the caller.
-        """
-        non_lake = border
-        if lake_tree is not None:
-            near = lake_tree.query(border)
-            if len(near):
-                lake_area = unary_union([lake_geoms[int(k)] for k in near])
-                try:
-                    non_lake = border.difference(lake_area)
-                except Exception:
-                    non_lake = border
-        true_land = non_lake
-        if river_tree is not None and not non_lake.is_empty:
-            near = river_tree.query(non_lake)
-            if len(near):
-                rbuf = unary_union(
-                    [river_geoms[int(k)] for k in near]
-                ).buffer(RIVER_BUFFER_DEG)
-                try:
-                    true_land = non_lake.difference(rbuf)
-                except Exception:
-                    true_land = non_lake
-        return non_lake, true_land
 
     seen: set[tuple[int, int]] = set()
     edges: list[dict] = []
     for i, g in enumerate(geoms):
         if i and i % 250 == 0:
             log(f"    {i}/{n} polygons, {len(edges)} edges so far")
-        cand = tree.query(g.buffer(SNAP_TOL_DEG))
-        for jx in cand:
+        for jx in tree.query(g):          # bbox candidates (exact test below)
             j = int(jx)
             if j <= i:
                 continue
@@ -352,20 +316,12 @@ def build_edges(
             if key in seen:
                 continue
             seen.add(key)
-            h = geoms[j]
-            shared = _shared_border(g, h)
+            shared = _shared_border(g, geoms[j], tol=TOPOLOGY_TOL_DEG)
             if shared is None:
                 continue
-            shared_km = _geodesic_km(shared)
-            if shared_km <= 0:
+            km = _geodesic_km(shared)
+            if km <= 0:                   # single-vertex/point contact -> not an edge
                 continue
-
-            non_lake, true_land = _drop_water(shared)
-            non_lake_km = _geodesic_km(non_lake)
-            if non_lake_km <= 0:
-                # contact is ONLY lake shore -> not a land border; drop
-                continue
-            true_km = _geodesic_km(true_land)
 
             ra, rb = gdf.iloc[i], gdf.iloc[j]
             edges.append({
@@ -378,8 +334,8 @@ def build_edges(
                 "name_b": rb.get("NAM_1", rb.get("NAM_0", "")),
                 "country_b": rb.get("NAM_0", ""),
                 "wb_b": rb.get("WB_REGION", ""),
-                "border_length_km": round(true_km, 4),
-                "shared_km": round(non_lake_km, 4),
+                "border_length_km": round(km, 4),
+                "shared_km": round(km, 4),
             })
     log(f"  -> {len(edges)} adjacency edges")
     return edges
@@ -770,6 +726,11 @@ def main() -> int:
                          "default: WB official boundaries are already land-only "
                          "(islands isolate, no maritime adjacencies), and the "
                          "clip is the build's main bottleneck.")
+    ap.add_argument("--no-relabel-sliver", action="store_true",
+                    help="skip the source-relabel stage (reassigning reviewed WB "
+                         "sliver-corridor artifacts to their true units before "
+                         "contiguity; on by default). See "
+                         "scripts/relabel_sliver_corridors.py.")
     ap.add_argument("--levels", default="adm0,adm1")
     ap.add_argument("--bridge-csv", default=None,
                     help="curated ADM1 bridge classification CSV; if given, "
@@ -789,14 +750,10 @@ def main() -> int:
         )
         ocean = unary_union(list(ocean_gdf.geometry))
 
-    lakes_gdf = rivers_gdf = None
-    if not args.skip_ne:
-        ne = Path(args.ne_cache)
-        lakes_gdf = _load_ne(_NE_LAKES_URL, ne, "ne_10m_lakes.gpkg").to_crs(4326)
-        if not args.skip_rivers:
-            rivers_gdf = _load_ne(
-                _NE_RIVERS_URL, ne, "ne_10m_rivers.gpkg"
-            ).to_crs(4326)
+    # v2: Stage 1 is pure World Bank geometry -- Natural Earth is NOT used in
+    # the topology build (no lake filter, no river-buffer length).  Water
+    # classification is a separate descriptive layer (Stage 3,
+    # water_separated_pairs.csv) that never adds or drops an edge.
 
     def _prep(path: str, layer: str) -> gpd.GeoDataFrame:
         g = _make_valid(gpd.read_file(path, layer=layer).to_crs(4326))
@@ -822,15 +779,20 @@ def main() -> int:
         derive_disputed_overlay(a0_raw, a1_raw, ndlsa)
 
     if "adm1" in levels:
-        log("=== ADM1 ===")
+        log("=== Stage 1: ADM1 topology (WB only, exact contact) ===")
         a1 = _prep(args.adm1_gpkg, args.adm1_layer)
-        e1 = build_edges(a1, "ADM1CD_c", lakes_gdf, rivers_gdf)
+        if not args.no_relabel_sliver:
+            from relabel_sliver_corridors import relabel as _relabel_sliver
+            log("  source-relabel: reassigning reviewed sliver-corridor artifacts")
+            a1, _rl_log = _relabel_sliver(a1, code_col="ADM1CD_c", verbose=True)
+            log(f"  source-relabel: {len(_rl_log)} corridor(s) reassigned")
+        e1 = build_edges(a1, "ADM1CD_c")
         write_adm1_csv(e1, out_dir / "pericoupled_adm1_edge_list.csv")
 
     if "adm0" in levels:
-        log("=== ADM0 ===")
+        log("=== Stage 1: ADM0 topology (WB only, exact contact) ===")
         a0 = _prep(args.adm0_gpkg, args.adm0_layer)
-        e0 = build_edges(a0, "ISO_A3", lakes_gdf, rivers_gdf)
+        e0 = build_edges(a0, "ISO_A3")
         write_adm0_matrix(
             e0, list(a0["ISO_A3"]), out_dir / "PeriTelecoupling_clean.csv"
         )
