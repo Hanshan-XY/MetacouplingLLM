@@ -60,14 +60,16 @@ REGISTRY = [
      "river", "river", "river-gap overlay (audited near-miss)"),
     ("wide_river", "wide_river_overlay_pairs.csv", False, None,
      "river", "water_body", "wide-river overlay (5km re-screen + ground-truth)"),
-    ("lake", "lake_overlay_pairs.csv", True, "iso_lookup",
-     "lake", "lake", "lake-gap overlay (audited near-miss)"),
+    ("lake_gap", "lake_gap_overlay_pairs.csv", True, "iso_lookup",
+     "lake", "lake", "lake-gap overlay (non-touching lake borders: Peipus, Skadar)"),
     ("land_gap", "land_gap_overlay_pairs.csv", True, "iso_lookup",
      None, None, None),
     ("audit_water", "audit_water_overlay_pairs.csv", False, None,
      "river", "water_body", "audit-water overlay (10km completeness audit + human map verification)"),
     ("hydro_water", "hydro_water_overlay_pairs.csv", False, None,
      "river", "water_body", "hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)"),
+    ("hydro_lakes", "hydro_lakes_overlay_pairs.csv", False, None,
+     "lake", "water_body", "hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)"),
 ]
 
 
