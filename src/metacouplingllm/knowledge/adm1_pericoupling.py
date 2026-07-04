@@ -5,35 +5,26 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,453 border pairs** covering **3,375 unique ADM1
-regions** across **196 countries**, including both within-country and
-cross-country borders.  This total includes six reviewed overlays (see
-``data/PROVENANCE.md``): a **6-pair river-gap overlay**
-(``river_gap_overlay_pairs.csv``): cross-border river-separated pairs the
-strict topology omits because the source digitizes the two banks as
-non-touching geometry, recovered by the near-miss audit; a **13-pair
-wide-river overlay** (``wide_river_overlay_pairs.csv``) that reclassifies
-*existing* edges as water-only (it adds no edges); a **64-pair lake
-overlay** (``lake_overlay_pairs.csv``) restoring the audited lake-only pairs
-the build's lake filter removes (63 touching pairs plus one audited lake-gap
-near-miss, Jogeva<->Pskov across Lake Peipus), so ``coupling_standard`` governs river and
-lake borders uniformly (``lenient`` keeps all water borders, ``moderate``
-keeps only those with a fixed crossing, ``stringent`` keeps none); and a
-**2-pair land-gap overlay** (``land_gap_overlay_pairs.csv``) restoring two
-map-verified dry-land survey-line borders on the Kenya-Tanzania frontier
-(Kajiado<->Kilimanjaro, Narok<->Mara) that the snap tolerance misses because
-the two national boundary renderings sit ~100 m apart; these are ordinary
-land edges, pericoupled under every standard; and a **3-pair audit-water
-overlay** (``audit_water_overlay_pairs.csv``) reclassifying as water-only three
-existing edges the Natural Earth screens missed (Shirak<->Kars on the Akhurian,
-Vratca<->Olt on a Danube span, Kagera<->Ntungamo on a 402 m Kagera-thalweg
-arc), flagged by the 10 km completeness audit and confirmed by human map review
-(flags only, no new edges); and a **17-pair hydro-water overlay**
-(``hydro_water_overlay_pairs.csv``) from the full-database HydroRIVERS
-cross-check of every cross-border edge (500 m buffer, discharge tiers), each
-pair human map-verified (flags only, no new edges) -- e.g. the Oder/Neisse
-(Brandenburg<->Lubuskie), the Rio Hondo (Corozal<->Quintana Roo), and the
-Cavally, Mano, Kagera, and Alazani borders.
+The edge list contains **8,451 border pairs** covering **3,375 unique ADM1
+regions** across **196 countries** (v2 build).  The graph is built in four
+stages (full provenance in ``data/PROVENANCE.md`` and
+``docs/METHODS_adjacency.md``): (1) **topology** -- rook contiguity at exact
+contact (tolerance 0) over the World Bank polygons, with **no lake filter**
+(so lake-meeting pairs are native edges) and a **source-relabel** step fixing
+10 reviewed sliver-corridor artifacts; (2) the geometry-derived **13-pair
+disputed overlay**; (3) descriptive water classification; and (4) a reviewed
+correction layer of overlay manifests, each a deterministic Python screen +
+human/AI adjudication, frozen: a **6-pair river-gap overlay** (non-touching
+river banks), a **2-pair lake-gap overlay** (the only two non-touching lake
+borders -- Jogeva<->Pskov across Peipus, Malesi e Madhe<->Bar across Skadar),
+a **5-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
+placeholder-Malawi), and flags-only overlays that reclassify existing edges as
+water-only: **13 wide-river**, **3 audit-water**, **17 hydro-water**
+(HydroRIVERS sweep), and **11 hydro-lakes** (HydroLAKES sweep -- the Great
+Lakes, Lake Malawi median, Lake Chad).  ``coupling_standard`` governs river and
+lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
+only those with a fixed crossing, ``stringent`` keeps none): the 361 water-only
+pairs give **8,451** lenient / **8,214** moderate / **8,090** stringent.
 
 Source
 ------
