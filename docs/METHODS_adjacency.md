@@ -366,10 +366,12 @@ Pakistan tract, and the Ilemi Triangle (Kenya & South Sudan already share an
 - The prior-practice evidence (§2.2) is predominantly **tool and standards
   documentation**, not peer-reviewed GIS-science; it establishes *standard
   practice*, not a citable optimum.
-- The **lake filter** (Natural Earth `ne_10m_lakes` used to drop mid-lake
-  contacts) has **no standard-practice citation** found in the survey; it is a
-  pragmatic choice (documented in PROVENANCE) motivated by WB admin polygons
-  including lake water.
+- **Inland-water (lake) handling** has **no standard-practice citation** found
+  in the survey. v2 uses **no lake filter** — because WB admin polygons include
+  lake water, mid-lake contacts are native edges — and `ne_10m_lakes` now feeds
+  only the descriptive water-type classification (Stage 3), never adjacency.
+  Treating lake water as native adjacency is a pragmatic choice, documented in
+  PROVENANCE.
 - No standard **minimum shared-border-length** threshold exists in the
   literature; the rook rule is qualitative ("non-zero length"). The
   `narrow_border` (<5 km) and `potential_artifact` (<1 km) flags are advisory
@@ -413,18 +415,21 @@ orthogonal to `de_facto_borders`:
 | `moderate` *(default)* | a **fixed crossing open to traffic** links the two units |
 | `stringent` | never (water never counts) |
 
-**Data.** `data/water_separated_pairs.csv` lists the **352 ADM1** water-only
-pairs with a `has_bridge` flag (312 land-classified + 6 river-gap overlay + 13
-wide-river overlay + 1 lake-gap overlay + 3 audit-water overlay + 17
-hydro-water overlay), plus **22 ADM0** country pairs rolled up from them (a
+**Data.** `data/water_separated_pairs.csv` lists the **361 ADM1** water-only
+pairs with a `has_bridge` flag (309 land-classified + 17 hydro-water + 13
+wide-river + 11 hydro-lakes + 6 river-gap + 3 audit-water + 2 lake-gap
+overlay pairs), plus **22 ADM0** country pairs rolled up from them (a
 country pair is water-only iff *all* its ADM1 crossings are, and has a bridge
-iff *any* does). Four reviewed overlays feed this set — the **river-gap
+iff *any* does). Six reviewed overlays feed this set — the **river-gap
 overlay** (6 near-miss river pairs restored as edges), the **wide-river
 overlay** (13 existing edges reclassified water-only after a 5 km candidate
-re-screen), the **lake overlay** (63 audited lake-only pairs plus 1 audited
-lake-gap near-miss — Jõgeva↔Pskov across Lake Peipus, whose shores the source
-digitizes as non-touching — restored as edges so the standard governs lakes
-exactly like rivers), the **audit-water overlay** (3 existing edges the
+re-screen), the **hydro-lakes overlay** (11 existing edges reclassified
+land→water by the full-database HydroLAKES sweep — lakes are native edges in
+v2, no lake filter removes them, so the standard governs lakes exactly like
+rivers), the **lake-gap overlay** (2 pairs — Jõgeva↔Pskov across Lake Peipus
+and Malësi e Madhe↔Bar (ALB022↔MNE002) across Lake Skadar, whose shores the
+source digitizes as non-touching — restoring the only two non-touching lake
+borders as edges), the **audit-water overlay** (3 existing edges the
 Natural Earth screens missed — Shirak↔Kars on the Akhurian, Vratca↔Olt on a
 Danube main-stem span absent from the NE river list, Kagera↔Ntungamo on a
 402 m Kagera-thalweg arc — flagged by the 10 km completeness audit's two-pass
@@ -439,13 +444,16 @@ Alazani borders. The same audit corrected the base classification itself:
 Pskov↔Ida-Viru reclassified river→lake — the border runs through Lake Peipus —
 and two pairs human-confirmed as NOT water-only were removed,
 Osijek-Baranja↔Bács-Kiskun and Eastern Equatoria↔Moyo, taking the base
-bridge-classified set from 314 to **312** rows with its SHA-256 pin updated) —
+bridge-classified set from 314 to 312 rows; the current v2 base is **309**
+rows — 312 − 2 borders demoted to mixed land after review − 1 orphan whose
+edge the relabel removed (see the water-only ledger in the construction
+section) — with the SHA-256 pin updated) —
 each shipped as a
 reviewed manifest (`data/*_overlay_pairs.csv`) and applied in one pass by the
 idempotent engine `scripts/apply_overlays.py` (full provenance in
 `data/PROVENANCE.md`). Under
-the default, ADM1 pericoupled edges fall 8,453 → **8,222** and ADM0 country
-pairs 326 → **322** (the hydro-water overlay's GUF↔SUR roll-up — the Maroni
+the default, ADM1 pericoupled edges fall 8,451 → **8,214** and ADM0 country
+pairs 326 → **321** (the hydro-water overlay's GUF↔SUR roll-up — the Maroni
 system, ferry only — joins COD↔TZA, MRT↔SEN, and CAF↔COD as a default-view
 subtraction).
 
@@ -470,14 +478,15 @@ sources: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
   checked for any other (land-border) pair, so applying it selectively here
   would be inconsistent.
 - *Mid-lake "median-line" meetings* (two units meeting in open water — e.g. Lake
-  Victoria, the Great Lakes, Lake Constance) are removed from the geometry build
-  by the inland-water (lake) filter (§6; PROVENANCE Method step 3) and restored
-  by the reviewed **lake overlay**, so all three standards govern them exactly
-  like river borders: `lenient` keeps every audited water contact, `moderate`
+  Victoria, the Great Lakes, Lake Constance) are **native edges** in the v2
+  build — no lake filter removes them — so `coupling_standard` governs them
+  directly, exactly like river borders (the **hydro-lakes** overlay handles the
+  land→water reclassification and the **lake-gap** overlay the two non-touching
+  restorations): `lenient` keeps every audited water contact, `moderate`
   keeps only the three lake pairs with a fixed crossing (Flevoland↔Noord-Holland
   via the Houtribdijk, Flevoland↔Gelderland via the Nijkerkerbrug,
   Södermanland↔Uppsala via the Hjulstabron), and `stringent` keeps none.
-  `lenient` therefore equals the shipped base adjacency (8,453 edges).
+  `lenient` therefore equals the shipped base adjacency (8,451 edges).
 
 ## 9. Name resolution (lookup layer)
 

@@ -20,7 +20,7 @@
 - **Optional LLM-assisted indicator helpers** — `define_study`, `check_inputs`, `classify_ambiguous_edges`, `interpret_results`, `write_methods`, each returning `(result, LLMTrace)` for reproducibility
 - **Built-in run tracing** (on by default) — every `analyze()`/`refine()` records a `RunTrace` (all model calls, intermediates, token usage, git SHA) and writes an inspectable artifact folder under `runs/`; disable with `trace=False`
 
-**Requirements:** Python 3.10+, no hard runtime dependencies. Optional extras: `openai`, `anthropic`, `gemini`, `grok`, `geopandas`+`matplotlib` (visualization), `ddgs` (web search), `pandas` (quantitative indicators), `python-docx` (Word export).
+**Requirements:** Python 3.10+, two hard runtime dependencies: `numpy>=1.21` and `fastembed>=0.8` (offline RAG embeddings). Optional extras: `openai`, `anthropic`, `gemini`, `grok`, `geopandas`+`matplotlib` (visualization), `ddgs` (web search), `pandas` (quantitative indicators), `python-docx` (Word export).
 
 ### Two complementary tracks
 
@@ -267,7 +267,7 @@ The RAG engine provides evidence grounding from a corpus of 420 telecoupling and
 
 Web search injects current, real-world context (trade data, policies, recent events) that may not be in the LLM's training data:
 
-- **Native auto-wiring** when `web_search=True`: each adapter routes to its own backend — `OpenAIWebSearchBackend` (PR #17), `AnthropicWebSearchBackend` (PR #28), `GeminiWebSearchBackend` (Google Search grounding, PR #29), `GrokWebSearchBackend` (xAI Live Search incl. X/Twitter, PR #29). Custom clients fall back to `DuckDuckGoBackend`.
+- **Native auto-wiring** when `web_search=True`: each adapter routes to its own backend — `OpenAIWebSearchBackend` (PR #17), `AnthropicWebSearchBackend` (PR #28), `GeminiWebSearchBackend` (Google Search grounding, PR #29), `GrokWebSearchBackend` (xAI Live Search incl. X/Twitter, PR #29). Custom clients fall back to the built-in DuckDuckGo search cascade.
 - DuckDuckGo backend has three fallback layers: `ddgs` -> `duckduckgo_search` -> stdlib (`urllib` + `html.parser`); works on Google Colab without any extra packages.
 - Results cited as `[Tk:W1]`, `[Tk:W2]`, ... -- the `W` prefix distinguishes web sources from literature `[Tk:1]`, `[Tk:2]`. `k` is the turn index, so prior-turn web references stay stable across `refine()` calls.
 - Recommended default for web-grounded maps: `web_structured_extraction=True` runs a second LLM pass (strict JSON / tool-output across all four providers, PR #28-#30) over the web snippets and validates map-ready countries and flows before using them in auto-maps.
@@ -291,7 +291,7 @@ Region names are resolved to ADM1 codes by `resolve_adm1_code`, which—beyond u
 
 ### 4.6 Literature Recommendations
 
-From a curated BibTeX database of 265 empirical telecoupling/metacoupling journal articles (2013–2025), the system recommends the most relevant papers by matching keywords, coupling types, and domain overlap with the analysis.  Call `get_database_info()` for live counts if the corpus drifts.
+From a curated BibTeX database of 265 empirical telecoupling/metacoupling journal articles (2013–2026), the system recommends the most relevant papers by matching keywords, coupling types, and domain overlap with the analysis.  Call `get_database_info()` for live counts if the corpus drifts.
 
 ### 4.7 Map Visualization
 
@@ -483,12 +483,12 @@ local Admin 1 file and then auto-download the hosted `Admin 1.gpkg` mirror.
 # Structured access to parsed analysis
 p = result.parsed
 print(p.coupling_classification)
-print(p.systems)              # dict of sending/receiving/spillover
-print(p.flows)                # list of flow dicts
-print(p.agents)               # list of agent dicts
-print(p.causes)               # dict of cause categories
-print(p.effects)              # dict of effect categories
-print(p.suggestions)          # list of research gap strings
+print(list(p.iter_system_entries()))        # sending/receiving/spillover system entries
+print(list(p.iter_flow_entries()))          # flow dicts
+print(list(p.iter_agent_entries()))         # agent dicts
+print(list(p.iter_category_items("causes")))   # (coupling_type, category, item) triples
+print(list(p.iter_category_items("effects")))  # (coupling_type, category, item) triples
+print(p.research_gaps)        # list of research gap strings
 print(p.evidence_coverage_note)  # PR #20 — reviewer-facing evidence audit
 ```
 
@@ -527,7 +527,7 @@ print(summary)
 # 0          Brazil  0.10  0.20  0.70  0.73   1.00   0.25   0.33
 ```
 
-The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `define_study`, `check_inputs`, `interpret_results`, `write_methods` — for natural-language study setup, validation, interpretation, and manuscript prose around the deterministic numbers. Install via `pip install "metacouplingllm[indicators]"`.
+The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `define_study`, `check_inputs`, `classify_ambiguous_edges`, `interpret_results`, `write_methods` — for natural-language study setup, validation, ambiguous-edge classification, interpretation, and manuscript prose around the deterministic numbers. Install via `pip install "metacouplingllm[indicators]"`.
 
 ---
 
@@ -536,7 +536,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | Resource | Description |
 |---|---|
 | 420 papers (Papers.zip) | Markdown for RAG — 192 indexed as full text, 228 as structured paraphrased summaries (papers that cannot be redistributed in full: paywalled, or open-to-read but restrictively licensed) |
-| BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2025) with metadata for literature recommendation |
+| BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2026) with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
 | ADM1 edge list (CSV) | 8,451 subnational shared-border pairs across 3,375 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
 | ADM1 alias table (CSV) | 1,145 English exonyms / alternative spellings for 863 ADM1 regions in 136 countries (e.g. Bavaria→Bayern, Tuscany→Toscana), so `resolve_adm1_code` matches common English names; deterministically validated (see `data/PROVENANCE.md`) |
@@ -567,4 +567,4 @@ pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-1225 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.
+1372 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.

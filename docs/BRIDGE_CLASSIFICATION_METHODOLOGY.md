@@ -1,7 +1,9 @@
 # Bridge / water-crossing classification — methodology, code & references
 
+> **v2 note:** the OSM bridge-detection method below is the frozen v1 discovery record; current counts live in `docs/METHODS_adjacency.md` and `data/PROVENANCE.md`.
+
 **Status:** verification complete & human-validated · **Date:** 2026-06-03/04
-**Final dataset:** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — leaving **314 pairs: 108 / 206** from this run. Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **334 ADM1 pairs (115 / 219)** plus **21 ADM0 roll-ups**: +6 river-gap, +13 wide-river, and +1 lake-gap pairs, and the 63 lake pairs of this run are restored as edges by the lake overlay so `coupling_standard` governs lakes like rivers; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
+**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — leaving **314 pairs: 108 / 206** from this run; the current base `bridge_classified_authoritative.csv` carries **309 rows** (312 − 2 demoted − 1 orphan). Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **361 ADM1 pairs (124 with an open fixed crossing / 237 without; 285 river / 76 lake)** plus **22 ADM0 roll-ups (17 bridge / 5 no-bridge)**: river-gap 6, wide-river 13, audit-water 3, hydro-water 17, hydro-lakes 11, lake-gap 2. In v2 there is no lake filter and no lake overlay — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers (`lake_overlay_pairs.csv` removed); see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
 
 This document records, in detail, how the bridge-classification database was built: why it
 exists, the inputs, the OpenStreetMap (OSM) detection method and its evolution, the
@@ -47,7 +49,7 @@ Ferries/boats are excluded (they are OSM relations, and are not fixed links).
 
 | input | source / version | role |
 |---|---|---|
-| **Water-only ADM1 candidate pairs** | derived in the pericoupling build from Natural Earth hydrography vs the WB ADM1 layer: the `ne_10m_lakes` lake filter for lake borders, and a generous river-centerline screen for river borders (a pair is a wide-river candidate when >60% of its shared border lies within ~2.4 km of a major named `ne_10m_rivers` centerline), which captures wide rivers the thin 220 m advisory buffer misses. **OpenStreetMap is not used to detect water-only borders** (a prototype OSM water-polygon test was abandoned because rural riverbanks are unmapped); OSM supplies only the bridge flag below | the 315 pairs whose shared border is water with no land segment |
+| **Water-only ADM1 candidate pairs** | derived in the pericoupling build (v2: water-only labels are descriptive over native exact-contact edges — a ~2.5 km `ne_10m_rivers` centerline screen classifies river borders and lake borders derive from HydroLAKES; no lake filter exists). **OpenStreetMap is not used to detect water-only borders** (a prototype OSM water-polygon test was abandoned because rural riverbanks are unmapped); OSM supplies only the bridge flag below | the 315 pairs whose shared border is water with no land segment |
 | **ADM1 unit polygons** | World Bank Official Boundaries ADM1 (2026-05-14), code field `ADM1CD_c` | the "both units" geometry for the crossing test |
 | **`colab_candidates.gpkg`** (12.5 MB) | built from the above; layers `pairs` (315) + `units` (387) | the OSM-pipeline input |
 | **OpenStreetMap** via **Overpass API** | live snapshot, 2026-06-03/04 | bridge/road/rail geometry |
@@ -282,7 +284,8 @@ direction for a connectivity dataset; the verification removed those.
 - OpenStreetMap contributors — way/relation geometry & tags. © OpenStreetMap, ODbL.
 - Overpass API — `https://overpass-api.de`, `https://overpass.kumi.systems`, `https://overpass.openstreetmap.fr`.
 - Nominatim — `https://nominatim.openstreetmap.org` (geocoding; usage-policy compliant: 1 req/s, UA set).
-- Natural Earth — `ne_10m_rivers`, `ne_10m_lakes` (the water-only call: the `ne_10m_lakes` lake filter for lake borders and a ~2.4 km `ne_10m_rivers` centerline screen for river borders). OpenStreetMap is used only for the bridge flag, not to detect water-only borders.
+- Natural Earth — `ne_10m_rivers`, `ne_10m_lakes` (v2: descriptive water-type classification only — a ~2.5 km `ne_10m_rivers` centerline screen labels river borders; `ne_10m_lakes` does not detect lake borders and no lake filter exists). OpenStreetMap is used only for the bridge flag, not to detect water-only borders.
+- HydroLAKES — the lake data source for lake borders (`hydro_lakes_overlay_pairs.csv`, from a HydroLAKES full-database sweep).
 - World Bank Official Boundaries — ADM1 (2026-05-14), field `ADM1CD_c`.
 
 **Method notes**
@@ -314,8 +317,8 @@ direction for a connectivity dataset; the verification removed those.
 
 ## 11. Final state & how it feeds `coupling_standard`
 
-`bridge_classified_authoritative.csv` → to be frozen as a dated **`water_separated_pairs.csv`**
-(`has_bridge` per pair). Applied to the 315 water-only ADM1 pairs:
+`bridge_classified_authoritative.csv` → frozen as a dated **`water_separated_pairs.csv`**
+(`has_bridge` per pair). Applied to the 315 water-only ADM1 pairs of this run:
 
 | standard | kept (pericoupled) | dropped |
 |---|---|---|
@@ -323,9 +326,14 @@ direction for a connectivity dataset; the verification removed those.
 | **moderate** (default) | **108** (have an open fixed crossing) | 207 |
 | stringent | 0 | 315 |
 
-ADM0 roll-up (to be wired): a country pair is water-only only if *all* its province crossings
+ADM0 roll-up: a country pair is water-only only if *all* its province crossings
 are water-only; it "has a bridge" if *any* does. Most country pairs have some land border and
 are unaffected.
+
+*(Current shipped state after the reviewed overlays: `water_separated_pairs.csv` carries
+**361 ADM1 pairs (124 / 237; 285 river / 76 lake)** plus **22 ADM0 roll-ups (17 bridge /
+5 no-bridge)**; the base `bridge_classified_authoritative.csv` is **309 rows**. See
+`data/PROVENANCE.md`.)*
 
 ---
 

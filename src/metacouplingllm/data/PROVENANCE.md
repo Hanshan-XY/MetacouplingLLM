@@ -6,7 +6,8 @@ limitations of the two bundled adjacency datasets.
 
 ## Reproducing the shipped data
 
-The database is constructed in exactly two stages; one command runs both:
+The database is constructed in four stages (topology, de-facto connectivity,
+water classification, second-source completeness); one command runs them all:
 
 ```
 # full rebuild from the pinned sources (SHA-256-verified first):
@@ -92,11 +93,13 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
     - NDLSA `159ef2d133d12491eb6ce2f0d0d1032083209b0cf7d28ddda774a503055d2fa4`
 - **Bridge classification** — `build_data/bridge_classified_authoritative.csv`
   (reviewed static artifact, OSM snapshot 2026-06-03/04 + independent
-  verification; not regenerable from geometry; 312 rows after the 2026-07-02
-  HydroRIVERS-audit corrections: Pskov↔Ida-Viru reclassified river→lake and
-  two pairs removed as not water-only) — SHA-256
+  verification; not regenerable from geometry; 309 rows after the 2026-07-02
+  HydroRIVERS-audit corrections (Pskov↔Ida-Viru reclassified river→lake and
+  two pairs removed as not water-only) and the v2 corrections (two further
+  pairs demoted and one orphan row removed)) — SHA-256
   `87f03c1d0e02389ed6e739f44118915087173a6e2771f4f5cd5be858f5c2abaa`.
-- **Natural Earth** 10m physical — `ne_10m_lakes` (inland-water filter).
+- **Natural Earth** 10m physical — `ne_10m_lakes` (used for descriptive
+  water-type classification only; not an edge-removing filter in v2).
   Rivers (`ne_10m_rivers_lake_centerlines`) are used only for advisory flags.
   The WB distribution ships **no inland-hydrography layer** (admin polygons plus
   a single-feature ocean mask only), and its admin polygons *include* lake
@@ -175,15 +178,15 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   pair); ADM1 borders spanning several administering provinces are split among
   them by nearest province. The full per-tract candidate audit is shipped at
   `docs/ndlsa_tract_audit.csv` (see `docs/METHODS_adjacency.md`).
-- **Water-separated pairs (`coupling_standard`).** 352 ADM1 pairs (and 22
+- **Water-separated pairs (`coupling_standard`).** 361 ADM1 pairs (and 22
   rolled-up ADM0 country pairs) share **only** a river/lake border with no land
   segment. The runtime loaders accept `coupling_standard` (default `"moderate"`),
   orthogonal to `de_facto_borders`: `lenient` keeps all water borders; `moderate`
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
-  borders since the lake overlay below (ADM1 shipped edges 8,453 →
-  **8,222** moderate / **8,101** stringent; ADM0 326 → **322** moderate /
-  **304** stringent). Each pair's `has_bridge` flag was classified
+  borders, lake-meeting pairs being native edges governed like rivers (ADM1
+  shipped edges 8,451 → **8,214** moderate / **8,090** stringent; ADM0 326 →
+  **321** moderate / **304** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
   search, a deterministic geocode + province-polygon check, and manual review.
@@ -191,10 +194,10 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   NOT regenerated from geometry alone (only the ADM0 roll-up is, by
   `write_water_separated_manifest`). A *completed* bridge on a politically closed
   border counts (pericoupling is structural); under-construction/proposed links
-  do not. Mid-lake "median-line" meetings are removed from the geometry build by
-  the inland-water filter (Method step 3) and restored by the reviewed **lake
-  overlay** below, so all three standards govern them like river borders. Full
-  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`. One post-classification correction: Italy↔Vatican (`ITA007`↔`VAT001`) was review-reclassified from water-only to a **land border** (the Vatican is a ~2.7 km land enclave within Rome; the Tiber is ~0.6 km away, not the border), so the land-classified subset is **314** ADM1 water-only pairs, not the 315 first geometrically flagged (the shipped total is **352** after the river-gap, wide-river, lake, audit-water, and hydro-water overlays below; the land-classified subset itself is **312** after the 2026-07-02 corrections below). ITA↔VAT is therefore pericoupled under every `coupling_standard`.
+  do not. Mid-lake "median-line" meetings are native edges in the v2 build (no lake
+  filter removes them), so all three standards govern them like river
+  borders directly. Full
+  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`. One post-classification correction: Italy↔Vatican (`ITA007`↔`VAT001`) was review-reclassified from water-only to a **land border** (the Vatican is a ~2.7 km land enclave within Rome; the Tiber is ~0.6 km away, not the border), so the land-classified subset is **314** ADM1 water-only pairs, not the 315 first geometrically flagged (the shipped total is **361** after the river-gap, lake-gap, wide-river, audit-water, hydro-water, and hydro-lakes overlays below; the land-classified subset itself is **309** after the 2026-07-02 corrections below). ITA↔VAT is therefore pericoupled under every `coupling_standard`.
 - **Correctly-absent pairs.** `ARE/QAT`, `KEN/SDN`, `SDN/UGA` are *not* land
   neighbours (separated by Saudi Arabia / South Sudan respectively) and are
   rightly absent — these differ from the older dataset, which listed them.
@@ -305,13 +308,13 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   as NOT water-only were **removed** (Osijek-Baranja↔Bács-Kiskun
   `HRV010`↔`HUN001`, Eastern Equatoria↔Moyo `SSD002`↔`UGA081`) — they are
   ordinary land edges, pericoupled under every standard; the bridge CSV is now
-  312 rows (SHA-256 re-pinned). One further flag, Comoé↔Western (Tano), was
+  309 rows (SHA-256 re-pinned). One further flag, Comoé↔Western (Tano), was
   human-rejected as not water-only over the verifier's confirmation. New ADM0
   roll-up: **GUF↔SUR** (Maroni system, ferry only → lenient-only at ADM0).
   Audit artifacts: `build_data/hydro_full_sweep/`.
-  Final shipped counts: ADM1 **8,453** edges (**8,222** moderate / **8,101**
-  stringent), ADM0 **326** pairs (322 moderate / 304 stringent), water-only
-  **352** ADM1 (121/231) + **22** ADM0 roll-ups.
+  Final shipped counts: ADM1 **8,451** edges (**8,214** moderate / **8,090**
+  stringent), ADM0 **326** pairs (321 moderate / 304 stringent), water-only
+  **361** ADM1 (124/237) + **22** ADM0 roll-ups.
 - **Collapsed-node (quadripoint) artifacts.** At a few places the WB source
   snaps two nearby tripoints to a single coordinate, producing a degenerate
   4-province node. This both *manufactures* a false point-contact between the

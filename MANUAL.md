@@ -521,8 +521,10 @@ strips any citation token the LLM should not have emitted:
 - **Bare legacy tokens** — `[N]` or `[W1]` without the `Tk:`
   prefix (a pre-2026 grammar)
 
-Each strip triggers a `MetacouplingAssistant sanitized N invalid
-citation token(s)` warning in the logger so the gap is auditable.
+Out-of-range and forward-reference strips are reported via a single
+aggregate `MetacouplingAssistant sanitized N invalid citation
+token(s)` warning in the logger so the gap is auditable; bare
+legacy `[N]` / `[W1]` tokens are stripped silently (no warning).
 Prior-turn back-references (e.g. `[T1:3]` appearing in a turn-2
 answer) are **kept** verbatim — the LLM is encouraged to
 back-reference earlier evidence by copying the original token.
@@ -928,8 +930,9 @@ The exporters carry over:
 - per-category **Causes** + **Effects** subsections matching the eight
   fixed categories
 - **RAG evidence** + **web sources** blocks (PR #31 follow-up)
-- **classification bullets** at the top of every system role section
-  (PR #33)
+- multi-bullet **§1 classification** rendered as proper bullet
+  paragraphs in the docx export, and every system role line promoted
+  to a **§N.1.K subheading** (PR #33)
 
 ### Evidence coverage note (`result.parsed.evidence_coverage_note`, PR #20)
 
@@ -956,8 +959,8 @@ print(result.parsed.evidence_coverage_note)
 The package includes a curated country-pair database in which 326
 symmetric country pairs share a border; under the default adjacency
 settings (`de_facto_borders=True`, `coupling_standard="moderate"`)
-**323** of them are exposed as pericoupled (geographically adjacent) —
-the moderate standard drops 3 water-only pairs with no fixed crossing.
+**321** of them are exposed as pericoupled (geographically adjacent) —
+the moderate standard drops 5 water-only pairs with no fixed crossing.
 All other pairs are telecoupled (geographically distant). Based on
 current ISO 3166-1 alpha-3 country codes (World Bank Official
 Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`).
@@ -1465,7 +1468,7 @@ water-only pairs — see §8 "Adjacency standards".
 | `get_adm1_codes_for_country(iso)` | `set[str]` | All ADM1 codes inside the given country. |
 | `get_adm1_info(code)` | `dict \| None` | ADM1 metadata (canonical name, country, region). |
 | `get_adm1_country(code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
-| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles possessives, hyphens, unaccented forms, and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` (PR #45) — and **English exonyms / alternative spellings** via a bundled alias table (PR #60/#61) — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` (PR #45) — and **English exonyms / alternative spellings** via a bundled alias table (PR #60/#61) — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
 | `get_adm1_aliases(code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
 
 ### Literature Functions
@@ -1606,8 +1609,9 @@ backend is used automatically.
 
 The package only validates pairs involving the **sending (focal) country**.
 If you see unexpected pairs, the LLM may have identified a different
-country as the sending system than you intended. Use `result.parsed.systems`
-to check what the LLM detected.
+country as the sending system than you intended. Use
+`list(result.parsed.iter_system_entries())` to check what the LLM
+detected.
 
 ### A subnational region the LLM clearly mentioned isn't in the validator block
 

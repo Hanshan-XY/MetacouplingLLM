@@ -4,14 +4,14 @@ Use this list before publishing a new release to PyPI or GitHub.
 
 ## 1. Legal and Data Review
 
-- Confirm you have the right to redistribute every file in `src/metacoupling/data/`.
-- Re-check whether `src/metacoupling/data/Papers.zip` can be shipped publicly.
+- Confirm you have the right to redistribute every file in `src/metacouplingllm/data/`.
+- Re-check whether `src/metacouplingllm/data/Papers.zip` can be shipped publicly.
 - Confirm any required attribution for geographic datasets is present in the docs.
 
 ## 2. Version and Metadata
 
 - Update the version in `pyproject.toml`.
-- Update the version in `src/metacoupling/__init__.py`.
+- Confirm `metacouplingllm.__version__` reflects the new pyproject.toml version - it is resolved dynamically, no manual edit needed.
 - Make sure README, INTRODUCTION, and MANUAL examples still match the current API.
 - Review package metadata such as authors, homepage, and documentation links.
 
@@ -19,17 +19,17 @@ Use this list before publishing a new release to PyPI or GitHub.
 
 - Remove generated caches and temporary folders.
 - Make sure backup files are excluded from the distribution.
-- Check that only intended package data is included in `src/metacoupling/data/`.
+- Check that only intended package data is included in `src/metacouplingllm/data/`.
 
 ## 3b. Rebuild RAG Embeddings (when corpus or chunker changes)
 
-The package ships pre-computed BGE-small embeddings for the bundled
-RAG corpus in `src/metacoupling/data/chunk_embeddings.npy`. This file
+The package ships pre-computed BGE-base (BAAI/bge-base-en-v1.5) embeddings for the bundled
+RAG corpus in `src/metacouplingllm/data/chunk_embeddings.npy`. This file
 is consumed at runtime by `EmbeddingRetriever` and must stay in sync
 with `Papers.zip` and the chunker output. Rebuild when any of these
 change:
 
-- `src/metacoupling/data/Papers.zip` (new / updated papers)
+- `src/metacouplingllm/data/Papers.zip` (new / updated papers)
 - The chunking parameters or output order in `rag._chunk_markdown`
 - The default embedding model (`DEFAULT_EMBEDDING_MODEL` in `rag.py`)
 
@@ -38,7 +38,7 @@ To rebuild::
     pip install fastembed
     python scripts/build_embeddings.py --force
 
-The script writes `chunk_embeddings.npy` (~15 MB for BGE-small). Commit
+The script writes `chunk_embeddings.npy` (~15 MB for BGE-base). Commit
 the file to the repo so it ships with the next release.
 
 ## 4. Test and Smoke Test
@@ -46,9 +46,9 @@ the file to the repo so it ships with the next release.
 - Run `python -m pytest`.
 - Run targeted tests for optional features if you changed RAG, web search, or maps.
 - Create a fresh virtual environment and test a minimal install:
-  `pip install metacoupling`
+  `pip install metacouplingllm`
 - Test at least one extra you expect most users to need:
-  `pip install "metacoupling[openai]"`
+  `pip install "metacouplingllm[openai]"`
 
 ## 5. Build the Distribution
 
