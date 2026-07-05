@@ -22,7 +22,16 @@ python scripts/build_all.py
    contact (tolerance 0)** over the pinned WB polygons, land-clipped; **full**
    shared-boundary lengths, **no lake filter** (lake-meeting pairs are native); a
    **source-relabel** step first fixes 10 reviewed WB sliver-corridor artifacts
-   (`scripts/relabel_sliver_corridors.py`). No tuned parameter; the Malta
+   (`scripts/relabel_sliver_corridors.py`): a deterministic shape screen over
+   all 3,591 polygons (appendages ≥10 km × ≤500 m mean width) nominated 14
+   cross-border candidates, adjudicated against independent geodata (GADM 4.1,
+   geoBoundaries, Natural Earth, OSM/Nominatim, official border open data) —
+   9 artifacts beyond Arusha's two corridors, 3 genuine narrow territories
+   kept (Vennbahn, Courantyne, Dhekelia); the fix is an area-conserving
+   morphological-opening move (drift +0.0002 km²) that removes all 4
+   fabricated cross-country edges and corrects ~15 border lengths (full
+   detail: `docs/METHODS_adjacency.md` §10; evidence:
+   `build_data/arusha_sliver_audit/`). No tuned parameter; the Malta
    false-positive never appears at exact contact (denylist retired).
 2. **De-facto connectivity** (NDLSA): the geometry-derived disputed overlay
    (+13 ADM1 / +3 ADM0).
