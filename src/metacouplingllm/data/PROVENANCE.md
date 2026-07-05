@@ -223,7 +223,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   which the lake overlay below restores. Genuine river-following borders
   whose polygons already share a line are retained as before (e.g. the DRC–Uganda
   Semliki-corridor districts).
-- **Wide-river overlay (5 km re-screen).** The 2.4 km river-centerline candidate
+- **Wide-river overlay (5 km re-screen).** The 2.5 km river-centerline candidate
   screen under-captures very wide rivers (chiefly the Danube), so a 5 km re-screen
   of the candidate net, with per-pair LLM ground-truth + adversarial verification,
   recovered **13** further genuine water-only pairs (8 Bulgaria–Romania Danube
