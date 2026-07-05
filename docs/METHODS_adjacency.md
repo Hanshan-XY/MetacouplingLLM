@@ -26,7 +26,7 @@ produced the reviewed inputs, not steps a reader re-runs.
    restoration overlay is needed. A **source-relabel** step first reassigns 10
    reviewed WB sliver-corridor artifacts (thin border-tracing ribbons of one
    unit's land mislabeled onto a neighbour) to their true owners
-   (`scripts/relabel_sliver_corridors.py`; §2.6).
+   (`scripts/relabel_sliver_corridors.py`; §10).
 2. **De-facto connectivity (NDLSA).** Folds each disputed tract into its
    de-facto administrator and re-measures adjacency; adds the pairs whose sole
    land link is a tract (§5). Geometry-derived and validated per tract.
@@ -183,6 +183,26 @@ the tolerance begins merging genuinely separate units (e.g. across rivers and
 straits); the additions there are increasingly cross-country with multi-km
 "shared" lengths. The result is therefore **insensitive to the precise tolerance
 within the plateau**, and 5×10⁻⁴° lies in its interior.
+
+> **Re-measured on the shipped v2 geometry (2026-07-05).** On the
+> source-relabelled polygons (§10), with the candidate search widened by each
+> tolerance — a tolerance build's search must be (the v1 build queried
+> `tree.query(g.buffer(tol))`); the v2 build's plain bbox query is complete
+> only at exact contact — the same sweep gives ADM1 native
+> **8,425 / 8,429 / 8,429 / 8,432 / 8,437 / 8,452 / 8,517** at
+> 0 / 1×10⁻⁴ / 2×10⁻⁴ / 5×10⁻⁴ / 1×10⁻³ / 2×10⁻³ / 5×10⁻³°, and ADM0 native
+> **323** across [0, 1×10⁻³°], 324 at ≥2×10⁻³° (Namibia–Zimbabwe, gap ~140 m).
+> The **[0, 55 m] band holds exactly seven pairs**: the five land-gap borders
+> (Egypt–Libya 0.4 m, placeholder–Malawi 0.9 m, Anguilla 1.4 m,
+> Ethiopia–Sudan ~32 m, Dominican ~40 m) plus two **rejected artifacts** — the
+> ~0.8 m remnant where the source-relabel removed the bogus Braničevo↔Mehedinți
+> corridor edge (§10), which a tolerance would re-fabricate, and the Malta
+> Balzan↔Iklin councils (31 m), which exact contact excludes for free where the
+> v1 tolerance needed a denylist. Genuine and artifact gaps **interleave**
+> (0.4 / 0.8 / 0.9 / 1.4 / 31 / 32 / 40 m), so no tolerance value separates
+> them — the per-pair audit, not the threshold, is load-bearing. The
+> conclusion (near-invariance; exact contact safe) is unchanged; the v2 band
+> matches this v1 sweep's six plus the relabel remnant, cross-validating both.
 
 The **87 pairs added above the shipped tolerance** (7 at 1×10⁻³, +15 at 2×10⁻³,
 +65 at 5×10⁻³; 23 cross-border + 64 domestic) were audited per pair with the §4
@@ -518,3 +538,92 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
 Ambiguous names (several candidate regions, or a name denoting a different
 place, e.g. `"Mexico City"` vs the State of México) return `None`. Full usage
 documentation: `MANUAL.md` §8 and §12.
+
+## 10. Source-relabel: fixing sliver-corridor artifacts at the source
+
+Some WB Admin-1 polygons carry a **sliver corridor** — a thin ribbon of one
+unit's territory mislabeled onto a neighbour, tracing an international border
+for tens of kilometres. These artifacts corrupt the graph in a way no snapping
+tolerance can detect or repair: the ribbon *genuinely touches* the units across
+the border, so the fabricated edge is present at every tolerance (a fake
+*touch*, not a gap). Stage 1 therefore applies a dedicated correction — the
+source-relabel — before contiguity is computed.
+
+### 10.1 Detection (deterministic shape screen)
+
+The index case was **TZA001 Arusha**, diagnosed when the land-gap audit's two
+Kenya "offset corridors" (§4) turned out to be exactly the width of a ribbon on
+the Arusha polygon: a ~151 km × ~166 m NW tentacle reaching Lake Victoria
+(really Mara's land) and a ~68 km × ~175 m E tentacle (really Kilimanjaro's).
+Opening decomposition reproduced every affected shipped border length to four
+decimals, confirming the mechanism.
+
+The class was then swept exhaustively: `scripts/audit_sliver_corridors.py
+--scan` over all 3,591 polygons flags appendages **≥ 10 km long with ≤ 500 m
+mean width**. The signature is diagnostic because real units administer
+territory (towns, farms) while a 10–150 km ribbon a few hundred metres wide is
+the shape of a *digitization offset* — the band left between two renderings of
+the same border, glued to whichever polygon was drawn outermost (the
+Kenya–Tanzania offsets measure 73–101 m; Arusha's ribbon 166 m). The scan
+found **144** candidates, of which **14** touch a cross-country border: the 2
+Arusha corridors plus **12** further candidates.
+
+### 10.2 Adjudication (independent geodata, two passes)
+
+The screen only nominates. Each of the 12 was ground-truthed against
+**independent geodata** — GADM 4.1, geoBoundaries, Natural Earth,
+OSM/Nominatim, and official government border open-data — in a research pass
+plus an adversarial refutation pass per candidate (both passes agreed on all
+12): **9 artifacts** (their strips belong to a same-country neighbour) and
+**3 genuine** narrow territories, correctly kept — the Vennbahn treaty
+corridor (BEL), the Courantyne west-bank strip (SUR), and the Dhekelia road
+corridor (GBR). Thresholds nominate, audits decide. Evidence:
+`build_data/arusha_sliver_audit/scan_ground_truth.md`.
+
+### 10.3 The fix (pure geometry, area-conserving)
+
+For each reviewed host (`data/sliver_corridor_relabel.csv`, 10 hosts / 11
+rows — Arusha is the only multi-owner host):
+
+1. **Detach** the ribbon by morphological opening: `buffer(-D).buffer(+D)`
+   removes anything thinner than ~2D and regrows the body; `corridor =
+   polygon − opening` (parts > 0.5 km²). Default D = 2×10⁻³° (~220 m); each
+   host records the smallest D that fully detaches its ribbon
+   (`opening_d_deg`; only ARG017 Salta needs 3×10⁻³ — at the default its
+   wider ribbon under-detaches, leaving 8.2 km of residual bogus contact).
+2. **Assign** each detached piece to the reviewed owner whose boundary it
+   touches (Arusha resolves automatically: NW piece → Mara, E pieces →
+   Kilimanjaro). Safety rails: a thin part touching *no* reviewed owner is
+   left on the host (not the targeted artifact); touching *two* owners is a
+   hard error; an owner receiving *nothing* is a hard error.
+3. **Move, never delete**: host loses exactly the pieces, owners gain exactly
+   them. Measured global area drift: **+0.0002 km²** (rounding noise).
+
+Contiguity then runs on the corrected polygons, so every downstream number
+(edges, lengths, water rows, the §2.4 sweep) inherits the fix consistently —
+one deterministic operation instead of a pile of post-hoc edge patches.
+
+### 10.4 Impact ledger (what the relabel changed, pair by pair)
+
+| effect | pairs |
+|---|---|
+| **4 fabricated cross-country edges removed** | Migori↔Arusha (83.2 km → 0), Taita-Taveta↔Arusha (22.4 → 0), Salta↔Potosí (19.1 → 0), Braničevo↔Mehedinți (10.6 → 0). All four sat in v1 as eligible pericoupled pairs (three under every standard; Braničevo↔Mehedinți, water-only unbridged, under `lenient`). |
+| **1 orphaned water row deleted** | Braničevo↔Mehedinți's Danube row classified an edge that no longer exists — the "−1 orphan" of the base bridge-set correction 312 → **309** (with −2 review demotions: Vistula Spit, Konstanz–Kreuzlingen). |
+| **Starved true borders recovered** | Migori↔Mara 20 → 103 km (raw), Kitgum↔E. Equatoria 0.9 → 12.9, Taita-Taveta↔Kilimanjaro 148 → 170. |
+| **Rightful owners absorbed the strips** | Jujuy↔Potosí 302 → 313, Bor↔Mehedinți 153 → 164. |
+| **7 length-only artifacts corrected** | Gedo, Wajir, Galgaduud, Lamwo, ʿAsīr, Atyrau, Béchar — the true adjacency existed via the correct unit; only `border_length_km` was starved or inflated (e.g. Wajir↔Lower Juba 143.8 → 69.7). |
+| **2 pairs upgraded overlay → native** | Kajiado↔Kilimanjaro and Narok↔Mara touch at exact contact once the ribbon moves — the v1 land-gap patch for them is retired. |
+
+Net: −4 edges, +0 edges, ~15 lengths corrected, list otherwise unchanged.
+
+### 10.5 Verification and reproduction
+
+`tests/test_relabel_sliver_corridors.py` asserts the manifest's integrity in
+CI and — when the pinned GeoPackage is present — area conservation, all 12
+corridor moves, the four bogus edges at zero contact, and the starved-edge
+recoveries. Standalone re-run:
+
+    python scripts/relabel_sliver_corridors.py --adm1-gpkg "<WB Admin 1 .gpkg>"
+
+Full verification record: `build_data/v2_build/relabel_RESULTS.md`; scan +
+adjudication evidence: `build_data/arusha_sliver_audit/`.
