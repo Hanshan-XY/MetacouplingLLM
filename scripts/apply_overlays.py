@@ -70,6 +70,10 @@ REGISTRY = [
      "river", "water_body", "hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)"),
     ("hydro_lakes", "hydro_lakes_overlay_pairs.csv", False, None,
      "lake", "water_body", "hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)"),
+    ("hydro_geodesic_river", "hydro_geodesic_river_overlay_pairs.csv", False, None,
+     "river", "water_body", "hydro-geodesic overlay (geodesic re-screen: HydroRIVERS E-W anisotropy fix + human map verification)"),
+    ("hydro_geodesic_lake", "hydro_geodesic_lake_overlay_pairs.csv", False, None,
+     "lake", "water_body", "hydro-geodesic overlay (geodesic re-screen: HydroLAKES 500 m buffer + human map verification)"),
 ]
 
 
