@@ -20,11 +20,13 @@ borders -- Jogeva<->Pskov across Peipus, Malesi e Madhe<->Bar across Skadar),
 a **5-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
 placeholder-Malawi), and flags-only overlays that reclassify existing edges as
 water-only: **13 wide-river**, **3 audit-water**, **17 hydro-water**
-(HydroRIVERS sweep), and **11 hydro-lakes** (HydroLAKES sweep -- the Great
-Lakes, Lake Malawi median, Lake Chad).  ``coupling_standard`` governs river and
+(HydroRIVERS sweep), **11 hydro-lakes** (HydroLAKES sweep -- the Great
+Lakes, Lake Malawi median, Lake Chad), and **2 hydro-geodesic** (geodesic
+re-screen of the water buffers -- the Uruguay River and the Dead Sea).
+``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
-only those with a fixed crossing, ``stringent`` keeps none): the 361 water-only
-pairs give **8,451** lenient / **8,214** moderate / **8,090** stringent.
+only those with a fixed crossing, ``stringent`` keeps none): the 363 water-only
+pairs give **8,451** lenient / **8,213** moderate / **8,088** stringent.
 
 Source
 ------
