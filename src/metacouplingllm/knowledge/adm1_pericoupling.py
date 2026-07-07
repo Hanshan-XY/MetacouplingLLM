@@ -5,13 +5,16 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,451 border pairs** covering **3,375 unique ADM1
+The edge list contains **8,450 border pairs** covering **3,375 unique ADM1
 regions** across **196 countries** (v2 build).  The graph is built in four
 stages (full provenance in ``data/PROVENANCE.md`` and
 ``docs/METHODS_adjacency.md``): (1) **topology** -- rook contiguity at exact
 contact (tolerance 0) over the World Bank polygons, with **no lake filter**
-(so lake-meeting pairs are native edges) and a **source-relabel** step fixing
-10 reviewed sliver-corridor artifacts; (2) the geometry-derived **13-pair
+(so lake-meeting pairs are native edges), a **source-relabel** step fixing
+10 reviewed cross-country sliver-corridor artifacts, and a **denylist** removing
+1 reviewed domestic exclave-contact sliver (Balzers<->Planken; 3 further
+candidates were screened but confirmed genuine on official maps and kept);
+(2) the geometry-derived **13-pair
 disputed overlay**; (3) descriptive water classification; and (4) a reviewed
 correction layer of overlay manifests, each a deterministic Python screen +
 human/AI adjudication, frozen: a **6-pair river-gap overlay** (non-touching
@@ -26,7 +29,7 @@ re-screen of the water buffers -- the Uruguay River and the Dead Sea).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
 only those with a fixed crossing, ``stringent`` keeps none): the 363 water-only
-pairs give **8,451** lenient / **8,213** moderate / **8,088** stringent.
+pairs give **8,450** lenient / **8,212** moderate / **8,087** stringent.
 
 Source
 ------

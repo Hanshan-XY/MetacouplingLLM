@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8451, (
-            f"Expected 8451 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8450, (
+            f"Expected 8450 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):

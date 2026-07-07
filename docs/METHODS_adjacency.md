@@ -47,14 +47,15 @@ Steps in **build-stage order**: S1 = WB geometry + tolerance-0 core + tolerance-
 | step (stage order) | count | source / reason |
 |---|---|---|
 | **S1** exact-contact contiguity, raw WB polygons | 8,427 | tolerance 0, ocean-clip, no lake filter — before the source-relabel |
-| **S1** − source-relabel of sliver corridors | −2 → 8,425 | §10: removes 4 fabricated cross-country edges (Migori↔Arusha, Taita-Taveta↔Arusha, Salta↔Potosí, Braničevo↔Mehedinți), makes 2 Kenya survey-line pairs native (Kajiado↔Kilimanjaro, Narok↔Mara) = native geometry |
-| **S1** + land-gap overlay (tolerance-band recovery) | +5 → 8,430 | five genuine sub-tolerance borders (Egypt–Libya 0.4 m … placeholder–Malawi) the 0→5×10⁻³° sweep surfaces; the build ships tolerance 0, these added explicitly |
-| **S2** + de-facto disputed overlay | +13 → 8,443 | 13 province pairs whose sole link is a disputed tract |
-| **S4** + river-gap overlay | +6 → 8,449 | cross-border river pairs the source digitizes as non-touching banks (near-miss census) |
-| **S4** + lake-gap overlay | +2 → **8,451** | the only two non-touching lake borders: Jõgeva↔Pskov (Peipus) and Malësi e Madhe↔Bar (Skadar, census 2026-07-04) |
-| **shipped (lenient)** | **8,451** | 3,375 regions, 196 countries |
-| moderate (default) | **8,213** | 8,451 − 238 water-only pairs with no fixed crossing |
-| stringent | **8,088** | 8,451 − all 363 water-only pairs |
+| **S1** − source-relabel of cross-country sliver corridors | −2 → 8,425 | §10: removes 4 fabricated cross-country edges (Migori↔Arusha, Taita-Taveta↔Arusha, Salta↔Potosí, Braničevo↔Mehedinți), makes 2 Kenya survey-line pairs native (Kajiado↔Kilimanjaro, Narok↔Mara) = native geometry |
+| **S1** − denylist of one domestic exclave-contact sliver | −1 → 8,424 | §10.6: 1 fabricated **domestic** edge (Balzers↔Planken); 3 further candidates (Dubai↔Fujairah, Chaguanas↔San Juan, Chișinău↔Dubăsari) were screened but confirmed genuine on official maps and kept |
+| **S1** + land-gap overlay (tolerance-band recovery) | +5 → 8,429 | five genuine sub-tolerance borders (Egypt–Libya 0.4 m … placeholder–Malawi) the 0→5×10⁻³° sweep surfaces; the build ships tolerance 0, these added explicitly |
+| **S2** + de-facto disputed overlay | +13 → 8,442 | 13 province pairs whose sole link is a disputed tract |
+| **S4** + river-gap overlay | +6 → 8,448 | cross-border river pairs the source digitizes as non-touching banks (near-miss census) |
+| **S4** + lake-gap overlay | +2 → **8,450** | the only two non-touching lake borders: Jõgeva↔Pskov (Peipus) and Malësi e Madhe↔Bar (Skadar, census 2026-07-04) |
+| **shipped (lenient)** | **8,450** | 3,375 regions, 196 countries |
+| moderate (default) | **8,212** | 8,450 − 238 water-only pairs with no fixed crossing |
+| stringent | **8,087** | 8,450 − all 363 water-only pairs |
 
 **What Stage 1 changed vs a naïve build (add/remove reasons):** removed 3
 fabricated cross-border edges (Salta↔Potosí, Braničevo↔Mehedinți, and the two
@@ -81,7 +82,7 @@ stringent.
 
 ---
 
-> **Note (v2).** Sections 2–4 below are the *discovery/validation record*. The shipped v2 build uses **exact contact (tolerance 0)**, not a 5×10⁻⁴° snap, and computes **full** shared lengths (no lake/river subtraction); the counts they cite in passing describe the earlier tolerance build and are superseded by the provenance ledger above (shipped 8,451 / moderate 8,213 / water-only 363). They are retained because the sensitivity sweeps and per-pair audits still justify the parameter choices and produced the reviewed correction manifests.
+> **Note (v2).** Sections 2–4 below are the *discovery/validation record*. The shipped v2 build uses **exact contact (tolerance 0)**, not a 5×10⁻⁴° snap, and computes **full** shared lengths (no lake/river subtraction); the counts they cite in passing describe the earlier tolerance build and are superseded by the provenance ledger above (shipped 8,450 / moderate 8,212 / water-only 363). They are retained because the sensitivity sweeps and per-pair audits still justify the parameter choices and produced the reviewed correction manifests.
 
 ## 1. Contiguity rule: rook, not queen
 
@@ -555,7 +556,7 @@ each shipped as a
 reviewed manifest (`data/*_overlay_pairs.csv`) and applied in one pass by the
 idempotent engine `scripts/apply_overlays.py` (full provenance in
 `data/PROVENANCE.md`). Under
-the default, ADM1 pericoupled edges fall 8,451 → **8,213** and ADM0 country
+the default, ADM1 pericoupled edges fall 8,450 → **8,212** and ADM0 country
 pairs 326 → **321** (the hydro-water overlay's GUF↔SUR roll-up — the Maroni
 system, ferry only — joins COD↔TZA, MRT↔SEN, and CAF↔COD as a default-view
 subtraction).
@@ -589,7 +590,7 @@ sources: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
   keeps only the three lake pairs with a fixed crossing (Flevoland↔Noord-Holland
   via the Houtribdijk, Flevoland↔Gelderland via the Nijkerkerbrug,
   Södermanland↔Uppsala via the Hjulstabron), and `stringent` keeps none.
-  `lenient` therefore equals the shipped base adjacency (8,451 edges).
+  `lenient` therefore equals the shipped base adjacency (8,450 edges).
 
 ## 9. Name resolution (lookup layer)
 
@@ -713,3 +714,55 @@ recoveries. Standalone re-run:
 
 Full verification record: `build_data/v2_build/relabel_RESULTS.md`; scan +
 adjudication evidence: `build_data/arusha_sliver_audit/`.
+
+### 10.6 Domestic exclave-contact slivers (one denylist removal)
+
+§10.1's shape screen flagged **144** appendages; §10.2–10.4 adjudicated the
+**14** that touch a *cross-country* border. The remaining **130** are domestic
+(their host cannot reach an international frontier), and a separate question is
+whether any fabricates a *within-country* ADM1 edge. The domestic tail was
+checked with two deterministic WB-geometry passes — the §10.1 scan's own
+corridor decomposition, and a **corridor-fraction sweep** over all 6,651
+same-country adjacencies — plus a **global exclave-contact detector** (short
+domestic edges whose contact sits on a non-main polygon part), which surfaced
+the exclave-fragmented territories (the UAE emirates, the Liechtenstein
+communes) and four low-probability tripoint-adjacent candidates.
+
+Unlike a sliver corridor — a thin ribbon whose thinness the geometry itself
+exposes (§10.1) — a domestic exclave contact carries **no such WB-internal
+signature**: the units genuinely share a short frontier in the WB polygons, so
+the geometry cannot say whether that frontier is real. This forced the
+adjudication onto external sources, and that is exactly where it is fragile: an
+OSM or gazetteer neighbour list describes a **different boundary dataset** than
+the World Bank polygons, so "an independent source shows a third unit between
+them" does *not* by itself prove the WB edge is fabricated. Applied to the four
+candidates, that reasoning **over-fired on three of them**: Dubai↔Fujairah
+(ARE003↔ARE004), Chaguanas↔San Juan–Laventille (TTO002↔TTO011) and
+Chișinău↔Dubăsari (MDA010↔MDA015) were each checked against the **official
+administrative maps** and are **genuine** shared borders — substantial WB
+frontiers (Chișinău↔Dubăsari is 6.79 km), not thin ribbons — and are kept.
+
+Exactly **one** domestic candidate is a confirmed artifact:
+
+| removed domestic edge | length | actually between them | authority |
+|---|---|---|---|
+| **Balzers↔Planken** (LIE001↔LIE005) | 0.42 km | Schaan, Vaduz, Triesenberg | Balzers's alpine exclaves sit in the upper Valorsch/Gapfahl zone, Planken's Garselli on the lower Saminatal; the two communes share no frontier (Historisches Lexikon des Fürstentums Liechtenstein) |
+
+It is the one candidate that also carries the thin-sliver signature (0.42 km),
+so geometry and source agree — the bar the other three failed.
+
+**The lesson (recorded for future audits).** A signature computable from the WB
+polygons themselves (the §10.1 ribbon shape) is a reliable basis for removing an
+edge; an adjacency verdict imported from OSM/Wikipedia is not, and must be
+confirmed on an authoritative map before any WB edge is dropped. The
+cross-country relabels of §10.4 rest on the former; only Balzers↔Planken cleared
+that bar here.
+
+**The fix.** Because there is no mislabelled ribbon to reassign to a rightful
+owner (§10.3), the one artifact is *removed* rather than source-relabelled: its
+code pair populates `_ADM1_FALSE_POSITIVE_DENYLIST` in
+`scripts/build_pericoupling_db.py`, which drops it at edge-list generation. Net
+effect **−1** land edge (8,451 → **8,450**; moderate 8,213 → **8,212**, stringent
+8,088 → **8,087**), while the water-only set (363), the ADM0 counts (326/321/304)
+and the region/country totals (3,375 / 196) are unchanged. Evidence and
+reproduction: `build_data/arusha_sliver_audit/domestic_scan_ground_truth.md`.
