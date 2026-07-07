@@ -31,8 +31,13 @@ python scripts/build_all.py
    morphological-opening move (drift +0.0002 km²) that removes all 4
    fabricated cross-country edges and corrects ~15 border lengths (full
    detail: `docs/METHODS_adjacency.md` §10; evidence:
-   `build_data/arusha_sliver_audit/`). No tuned parameter; the Malta
-   false-positive never appears at exact contact (denylist retired).
+   `build_data/arusha_sliver_audit/`). No tuned parameter; the old Malta snap
+   false-positive never appears at exact contact, but the denylist carries
+   **one reviewed domestic exclave-contact sliver** removed rather than
+   relabelled (§10.6): Balzers↔Planken.  (Three further candidates —
+   Dubai↔Fujairah, Chaguanas↔San Juan-Laventille, Chișinău↔Dubăsari — were
+   screened the same way but confirmed genuine on the official maps and kept;
+   an OSM/gazetteer adjacency verdict does not override a WB border.)
 2. **De-facto connectivity** (NDLSA): the geometry-derived disputed overlay
    (+13 ADM1 / +3 ADM0).
 3. **Water classification** (descriptive only): Natural Earth + the reviewed
@@ -46,21 +51,25 @@ python scripts/build_all.py
 
 **Provenance chain (ADM1, build-stage order):** [S1] 8,427 raw exact-contact
 (tol 0) −2 source-relabel (−4 bogus cross-country edges, +2 Kenya native) =
-8,425 native, +5 land-gap (tolerance-band) = 8,430; [S2] +13 disputed = 8,443;
-[S4] +6 river-gap +2 lake-gap = **8,451** shipped (lenient); **8,213** moderate;
-**8,088** stringent; 3,375 regions, 196 countries.
+8,425 native, −1 denylist (one domestic exclave-contact sliver: Balzers↔Planken; three
+further candidates confirmed genuine on official maps and kept) = 8,424,
++5 land-gap (tolerance-band) = 8,429; [S2] +13 disputed = 8,442;
+[S4] +6 river-gap +2 lake-gap = **8,450** shipped
+(lenient); **8,212** moderate; **8,087** stringent; 3,375 regions, 196 countries.
 **ADM0** 326 / 321 / 304. **Water-only 363** (125/238) + 22 ADM0 roll-ups
 (+2 hydro-geodesic — the Uruguay River and the Dead Sea, from the geodesic
-water-buffer re-screen; flags only, no new edges, so the edge chain stays 8,451).
+water-buffer re-screen; flags only, no new edges, so the edge chain stays 8,450).
 
 The audits recorded in the per-overlay sections below (near-miss ground-truth,
 buffer re-screens, tolerance-band and snap-extras diagnostics, two-pass
 verification, human map review) are how the correction layer was *discovered
 and validated* — reproducing the database does not require re-running them.
 
-Byte-identity scope (verified by a clean-room `--full` rebuild, 2026-07-02,
-geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2): the **adjacency pair set
-reproduces exactly** (8,451), and `water_separated_pairs.csv`,
+Byte-identity scope (a clean-room `--full` rebuild — 2026-07-02, geopandas
+1.1.2 / shapely 2.1.2 / pyproj 3.7.2 — verified the base **adjacency pair set
+reproduces exactly** at 8,451; the shipped **8,450** is that base less the 1
+deterministic `_ADM1_FALSE_POSITIVE_DENYLIST` drop applied inside the build,
+so the pair set remains exactly reproducible), and `water_separated_pairs.csv`,
 `PeriTelecoupling_clean.csv`, and `disputed_overlay_pairs.csv` are
 **byte-identical**; the advisory `border_length_km` column differs on the
 ~25% of edges touched by the river-length measurement (a length-only value —
@@ -74,7 +83,7 @@ engine reproduces the shipped CSVs byte-identically from the raw build state.
 
 | File | Shape | Content |
 |---|---|---|
-| `pericoupled_adm1_edge_list.csv` | 8,451 edges · 3,375 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
+| `pericoupled_adm1_edge_list.csv` | 8,450 edges · 3,375 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
@@ -126,7 +135,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 > some describe the earlier v1 build (5×10⁻⁴° snap, 63-pair lake overlay, Malta
 > denylist). The shipped v2 build supersedes those with the four-stage,
 > tolerance-0 pipeline and the manifests listed in the Datasets table above
-> (authoritative counts: 8,451 / 8,213 / 8,088; water-only 363). Content is
+> (authoritative counts: 8,450 / 8,212 / 8,087; water-only 363). Content is
 > retained because the audits still justify the reviewed correction pairs.
 
 
@@ -200,7 +209,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,451 → **8,213** moderate / **8,088** stringent; ADM0 326 →
+  shipped edges 8,450 → **8,212** moderate / **8,087** stringent; ADM0 326 →
   **321** moderate / **304** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -327,7 +336,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   human-rejected as not water-only over the verifier's confirmation. New ADM0
   roll-up: **GUF↔SUR** (Maroni system, ferry only → lenient-only at ADM0).
   Audit artifacts: `build_data/hydro_full_sweep/`.
-  Final shipped counts: ADM1 **8,451** edges (**8,213** moderate / **8,088**
+  Final shipped counts: ADM1 **8,450** edges (**8,212** moderate / **8,087**
   stringent), ADM0 **326** pairs (321 moderate / 304 stringent), water-only
   **361** ADM1 (124/237) + **22** ADM0 roll-ups (before the hydro-geodesic overlay).
 - **Hydro-geodesic overlay (geodesic water-buffer re-screen, 2026-07-06).** The

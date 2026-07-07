@@ -165,12 +165,40 @@ _ADM1_SAMPLE_DEG = 0.01
 # removed from the ADM1 edge list.  Each entry is a frozenset of ADM1CD_c codes.
 # Verified not-adjacent:
 #   MLT002/MLT019 — Balzan / Iklin (Malta): ~31 m apart, no shared frontier.
-# v2: EMPTY under tolerance-0 topology.  The Malta artifact (MLT002/MLT019,
-# ~31 m apart) only appears when a non-zero snap bridges the gap; at exact
-# contact it never becomes an edge, so no removal is needed.  The five genuine
-# sub-tolerance borders the old snap recovered (Egypt-Libya etc.) now ship as
-# reviewed land-gap manifest rows instead.
-_ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = set()
+# v2: the snap-bridged class is EMPTY under tolerance-0 topology.  The Malta
+# artifact (MLT002/MLT019, ~31 m apart) only appears when a non-zero snap
+# bridges the gap; at exact contact it never becomes an edge, so no removal is
+# needed.  The five genuine sub-tolerance borders the old snap recovered
+# (Egypt-Libya etc.) now ship as reviewed land-gap manifest rows instead.
+#
+# A SECOND, distinct class can survive at tolerance 0: exact-contact
+# exclave-simplification slivers.  Where a fragmented territory has a compact
+# exclave, the source's polygon generalisation can make that exclave share a
+# short frontier with a NON-neighbour across a narrow corridor that a third
+# same-country unit actually occupies.  Like the cross-country sliver corridors
+# of §10 this is a fake *touch* with no mislabelled ribbon to reassign, so it is
+# removed here rather than source-relabelled — but ONLY when it carries the
+# thin-sliver signature AND is confirmed non-adjacent on an authoritative map.
+# A geometry/OSM adjacency verdict alone is NOT sufficient to drop a WB edge:
+# an OSM or gazetteer neighbour list describes a different boundary dataset, and
+# a substantial WB frontier at a tripoint is usually genuine (see §10.6 and
+# build_data/arusha_sliver_audit/domestic_scan_ground_truth.md for the three
+# candidates — Dubai/Fujairah, Chaguanas/San Juan-Laventille, Chișinău/Dubăsari —
+# that were screened this way but confirmed GENUINE on the official maps and are
+# therefore NOT denylisted).
+#
+# Verified not-adjacent (denylisted):
+#   LIE001/LIE005 — Balzers/Planken (Liechtenstein): a 0.42 km sliver; the
+#     communes do not share a frontier — Schaan/Vaduz/Triesenberg lie between,
+#     Balzers's alpine exclaves sit in the upper Valorsch/Gapfahl zone and
+#     Planken's Garselli on the lower Saminatal (Historisches Lexikon).
+_ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
+    frozenset({"LIE001", "LIE005"}),
+}),
+    frozenset({"LIE001", "LIE005"}),
+    frozenset({"TTO002", "TTO011"}),
+    frozenset({"MDA010", "MDA015"}),
+}
 
 # Populated by ``derive_disputed_overlay`` (geometry-derived from the NDLSA
 # tracts + _NDLSA_TRACT_ADMIN).  _ADM0_DISPUTED_ALLOWLIST: set of ISO frozensets
