@@ -360,8 +360,8 @@ adm1,COD011,RWA005,True,lake,Lake Kivu; Ruzizi,hydro-lakes overlay (HydroLAKES f
 adm1,CAN009,USA023,True,lake,Great Lakes; connecting rivers,hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)
 adm1,CAN009,USA024,True,lake,Rainy; Pigeon; Lake Superior,hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)
 adm1,CAN009,USA033,True,lake,Niagara; St. Lawrence; Great Lakes,hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)
-adm1,ARG008,URY012,True,river,Uruguay River,hydro-geodesic overlay (geodesic re-screen: HydroRIVERS E-W anisotropy fix + human map verification)
 adm1,ISR005,JOR007,False,lake,Dead Sea,hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)
+adm1,ARG008,URY012,True,river,Uruguay River,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
 adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
 adm0,ARG,PRY,True,,,adm1-rollup

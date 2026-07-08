@@ -56,9 +56,8 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S4** + lake-gap overlay | 8,443 → 8,445 | 328 → 330 | +2 non-touching lake borders: Jõgeva↔Pskov (Peipus), Malësi e Madhe↔Bar (Skadar, 100 km water-corridor census); all other lake-meeting pairs native |
 | **S4** + land-gap overlay (*applied* here; *discovered* by the S1 tolerance-band audit, §2.4/§4) | 8,445 → 8,450 | 330 → 330 | +5 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … placeholder–Malawi); no water rows |
 | **S4** audit-water overlay (10 km completeness audit) | 8,450 → 8,450 | 330 → 333 | +0 edges; 3 screen-missed borders reclassified water-only |
-| **S4** hydro-water overlay (HydroRIVERS full-DB) | 8,450 → 8,450 | 333 → 350 | +0 edges; 17 borders the NE screens missed |
-| **S4** hydro-lakes overlay (HydroLAKES geodesic 500 m) | 8,450 → 8,450 | 350 → 362 | +0 edges; 12 borders reclassified land→water (Great Lakes, Lake Malawi median, Lake Chad, Titicaca, Dead Sea); geodesic-500 m sweep = 15 candidates − 3 rejected |
-| **S4** hydro-geodesic overlay (HydroRIVERS geodesic re-screen) | 8,450 → 8,450 | 362 → 363 | +0 edges; 1 border — Uruguay River (San Martín bridge) |
+| **S4** hydro-water overlay (HydroRIVERS geodesic 500 m) | 8,450 → 8,450 | 333 → 351 | +0 edges; 18 borders the NE screens missed (incl. the Uruguay River, recovered by the geodesic metric) |
+| **S4** hydro-lakes overlay (HydroLAKES geodesic 500 m) | 8,450 → 8,450 | 351 → 363 | +0 edges; 12 borders reclassified land→water (Great Lakes, Lake Malawi median, Lake Chad, Titicaca, Dead Sea); geodesic-500 m sweep = 15 candidates − 3 rejected |
 | **shipped (lenient)** | **8,450** | 363 | 3,375 regions, 196 countries — every edge kept |
 | moderate (default) | **8,212** | −238 | 8,450 − 238 water-only pairs with no fixed crossing |
 | stringent | **8,087** | −363 | 8,450 − all 363 water-only pairs |
@@ -73,9 +72,9 @@ their border territory back to Mara/Kilimanjaro); the Malta false edge
 denylist entry.
 
 **Water-only set = 363 ADM1** (125 with a fixed crossing / 238 without) + **22
-ADM0** roll-ups, by source: 309 base bridge classification + 17 hydro-water
-(HydroRIVERS sweep) + 13 wide-river (5 km re-screen) + 12 hydro-lakes
-(HydroLAKES geodesic 500 m sweep) + 6 river-gap + 3 audit-water + 2 lake-gap + 1 hydro-geodesic
+ADM0** roll-ups, by source: 309 base bridge classification + 18 hydro-water
+(HydroRIVERS geodesic 500 m sweep) + 13 wide-river (5 km re-screen) + 12 hydro-lakes
+(HydroLAKES geodesic 500 m sweep) + 6 river-gap + 3 audit-water + 2 lake-gap
 (geodesic re-screen of the water buffers: the Uruguay River ARG008↔URY012, with
 the San Martín bridge, and the Dead Sea ISR005↔JOR007, no crossing). The base bridge
 set is 309 = 312 − 2 borders demoted to mixed land after review (Vistula Spit
@@ -282,13 +281,14 @@ is deliberate:
   raw-degree buffer reaches only `X · cos φ` metres east–west and so
   *under*-measures E–W distance at latitude — the one direction a completeness
   screen must not err (a planar control reproduces the frozen numbers bit-for-bit,
-  proving only the metric changed). The **HydroLAKES geodesic 500 m sweep** is the
-  hydro-lakes overlay: it nominates 15 cross-border lake candidates, 3 rejected as
-  mixed (Burundi–Rwanda; two Norway–Sweden), 12 shipped — including the **Dead
-  Sea** (Southern District↔Karak, no crossing). On the river side the same geodesic
-  buffer additionally surfaced the **Uruguay River** (hidden by ~0.04 of E–W
-  anisotropy: planar coverage 0.46 vs geodesic 0.54), shipped as the sole
-  *hydro-geodesic overlay*. The 2.4→2.5 km invariance and
+  proving only the metric changed). The geodesic buffer feeds both hydro
+  overlays. The **HydroLAKES** sweep is the hydro-lakes overlay: 15 cross-border lake
+  candidates, 3 rejected as mixed (Burundi–Rwanda; two Norway–Sweden), 12 shipped —
+  including the **Dead Sea** (Southern District↔Karak, no crossing). The **HydroRIVERS**
+  sweep is the hydro-water overlay (18 borders); the geodesic metric recovered one the
+  raw-degree screen had missed — the **Uruguay River** (hidden by ~0.04 of E–W
+  anisotropy: planar coverage 0.46 vs geodesic 0.54). There is no separate
+  hydro-geodesic overlay. The 2.4→2.5 km invariance and
   the 5 km/10 km completeness re-screens still bound the river screen.
 
 *Cautionary example (why the boundary between the two matters).* During the
@@ -498,9 +498,9 @@ orthogonal to `de_facto_borders`:
 | `stringent` | never (water never counts) |
 
 **Data.** `data/water_separated_pairs.csv` lists the **363 ADM1** water-only
-pairs with a `has_bridge` flag (309 land-classified + 17 hydro-water + 13
+pairs with a `has_bridge` flag (309 land-classified + 18 hydro-water + 13
 wide-river + 12 hydro-lakes + 6 river-gap + 3 audit-water + 2 lake-gap
-+ 1 hydro-geodesic overlay pairs), plus **22 ADM0** country pairs rolled up from them (a
+overlay pairs), plus **22 ADM0** country pairs rolled up from them (a
 country pair is water-only iff *all* its ADM1 crossings are, and has a bridge
 iff *any* does). Six reviewed overlays feed this set — the **river-gap
 overlay** (6 near-miss river pairs restored as edges), the **wide-river
@@ -516,10 +516,11 @@ Natural Earth screens missed — Shirak↔Kars on the Akhurian, Vratca↔Olt on 
 Danube main-stem span absent from the NE river list, Kagera↔Ntungamo on a
 402 m Kagera-thalweg arc — flagged by the 10 km completeness audit's two-pass
 verification and confirmed by human map review 2026-07-02; flags only, no new
-edges), and the **hydro-water overlay** (17 existing edges reclassified
-water-only by the **full-database HydroRIVERS cross-check** — every one of the
-1,800 cross-border edges sampled at ~0.5 km against HydroRIVERS v10 reaches
-within a ~500 m buffer at three discharge tiers, the 34 un-adjudicated flags
+edges), and the **hydro-water overlay** (18 existing edges reclassified
+water-only by the **full-database HydroRIVERS geodesic 500 m cross-check** (incl.
+the Uruguay River, recovered by the geodesic metric) — every one of the
+1,800 cross-border edges sampled against HydroRIVERS v10 within a geodesic 500 m
+buffer at three discharge tiers, the 34 un-adjudicated flags
 two-stage ground-truthed, and every confirmation human map-verified
 2026-07-02; among them the Oder/Neisse, Rio Hondo, Cavally, Mano, Kagera, and
 Alazani borders. The same audit corrected the base classification itself:

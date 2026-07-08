@@ -22,10 +22,10 @@ river banks), a **2-pair lake-gap overlay** (the only two non-touching lake
 borders -- Jogeva<->Pskov across Peipus, Malesi e Madhe<->Bar across Skadar),
 a **5-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
 placeholder-Malawi), and flags-only overlays that reclassify existing edges as
-water-only: **13 wide-river**, **3 audit-water**, **17 hydro-water**
-(HydroRIVERS sweep), **12 hydro-lakes** (HydroLAKES geodesic 500 m sweep -- the
-Great Lakes, Lake Malawi median, Lake Chad, and the Dead Sea), and **1
-hydro-geodesic** (the Uruguay River, from the HydroRIVERS geodesic re-screen).
+water-only: **13 wide-river**, **3 audit-water**, **18 hydro-water**
+(HydroRIVERS geodesic 500 m sweep -- incl. the Uruguay River), and **12 hydro-lakes**
+(HydroLAKES geodesic 500 m sweep -- the Great Lakes, Lake Malawi median, Lake Chad,
+and the Dead Sea).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
 only those with a fixed crossing, ``stringent`` keeps none): the 363 water-only
