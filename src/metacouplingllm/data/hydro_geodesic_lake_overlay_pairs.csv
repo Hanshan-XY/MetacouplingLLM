@@ -1,2 +1,0 @@
-code_a,name_a,iso_a,code_b,name_b,iso_b,water_body,border_km,has_bridge,source
-ISR005,Southern District,ISR,JOR007,Karak,JOR,Dead Sea,66.0,False,"geodesic re-screen (HydroLAKES 500 m buffer measured geodesically via GEOD.inv; planar-300 frac 0.51 -> geodesic-500 0.80) + two-stage LLM ground-truth + human map verification (2026-07-06); no fixed crossing across the Dead Sea (1994 Israel-Jordan Treaty median line)"

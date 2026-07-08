@@ -1,4 +1,4 @@
-"""Tests for the v2 source-relabel stage (scripts/relabel_sliver_corridors.py).
+"""Tests for the source-relabel stage (scripts/relabel_sliver_corridors.py).
 
 The manifest-consistency checks run in CI (committed CSV). The geometry
 verification needs the pinned WB Admin-1 GeoPackage, which is not committed,
