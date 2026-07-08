@@ -289,7 +289,13 @@ is deliberate:
   raw-degree screen had missed — the **Uruguay River** (hidden by ~0.04 of E–W
   anisotropy: planar coverage 0.46 vs geodesic 0.54). There is no separate
   hydro-geodesic overlay. The 2.4→2.5 km invariance and
-  the 5 km/10 km completeness re-screens still bound the river screen.
+  the 5 km/10 km completeness re-screens bound the river screen; extending it to
+  **25/50/100 km** confirms the bound — the candidate net grows to 1,399 but adds
+  no genuine water-only border (96% of the wide-buffer-only candidates have < 20%
+  of their border within 2.5 km of a river — *near*, not *on*, the border, so they
+  cannot be water-only). Completeness is fixed by the buffer-independent
+  database-wide HydroRIVERS/HydroLAKES sweeps, not the NE buffer width
+  (`build_data/wide_river_audit/screen_ladder_to_100km.py`).
 
 *Cautionary example (why the boundary between the two matters).* During the
 census re-verification, one diagnostic converted degree distances with a flat
