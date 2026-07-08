@@ -518,7 +518,9 @@ rivers), the **lake-gap overlay** (2 pairs from the census's two bands — Jõge
 across Lake Peipus (≤1 km near band) and Malësi e Madhe↔Bar (ALB022↔MNE002)
 across Lake Skadar (1–100 km water-corridor band), whose shores the source
 digitizes as non-touching — restoring the only two non-touching lake
-borders as edges), the **audit-water overlay** (3 existing edges the
+borders as edges; capping the water band at 10/25/50/100 km recovers only Skadar
+(gap 9.3 km), the 25–100 km tail being non-adjacent wide-lake pairs, so its 100 km
+reach is conservative — `build_data/premeasure/census_waterband_cap_ladder.py`), the **audit-water overlay** (3 existing edges the
 Natural Earth screens missed — Shirak↔Kars on the Akhurian, Vratca↔Olt on a
 Danube main-stem span absent from the NE river list, Kagera↔Ntungamo on a
 402 m Kagera-thalweg arc — flagged by the 10 km completeness audit's two-pass
