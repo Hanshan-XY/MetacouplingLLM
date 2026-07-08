@@ -53,7 +53,7 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S3** Natural Earth water classification | 8,437 → 8,437 | — → 309 | descriptive: base bridge classification flags 309 water-only borders; **adds no edge** |
 | **S4** + river-gap overlay (near-miss census) | 8,437 → 8,443 | 309 → 315 | +6 cross-border river borders the source digitizes as non-touching banks |
 | **S4** wide-river overlay (5 km re-screen) | 8,443 → 8,443 | 315 → 328 | +0 edges; 13 existing edges reclassified water-only (2.5 km river net re-screened at 5 km) |
-| **S4** + lake-gap overlay | 8,443 → 8,445 | 328 → 330 | +2 non-touching lake borders: Jõgeva↔Pskov (Peipus), Malësi e Madhe↔Bar (Skadar, 100 km water-corridor census); all other lake-meeting pairs native |
+| **S4** + lake-gap overlay | 8,443 → 8,445 | 328 → 330 | +2 non-touching lake borders, one per census band: Jõgeva↔Pskov (Peipus) from the ≤1 km near band, Malësi e Madhe↔Bar (Skadar) from the 1–100 km water-corridor band; all other lake-meeting pairs native |
 | **S4** + land-gap overlay (*applied* here; *discovered* by the S1 tolerance-band audit, §2.4/§4) | 8,445 → 8,450 | 330 → 330 | +5 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … placeholder–Malawi); no water rows |
 | **S4** audit-water overlay (10 km completeness audit) | 8,450 → 8,450 | 330 → 333 | +0 edges; 3 screen-missed borders reclassified water-only |
 | **S4** hydro-water overlay (HydroRIVERS geodesic 500 m) | 8,450 → 8,450 | 333 → 351 | +0 edges; 18 borders the NE screens missed (incl. the Uruguay River, recovered by the geodesic metric) |
@@ -289,7 +289,13 @@ is deliberate:
   raw-degree screen had missed — the **Uruguay River** (hidden by ~0.04 of E–W
   anisotropy: planar coverage 0.46 vs geodesic 0.54). There is no separate
   hydro-geodesic overlay. The 2.4→2.5 km invariance and
-  the 5 km/10 km completeness re-screens still bound the river screen.
+  the 5 km/10 km completeness re-screens bound the river screen; extending it to
+  **25/50/100 km** confirms the bound — the candidate net grows to 1,399 but adds
+  no genuine water-only border (96% of the wide-buffer-only candidates have < 20%
+  of their border within 2.5 km of a river — *near*, not *on*, the border, so they
+  cannot be water-only). Completeness is fixed by the buffer-independent
+  database-wide HydroRIVERS/HydroLAKES sweeps, not the NE buffer width
+  (`build_data/wide_river_audit/screen_ladder_to_100km.py`).
 
 *Cautionary example (why the boundary between the two matters).* During the
 census re-verification, one diagnostic converted degree distances with a flat
@@ -508,10 +514,13 @@ overlay** (13 existing edges reclassified water-only after a 5 km candidate
 re-screen), the **hydro-lakes overlay** (12 existing edges reclassified
 land→water by the HydroLAKES geodesic 500 m sweep, incl. the Dead Sea — lakes are native edges in
 the build, no lake filter removes them, so the standard governs lakes exactly like
-rivers), the **lake-gap overlay** (2 pairs — Jõgeva↔Pskov across Lake Peipus
-and Malësi e Madhe↔Bar (ALB022↔MNE002) across Lake Skadar, whose shores the
-source digitizes as non-touching — restoring the only two non-touching lake
-borders as edges), the **audit-water overlay** (3 existing edges the
+rivers), the **lake-gap overlay** (2 pairs from the census's two bands — Jõgeva↔Pskov
+across Lake Peipus (≤1 km near band) and Malësi e Madhe↔Bar (ALB022↔MNE002)
+across Lake Skadar (1–100 km water-corridor band), whose shores the source
+digitizes as non-touching — restoring the only two non-touching lake
+borders as edges; capping the water band at 10/25/50/100 km recovers only Skadar
+(gap 9.3 km), the 25–100 km tail being non-adjacent wide-lake pairs, so its 100 km
+reach is conservative — `build_data/premeasure/census_waterband_cap_ladder.py`), the **audit-water overlay** (3 existing edges the
 Natural Earth screens missed — Shirak↔Kars on the Akhurian, Vratca↔Olt on a
 Danube main-stem span absent from the NE river list, Kagera↔Ntungamo on a
 402 m Kagera-thalweg arc — flagged by the 10 km completeness audit's two-pass

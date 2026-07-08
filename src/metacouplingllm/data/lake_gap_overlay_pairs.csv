@@ -1,3 +1,3 @@
 code_a,name_a,iso_a,code_b,name_b,iso_b,lake,border_km,has_bridge,crossing,source
-EST006,Jõgeva maakond,EST,RUS061,Pskovskaya Oblast,RUS,Lake Peipus,0.5,False,,near-miss audit; user map-verified (v1 PR#68)
-ALB022,Malesi e Madhe,ALB,MNE002,Bar,MNE,Lake Skadar/Shkodra,22.9,False,,"non-touching census (100km, water-corridor) + human map verification 2026-07-04"
+EST006,Jõgeva maakond,EST,RUS061,Pskovskaya Oblast,RUS,Lake Peipus,0.5,False,,non-touching census, near band (gap <= 1 km); user map-verified (PR #68)
+ALB022,Malesi e Madhe,ALB,MNE002,Bar,MNE,Lake Skadar/Shkodra,22.9,False,,"non-touching census, water band (1-100 km, >=80% lake-corridor); human map verification 2026-07-04"

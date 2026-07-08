@@ -104,7 +104,7 @@ CSVs byte-identically from the raw build state.
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
 | `river_gap_overlay_pairs.csv` | 6 ADM1 pairs | Reviewed river-gap overlay manifest: cross-border river-separated pairs the strict build omits, recovered by the near-miss audit and applied by `scripts/apply_overlays.py` (see *River-separated province pairs* below) |
 | `water_separated_pairs.csv` | 363 ADM1 + 22 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (309 base + 6 river-gap + 2 lake-gap + 13 wide-river + 3 audit-water + 18 hydro-water + 12 hydro-lakes; see *Water-separated pairs* below) |
-| `lake_gap_overlay_pairs.csv` | 2 ADM1 pairs | Reviewed lake-gap manifest: the only two non-touching lake borders (Jõgeva↔Pskov across Peipus; Malësi e Madhe↔Bar across Skadar). The ~63 lake-meeting pairs are now native edges (no lake filter). |
+| `lake_gap_overlay_pairs.csv` | 2 ADM1 pairs | Reviewed lake-gap manifest: the only two non-touching lake borders — Jõgeva↔Pskov across Peipus (census ≤1 km near band) and Malësi e Madhe↔Bar across Skadar (census 1–100 km water-corridor band). The ~63 lake-meeting pairs are now native edges (no lake filter). |
 | `hydro_lakes_overlay_pairs.csv` | 12 ADM1 pairs | Reviewed hydro-lakes manifest: borders reclassified land→water by the **HydroLAKES geodesic 500 m sweep** (15 candidates; 3 rejected as mixed — Burundi–Rwanda, two Norway–Sweden), covering the Great Lakes, Lake Malawi median, Lake Chad, Lake Titicaca, and the **Dead Sea** (Southern District↔Karak, no crossing), human-verified (flags only). |
 | `sliver_corridor_relabel.csv` | 10 host polygons | Reviewed source-relabel manifest: WB sliver-corridor artifacts reassigned to their true owner units before contiguity. |
 | `wide_river_overlay_pairs.csv` | 13 ADM1 pairs | Reviewed wide-river overlay manifest: existing edges reclassified water-only after the 5 km candidate re-screen + per-pair ground-truth (flags only; see *Wide-river overlay* below) |
@@ -286,9 +286,9 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   overlay** (`lake_gap_overlay_pairs.csv`, applied by
   `scripts/apply_overlays.py`, registry entry `lake_gap`) — **2** genuinely
   *non-touching* lake borders the source digitizes as separate shores:
-  Jõgeva↔Pskov across Lake Peipus (gap ~0.0 km, facing arc ~0.5 km; manually
-  verified 2026-07-01) and Malësi e Madhe↔Bar across Lake Skadar (100 km
-  non-touching census + human map verification 2026-07-04). The one country
+  Jõgeva↔Pskov across Lake Peipus (the ≤1 km near band — gap ~0.0 km, facing
+  arc ~0.5 km; manually verified 2026-07-01) and Malësi e Madhe↔Bar across Lake
+  Skadar (the 1–100 km water-corridor band; human map verification 2026-07-04). The water band reaches 1–100 km; capping it at 10/25/50/100 km (`build_data/premeasure/census_waterband_cap_ladder.py`) confirms Skadar (gap 9.3 km) is the only genuine one — the candidate net grows 7→16→34→57 but the 25–100 km tail is 41 pairs on opposite shores of wide lakes (Victoria, Tanganyika, the Dead Sea), all non-adjacent, so the 100 km reach is a conservative bound that loses nothing. The one country
   pair whose only contact is a lake — `COD`↔`TZA` across Lake Tanganyika — is
   likewise native (lenient-only, no ADM0 matrix patch needed). Current shipped
   counts: ADM1 **8,450** edges, ADM0 **326** pairs, water-only **363** ADM1
