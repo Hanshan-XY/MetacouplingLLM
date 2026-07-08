@@ -1,12 +1,13 @@
 code_a,name_a,iso_a,code_b,name_b,iso_b,water_body,border_km,has_bridge,source
-MOZXXX,Area under National Administration,MOZ,MWI004,Area under National Administration,MWI,Lake Malawi/Nyasa,289.8,False,HydroLAKES full-database sweep + human map verification 2026-07-04
-MWI004,Area under National Administration,MWI,TZA017,Mbeya,TZA,Lake Malawi/Nyasa,40.0,False,HydroLAKES full-database sweep + human map verification 2026-07-04
-MWI004,Area under National Administration,MWI,TZA025,Ruvuma,TZA,Lake Malawi/Nyasa,158.0,False,HydroLAKES full-database sweep + human map verification 2026-07-04
-NGA008,Borno,NGA,TCD010,Lac,TCD,Lake Chad,84.6,False,HydroLAKES full-database sweep + human map verification 2026-07-04
-CMR004,Extrême - Nord,CMR,TCD010,Lac,TCD,Lake Chad,55.1,False,HydroLAKES full-database sweep + human map verification 2026-07-04
-KEN004,Busia,KEN,UGA088,Namayingo,UGA,Lake Victoria,34.0,False,HydroLAKES full-database sweep + human map verification 2026-07-04
-BOL004,La Paz,BOL,PER007,Callao,PER,Lake Titicaca,62.5,False,HydroLAKES full-database sweep + human map verification 2026-07-04
-COD011,Sud-Kivu,COD,RWA005,West/Iburengerazuba,RWA,Lake Kivu; Ruzizi,160.0,True,HydroLAKES full-database sweep + human map verification 2026-07-04
-CAN009,Ontario,CAN,USA023,Michigan,USA,Great Lakes; connecting rivers,1141.5,True,HydroLAKES full-database sweep + human map verification 2026-07-04
-CAN009,Ontario,CAN,USA024,Minnesota,USA,Rainy; Pigeon; Lake Superior,681.4,True,HydroLAKES full-database sweep + human map verification 2026-07-04
-CAN009,Ontario,CAN,USA033,New York,USA,Niagara; St. Lawrence; Great Lakes,611.8,True,HydroLAKES full-database sweep + human map verification 2026-07-04
+MOZXXX,Area under National Administration,MOZ,MWI004,Area under National Administration,MWI,Lake Malawi/Nyasa,289.8,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+MWI004,Area under National Administration,MWI,TZA017,Mbeya,TZA,Lake Malawi/Nyasa,40.0,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+MWI004,Area under National Administration,MWI,TZA025,Ruvuma,TZA,Lake Malawi/Nyasa,158.0,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+NGA008,Borno,NGA,TCD010,Lac,TCD,Lake Chad,84.6,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+CMR004,Extrême - Nord,CMR,TCD010,Lac,TCD,Lake Chad,55.1,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+KEN004,Busia,KEN,UGA088,Namayingo,UGA,Lake Victoria,34.0,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+BOL004,La Paz,BOL,PER007,Callao,PER,Lake Titicaca,62.5,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+COD011,Sud-Kivu,COD,RWA005,West/Iburengerazuba,RWA,Lake Kivu; Ruzizi,160.0,True,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+CAN009,Ontario,CAN,USA023,Michigan,USA,Great Lakes; connecting rivers,1141.5,True,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+CAN009,Ontario,CAN,USA024,Minnesota,USA,Rainy; Pigeon; Lake Superior,681.4,True,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+CAN009,Ontario,CAN,USA033,New York,USA,Niagara; St. Lawrence; Great Lakes,611.8,True,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-04
+ISR005,Southern District,ISR,JOR007,Karak,JOR,Dead Sea,66.0,False,HydroLAKES geodesic 500 m sweep + human map verification 2026-07-06

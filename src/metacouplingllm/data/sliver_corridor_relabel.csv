@@ -3,10 +3,10 @@ TZA001,Arusha,TZA,TZA016,Mara,2e-3,NW corridor ~151 km x ~166 m reaching Lake Vi
 TZA001,Arusha,TZA,TZA011,Kilimanjaro,2e-3,E corridor ~68 km x ~175 m east of Kilimanjaro region; territory is Kilimanjaro. Two-pass ground-truth + deterministic decomposition 2026-07-04.
 ARG017,Salta,ARG,ARG010,Jujuy,3e-3,~19 km x ~101 m corridor along the ARG-BOL border; fabricates bogus Salta<->Potosi edge (98.5% corridor). Real pair is Jujuy<->Potosi.
 SRB002,Branicevski,SRB,SRB001,Bor,2e-3,"~11 km x ~143 m corridor along the SRB-ROU Danube border; fabricates bogus Branicevo<->Mehedinti edge (100% corridor, also a spurious water row). Real pairs Branicevo<->Caras-Severin & Bor<->Mehedinti."
-SOM007,Gedo,SOM,SOM010,Lower Juba,2e-3,~72 km x ~105 m corridor along the SOM-KEN border; starves Wajir<->Lower-Juba (143.8->69.7 km).
-KEN046,Wajir,KEN,KEN007,Garissa,2e-3,~57 km x ~116 m corridor along the KEN-SOM border; starves Garissa<->Lower-Juba (257.6->198.7 km).
-SOM006,Galgaduud,SOM,SOM011,Mudug,2e-3,~34 km x ~198 m corridor along the SOM-ETH border; starves Ethiopian-Somali<->Mudug (~96->12.9 km).
-UGA065,Lamwo,UGA,UGA056,Kitgum,2e-3,~20 km x ~189 m corridor along the UGA-SSD border; starves Kitgum<->Eastern-Equatoria (~23->0.89 km).
+SOM007,Gedo,SOM,SOM010,Lower Juba,2e-3,~72 km x ~105 m corridor along the SOM-KEN border; corrects Wajir<->Lower-Juba (69.73->72.46 km, verified by live re-run 2026-07-07).
+KEN046,Wajir,KEN,KEN007,Garissa,2e-3,~57 km x ~116 m corridor along the KEN-SOM border; corrects Garissa<->Lower-Juba (198.68->250.37 km, verified by live re-run 2026-07-07).
+SOM006,Galgaduud,SOM,SOM011,Mudug,2e-3,~34 km x ~198 m corridor along the SOM-ETH border; corrects Ethiopian-Somali<->Mudug (12.86->44.53 km, verified by live re-run 2026-07-07).
+UGA065,Lamwo,UGA,UGA056,Kitgum,2e-3,~20 km x ~189 m corridor along the UGA-SSD border; corrects Kitgum<->Eastern-Equatoria (0.89->12.92 km, verified by live re-run 2026-07-07).
 SAU001,`Asir,SAU,SAU010,Jizan,2e-3,~16 km x ~93 m corridor along the SAU-YEM border; inflates `Asir<->Sa`dah length.
 KAZ005,Atyrauskaya,KAZ,KAZ015,West Kazakhstan,2e-3,~14 km x ~158 m corridor along the KAZ-RUS border; inflates Astrakhan<->West-Kazakhstan length.
 DZA007,Bechar,DZA,DZA044,Tindouf,2e-3,~11 km x ~170 m corridor along the DZA-MAR border; inflates Tindouf<->Draa-Tafilalet length.

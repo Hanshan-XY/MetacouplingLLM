@@ -217,7 +217,7 @@ class TestCouplingStandardAdm0:
         lenient = _get_pairs(coupling_standard="lenient")
         moderate = _get_pairs(coupling_standard="moderate")
         stringent = _get_pairs(coupling_standard="stringent")
-        # v2: moderate drops the 5 no-bridge water-only country pairs
+        # moderate drops the 5 no-bridge water-only country pairs
         # (COD/CAF, MRT/SEN, COD/TZA across Lake Tanganyika, GUF/SUR on the
         # Maroni, and the Lake-Chad/Malawi rollups without a fixed crossing);
         # stringent drops all 22 water-only country pairs.

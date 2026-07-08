@@ -1,35 +1,46 @@
 #!/usr/bin/env python
 """Build pericoupling adjacency databases from World Bank Official Boundaries.
 
-Regenerates the two bundled adjacency datasets used by ``metacouplingllm``:
+Regenerates the bundled adjacency datasets used by ``metacouplingllm``:
 
-  * ``pericoupled_adm1_edge_list.csv`` — ADM1 (subnational) land-border edges
-  * ``PeriTelecoupling_clean.csv``     — ADM0 (country) land-border matrix
+  * ``pericoupled_adm1_edge_list.csv`` — ADM1 (subnational) border edges
+  * ``PeriTelecoupling_clean.csv``     — ADM0 (country) border matrix
+  * ``water_separated_pairs.csv``      — water-only flags (with ``--bridge-csv``)
+  * ``disputed_overlay_pairs.csv``     — de-facto overlay manifest (with
+    ``--ndlsa-gpkg``)
 
-Method (land-border definition — PR #50)
-----------------------------------------
+Method (full detail: ``docs/METHODS_adjacency.md``)
+---------------------------------------------------
 1. Load the WB admin layer + the WB ocean mask (same vintage, so the clip
-   aligns with the boundaries — no cross-dataset mismatch).
-2. Clip each polygon to land by subtracting the ocean mask.
-3. Two regions are adjacent iff their land polygons share a boundary
-   (shared-boundary length > 0, with a small snapping tolerance to bridge
-   clip-induced slivers).
-4. **Lake filter** — subtract Natural Earth lake shores; a pair whose shared
-   boundary is *only* lake-shore (Great Lakes, Caspian, …) is dropped.
-5. **River measurement** — subtract Natural Earth river buffers to measure the
-   *true* land-border length.  Rivers are FLAG-ONLY; pairs are never dropped
-   because of a river border (bridges/crossings are real coupling interfaces).
-6. Border length is measured in **kilometres** (geodesic, ``pyproj.Geod``) —
-   not degrees — so the ``narrow_border`` / ``potential_artifact`` flags mean
-   the same physical length at every latitude.
+   aligns with the boundaries — no cross-dataset mismatch); clip each polygon
+   to land by subtracting the ocean mask (``--clip-ocean``).
+2. **Source-relabel** — reassign the reviewed WB sliver-corridor artifacts to
+   their true owner units before contiguity
+   (``scripts/relabel_sliver_corridors.py`` + the reviewed manifest
+   ``data/sliver_corridor_relabel.csv``).
+3. **Exact-contact rook contiguity** (``TOPOLOGY_TOL_DEG = 0``): two units are
+   adjacent iff their boundaries share a segment of non-zero geodesic length.
+   No snapping tolerance, no lake filter (pairs meeting across a lake are
+   native edges; ``coupling_standard`` governs them downstream).  The reviewed
+   ``_ADM1_FALSE_POSITIVE_DENYLIST`` drops confirmed fake-touch edges.
+4. **De-facto disputed overlay** — derived from the WB NDLSA disputed-areas
+   layer and validated against its geometry at build time.
+5. ``border_length_km`` is the **full** shared-boundary length in kilometres
+   (geodesic, ``pyproj.Geod``) — no river/lake subtraction; water status is a
+   separate descriptive layer (``water_separated_pairs.csv``) that never adds
+   or drops an edge.
+
+The reviewed correction overlays (river-gap, lake-gap, land-gap, and the
+flags-only water overlays) are applied afterwards by
+``scripts/apply_overlays.py``; ``scripts/build_all.py`` orchestrates both
+steps and verifies every headline count.
 
 Flags (advisory only — never remove a pair):
-  ``narrow_border``       : true land border < 5 km
-  ``potential_artifact``  : true land border < 1 km
+  ``narrow_border``       : shared border < 5 km
+  ``potential_artifact``  : shared border < 1 km
 
-Sources (record in data/PROVENANCE.md with checksums):
+Sources (recorded in data/PROVENANCE.md with checksums):
   * World Bank Official Boundaries (GeoPackage, 2026-05-14)
-  * Natural Earth 10m lakes + rivers_lake_centerlines
 
 Usage
 -----
@@ -37,11 +48,9 @@ Usage
         --adm1-gpkg "<...>/World Bank Official Boundaries - Admin 1 (1).gpkg" \
         --adm0-gpkg "<...>/World Bank Official Boundaries - Admin 0 (1).gpkg" \
         --ocean-gpkg "<...>/World Bank Official Boundaries - Ocean Mask.gpkg" \
-        --out-dir src/metacouplingllm/data \
-        --ne-cache build_data/naturalearth
-
-Run with ``--dry-run`` to write to a scratch dir for diffing before replacing
-the shipped CSVs.
+        --ndlsa-gpkg "<...>/World Bank Official Boundaries - NDLSA (1).gpkg" \
+        --bridge-csv build_data/bridge_classified_authoritative.csv \
+        --out-dir src/metacouplingllm/data --clip-ocean
 """
 from __future__ import annotations
 
@@ -62,19 +71,16 @@ from shapely.ops import unary_union
 # Tunables
 # ---------------------------------------------------------------------------
 
-# v2: the main ADM1/ADM0 topology uses EXACT contact (tolerance 0) -- a
+# The main ADM1/ADM0 topology uses EXACT contact (tolerance 0) -- a
 # parameter-free geometry core.  Every deviation from exact geometry that a
 # non-zero snap would bridge is instead a reviewed manifest row (band-audit
 # pairs) or a source-relabel (sliver corridors).  SNAP_TOL_DEG is retained
 # ONLY for the disputed-overlay derivation's tract-touch validation, where a
 # small tolerance is needed to bridge the NDLSA carve-out gaps.
-TOPOLOGY_TOL_DEG = 0.0       # v2: exact-contact main topology (parameter-free)
+TOPOLOGY_TOL_DEG = 0.0       # exact-contact main topology (parameter-free)
 SNAP_TOL_DEG = 5e-4          # disputed-overlay tract-touch tolerance only
 NARROW_KM = 5.0              # narrow_border flag threshold
 ARTIFACT_KM = 1.0           # potential_artifact flag threshold
-RIVER_BUFFER_DEG = 2e-3     # ~220 m buffer around river centerlines (flag calc)
-LAKE_SHORE_BUFFER_DEG = 1e-3  # ~110 m: treat shared border within this of a
-                              # lake polygon boundary as "lake shore"
 
 _GEOD = Geod(ellps="WGS84")
 
@@ -165,7 +171,7 @@ _ADM1_SAMPLE_DEG = 0.01
 # removed from the ADM1 edge list.  Each entry is a frozenset of ADM1CD_c codes.
 # Verified not-adjacent:
 #   MLT002/MLT019 — Balzan / Iklin (Malta): ~31 m apart, no shared frontier.
-# v2: the snap-bridged class is EMPTY under tolerance-0 topology.  The Malta
+# The snap-bridged class is EMPTY under tolerance-0 topology.  The Malta
 # artifact (MLT002/MLT019, ~31 m apart) only appears when a non-zero snap
 # bridges the gap; at exact contact it never becomes an edge, so no removal is
 # needed.  The five genuine sub-tolerance borders the old snap recovered
@@ -194,10 +200,6 @@ _ADM1_SAMPLE_DEG = 0.01
 #     Planken's Garselli on the lower Saminatal (Historisches Lexikon).
 _ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
     frozenset({"LIE001", "LIE005"}),
-}),
-    frozenset({"LIE001", "LIE005"}),
-    frozenset({"TTO002", "TTO011"}),
-    frozenset({"MDA010", "MDA015"}),
 }
 
 # Populated by ``derive_disputed_overlay`` (geometry-derived from the NDLSA
@@ -208,15 +210,6 @@ _ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
 _ADM0_DISPUTED_ALLOWLIST: set[frozenset[str]] = set()
 _ADM1_DISPUTED_OVERLAY: list[dict] = []
 _DISPUTED_OVERLAY_MANIFEST: list[dict] = []
-
-# Natural Earth 10m downloads (used only when --ne-cache has no local copy)
-_NE_LAKES_URL = (
-    "https://naturalearth.s3.amazonaws.com/10m_physical/ne_10m_lakes.zip"
-)
-_NE_RIVERS_URL = (
-    "https://naturalearth.s3.amazonaws.com/10m_physical/"
-    "ne_10m_rivers_lake_centerlines.zip"
-)
 
 
 def log(msg: str) -> None:
@@ -255,7 +248,7 @@ def _shared_border(a: BaseGeometry, b: BaseGeometry,
 
     Uses the boundary∩boundary; if that is empty but the polygons lie within
     ``tol``, fall back to the intersection of one boundary with the other
-    polygon buffered by ``tol``.  At ``tol=0`` (the v2 main topology) only the
+    polygon buffered by ``tol``.  At ``tol=0`` (the main topology) only the
     exact boundary∩boundary is used.
     """
     shared = a.boundary.intersection(b.boundary)
@@ -291,28 +284,12 @@ def _clip_to_land(
     return _make_valid(gdf)
 
 
-def _load_ne(url: str, cache_dir: Path, name: str) -> gpd.GeoDataFrame:
-    """Load a Natural Earth layer from a local cache or download once."""
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    local = cache_dir / name
-    if local.exists():
-        log(f"  Natural Earth: using cached {local}")
-        return gpd.read_file(local)
-    log(f"  Natural Earth: downloading {url}")
-    gdf = gpd.read_file(url)
-    try:
-        gdf.to_file(local, driver="GPKG")
-    except Exception:
-        pass
-    return gdf.to_crs(4326)
-
-
 # ---------------------------------------------------------------------------
 # Core adjacency build
 # ---------------------------------------------------------------------------
 
 def build_edges(gdf: gpd.GeoDataFrame, code_col: str) -> list[dict]:
-    """Compute shared-border adjacency edges for a polygon layer (v2 Stage 1).
+    """Compute shared-border adjacency edges for a polygon layer (Stage 1).
 
     Pure World Bank geometry: rook contiguity at **exact contact**
     (``TOPOLOGY_TOL_DEG = 0``) -- two units are adjacent iff their boundaries
@@ -743,12 +720,6 @@ def main() -> int:
                          "(strict standard-layer build).")
     ap.add_argument("--ndlsa-layer", default="WB_GAD_ADM0_NDLSA")
     ap.add_argument("--out-dir", required=True)
-    ap.add_argument("--ne-cache", default="build_data/naturalearth")
-    ap.add_argument("--skip-ne", action="store_true",
-                    help="skip lake/river processing (no NE download)")
-    ap.add_argument("--skip-rivers", action="store_true",
-                    help="load lakes (needed to drop mid-lake edges) but skip "
-                         "the river-buffer flag pass (advisory only)")
     ap.add_argument("--clip-ocean", action="store_true",
                     help="subtract the WB ocean mask before adjacency. OFF by "
                          "default: WB official boundaries are already land-only "
@@ -778,7 +749,7 @@ def main() -> int:
         )
         ocean = unary_union(list(ocean_gdf.geometry))
 
-    # v2: Stage 1 is pure World Bank geometry -- Natural Earth is NOT used in
+    # Stage 1 is pure World Bank geometry -- Natural Earth is NOT used in
     # the topology build (no lake filter, no river-buffer length).  Water
     # classification is a separate descriptive layer (Stage 3,
     # water_separated_pairs.csv) that never adds or drops an edge.

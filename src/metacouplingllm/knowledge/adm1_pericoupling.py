@@ -6,7 +6,7 @@ to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
 The edge list contains **8,450 border pairs** covering **3,375 unique ADM1
-regions** across **196 countries** (v2 build).  The graph is built in four
+regions** across **196 countries** (four-stage build).  The graph is built in four
 stages (full provenance in ``data/PROVENANCE.md`` and
 ``docs/METHODS_adjacency.md``): (1) **topology** -- rook contiguity at exact
 contact (tolerance 0) over the World Bank polygons, with **no lake filter**
@@ -23,9 +23,9 @@ borders -- Jogeva<->Pskov across Peipus, Malesi e Madhe<->Bar across Skadar),
 a **5-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
 placeholder-Malawi), and flags-only overlays that reclassify existing edges as
 water-only: **13 wide-river**, **3 audit-water**, **17 hydro-water**
-(HydroRIVERS sweep), **11 hydro-lakes** (HydroLAKES sweep -- the Great
-Lakes, Lake Malawi median, Lake Chad), and **2 hydro-geodesic** (geodesic
-re-screen of the water buffers -- the Uruguay River and the Dead Sea).
+(HydroRIVERS sweep), **12 hydro-lakes** (HydroLAKES geodesic 500 m sweep -- the
+Great Lakes, Lake Malawi median, Lake Chad, and the Dead Sea), and **1
+hydro-geodesic** (the Uruguay River, from the HydroRIVERS geodesic re-screen).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
 only those with a fixed crossing, ``stringent`` keeps none): the 363 water-only
@@ -942,7 +942,7 @@ def resolve_adm1_code(
     0. **(PR #60)** English-exonym alias table (``adm1_aliases.csv``):
        exact match against the pre-validated alias index.  Covers
        common English names that differ from the WB canonical form
-       (e.g. ``"Mexico City"`` → ``MEX009``, ``"Bavaria"`` → ``DEU02``).
+       (e.g. ``"Bavaria"`` → ``DEU002``, ``"Tuscany"`` → ``ITA016``).
        No-op when the CSV is absent (graceful fallback to strategies 1–3).
     1. Direct lookup against the accented index built from the DB
        canonical names plus suffix-stripped and slash-split

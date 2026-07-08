@@ -2,22 +2,26 @@ r"""Apply the reviewed overlay correction layer to the shipped adjacency data.
 
 The pericoupling database is constructed in two stages: a deterministic
 geometry build (``scripts/build_pericoupling_db.py``) and a **reviewed
-correction layer** -- five manifest CSVs in ``src/metacouplingllm/data/``
-holding 105 pair-rows (72 edge-restoring + 33 water-flag-only), each pair
+correction layer** -- eight manifest CSVs in ``src/metacouplingllm/data/``
+holding 59 pair-rows (13 edge-restoring + 46 water-flag-only), each pair
 individually audited and human-verified (provenance: ``data/PROVENANCE.md``).
 This engine applies the whole layer in one pass:
 
-  ========== ================================== ===========================
-  registry   manifest                           effect
-  ========== ================================== ===========================
-  river_gap  river_gap_overlay_pairs.csv        +6 edges, +6 water rows
-  wide_river wide_river_overlay_pairs.csv       water flags on 13 edges
-  lake       lake_overlay_pairs.csv             +64 edges, +1 water row,
-                                                ADM0 matrix patch (COD-TZA)
-  land_gap   land_gap_overlay_pairs.csv         +2 land edges
-  audit_water audit_water_overlay_pairs.csv     water flags on 3 edges
-  hydro_water hydro_water_overlay_pairs.csv     water flags on 17 edges
-  ========== ================================== ===========================
+  ==================== ====================================== ========================
+  registry             manifest                               effect
+  ==================== ====================================== ========================
+  river_gap            river_gap_overlay_pairs.csv            +6 edges, +6 water rows
+  wide_river           wide_river_overlay_pairs.csv           water flags on 13 edges
+  lake_gap             lake_gap_overlay_pairs.csv             +2 edges (Peipus, Skadar),
+                                                              +2 water rows
+  land_gap             land_gap_overlay_pairs.csv             +5 land edges
+  audit_water          audit_water_overlay_pairs.csv          water flags on 3 edges
+  hydro_water          hydro_water_overlay_pairs.csv          water flags on 17 edges
+  hydro_lakes          hydro_lakes_overlay_pairs.csv          water flags on 12 edges
+                                                              (incl. the Dead Sea,
+                                                              geodesic 500 m)
+  hydro_geodesic_river hydro_geodesic_river_overlay_pairs.csv water flags on 1 edge
+  ==================== ====================================== ========================
 
 The manifests are the single source of truth for the correction data; this
 file holds only behavior.  Water rows are matched to their overlay by the
@@ -72,8 +76,6 @@ REGISTRY = [
      "lake", "water_body", "hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)"),
     ("hydro_geodesic_river", "hydro_geodesic_river_overlay_pairs.csv", False, None,
      "river", "water_body", "hydro-geodesic overlay (geodesic re-screen: HydroRIVERS E-W anisotropy fix + human map verification)"),
-    ("hydro_geodesic_lake", "hydro_geodesic_lake_overlay_pairs.csv", False, None,
-     "lake", "water_body", "hydro-geodesic overlay (geodesic re-screen: HydroLAKES 500 m buffer + human map verification)"),
 ]
 
 

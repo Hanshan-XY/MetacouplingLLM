@@ -1,4 +1,4 @@
-# v2 source-relabel stage — verification (2026-07-04)
+# Source-relabel stage — verification (2026-07-04)
 
 Backs `scripts/relabel_sliver_corridors.py` + the reviewed manifest
 `data/sliver_corridor_relabel.csv`. Pure geometry, deterministic, reproducible
@@ -44,3 +44,19 @@ reviewed corridor.
 
 Ground-truth for *which* polygons are artifacts (vs the 3 genuine panhandles):
 `build_data/arusha_sliver_audit/scan_ground_truth.md`.
+
+## Correction (2026-07-07)
+
+The "Jujuy↔Potosí 302→313" line above is **wrong** — independently re-verified
+by a fresh live re-run of `relabel_sliver_corridors.py` against the pinned WB
+Admin-1 geopackage (before=302.0308 km confirmed correct; after=320.9505 km,
+not 313), cross-checked against the actual shipped
+`pericoupled_adm1_edge_list.csv` row (ARG010/BOL007 = 320.9505 km, exact
+match). The shipped build output was always correct; only this prose summary
+was wrong. Also wrong in the same original write-up (not shown above but
+carried into `sliver_corridor_relabel.csv`'s note fields, now fixed): the
+Wajir↔Lower-Juba, Garissa↔Lower-Juba, and Ethiopian-Somali↔Mudug "starves"
+notes had before/after reversed and cited numbers that don't match any real
+geometry. All four length-only corrections are *increases*, not decreases —
+see the corrected `sliver_corridor_relabel.csv` notes and
+`docs/METHODS_adjacency.md` §10.4 for the true values.
