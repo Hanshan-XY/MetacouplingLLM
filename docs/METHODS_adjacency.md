@@ -549,6 +549,22 @@ pairs 326 → **321** (the hydro-water overlay's GUF↔SUR roll-up — the Maron
 system, ferry only — joins COD↔TZA, MRT↔SEN, CAF↔COD, and NGA↔TCD across
 Lake Chad as a default-view subtraction).
 
+**Adjudication designs.** The water-only verdicts above were set by LLM
+ground-truth run *downstream* of the deterministic screens, with **human map
+verification of every shipped overlay pair**; two designs were used, and neither
+the completeness nor the correctness of the shipped set depends on the choice.
+The river / HydroRIVERS candidates were **two-stage ground-truthed** — a research
+pass feeding an adversarial verify pass (`build_data/hydro_full_sweep/verify_flags.wf.js`,
+`build_data/wide_river_audit/verify_entrants*.wf.js`) — reinforced by a **second
+adversarial verify pass** on the marginal 10 km set
+(`build_data/wide_river_audit/verify_second_pass78.wf.js`). The non-touching lake
+water-band was **two-pass adversarially adjudicated** — two independent passes
+over all 57 candidates (`build_data/premeasure/adjudicate_water_band.wf.js`) — to
+catch the case where a lake's mid-water median line belongs to a *different* unit
+pair (diagonal non-adjacency). Completeness is fixed by the buffer-independent
+full-database HydroRIVERS/HydroLAKES sweeps and correctness by the human map
+verification; the LLM passes only nominate and cross-check within that frame.
+
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
 are excluded) lies in **both** units. The flag was derived from OpenStreetMap
