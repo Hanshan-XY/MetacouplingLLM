@@ -78,6 +78,24 @@ buffer re-screens, tolerance-band and snap-extras diagnostics, two-pass
 verification, human map review) are how the correction layer was *discovered
 and validated* — reproducing the database does not require re-running them.
 
+Two LLM-adjudication designs appear below, both run *downstream* of the
+deterministic screens and both with **human map verification of every shipped
+overlay verdict**. The river / HydroRIVERS candidates were **two-stage
+ground-truthed** — a research pass feeding an adversarial verify pass
+(`build_data/hydro_full_sweep/verify_flags.wf.js`,
+`build_data/wide_river_audit/verify_entrants*.wf.js`) — reinforced by a
+dedicated **second adversarial verify pass** on the marginal 10 km set
+(`build_data/wide_river_audit/verify_second_pass78.wf.js`). The non-touching
+lake water-band was **two-pass adversarially adjudicated** — two independent
+passes over all 57 candidates (`build_data/premeasure/adjudicate_water_band.wf.js`
+→ `water_band_adjudication.json`) — because a lake's mid-water median line can
+belong to a *different* unit pair (diagonal non-adjacency), a case two
+independent reads guard against. Neither the completeness nor the correctness of
+the shipped set rests on the adjudication design: completeness is fixed by the
+buffer-independent full-database HydroRIVERS/HydroLAKES sweeps and correctness by
+the human map verification — the LLM passes only nominate and cross-check within
+that frame.
+
 Byte-identity scope (a clean-room `--full` rebuild — 2026-07-02, geopandas
 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 — verified the base **adjacency pair set
 reproduces exactly** at 8,451; the shipped **8,450** is that base less the 1
@@ -288,7 +306,11 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   *non-touching* lake borders the source digitizes as separate shores:
   Jõgeva↔Pskov across Lake Peipus (the ≤1 km near band — gap ~0.0 km, facing
   arc ~0.5 km; manually verified 2026-07-01) and Malësi e Madhe↔Bar across Lake
-  Skadar (the 1–100 km water-corridor band; human map verification 2026-07-04). The water band reaches 1–100 km; capping it at 10/25/50/100 km (`build_data/premeasure/census_waterband_cap_ladder.py`) confirms Skadar (gap 9.3 km) is the only genuine one — the candidate net grows 7→16→34→57 but the 25–100 km tail is 41 pairs on opposite shores of wide lakes (Victoria, Tanganyika, the Dead Sea), all non-adjacent, so the 100 km reach is a conservative bound that loses nothing. The one country
+  Skadar (the 1–100 km water-corridor band; the two-pass adversarial adjudication
+  of all 57 water-band candidates unanimously found it the one genuine
+  lake-median border — `build_data/premeasure/adjudicate_water_band.wf.js` →
+  `water_band_adjudication.json`, 1 genuine / 56 rejected — then human
+  map-verified 2026-07-04). The water band reaches 1–100 km; capping it at 10/25/50/100 km (`build_data/premeasure/census_waterband_cap_ladder.py`) confirms Skadar (gap 9.3 km) is the only genuine one — the candidate net grows 7→16→34→57 but the 25–100 km tail is 41 pairs on opposite shores of wide lakes (Victoria, Tanganyika, the Dead Sea), all non-adjacent, so the 100 km reach is a conservative bound that loses nothing. The one country
   pair whose only contact is a lake — `COD`↔`TZA` across Lake Tanganyika — is
   likewise native (lenient-only, no ADM0 matrix patch needed). Current shipped
   counts: ADM1 **8,450** edges, ADM0 **326** pairs, water-only **363** ADM1
