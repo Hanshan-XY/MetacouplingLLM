@@ -220,9 +220,11 @@ class TestCouplingStandardAdm0:
         # moderate drops the 5 no-bridge water-only country pairs
         # (COD/CAF, MRT/SEN, COD/TZA across Lake Tanganyika, GUF/SUR on the
         # Maroni, and the Lake-Chad/Malawi rollups without a fixed crossing);
-        # stringent drops all 22 water-only country pairs.
+        # stringent drops all 23 water-only country pairs (DEU/LUX joined the
+        # roll-up when the water-screen rebuild flagged its last crossing —
+        # the Our/Sauer — so the whole border is river, all bridged).
         assert len(lenient) - len(moderate) == 5
-        assert len(lenient) - len(stringent) == 22
+        assert len(lenient) - len(stringent) == 23
         assert frozenset({"COD", "CAF"}) in lenient
         assert frozenset({"COD", "CAF"}) not in moderate
 

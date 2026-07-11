@@ -2,8 +2,8 @@ r"""Apply the reviewed overlay correction layer to the shipped adjacency data.
 
 The pericoupling database is constructed in two stages: a deterministic
 geometry build (``scripts/build_pericoupling_db.py``) and a **reviewed
-correction layer** -- seven manifest CSVs in ``src/metacouplingllm/data/``
-holding 59 pair-rows (13 edge-restoring + 46 water-flag-only), each pair
+correction layer** -- nine manifest CSVs in ``src/metacouplingllm/data/``
+holding 147 pair-rows (29 edge-restoring + 118 water-flag-only), each pair
 individually audited and human-verified (provenance: ``data/PROVENANCE.md``).
 This engine applies the whole layer in one pass:
 
@@ -22,6 +22,12 @@ This engine applies the whole layer in one pass:
   hydro_lakes          hydro_lakes_overlay_pairs.csv          water flags on 12 edges
                                                               (incl. the Dead Sea,
                                                               geodesic 500 m)
+  rescreen_gap         rescreen_gap_overlay_pairs.csv         +16 edges, +16 water rows
+                                                              (water-screen rebuild,
+                                                              per-row water_type)
+  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 72 edges
+                                                              (water-screen rebuild,
+                                                              per-row water_type)
   ==================== ====================================== ========================
 
 The manifests are the single source of truth for the correction data; this
@@ -75,6 +81,10 @@ REGISTRY = [
      "river", "water_body", "hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)"),
     ("hydro_lakes", "hydro_lakes_overlay_pairs.csv", False, None,
      "lake", "water_body", "hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)"),
+    ("rescreen_gap", "rescreen_gap_overlay_pairs.csv", True, "iso_lookup",
+     None, "water_body", "rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)"),
+    ("rescreen_water", "rescreen_water_overlay_pairs.csv", False, None,
+     None, "water_body", "rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"),
 ]
 
 
@@ -211,14 +221,16 @@ def main(argv: list[str] | None = None) -> int:
             ca, cb = m["code_a"].strip(), m["code_b"].strip()
             key = frozenset({ca, cb})
             br = "True" if str(m.get("has_bridge", "")).strip() == "True" else "False"
-            row = (ca, cb, br, wtype, m[body_col].strip(), note)
+            # registry water_type None = mixed manifest, type carried per row
+            wt = wtype or m["water_type"].strip()
+            row = (ca, cb, br, wt, m[body_col].strip(), note)
             i = row_index.get(key)
             if i is None:                      # fresh build: append
                 row_index[key] = len(adm1_rows)
                 adm1_rows.append(row)
             elif adm1_rows[i][5] == note:      # this overlay's row: sync in place
                 adm1_rows[i] = (adm1_rows[i][0], adm1_rows[i][1], br,
-                                wtype, m[body_col].strip(), note)
+                                wt, m[body_col].strip(), note)
             # else: base bridge-classification row (or another overlay's) wins
 
     # ---- 4. ADM0 roll-up, computed once --------------------------------------

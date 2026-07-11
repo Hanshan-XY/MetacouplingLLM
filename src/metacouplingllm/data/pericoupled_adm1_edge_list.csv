@@ -8449,3 +8449,19 @@ DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republ
 ETH013,Tigray,Ethiopia,ETH,AFR,SDN004,Kassala,Sudan,SDN,AFR,True,0.1282,True,True
 AIA001,Name Unknown,Anguilla (U.K.),AIA,Other,AIA003,Name Unknown,Anguilla (U.K.),AIA,Other,False,0.1248,True,True
 MOZXXX,Area under National Administration,Mozambique,MOZ,AFR,MWI003,Southern Region,Malawi,MWI,AFR,True,0.1109,True,True
+CHE011,Jura,Switzerland,CHE,Other,CHE013,Neuchatel,Switzerland,CHE,Other,False,0.9,True,True
+DEU004,Brandenburg,Germany,DEU,Other,DEU009,Niedersachsen,Germany,DEU,Other,False,3.7,True,False
+GMB003,Central River South,The Gambia,GMB,AFR,GMB006,North Bank,The Gambia,GMB,AFR,False,3.4,True,False
+GMB005,Lower River,The Gambia,GMB,AFR,GMB006,North Bank,The Gambia,GMB,AFR,False,2.3,True,False
+GMB005,Lower River,The Gambia,GMB,AFR,GMB008,West Coast,The Gambia,GMB,AFR,False,10.0,False,False
+KHM006,Kampong Thom,Cambodia,KHM,EAP,KHM018,Pursat,Cambodia,KHM,EAP,False,1.5,True,False
+MDA006,Cahul,Moldova,MDA,ECA,ROU039,Tulcea,Romania,ROU,ECA,True,0.9,True,True
+ROU019,Galaţi,Romania,ROU,ECA,ROU039,Tulcea,Romania,ROU,ECA,False,11.2,False,False
+SLE004,Southern,Sierra Leone,SLE,AFR,SLE005,Western Area,Sierra Leone,SLE,AFR,False,1.5,True,False
+VNM007,Ben Tre,Viet Nam,VNM,EAP,VNM058,Tien Giang,Viet Nam,VNM,EAP,False,9.6,False,False
+VNM013,Can Tho,Viet Nam,VNM,EAP,VNM020,Dong Thap,Viet Nam,VNM,EAP,False,6.9,False,False
+VNM013,Can Tho,Viet Nam,VNM,EAP,VNM061,Vinh Long,Viet Nam,VNM,EAP,False,9.3,False,False
+VNM028,Hau Giang,Viet Nam,VNM,EAP,VNM061,Vinh Long,Viet Nam,VNM,EAP,False,4.2,True,False
+VNM051,Soc Trang,Viet Nam,VNM,EAP,VNM059,Tra Vinh,Viet Nam,VNM,EAP,False,8.6,False,False
+VNM051,Soc Trang,Viet Nam,VNM,EAP,VNM061,Vinh Long,Viet Nam,VNM,EAP,False,7.8,False,False
+VNM058,Tien Giang,Viet Nam,VNM,EAP,VNM061,Vinh Long,Viet Nam,VNM,EAP,False,3.2,True,False
