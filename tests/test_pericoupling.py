@@ -217,14 +217,15 @@ class TestCouplingStandardAdm0:
         lenient = _get_pairs(coupling_standard="lenient")
         moderate = _get_pairs(coupling_standard="moderate")
         stringent = _get_pairs(coupling_standard="stringent")
-        # moderate drops the 5 no-bridge water-only country pairs
+        # moderate drops the 6 no-bridge water-only country pairs
         # (COD/CAF, MRT/SEN, COD/TZA across Lake Tanganyika, GUF/SUR on the
-        # Maroni, and the Lake-Chad/Malawi rollups without a fixed crossing);
-        # stringent drops all 23 water-only country pairs (DEU/LUX joined the
-        # roll-up when the water-screen rebuild flagged its last crossing —
-        # the Our/Sauer — so the whole border is river, all bridged).
-        assert len(lenient) - len(moderate) == 5
-        assert len(lenient) - len(stringent) == 23
+        # Maroni, the Lake-Chad/Malawi rollups without a fixed crossing, and
+        # GUY/SUR on the ferry-only Corentyne — a water-screen-rebuild b2
+        # roll-up); stringent drops all 26 water-only country pairs (the
+        # rebuild added DEU/LUX via the Our/Sauer, BEN/NER via the
+        # Niger/Mékrou, CMR/GAB via the Ntem, and GUY/SUR).
+        assert len(lenient) - len(moderate) == 6
+        assert len(lenient) - len(stringent) == 26
         assert frozenset({"COD", "CAF"}) in lenient
         assert frozenset({"COD", "CAF"}) not in moderate
 

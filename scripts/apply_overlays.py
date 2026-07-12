@@ -3,7 +3,7 @@ r"""Apply the reviewed overlay correction layer to the shipped adjacency data.
 The pericoupling database is constructed in two stages: a deterministic
 geometry build (``scripts/build_pericoupling_db.py``) and a **reviewed
 correction layer** -- nine manifest CSVs in ``src/metacouplingllm/data/``
-holding 147 pair-rows (29 edge-restoring + 118 water-flag-only), each pair
+holding 223 pair-rows (29 edge-restoring + 194 water-flag-only), each pair
 individually audited and human-verified (provenance: ``data/PROVENANCE.md``).
 This engine applies the whole layer in one pass:
 
@@ -25,9 +25,9 @@ This engine applies the whole layer in one pass:
   rescreen_gap         rescreen_gap_overlay_pairs.csv         +16 edges, +16 water rows
                                                               (water-screen rebuild,
                                                               per-row water_type)
-  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 72 edges
-                                                              (water-screen rebuild,
-                                                              per-row water_type)
+  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 148 edges
+                                                              (water-screen rebuild
+                                                              b1+b2, per-row water_type)
   ==================== ====================================== ========================
 
 The manifests are the single source of truth for the correction data; this
