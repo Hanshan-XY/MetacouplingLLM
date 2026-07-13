@@ -221,11 +221,12 @@ class TestCouplingStandardAdm0:
         # (COD/CAF, MRT/SEN, COD/TZA across Lake Tanganyika, GUF/SUR on the
         # Maroni, the Lake-Chad/Malawi rollups without a fixed crossing, and
         # GUY/SUR on the ferry-only Corentyne — a water-screen-rebuild b2
-        # roll-up); stringent drops all 26 water-only country pairs (the
+        # roll-up); stringent drops all 27 water-only country pairs (the
         # rebuild added DEU/LUX via the Our/Sauer, BEN/NER via the
-        # Niger/Mékrou, CMR/GAB via the Ntem, and GUY/SUR).
+        # Niger/Mékrou, CMR/GAB via the Ntem, GUY/SUR, and MWI/TZA — the
+        # bridged Songwe plus the Lake Malawi/Nyasa segments).
         assert len(lenient) - len(moderate) == 6
-        assert len(lenient) - len(stringent) == 26
+        assert len(lenient) - len(stringent) == 27
         assert frozenset({"COD", "CAF"}) in lenient
         assert frozenset({"COD", "CAF"}) not in moderate
 
