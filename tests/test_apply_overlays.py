@@ -1,7 +1,7 @@
 """Tests for the unified overlay engine and the one-command rebuild.
 
 The engine (scripts/apply_overlays.py) applies the reviewed correction layer
-(eight overlay manifests) on top of the geometry build.  Its contract: running
+(nine overlay manifests) on top of the geometry build.  Its contract: running
 on already-overlaid shipped data is a byte-stable no-op, and the registry
 covers exactly the shipped overlay manifests.
 """

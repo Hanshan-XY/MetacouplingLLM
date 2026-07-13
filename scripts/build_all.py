@@ -7,8 +7,10 @@ The shipped database is the output of two stages:
    release; SHA-256 pins below and in ``data/PROVENANCE.md``) plus the
    reviewed static bridge classification
    (``build_data/bridge_classified_authoritative.csv``).
-2. **Reviewed correction layer** (``scripts/apply_overlays.py``): five
-   manifest CSVs of individually audited, human-verified pairs.
+2. **Reviewed correction layer** (``scripts/apply_overlays.py``): nine
+   manifest CSVs of individually audited, human/dual-AI-verified pairs.
+
+Step-by-step reproduction manual: ``docs/REPRODUCING.md``.
 
 Modes:
 
@@ -52,11 +54,11 @@ PINNED_SHA256 = {
 }
 
 EXPECTED = {
-    "adm1_edges": 8450, "adm1_regions": 3375, "adm1_countries": 196,
-    "water_adm1": 363, "water_bridge": 125, "water_nobridge": 238,
-    "water_adm0": 22,
-    "adm1_moderate": 8212, "adm1_stringent": 8087,
-    "adm0_pairs": 326, "adm0_moderate": 321, "adm0_stringent": 304,
+    "adm1_edges": 8466, "adm1_regions": 3375, "adm1_countries": 196,
+    "water_adm1": 698, "water_bridge": 319, "water_nobridge": 379,
+    "water_adm0": 27,
+    "adm1_moderate": 8087, "adm1_stringent": 7768,
+    "adm0_pairs": 326, "adm0_moderate": 320, "adm0_stringent": 299,
 }
 
 
