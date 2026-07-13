@@ -52,6 +52,16 @@ refuses to build from a mismatching file):
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
 
+**What a clean clone contains.** Everything §2 and §4 need ships in the
+repository, including the bridge classification CSV (tracked at its
+`build_data/` path). The four GeoPackages for §3 must be downloaded from the
+World Bank (their hashes are verified before any build). The wider
+`build_data/` audit-evidence tree (screen outputs, frozen AI verdicts,
+worksheets) is a local working archive, NOT shipped in the repository — its
+content is summarized in PROVENANCE.md/METHODS and in each manifest row's
+`source` column, and §6 re-derives the candidate screens from the public
+datasets directly rather than from those local artifacts.
+
 ## 2. Quick path — verify the shipped data (minutes, no downloads)
 
 ```
