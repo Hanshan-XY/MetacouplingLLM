@@ -8,6 +8,10 @@ adjacency datasets.
 
 ## Reproducing the shipped data
 
+> **Step-by-step manual for new users: `docs/REPRODUCING.md`** — quick
+> verification path, full rebuild from the pinned sources, the correction
+> layer's semantics, and how to re-derive the candidate screens.
+
 The database is constructed in four stages (topology, de-facto connectivity,
 water classification, second-source completeness); one command runs them all:
 
