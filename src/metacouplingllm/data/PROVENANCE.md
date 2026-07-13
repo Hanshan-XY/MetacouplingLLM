@@ -69,8 +69,8 @@ further candidates confirmed genuine on official maps and kept) = 8,424;
 [S4 overlays, in application order] +6 river-gap = 8,443, +2 lake-gap = 8,445,
 +5 land-gap (tolerance-band recovery) = 8,450, +16 rescreen-gap (water-screen
 rebuild, batch b1) = **8,466** shipped
-(lenient); **8,087** moderate; **7,770** stringent; 3,375 regions, 196 countries.
-**ADM0** 326 / 320 / 299. **Water-only 696** (317/379) + 27 ADM0 roll-ups
+(lenient); **8,087** moderate; **7,768** stringent; 3,375 regions, 196 countries.
+**ADM0** 326 / 320 / 299. **Water-only 698** (319/379) + 27 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River into hydro-water and the
 Dead Sea into hydro-lakes — the two borders the raw-degree screens missed — and
 the rescreen-water overlay completes five more country borders as all-water:
@@ -126,7 +126,7 @@ CSVs byte-identically from the raw build state.
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
 | `river_gap_overlay_pairs.csv` | 6 ADM1 pairs | Reviewed river-gap overlay manifest: cross-border river-separated pairs the strict build omits, recovered by the near-miss audit and applied by `scripts/apply_overlays.py` (see *River-separated province pairs* below) |
-| `water_separated_pairs.csv` | 696 ADM1 + 27 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (309 base + 6 river-gap + 2 lake-gap + 13 wide-river + 3 audit-water + 18 hydro-water + 12 hydro-lakes + 317 rescreen-water + 16 rescreen-gap; see *Water-separated pairs* below) |
+| `water_separated_pairs.csv` | 698 ADM1 + 27 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (309 base + 6 river-gap + 2 lake-gap + 13 wide-river + 3 audit-water + 18 hydro-water + 12 hydro-lakes + 319 rescreen-water + 16 rescreen-gap; see *Water-separated pairs* below) |
 | `lake_gap_overlay_pairs.csv` | 2 ADM1 pairs | Reviewed lake-gap manifest: the only two non-touching lake borders — Jõgeva↔Pskov across Peipus (census ≤1 km near band) and Malësi e Madhe↔Bar across Skadar (census 1–100 km water-corridor band). The ~63 lake-meeting pairs are now native edges (no lake filter). |
 | `hydro_lakes_overlay_pairs.csv` | 12 ADM1 pairs | Reviewed hydro-lakes manifest: borders reclassified land→water by the **HydroLAKES geodesic 500 m sweep** (15 candidates; 3 rejected as mixed — Burundi–Rwanda, two Norway–Sweden), covering the Great Lakes, Lake Malawi median, Lake Chad, Lake Titicaca, and the **Dead Sea** (Southern District↔Karak, no crossing), human-verified (flags only). |
 | `sliver_corridor_relabel.csv` | 10 host polygons | Reviewed source-relabel manifest: WB sliver-corridor artifacts reassigned to their true owner units before contiguity. |
@@ -134,7 +134,7 @@ CSVs byte-identically from the raw build state.
 | `land_gap_overlay_pairs.csv` | 5 ADM1 pairs | Reviewed land-gap manifest: five genuine sub-tolerance borders (Egypt–Libya … placeholder–Malawi) recovered from the tolerance-0 band audit (ordinary land edges). |
 | `audit_water_overlay_pairs.csv` | 3 ADM1 pairs | Reviewed audit-water overlay manifest: screen-missed water-only borders from the 10 km completeness audit, human-verified (flags only; see *Audit-water overlay* below) |
 | `hydro_water_overlay_pairs.csv` | 18 ADM1 pairs | Reviewed hydro-water overlay manifest: water-only borders the Natural Earth screens missed, from the **HydroRIVERS geodesic 500 m** full-database cross-check of all 1,800 cross-border edges (incl. the **Uruguay River**, recovered by the geodesic metric), human-verified (flags only; see *Hydro-water overlay* below) |
-| `rescreen_water_overlay_pairs.csv` | 317 ADM1 pairs | Reviewed rescreen-water manifest (water-screen rebuild, batches b1–b6): existing edges — cross-border **and domestic** — reclassified water-only by the rebuilt full-ladder screens and the Tier-2 two-pass audit (b1, b3–b6: Codex research → Sonnet 5 adversarial judgment; b2: Sonnet judgment + independent adversarial verify after the Codex pass degraded; human/dual-AI verification throughout; per-row provenance in `source`). Flags only, per-row `water_type`. |
+| `rescreen_water_overlay_pairs.csv` | 319 ADM1 pairs | Reviewed rescreen-water manifest (water-screen rebuild, batches b1–b6 + the 20 km-hold tranche): existing edges — cross-border **and domestic** — reclassified water-only by the rebuilt full-ladder screens and the Tier-2 two-pass audit (b1, b3–b6: Codex research → Sonnet 5 adversarial judgment; b2: Sonnet judgment + independent adversarial verify after the Codex pass degraded; human/dual-AI verification throughout; per-row provenance in `source`). Flags only, per-row `water_type`. |
 | `rescreen_gap_overlay_pairs.csv` | 16 ADM1 pairs | Reviewed rescreen-gap manifest (water-screen rebuild, batch b1): non-touching water borders the source digitizes as separate banks/shores, restored as edges (e.g. the Gambia River, the Elbe, Lac de Biaufond, the Vietnamese Mekong distributaries); `border_km` = geodesic facing-arc length; per-row `water_type`, bridge flags from the four-layer bridge pipeline. |
 | `adm1_aliases.csv` | 1,145 alias entries · 863 ADM1 regions · 136 countries | English exonyms and alternative spellings for WB ADM1 regions (Strategy 0 of `resolve_adm1_code`). Generated by `scripts/build_adm1_aliases.py` (LLM + deterministic validation rules + a curated review denylist). Added in PR #60; cleaned up in PR #61 (Opus review). |
 
@@ -245,7 +245,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,466 → **8,087** moderate / **7,770** stringent; ADM0 326 →
+  shipped edges 8,466 → **8,087** moderate / **7,768** stringent; ADM0 326 →
   **320** moderate / **299** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -257,7 +257,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   do not. Mid-lake "median-line" meetings are native edges (no lake
   filter removes them), so all three standards govern them like river
   borders directly. Full
-  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`. One post-classification correction: Italy↔Vatican (`ITA007`↔`VAT001`) was review-reclassified from water-only to a **land border** (the Vatican is a ~2.7 km land enclave within Rome; the Tiber is ~0.6 km away, not the border), so the land-classified subset is **314** ADM1 water-only pairs, not the 315 first geometrically flagged (the shipped total is **696** after the river-gap, lake-gap, wide-river, audit-water, hydro-water, hydro-lakes, and rescreen overlays below; the land-classified subset itself is **309** after the 2026-07-02 corrections below). ITA↔VAT is therefore pericoupled under every `coupling_standard`.
+  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`. One post-classification correction: Italy↔Vatican (`ITA007`↔`VAT001`) was review-reclassified from water-only to a **land border** (the Vatican is a ~2.7 km land enclave within Rome; the Tiber is ~0.6 km away, not the border), so the land-classified subset is **314** ADM1 water-only pairs, not the 315 first geometrically flagged (the shipped total is **698** after the river-gap, lake-gap, wide-river, audit-water, hydro-water, hydro-lakes, and rescreen overlays below; the land-classified subset itself is **309** after the 2026-07-02 corrections below). ITA↔VAT is therefore pericoupled under every `coupling_standard`.
 - **Correctly-absent pairs.** `ARE/QAT`, `KEN/SDN`, `SDN/UGA` are *not* land
   neighbours (separated by Saudi Arabia / South Sudan respectively) and are
   rightly absent — these differ from the older dataset, which listed them.
@@ -322,7 +322,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   likewise native (lenient-only, no ADM0 matrix patch needed). Counts at this
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1
   (125/238) + 22 ADM0 roll-ups; the rescreen overlays below take the shipped
-  totals to **8,466** / **696** (317/379) / **27** roll-ups.
+  totals to **8,466** / **698** (319/379) / **27** roll-ups.
 - **Land-gap overlay (survey-line offset corridors).** Along straight-surveyed
   borders the two countries' polygons can be digitized from different renderings
   of the same line, leaving an offset corridor wider than the ~55 m snap
@@ -436,13 +436,17 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ends land in Bács-Kiskun via the documented Danube side-channel anomaly).
   Everything is **strictly additive** — the pre-rebuild set reproduces
   unchanged, verified against a frozen SHA-256 baseline. Current shipped
-  counts: ADM1 **8,466** edges (**8,087** moderate / **7,770** stringent),
-  ADM0 **326** (320 / 299), water-only **696** ADM1 (317/379) + **27** ADM0
+  counts: ADM1 **8,466** edges (**8,087** moderate / **7,768** stringent),
+  ADM0 **326** (320 / 299), water-only **698** ADM1 (319/379) + **27** ADM0
   roll-ups (the rebuild completed five country borders as all-water: DEU↔LUX
   bridged Our–Sauer–Moselle, BEN↔NER bridged Niger/Mékrou, CMR↔GAB bridged
   Ntem, MWI↔TZA bridged Songwe + Lake Malawi/Nyasa, GUY↔SUR ferry-only
-  Corentyne). The 20 km-hold tranche (audited after the 15 km gate yielded
-  genuine borders) is adjudicated separately. Audit artifacts:
+  Corentyne). The 20 km-hold tranche (211 pairs, audited after the 15 km gate yielded
+  genuine borders) closed the queue with 2 further flags — the Danube's Măcin
+  branch (Brăila↔Tulcea, the 2023 Brăila Bridge validated by a WB-boundary
+  segment-chain test) and the Arroyo Paray (Central↔Ñeembucú, PY19 bridge) —
+  and 1 human rejection; both shipped rows are bridged, so only stringent
+  moves. Audit artifacts:
   `build_data/water_screen_rebuild/`.
 - **Collapsed-node (quadripoint) artifacts.** At a few places the WB source
   snaps two nearby tripoints to a single coordinate, producing a degenerate

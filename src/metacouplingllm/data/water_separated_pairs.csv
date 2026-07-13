@@ -695,6 +695,8 @@ adm1,VNM027,VNM044,True,river,"Đà River (Sông Đà), transitioning to the Red
 adm1,VNM031,VNM054,True,river,Luộc River (Sông Luộc),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,VNM040,VNM054,True,river,Red River (Sông Hồng),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,ZAF001,ZAF002,True,river,Orange River (Gariep Dam reservoir straddles this stretch of the border),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,PRY008,PRY014,True,river,Arroyo Paray (from its source at Lago Ypoá to its mouth on the Río Paraguay),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,ROU008,ROU039,True,river,"Danube – Măcin branch (Brațul Măcin / Dunărea Veche, ""Old Danube"")","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
 adm0,ARG,PRY,True,,,adm1-rollup
