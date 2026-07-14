@@ -6,19 +6,25 @@ before the sample was drawn; seed 20260713; sampler
 primary rater (maintainer) over all 180 sampled rows, 2026-07-14; independent
 second rater over the 30-row blind subsample (verdict-direction cues removed).
 An error is a shipped positive rated *not* water-only, or a sampled negative
-rated water-only. NA rows (placeholder units such as "Area under National
-Administration"/"Name Unknown", or non-adjacent-by-rater) are excluded from
-denominators and counted below.
+rated water-only. NA rows are excluded from denominators and counted below;
+the preregistered NA rule covers rows the rater cannot determine or special
+administrative geometry. **All six NAs are itemized:** the positive sample's
+n = 80 reduces to the analyzed n = 76 because four sampled rows involve World
+Bank placeholder units the rater cannot locate on authoritative maps
+(`KHM000<->KHM018`, `MWI002<->MWI004`, `MWI003<->MWI004`, `MWI004<->TZA022` —
+all "Area under National Administration"); the negative sample loses
+`RUS024<->RUS050` ("Name Unknown" placeholder) and `MLT009<->MLT055`
+(rater-identified non-adjacency, recorded to the future-edge-audit list).
 
 ## Results
 
 | population | n rated | NA | errors | estimate | exact 95% CI |
 |---|---|---|---|---|---|
-| **P** — shipped dual-AI rows (of 240) | 76 | 4 | 1 | false-positive rate **1.3%** → precision **98.7%** | [0.03%, 7.1%] |
+| **P** — shipped dual-AI rows (of 240) | 76 | 4 | 1 | false-positive rate **1.3%** → precision **98.7%** | error [0.03%, 7.1%]; precision **[92.9%, 99.97%]** |
 | **N1-high** — both-false negatives, max screen fraction ≥ 0.50 (of 566) | 39 | 1 | 1 | missed-border rate **2.6%** | [0.07%, 13.5%] |
 | **N1-rest** — both-false negatives, fraction < 0.50 (of 788) | 39 | 1 | 0 | **0%** | ≤ 7.4% (one-sided) |
 | **N2** — deterministic mechanism auto-reject (of 288) | 20 | 0 | 0 | **0%** | ≤ 13.9% (one-sided) |
-| N1 combined (population-weighted 566/788) | 78 | 2 | 1 | false-omission **≈ 1.1%** | — |
+| N1 combined (population-weighted) | 78 | 2 | 1 | false-omission **1.07%** | conservative [0.03%, 10.9%] |
 
 **Inter-rater agreement** (30 blind double-rated rows): 28/30 = 93.3%,
 **Cohen's κ = 0.867**. The two disagreements, resolved by the preregistered
@@ -53,16 +59,55 @@ unchanged. After the corrections the shipped rescreen rows verified by
 dual-AI agreement only number **239** (of 335); the study population was the
 240 at draw time.
 
+## Estimators and intervals (as computed)
+
+- **Per-population rates**: point estimate k/n on the analyzed denominator;
+  exact two-sided 95% Clopper–Pearson intervals (`scipy.stats.beta.ppf`);
+  for k = 0 the table shows the one-sided 95% upper bound (preregistered).
+- **Precision** is reported both ways: error rate 1/76 = 1.32% with exact CI
+  [0.03%, 7.11%], hence precision 75/76 = **98.68%** with exact CI
+  **[92.89%, 99.97%]** (the complement interval).
+- **Weighted false-omission** applies to the **sampled candidate-negative
+  frame only** — the 1,354 screen-nominated pairs both AI passes adjudicated
+  not-water-only — *not* to overall database recall. Estimator:
+  p̂ = w_high·p̂_high + w_rest·p̂_rest with population weights
+  w_high = 566/1354 = 0.418 and w_rest = 788/1354 = 0.582, giving
+  p̂ = 0.418·(1/39) + 0.582·0 = **1.07%**. Because the rest stratum observed
+  zero events, a normal-approximation variance would be degenerate; we
+  report a **conservative interval** formed by weighting the stratum
+  Clopper–Pearson bounds: [0.418·0.06% + 0.582·0, 0.418·13.48% +
+  0.582·9.03%] = **[0.03%, 10.9%]** (labelled post-hoc: the plan
+  prespecified per-stratum CIs and the weighted point estimate; the combined
+  interval method is an addition). Inference beyond this frame — to borders
+  never nominated by any screen — is a *coverage* claim governed by the
+  datasets' documented floors (`docs/REPRODUCING.md` §6), not by this
+  estimator; the mechanism-rejected stratum is bounded separately (0/20,
+  ≤ 13.9%).
+- **Inter-rater reliability**: 2×2 agreement table over the 30 blind
+  double-rated rows —
+
+  | | second: Yes | second: No |
+  |---|---|---|
+  | **primary: Yes** | 14 | 1 |
+  | **primary: No** | 1 | 14 |
+
+  Observed agreement 28/30 = 93.3%; chance agreement 0.50 (balanced
+  marginals); **κ = 0.867**, asymptotic SE 0.091, 95% CI **[0.69, 1.00]**.
+  n = 30 is adequate for a reliability check but small — the interval is
+  wide, and κ here characterizes this rater pair on this sample rather than
+  a general rater population.
+
 ## Interpretation
 
 - The dual-AI auto-accept tier's measured precision (**98.7%**, 95% CI lower
   bound ≈ 92.9%) is consistent with the human-review outcomes on the
   disagreement/medium tier during the audit itself, and the single confirmed
   false positive was found and removed.
-- The false-omission estimate (**≈ 1.1%** weighted; concentrated in the
-  high-signal stratum, as designed) quantifies what the candidate-coverage
-  framing predicts: misses are rare and cluster where screen signal was high
-  but both AI passes read the border as mixed.
+- The false-omission estimate (**1.07%** weighted, conservative 95% bound
+  [0.03%, 10.9%]; concentrated in the high-signal stratum, as designed)
+  quantifies what the candidate-coverage framing predicts: within the
+  audited candidate frame, misses are rare and cluster where screen signal
+  was high but both AI passes read the border as mixed.
 - The mechanism auto-reject (sub-0.20 on all four datasets) showed **no
   error** in its sample, supporting its use as a deterministic disposal rule.
 - **NA concentration:** 5 of 6 NAs are World Bank placeholder units ("Area
