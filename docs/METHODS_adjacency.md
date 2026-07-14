@@ -64,7 +64,7 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | moderate (default) | **8,087** | −379 | 8,466 − 379 water-only pairs with no fixed crossing |
 | stringent | **7,768** | −698 | 8,466 − all 698 water-only pairs |
 
-**What Stage 1 changed vs a naïve build (add/remove reasons):** removed 3
+**What Stage 1 changed vs a naïve build (add/remove reasons):** removed 4
 fabricated cross-border edges (Salta↔Potosí, Braničevo↔Mehedinți, and the two
 Arusha edges) that were pure sliver-corridor artifacts; made native the ~63
 lake-meeting pairs and the placeholder Nyasa pair (no lake filter) and the two
@@ -84,7 +84,7 @@ b1–b6 and its 20 km-hold tranche).
 The base bridge
 set is 309 = 312 − 2 borders demoted to mixed land after review (Vistula Spit
 POL↔RUS; Konstanz–Kreuzlingen CHE↔DEU) − 1 orphan (SRB002↔ROU028, whose edge
-the relabel removed). Eleven borders were **reclassified land→water** by the
+the relabel removed). Twelve borders were **reclassified land→water** by the
 HydroLAKES sweep (e.g. the Great Lakes, Lake Malawi median, Lake Chad).
 
 **ADM0 = 326** shipped (323 native + 3 disputed; COD↔TZA and other lake-only
@@ -585,9 +585,12 @@ adversarial verify pass** on the marginal 10 km set
 water-band was **two-pass adversarially adjudicated** — two independent passes
 over all 57 candidates (`build_data/premeasure/adjudicate_water_band.wf.js`) — to
 catch the case where a lake's mid-water median line belongs to a *different* unit
-pair (diagonal non-adjacency). Completeness is fixed by the buffer-independent
-full-database HydroRIVERS/HydroLAKES sweeps and correctness by the human map
-verification; the LLM passes only nominate and cross-check within that frame.
+pair (diagonal non-adjacency). Candidate coverage is fixed by the
+buffer-independent full-database HydroRIVERS/HydroLAKES sweeps — complete
+relative to those datasets' documented floors, a coverage claim rather than a
+recall claim against the unknown true adjacency set — and correctness by the
+human/dual-AI verification; the LLM passes only nominate and cross-check
+within that frame.
 The rescreen overlays use a **cross-vendor** variant of the two-stage design:
 the research pass ran on OpenAI Codex and the adversarial judgment pass on
 Claude Sonnet 5, so no single model family sets a verdict alone; medium-

@@ -86,9 +86,15 @@ buffer re-screens, tolerance-band and snap-extras diagnostics, two-pass
 verification, human map review) are how the correction layer was *discovered
 and validated* — reproducing the database does not require re-running them.
 
-Two LLM-adjudication designs appear below, both run *downstream* of the
-deterministic screens and both with **human map verification of every shipped
-overlay verdict**. The river / HydroRIVERS candidates were **two-stage
+Three LLM-adjudication designs appear below, all run *downstream* of the
+deterministic screens. The pre-rebuild overlays (river-gap, lake-gap,
+wide-river, audit-water, hydro-water, hydro-lakes) carry **human map
+verification of every shipped verdict**; the rescreen overlays carry human
+verification of every ship-affecting disagreement and medium-confidence
+verdict (~157 rows), while their high-confidence dual-AI agreements (240 of
+335 rows) ship on documented two-model agreement — labelled as such per row
+in `source` — which is convergent model evidence, not independent ground
+truth. The river / HydroRIVERS candidates were **two-stage
 ground-truthed** — a research pass feeding an adversarial verify pass
 (`build_data/hydro_full_sweep/verify_flags.wf.js`,
 `build_data/wide_river_audit/verify_entrants*.wf.js`) — reinforced by a
@@ -98,11 +104,13 @@ lake water-band was **two-pass adversarially adjudicated** — two independent
 passes over all 57 candidates (`build_data/premeasure/adjudicate_water_band.wf.js`
 → `water_band_adjudication.json`) — because a lake's mid-water median line can
 belong to a *different* unit pair (diagonal non-adjacency), a case two
-independent reads guard against. Neither the completeness nor the correctness of
-the shipped set rests on the adjudication design: completeness is fixed by the
-buffer-independent full-database HydroRIVERS/HydroLAKES sweeps and correctness by
-the human map verification — the LLM passes only nominate and cross-check within
-that frame.
+independent reads guard against. Neither the candidate coverage nor the correctness of
+the shipped set rests on the adjudication design: coverage is fixed by the
+buffer-independent full-database HydroRIVERS/HydroLAKES sweeps (complete
+relative to those datasets' documented floors — a candidate-screen coverage
+claim, not a recall claim against the unknown true adjacency set) and
+correctness by the human/dual-AI verification — the LLM passes only nominate
+and cross-check within that frame.
 
 Byte-identity scope (a clean-room `--full` rebuild — 2026-07-02, geopandas
 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 — verified the base **adjacency pair set
@@ -175,7 +183,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 
 > **Note.** The subsections below are the *discovery/validation record* for the
 > four-stage, tolerance-0 pipeline and the manifests listed in the Datasets
-> table above (authoritative counts: 8,466 / 8,174 / 8,015; water-only 451);
+> table above (authoritative counts: 8,466 / 8,087 / 7,768; water-only 698);
 > they document how each reviewed correction input was discovered and audited.
 
 
@@ -242,7 +250,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   pair); ADM1 borders spanning several administering provinces are split among
   them by nearest province. The full per-tract candidate audit is shipped at
   `docs/ndlsa_tract_audit.csv` (see `docs/METHODS_adjacency.md`).
-- **Water-separated pairs (`coupling_standard`).** 696 ADM1 pairs (and 27
+- **Water-separated pairs (`coupling_standard`).** 698 ADM1 pairs (and 27
   rolled-up ADM0 country pairs) share **only** a river/lake border with no land
   segment. The runtime loaders accept `coupling_standard` (default `"moderate"`),
   orthogonal to `de_facto_borders`: `lenient` keeps all water borders; `moderate`
