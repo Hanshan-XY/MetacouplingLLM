@@ -73,8 +73,8 @@ further candidates confirmed genuine on official maps and kept) = 8,424;
 [S4 overlays, in application order] +6 river-gap = 8,443, +2 lake-gap = 8,445,
 +5 land-gap (tolerance-band recovery) = 8,450, +16 rescreen-gap (water-screen
 rebuild, batch b1) = **8,466** shipped
-(lenient); **8,087** moderate; **7,768** stringent; 3,375 regions, 196 countries.
-**ADM0** 326 / 320 / 299. **Water-only 698** (319/379) + 27 ADM0 roll-ups
+(lenient); **8,088** moderate; **7,768** stringent; 3,375 regions, 196 countries.
+**ADM0** 326 / 320 / 299. **Water-only 698** (320/378) + 27 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River into hydro-water and the
 Dead Sea into hydro-lakes — the two borders the raw-degree screens missed — and
 the rescreen-water overlay completes five more country borders as all-water:
@@ -91,10 +91,17 @@ deterministic screens. The pre-rebuild overlays (river-gap, lake-gap,
 wide-river, audit-water, hydro-water, hydro-lakes) carry **human map
 verification of every shipped verdict**; the rescreen overlays carry human
 verification of every ship-affecting disagreement and medium-confidence
-verdict (~157 rows), while their high-confidence dual-AI agreements (240 of
-335 rows) ship on documented two-model agreement — labelled as such per row
-in `source` — which is convergent model evidence, not independent ground
-truth. The river / HydroRIVERS candidates were **two-stage
+verdict (~157 rows), while their high-confidence dual-AI agreements (239 of
+335 rows after the validation-study corrections; 240 at study time) ship on
+documented two-model agreement — labelled as such per row in `source` —
+which is convergent model evidence, not independent ground truth. A
+**preregistered validation study** (plan committed before sampling;
+`docs/VALIDATION_SAMPLING_PLAN.md`) measured this tier and the negatives:
+dual-AI precision **98.7%** (1 error in 76 rated; exact 95% CI on the error
+rate [0.03%, 7.1%]), weighted false-omission among AI-adjudicated negatives
+**≈ 1.1%**, mechanism auto-reject 0 errors in 20, inter-rater κ = 0.867 on a
+30-row blind subsample; both discovered errors were corrected through the
+manifest path (`docs/VALIDATION_STUDY.md`). The river / HydroRIVERS candidates were **two-stage
 ground-truthed** — a research pass feeding an adversarial verify pass
 (`build_data/hydro_full_sweep/verify_flags.wf.js`,
 `build_data/wide_river_audit/verify_entrants*.wf.js`) — reinforced by a
@@ -128,6 +135,32 @@ byte-identity of the lengths therefore additionally requires the original
 toolchain, as scoped in the manuscript's reproducibility statement. The
 correction layer is toolchain-independent: the engine reproduces the shipped
 CSVs byte-identically from the raw build state.
+
+## Verification tiers, versioning, and how to read this dataset
+
+The database is a **versioned, uncertainty-aware adjacency benchmark**, not a
+claimed error-free truth set. Three graded verification tiers cover every
+water-classification row (each row's tier is derivable from its `source`
+column):
+
+- **Tier A — human map-verified:** all pre-rebuild overlay rows, the ~157
+  rescreen disagreement/medium rows, and every validation-study correction.
+- **Tier B — dual-AI convergent:** 239 rescreen rows shipped on documented
+  two-model agreement; measured precision 98.7% (exact 95% CI on the error
+  rate [0.03%, 7.1%]) in the preregistered validation study.
+- **Tier C — reviewed base classification:** the 309-row bridge-classified
+  base set (OSM + independent web verification + geocode/polygon checks +
+  maintainer review; its own correction lineage above).
+
+The negatives carry measured uncertainty too: weighted false-omission
+≈ 1.1% among AI-adjudicated negatives, 0/20 among mechanism auto-rejects
+(`docs/VALIDATION_STUDY.md`). The dataset is **versioned with the package**:
+every change is a reviewed, CHANGELOG-documented manifest edit replayed by
+the idempotent engine, so any prior state is recoverable from git history.
+Suspected errors can be reported as issues or manifest-edit PRs; the
+correction path is `docs/REPRODUCING.md` §5. ADM1 subdivision vintages
+follow the pinned WB release, not later national reforms (e.g. Latvia's 2021
+municipal consolidation postdates the WB layer's 119-novadi representation).
 
 ## Datasets
 
@@ -257,7 +290,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,466 → **8,087** moderate / **7,768** stringent; ADM0 326 →
+  shipped edges 8,466 → **8,088** moderate / **7,768** stringent; ADM0 326 →
   **320** moderate / **299** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -448,8 +481,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ends land in Bács-Kiskun via the documented Danube side-channel anomaly).
   Everything is **strictly additive** — the pre-rebuild set reproduces
   unchanged, verified against a frozen SHA-256 baseline. Current shipped
-  counts: ADM1 **8,466** edges (**8,087** moderate / **7,768** stringent),
-  ADM0 **326** (320 / 299), water-only **698** ADM1 (319/379) + **27** ADM0
+  counts: ADM1 **8,466** edges (**8,088** moderate / **7,768** stringent),
+  ADM0 **326** (320 / 299), water-only **698** ADM1 (320/378) + **27** ADM0
   roll-ups (the rebuild completed five country borders as all-water: DEU↔LUX
   bridged Our–Sauer–Moselle, BEN↔NER bridged Niger/Mékrou, CMR↔GAB bridged
   Ntem, MWI↔TZA bridged Songwe + Lake Malawi/Nyasa, GUY↔SUR ferry-only

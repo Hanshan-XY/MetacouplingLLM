@@ -424,7 +424,6 @@ adm1,MOZ008,MOZXXX,False,lake,Lake Niassa (Lake Malawi),"rescreen-water overlay 
 adm1,MWI001,MWI004,False,lake,Lake Malawi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,MWI002,MWI004,False,lake,Lake Malawi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,MWI003,MWI004,False,lake,Lake Malawi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
-adm1,NIC016,NIC017,False,lake,Lake Nicaragua (Lago Cocibolca),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,NLD011,NLD012,True,lake,"Grevelingenmeer (and, further east, Krammer/Volkerak — part of Volkerak-Zoommeer","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,PRT005,PRT010,True,river,Douro River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,PRT006,PRT011,True,river,"Zêzere River, largely via Albufeira do Cabril (Cabril Reservoir/Dam) on the Sert","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
@@ -697,6 +696,7 @@ adm1,VNM040,VNM054,True,river,Red River (Sông Hồng),"rescreen-water overlay (
 adm1,ZAF001,ZAF002,True,river,Orange River (Gariep Dam reservoir straddles this stretch of the border),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,PRY008,PRY014,True,river,Arroyo Paray (from its source at Lago Ypoá to its mouth on the Río Paraguay),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,ROU008,ROU039,True,river,"Danube – Măcin branch (Brațul Măcin / Dunărea Veche, ""Old Danube"")","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,ITA005,ITA020,True,river,Po River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
 adm0,ARG,PRY,True,,,adm1-rollup

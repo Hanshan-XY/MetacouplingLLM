@@ -81,8 +81,8 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,466 (3,375 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,087 / 7,768 |
-| water-only ADM1 | 698 = 319 with a fixed crossing / 379 without |
+| ADM1 moderate / stringent | 8,088 / 7,768 |
+| water-only ADM1 | 698 = 320 with a fixed crossing / 378 without |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 299 |
 | ADM0 water roll-ups | 27 |
 
