@@ -52,6 +52,16 @@ refuses to build from a mismatching file):
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
 
+**What a clean clone contains.** Everything §2 and §4 need ships in the
+repository, including the bridge classification CSV (tracked at its
+`build_data/` path). The four GeoPackages for §3 must be downloaded from the
+World Bank (their hashes are verified before any build). The wider
+`build_data/` audit-evidence tree (screen outputs, frozen AI verdicts,
+worksheets) is a local working archive, NOT shipped in the repository — its
+content is summarized in PROVENANCE.md/METHODS and in each manifest row's
+`source` column, and §6 re-derives the candidate screens from the public
+datasets directly rather than from those local artifacts.
+
 ## 2. Quick path — verify the shipped data (minutes, no downloads)
 
 ```
@@ -71,8 +81,8 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,466 (3,375 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,087 / 7,768 |
-| water-only ADM1 | 698 = 319 with a fixed crossing / 379 without |
+| ADM1 moderate / stringent | 8,088 / 7,768 |
+| water-only ADM1 | 698 = 320 with a fixed crossing / 378 without |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 299 |
 | ADM0 water roll-ups | 27 |
 

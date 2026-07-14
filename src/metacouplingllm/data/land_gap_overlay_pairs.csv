@@ -1,6 +1,6 @@
-code_a,name_a,iso_a,code_b,name_b,iso_b,border_km,gap_km,source
-EGY016,Matrouh,EGY,LBY001,Ajdabiya (agedabia),LBY,49.3833,49.3833,tolerance-0 band audit: genuine sub-tolerance borders (v2)
-DOM011,Independencia,DOM,DOM026,San Juan,DOM,0.0414,0.0414,tolerance-0 band audit: genuine sub-tolerance borders (v2)
-ETH013,Tigray,ETH,SDN004,Kassala,SDN,0.1282,0.1282,tolerance-0 band audit: genuine sub-tolerance borders (v2)
-AIA001,Name Unknown,AIA,AIA003,Name Unknown,AIA,0.1248,0.1248,tolerance-0 band audit: genuine sub-tolerance borders (v2)
-MOZXXX,Area under National Administration,MOZ,MWI003,Southern Region,MWI,0.1109,0.1109,tolerance-0 band audit: genuine sub-tolerance borders (v2)
+code_a,name_a,iso_a,code_b,name_b,iso_b,border_km,source
+EGY016,Matrouh,EGY,LBY001,Ajdabiya (agedabia),LBY,49.3833,tolerance-0 band audit: genuine sub-tolerance borders
+DOM011,Independencia,DOM,DOM026,San Juan,DOM,0.0414,tolerance-0 band audit: genuine sub-tolerance borders
+ETH013,Tigray,ETH,SDN004,Kassala,SDN,0.1282,tolerance-0 band audit: genuine sub-tolerance borders
+AIA001,Name Unknown,AIA,AIA003,Name Unknown,AIA,0.1248,tolerance-0 band audit: genuine sub-tolerance borders
+MOZXXX,Area under National Administration,MOZ,MWI003,Southern Region,MWI,0.1109,tolerance-0 band audit: genuine sub-tolerance borders
