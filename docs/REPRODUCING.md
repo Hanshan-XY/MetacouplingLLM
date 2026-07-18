@@ -1,7 +1,7 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through rebuilding and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,461 subnational shared-border pairs) and the
+datasets — the ADM1 edge list (8,460 subnational shared-border pairs) and the
 ADM0 country matrix (326 pairs) with their water-only classification (747
 ADM1 pairs / 28 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
@@ -81,9 +81,9 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,461 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,066 / 7,714 |
-| water-only ADM1 | 747 = 352 with a fixed crossing / 395 without |
+| ADM1 edges (lenient) | 8,460 (3,374 regions, 196 countries) |
+| ADM1 moderate / stringent | 8,062 / 7,710 |
+| water-only ADM1 | 750 = 352 with a fixed crossing / 398 without |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 298 |
 | ADM0 water roll-ups | 28 |
 
@@ -123,8 +123,8 @@ S4):
   water-only rows). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the nine manifests in registry order (idempotent, one pass; see §5).
-  → +6 river-gap, +2 lake-gap, +5 land-gap, +16 rescreen-gap edges =
-  **8,461**; water rows 309 → **747**; ADM0 roll-up recomputed once (a
+  → +6 river-gap, +2 lake-gap, +4 land-gap, +16 rescreen-gap edges =
+  **8,460**; water rows 309 → **750**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 
@@ -174,7 +174,7 @@ re-running the engine is the supported way to change the correction layer:
 | `hydro_water_overlay_pairs.csv` | water flags on 18 edges |
 | `hydro_lakes_overlay_pairs.csv` | water flags on 12 edges |
 | `rescreen_gap_overlay_pairs.csv` | +16 edges (2026-07 water-screen rebuild; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 368 edges (rebuild batches b1–b6 + holds; per-row `water_type`) |
+| `rescreen_water_overlay_pairs.csv` | water flags on 371 edges (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit; per-row `water_type`) |
 
 Engine semantics worth knowing:
 

@@ -3,7 +3,7 @@ r"""Apply the reviewed overlay correction layer to the shipped adjacency data.
 The pericoupling database is constructed in two stages: a deterministic
 geometry build (``scripts/build_pericoupling_db.py``) and a **reviewed
 correction layer** -- nine manifest CSVs in ``src/metacouplingllm/data/``
-holding 443 pair-rows (29 edge-restoring + 414 water-flag-only), each pair
+holding 445 pair-rows (28 edge-restoring + 417 water-flag-only), each pair
 individually audited and human-verified (provenance: ``data/PROVENANCE.md``).
 This engine applies the whole layer in one pass:
 

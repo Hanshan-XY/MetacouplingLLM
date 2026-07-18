@@ -8443,7 +8443,6 @@ EGY016,Matrouh,Arab Republic of Egypt,EGY,MENA,LBY001,Ajdabiya (agedabia),Libya,
 DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republic,DOM,LCR,False,0.0414,True,True
 ETH013,Tigray,Ethiopia,ETH,AFR,SDN004,Kassala,Sudan,SDN,AFR,True,0.1282,True,True
 AIA001,Name Unknown,Anguilla (U.K.),AIA,Other,AIA003,Name Unknown,Anguilla (U.K.),AIA,Other,False,0.1248,True,True
-MOZXXX,Area under National Administration,Mozambique,MOZ,AFR,MWI003,Southern Region,Malawi,MWI,AFR,True,0.1109,True,True
 CHE011,Jura,Switzerland,CHE,Other,CHE013,Neuchatel,Switzerland,CHE,Other,False,0.9,True,True
 DEU004,Brandenburg,Germany,DEU,Other,DEU009,Niedersachsen,Germany,DEU,Other,False,3.7,True,False
 GMB003,Central River South,The Gambia,GMB,AFR,GMB006,North Bank,The Gambia,GMB,AFR,False,3.4,True,False

@@ -51,8 +51,10 @@ RETAINED (edge confirmed genuine), DECISION (maintainer call pending).
    into the existing RUS024 rows: 388.66+187.30 = 575.96 km and
    282.93+143.65 = 426.58 km).
 
-Count effects: edges 8,466 -> 8,461; moderate 8,071 -> 8,066; stringent
-7,719 -> 7,714; water counts and the ADM0 layer unchanged.
+Count effects of all resolutions (incl. the shore-contact nominations
+below, ruled 2026-07-18): edges 8,466 -> 8,460; regions 3,375 -> 3,374;
+water-only 747 -> 750 (352/398); moderate 8,071 -> 8,062; stringent
+7,719 -> 7,710; ADM0 layer unchanged.
 
 ## Placeholder-unit identities (complete enumeration, 2026-07-18)
 
@@ -63,7 +65,18 @@ contains mid-lake, excludes shore towns), OMN009 = Oman's **Madha exclave**
 (77.8 km2, contains Madha town; its UAE borders are genuine land borders),
 LCA001 = Saint Lucia's interior crown-land/forest-reserve tract (65.7 km2,
 no quarter name upstream; benign land unit), and the seven AIA units =
-Anguilla's real districts, unnamed upstream. Open follow-up nominations
-(shore contacts of proven water-surface polygons, currently unflagged):
-KHM000<->KHM004 (72.7 km), KHM000<->KHM006 (97.3 km), ZWE011<->ZWE008
-(417.8 km), MOZXXX<->MWI003 (0.11 km corner).
+Anguilla's real districts, unnamed upstream.
+
+## Shore-contact nominations — ruled 2026-07-18
+
+- KHM000<->KHM004 (72.7 km) and KHM000<->KHM006 (97.3 km) — Tonle Sap
+  shorelines — and ZWE011<->ZWE008 (417.8 km, Lake Kariba's southwestern
+  shore): **maintainer-confirmed water-only (lake, no fixed crossing)**;
+  shipped as rescreen-water rows with identity-audit provenance
+  (manifest 368 -> 371; water-only 747 -> 750).
+- MOZXXX<->MWI003 (the 0.11 km lake-corner contact): **maintainer ruling —
+  the true contact is a POINT**, a non-edge under the rook rule (the WB arc
+  collapses to a single coordinate at 34.867E 13.483S under tight
+  tolerance). This reverses the pair's 2026-07 land-gap recovery: the row
+  is removed from `land_gap_overlay_pairs.csv` (5 -> 4) and the edge from
+  the shipped list.

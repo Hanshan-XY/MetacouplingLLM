@@ -55,15 +55,15 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S4** + river-gap overlay (near-miss census) | 8,432 → 8,438 | 309 → 315 | +6 cross-border river borders the source digitizes as non-touching banks |
 | **S4** wide-river overlay (5 km re-screen) | 8,438 → 8,438 | 315 → 328 | +0 edges; 13 existing edges reclassified water-only (2.5 km river net re-screened at 5 km) |
 | **S4** + lake-gap overlay | 8,438 → 8,440 | 328 → 330 | +2 non-touching lake borders, one per census band: Jõgeva↔Pskov (Peipus) from the ≤1 km near band, Malësi e Madhe↔Bar (Skadar) from the 1–100 km water-corridor band; all other lake-meeting pairs native |
-| **S4** + land-gap overlay (*applied* here; *discovered* by the S1 tolerance-band audit, §2.4/§4) | 8,440 → 8,445 | 330 → 330 | +5 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … placeholder–Malawi); no water rows |
-| **S4** audit-water overlay (10 km completeness audit) | 8,445 → 8,445 | 330 → 333 | +0 edges; 3 screen-missed borders reclassified water-only |
-| **S4** hydro-water overlay (HydroRIVERS geodesic 500 m) | 8,445 → 8,445 | 333 → 351 | +0 edges; 18 borders the NE screens missed (incl. the Uruguay River, recovered by the geodesic metric) |
-| **S4** hydro-lakes overlay (HydroLAKES geodesic 500 m) | 8,445 → 8,445 | 351 → 363 | +0 edges; 12 borders reclassified land→water (Great Lakes, Lake Malawi median, Lake Chad, Titicaca, Dead Sea); geodesic-500 m sweep = 15 candidates − 3 rejected |
-| **S4** + rescreen-gap overlay (water-screen rebuild) | 8,445 → 8,461 | 363 → 379 | +16 non-touching water borders recovered by the rebuilt full-ladder screens (river 2.5–20 km geodesic rungs at bar 0.50, lake 125–1,500 m at 0.40, HydroRIVERS floor 10 m³/s + creek band, HydroLAKES bar 0.5), Tier-2 two-pass adjudicated and human/dual-AI verified |
-| **S4** rescreen-water overlay (water-screen rebuild) | 8,461 → 8,461 | 379 → 747 | +0 edges; 368 existing borders reclassified water-only by the same rebuilt screens + Tier-2 audit (batches b1–b6 + the 20 km-hold tranche: 72 + 125 + 169 + 2; incl. 9 rows on human-delegated Fable-5 final arbitration) |
-| **shipped (lenient)** | **8,461** | 747 | 3,374 regions, 196 countries — every edge kept |
-| moderate (default) | **8,066** | −395 | 8,461 − 395 water-only pairs with no fixed crossing |
-| stringent | **7,714** | −747 | 8,461 − all 747 water-only pairs |
+| **S4** + land-gap overlay (*applied* here; *discovered* by the S1 tolerance-band audit, §2.4/§4) | 8,440 → 8,444 | 330 → 330 | +5 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … placeholder–Malawi); no water rows |
+| **S4** audit-water overlay (10 km completeness audit) | 8,444 → 8,444 | 330 → 333 | +0 edges; 3 screen-missed borders reclassified water-only |
+| **S4** hydro-water overlay (HydroRIVERS geodesic 500 m) | 8,444 → 8,444 | 333 → 351 | +0 edges; 18 borders the NE screens missed (incl. the Uruguay River, recovered by the geodesic metric) |
+| **S4** hydro-lakes overlay (HydroLAKES geodesic 500 m) | 8,444 → 8,444 | 351 → 363 | +0 edges; 12 borders reclassified land→water (Great Lakes, Lake Malawi median, Lake Chad, Titicaca, Dead Sea); geodesic-500 m sweep = 15 candidates − 3 rejected |
+| **S4** + rescreen-gap overlay (water-screen rebuild) | 8,444 → 8,460 | 363 → 379 | +16 non-touching water borders recovered by the rebuilt full-ladder screens (river 2.5–20 km geodesic rungs at bar 0.50, lake 125–1,500 m at 0.40, HydroRIVERS floor 10 m³/s + creek band, HydroLAKES bar 0.5), Tier-2 two-pass adjudicated and human/dual-AI verified |
+| **S4** rescreen-water overlay (water-screen rebuild + identity audit) | 8,460 → 8,460 | 379 → 750 | +0 edges; 371 existing borders reclassified water-only: 368 by the rebuilt screens + Tier-2 audit (batches b1–b6 + the 20 km-hold tranche: 72 + 125 + 169 + 2; incl. 9 rows on human-delegated Fable-5 final arbitration) and 3 shore contacts of proven water-surface polygons from the 2026-07-18 placeholder-identity audit (2 Tonle Sap + 1 Lake Kariba; human-map-verified) |
+| **shipped (lenient)** | **8,460** | 750 | 3,374 regions, 196 countries — every edge kept |
+| moderate (default) | **8,062** | −398 | 8,460 − 398 water-only pairs with no fixed crossing |
+| stringent | **7,710** | −750 | 8,460 − all 750 water-only pairs |
 
 **What Stage 1 changed vs a naïve build (add/remove reasons):** removed 4
 fabricated cross-border edges (Salta↔Potosí, Braničevo↔Mehedinți, and the two
@@ -74,12 +74,12 @@ their border territory back to Mara/Kilimanjaro); the Malta false edge
 (Balzan↔Iklin, ~31 m apart) never appears at tolerance 0, so it needs no
 denylist entry.
 
-**Water-only set = 747 ADM1** (352 with a fixed crossing / 395 without) + **28
+**Water-only set = 750 ADM1** (352 with a fixed crossing / 398 without) + **28
 ADM0** roll-ups, by source: 309 base bridge classification + 18 hydro-water
 (HydroRIVERS geodesic 500 m sweep) + 13 wide-river (5 km re-screen) + 12 hydro-lakes
 (HydroLAKES geodesic 500 m sweep) + 6 river-gap + 3 audit-water + 2 lake-gap
 (geodesic re-screen of the water buffers: the Uruguay River ARG008↔URY012, with
-the San Martín bridge, and the Dead Sea ISR005↔JOR007, no crossing) + 368
+the San Martín bridge, and the Dead Sea ISR005↔JOR007, no crossing) + 371
 rescreen-water + 16 rescreen-gap (the water-screen rebuild's audit batches
 b1–b6 and its 20 km-hold tranche).
 The base bridge
@@ -102,7 +102,7 @@ drops all 28 roll-ups.
 
 ---
 
-> **Note.** Sections 2–4 below are the *validation record* for the shipped parameter-free design: why **exact contact (tolerance 0)** is safe (the tolerance sensitivity sweep and the sub-55 m band audit), and why `border_length_km` is the full geodesic shared-boundary length. The audits described here produced the reviewed correction manifests the build replays; the authoritative counts are the provenance ledger above (shipped 8,461 / moderate 8,066 / water-only 747).
+> **Note.** Sections 2–4 below are the *validation record* for the shipped parameter-free design: why **exact contact (tolerance 0)** is safe (the tolerance sensitivity sweep and the sub-55 m band audit), and why `border_length_km` is the full geodesic shared-boundary length. The audits described here produced the reviewed correction manifests the build replays; the authoritative counts are the provenance ledger above (shipped 8,460 / moderate 8,062 / water-only 750).
 
 ## 1. Contiguity rule: rook, not queen
 
@@ -517,9 +517,9 @@ orthogonal to `de_facto_borders`:
 | `moderate` *(default)* | a **fixed crossing open to traffic** links the two units |
 | `stringent` | never (water never counts) |
 
-**Data.** `data/water_separated_pairs.csv` lists the **747 ADM1** water-only
+**Data.** `data/water_separated_pairs.csv` lists the **750 ADM1** water-only
 pairs with a `has_bridge` flag (309 land-classified + 18 hydro-water + 13
-wide-river + 12 hydro-lakes + 6 river-gap + 3 audit-water + 2 lake-gap + 368
+wide-river + 12 hydro-lakes + 6 river-gap + 3 audit-water + 2 lake-gap + 371
 rescreen-water + 16 rescreen-gap overlay pairs), plus **28 ADM0** country
 pairs rolled up from them (a
 country pair is water-only iff *all* its ADM1 crossings are, and has a bridge
@@ -557,7 +557,7 @@ edge the relabel removed (see the water-only ledger in the construction
 section) — with the SHA-256 pin updated), and the two **rescreen overlays**
 from the 2026-07 water-screen rebuild's audit batches b1–b6 and the
 20 km-hold tranche — **rescreen-water**
-(368 existing edges reclassified water-only) and **rescreen-gap** (16
+(371 existing edges reclassified water-only) and **rescreen-gap** (16
 non-touching water borders restored as edges), nominated by the rebuilt
 full-ladder screens (river bar 0.50 at geodesic 2.5/5/10/15/20 km rungs; lake
 bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS nomination floor
@@ -569,7 +569,7 @@ each shipped as a
 reviewed manifest (`data/*_overlay_pairs.csv`) and applied in one pass by the
 idempotent engine `scripts/apply_overlays.py` (full provenance in
 `data/PROVENANCE.md`). Under
-the default, ADM1 pericoupled edges fall 8,461 → **8,066** and ADM0 country
+the default, ADM1 pericoupled edges fall 8,460 → **8,062** and ADM0 country
 pairs 326 → **320** (the hydro-water overlay's GUF↔SUR roll-up — the Maroni
 system, ferry only — joins COD↔TZA, MRT↔SEN, CAF↔COD, NGA↔TCD across
 Lake Chad, and the rescreen roll-up GUY↔SUR — the ferry-only Corentyne — as
@@ -648,7 +648,7 @@ sources: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
   Minnesota, New York — and the five rescreen-era additions ALB011↔ALB017,
   IRL002↔IRL024, NLD011↔NLD012, SLV003↔SLV004, TUR026↔TUR055), and
   `stringent` keeps none.
-  `lenient` therefore equals the shipped base adjacency (8,461 edges).
+  `lenient` therefore equals the shipped base adjacency (8,460 edges).
 
 ## 9. Name resolution (lookup layer)
 
