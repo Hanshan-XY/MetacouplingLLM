@@ -67,7 +67,7 @@ estimates above are computed on the *pre-fix* verdicts, as preregistered):
 Net count effect: water-only total unchanged at **698**; bridge split
 319/379 → **320/378**; ADM1 moderate 8,087 → **8,088**; everything else
 unchanged. After the corrections the shipped rescreen rows verified by
-dual-AI agreement only number **239** (of 335); the study population was the
+dual-AI agreement only number **238** (of 384); the study population was the
 240 at draw time.
 
 ## Estimators and intervals (as computed)
