@@ -4304,7 +4304,6 @@ LBR005,Grand Cape Mount,Liberia,LBR,AFR,SLE004,Southern,Sierra Leone,SLE,AFR,Tru
 LBR006,Grand Gedeh,Liberia,LBR,AFR,CIV031,Montagnes,Côte d'Ivoire,CIV,AFR,True,320.7816,False,False
 LBR006,Grand Gedeh,Liberia,LBR,AFR,LBR012,Nimba,Liberia,LBR,AFR,False,150.8259,False,False
 LBR006,Grand Gedeh,Liberia,LBR,AFR,LBR013,River Gee,Liberia,LBR,AFR,False,111.7084,False,False
-LBR006,Grand Gedeh,Liberia,LBR,AFR,LBR014,Rivercess,Liberia,LBR,AFR,False,1.1221,True,False
 LBR006,Grand Gedeh,Liberia,LBR,AFR,LBR015,Sinoe,Liberia,LBR,AFR,False,159.8214,False,False
 LBR007,Grand Kru,Liberia,LBR,AFR,LBR015,Sinoe,Liberia,LBR,AFR,False,71.6745,False,False
 LBR008,Lofa,Liberia,LBR,AFR,SLE001,Eastern,Sierra Leone,SLE,AFR,True,100.4243,False,False
@@ -6350,8 +6349,8 @@ RUS021,Ivanovskaya Oblast,Russian Federation,RUS,ECA,RUS089,Yaroslavskaya Oblast
 RUS022,Kabardino-balkariya Rep.,Russian Federation,RUS,ECA,RUS027,Karatchayevo-cherkesiya Rep.,Russian Federation,RUS,ECA,False,77.2513,False,False
 RUS022,Kabardino-balkariya Rep.,Russian Federation,RUS,ECA,RUS069,Severnaya Osetiya-alaniya Rep.,Russian Federation,RUS,ECA,False,220.6842,False,False
 RUS022,Kabardino-balkariya Rep.,Russian Federation,RUS,ECA,RUS071,Stavropolskiy Kray,Russian Federation,RUS,ECA,False,208.2957,False,False
-RUS024,Kalmykiya Rep.,Russian Federation,RUS,ECA,RUS062,Rostovskaya Oblast,Russian Federation,RUS,ECA,False,388.6623,False,False
-RUS024,Kalmykiya Rep.,Russian Federation,RUS,ECA,RUS071,Stavropolskiy Kray,Russian Federation,RUS,ECA,False,282.9274,False,False
+RUS024,Kalmykiya Rep.,Russian Federation,RUS,ECA,RUS062,Rostovskaya Oblast,Russian Federation,RUS,ECA,False,575.9649,False,False
+RUS024,Kalmykiya Rep.,Russian Federation,RUS,ECA,RUS071,Stavropolskiy Kray,Russian Federation,RUS,ECA,False,426.5753,False,False
 RUS024,Kalmykiya Rep.,Russian Federation,RUS,ECA,RUS085,Volgogradskaya Oblast,Russian Federation,RUS,ECA,False,264.3172,False,False
 RUS025,Kaluzhskaya Oblast,Russian Federation,RUS,ECA,RUS047,Moskovskaya Oblast,Russian Federation,RUS,ECA,False,195.8153,False,False
 RUS025,Kaluzhskaya Oblast,Russian Federation,RUS,ECA,RUS057,Orlovskaya Oblast,Russian Federation,RUS,ECA,False,108.2946,False,False
@@ -6436,9 +6435,6 @@ RUS047,Moskovskaya Oblast,Russian Federation,RUS,ECA,RUS078,Tverskaya Oblast,Rus
 RUS047,Moskovskaya Oblast,Russian Federation,RUS,ECA,RUS084,Vladimirskaya Oblast,Russian Federation,RUS,ECA,False,287.2333,False,False
 RUS047,Moskovskaya Oblast,Russian Federation,RUS,ECA,RUS089,Yaroslavskaya Oblast,Russian Federation,RUS,ECA,False,12.2251,False,False
 RUS049,Murmanskaya Oblast,Russian Federation,RUS,ECA,FIN002,Lapland,Finland,FIN,Other,True,347.9076,False,False
-RUS050,Name Unknown,Russian Federation,RUS,ECA,RUS024,Kalmykiya Rep.,Russian Federation,RUS,ECA,False,19.7613,False,False
-RUS050,Name Unknown,Russian Federation,RUS,ECA,RUS062,Rostovskaya Oblast,Russian Federation,RUS,ECA,False,187.3026,False,False
-RUS050,Name Unknown,Russian Federation,RUS,ECA,RUS071,Stavropolskiy Kray,Russian Federation,RUS,ECA,False,143.6479,False,False
 RUS052,Nizhegorodskaya Oblast,Russian Federation,RUS,ECA,RUS021,Ivanovskaya Oblast,Russian Federation,RUS,ECA,False,238.8779,False,False
 RUS052,Nizhegorodskaya Oblast,Russian Federation,RUS,ECA,RUS033,Kirovskaya Oblast,Russian Federation,RUS,ECA,False,299.1357,False,False
 RUS052,Nizhegorodskaya Oblast,Russian Federation,RUS,ECA,RUS037,Kostromskaya Oblast,Russian Federation,RUS,ECA,False,232.6539,False,False
@@ -8137,7 +8133,6 @@ VEN002,Anzoategui,Republica Bolivariana de Venezuela,VEN,LCR,VEN013,Guarico,Repu
 VEN002,Anzoategui,Republica Bolivariana de Venezuela,VEN,LCR,VEN016,Miranda,Republica Bolivariana de Venezuela,VEN,LCR,False,41.2925,False,False
 VEN002,Anzoategui,Republica Bolivariana de Venezuela,VEN,LCR,VEN017,Monagas,Republica Bolivariana de Venezuela,VEN,LCR,False,348.2638,False,False
 VEN002,Anzoategui,Republica Bolivariana de Venezuela,VEN,LCR,VEN020,Sucre,Republica Bolivariana de Venezuela,VEN,LCR,False,75.224,False,False
-VEN003,Apure,Republica Bolivariana de Venezuela,VEN,LCR,VEN001,Amazonas,Republica Bolivariana de Venezuela,VEN,LCR,False,2.3523,True,False
 VEN003,Apure,Republica Bolivariana de Venezuela,VEN,LCR,VEN005,Barinas,Republica Bolivariana de Venezuela,VEN,LCR,False,553.5077,False,False
 VEN003,Apure,Republica Bolivariana de Venezuela,VEN,LCR,VEN021,Tachira,Republica Bolivariana de Venezuela,VEN,LCR,False,79.4862,False,False
 VEN004,Aragua,Republica Bolivariana de Venezuela,VEN,LCR,VEN007,Carabobo,Republica Bolivariana de Venezuela,VEN,LCR,False,108.8277,False,False
@@ -8448,7 +8443,6 @@ EGY016,Matrouh,Arab Republic of Egypt,EGY,MENA,LBY001,Ajdabiya (agedabia),Libya,
 DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republic,DOM,LCR,False,0.0414,True,True
 ETH013,Tigray,Ethiopia,ETH,AFR,SDN004,Kassala,Sudan,SDN,AFR,True,0.1282,True,True
 AIA001,Name Unknown,Anguilla (U.K.),AIA,Other,AIA003,Name Unknown,Anguilla (U.K.),AIA,Other,False,0.1248,True,True
-MOZXXX,Area under National Administration,Mozambique,MOZ,AFR,MWI003,Southern Region,Malawi,MWI,AFR,True,0.1109,True,True
 CHE011,Jura,Switzerland,CHE,Other,CHE013,Neuchatel,Switzerland,CHE,Other,False,0.9,True,True
 DEU004,Brandenburg,Germany,DEU,Other,DEU009,Niedersachsen,Germany,DEU,Other,False,3.7,True,False
 GMB003,Central River South,The Gambia,GMB,AFR,GMB006,North Bank,The Gambia,GMB,AFR,False,3.4,True,False

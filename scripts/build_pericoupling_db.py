@@ -198,8 +198,34 @@ _ADM1_SAMPLE_DEG = 0.01
 #     communes do not share a frontier — Schaan/Vaduz/Triesenberg lie between,
 #     Balzers's alpine exclaves sit in the upper Valorsch/Gapfahl zone and
 #     Planken's Garselli on the lower Saminatal (Historisches Lexikon).
+#   LBR006/LBR014 — Grand Gedeh/Rivercess (Liberia): the four-county corner at
+#     the Cestos–Gwen Creek confluence is an exact quadripoint (OSM: one shared
+#     node; GADM 4.1: point intersection); the WB's 1.12 km contact is two
+#     straight cardinal construction legs bridging offset river-boundary
+#     termini — a sliver wedge, not a border (docs/FUTURE_EDGE_AUDITS.md #7;
+#     maintainer removal decision 2026-07-18).
+#   VEN001/VEN003 — Apure/Amazonas (Venezuela): Amazonas' territorial-division
+#     law (Art. 59 constitution, 1994 DPT law) enumerates its perimeter with no
+#     Apure segment — Bolívar's east-bank Orinoco frontage plus Colombia
+#     separate the states; the WB's 2.35 km contact is a mid-river seam where
+#     Bolívar's sliver frontage was dropped (docs/FUTURE_EDGE_AUDITS.md #8;
+#     maintainer removal decision 2026-07-18).
 _ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
     frozenset({"LIE001", "LIE005"}),
+    frozenset({"LBR006", "LBR014"}),
+    frozenset({"VEN001", "VEN003"}),
+}
+
+# Reviewed ADM1 unit merges, applied before contiguity (source-data artifacts
+# where the WB/GAUL lineage splits one real unit into two). RUS050 ("Name
+# Unknown", GAUL_1 2537) is the western salient of the Republic of Kalmykia —
+# the Gorodovikovsky + Yashaltinsky raions (district capitals geocode inside
+# it; areas match; 1943-57 deportation-era transfer explains the upstream
+# split) — merged into RUS024 so the internal raion line stops shipping as an
+# ADM1 edge and the salient's Rostov/Stavropol frontages accrue to Kalmykia
+# (docs/FUTURE_EDGE_AUDITS.md #10; maintainer merge decision 2026-07-18).
+_ADM1_UNIT_MERGES: dict[str, str] = {
+    "RUS050": "RUS024",
 }
 
 # Populated by ``derive_disputed_overlay`` (geometry-derived from the NDLSA
@@ -785,6 +811,14 @@ def main() -> int:
             log("  source-relabel: reassigning reviewed sliver-corridor artifacts")
             a1, _rl_log = _relabel_sliver(a1, code_col="ADM1CD_c", verbose=True)
             log(f"  source-relabel: {len(_rl_log)} corridor(s) reassigned")
+        for _src, _dst in _ADM1_UNIT_MERGES.items():
+            _si = a1.index[a1["ADM1CD_c"] == _src]
+            _di = a1.index[a1["ADM1CD_c"] == _dst]
+            if len(_si) and len(_di):
+                log(f"  unit merge: {_src} -> {_dst} (reviewed; see denylist block)")
+                a1.loc[_di[0], a1.geometry.name] = unary_union(
+                    [a1.loc[_di[0]].geometry, a1.loc[_si[0]].geometry])
+                a1 = a1.drop(index=_si)
         e1 = build_edges(a1, "ADM1CD_c")
         write_adm1_csv(e1, out_dir / "pericoupled_adm1_edge_list.csv")
 

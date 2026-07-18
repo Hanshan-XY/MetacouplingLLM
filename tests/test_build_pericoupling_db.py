@@ -46,12 +46,19 @@ class TestBuildPericouplingDb:
         source = BUILD_SCRIPT.read_text(encoding="utf-8")
         ast.parse(source, filename=str(BUILD_SCRIPT))
 
-    def test_denylist_is_single_reviewed_pair(self):
-        """The reviewed ADM1 false-positive denylist is exactly one pair.
+    def test_denylist_is_exactly_the_reviewed_pairs(self):
+        """The reviewed ADM1 false-positive denylist is exactly the three
+        maintainer-decided pairs (docs/FUTURE_EDGE_AUDITS.md; decisions
+        2026-07-18), and the reviewed unit-merge map is exactly RUS050->RUS024.
 
         Importing the module also surfaces any top-level import error (which
-        ``ast.parse`` cannot), and pins the value so a future N>1 regression or
+        ``ast.parse`` cannot), and pins the values so a future regression or
         a duplicated/broken block -- the PR #81 failure class -- is caught.
         """
         mod = _load("build_pericoupling_db")
-        assert mod._ADM1_FALSE_POSITIVE_DENYLIST == {frozenset({"LIE001", "LIE005"})}
+        assert mod._ADM1_FALSE_POSITIVE_DENYLIST == {
+            frozenset({"LIE001", "LIE005"}),
+            frozenset({"LBR006", "LBR014"}),
+            frozenset({"VEN001", "VEN003"}),
+        }
+        assert mod._ADM1_UNIT_MERGES == {"RUS050": "RUS024"}

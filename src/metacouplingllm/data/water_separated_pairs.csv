@@ -746,6 +746,9 @@ adm1,UGA083,UGA107,True,river,Katonga River,"rescreen-water overlay (water-scree
 adm1,URY002,URY009,True,river,Arroyo Solís Grande,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,VNM009,VNM053,True,river,Sài Gòn River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,VNM025,VNM054,True,river,Luoc River (Sông Luộc),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,KHM000,KHM004,False,lake,Tonle Sap,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,KHM000,KHM006,False,lake,Tonle Sap,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,ZWE008,ZWE011,False,lake,Lake Kariba,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
 adm0,ARG,PRY,True,,,adm1-rollup
