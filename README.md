@@ -28,7 +28,7 @@ pip install "metacouplingllm[all]"                # everything
 
 > Each provider adapter (OpenAI, Anthropic, Gemini, Grok) auto-wires its
 > **native** web-search backend when `web_search=True` — Google Search
-> grounding for Gemini, Live Search for Grok, web search tool for Anthropic,
+> grounding for Gemini, the `/responses` `web_search` tool for Grok (the older Live Search API was retired 2026-01), web search tool for Anthropic,
 > and `web_search` for OpenAI. Custom clients fall back to DuckDuckGo.
 
 ## Quick Start
@@ -116,7 +116,7 @@ manuscript prose around the deterministic numbers.
 - Scholar-ready Markdown + Word export (`result.abstract`,
   `result.to_markdown()`, `result.to_docx()`)
 
-### Quantitative indicators (PR #35, new)
+### Quantitative indicators (PR #35)
 - `compute_flow_shares` — IFS / PFS / TFS per focal system
 - `compute_mfe` — Metacoupled Flow Evenness (normalised Shannon entropy across coupling types)
 - `compute_mfci` — Metacoupled Flow Concentration Index: normalised HHI
@@ -124,13 +124,11 @@ manuscript prose around the deterministic numbers.
   Number of Intra-/Peri-/Telecoupled Partners (ENP_I / ENP_P / ENP_T)
 - `summarize_metacoupling` — one-shot combined indicator table
 
-### Optional LLM-assisted helpers (PR #36, new)
+### Optional LLM-assisted helpers (PR #36)
 - `define_study`, `check_inputs`, `classify_ambiguous_edges`,
   `interpret_results`, `write_methods` — each returns
   `(result, LLMTrace)` for reproducibility; integrated into
   `classify_coupling(llm_client=...)` for automatic NaN resolution
-- Scholar-ready Markdown + Word export with abstract, citations, and
-  per-category section breakdown (PR #31, #32)
 
 ## Documentation
 

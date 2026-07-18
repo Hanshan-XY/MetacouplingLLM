@@ -212,7 +212,9 @@ The system prompt is constructed in six layers:
 3. **Methodology** -- Six-phase operationalization procedure (Liu, 2017)
 4. **Examples** -- Semantically selected real-world case studies (e.g., Brazil-China soybean trade, Beijing water system)
 5. **Output Format** -- Structured template for seven analysis sections
-6. **Interaction** -- Multi-turn refinement guidelines and citation expectations
+   (with a **Citation Rules sub-layer, 5b**: turn-scoped `[Tk:N]`/`[Tk:Wn]`
+   citation mechanics and hallucination guardrails)
+6. **Interaction** -- Multi-turn refinement guidelines
 
 Before calling the LLM, the system **conditionally** injects (each
 only fires if its precondition is met):
@@ -281,7 +283,7 @@ Two geographic adjacency databases validate LLM coupling classifications:
 | Database | Scope | Coverage |
 |---|---|---|
 | Country-level | Sovereign states | Full global (ISO alpha-3) |
-| ADM1 (subnational) | First-level administrative regions | 3,375 regions, 8,466 shared-border pairs (8,088 under the default `moderate` coupling standard), 196 countries |
+| ADM1 (subnational) | First-level administrative regions | 3,375 regions, 8,466 shared-border pairs (8,071 under the default `moderate` coupling standard), 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
 
@@ -551,7 +553,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 - **Lean dependencies** -- Core analysis works with only `numpy`, `fastembed`, and an LLM client; visualization, web search, quantitative indicators, and scholar export are optional extras
 - **Graceful degradation** -- Each optional feature (RAG, web search, maps, literature, indicators, export) can be independently enabled or disabled; RAG transparently falls back from embeddings to TF-IDF when `fastembed` is unavailable
 - **Protocol-based extensibility** -- Any object with a `chat()` method works as an LLM client
-- **Pre-LLM knowledge injection** -- Pericoupling validation, web search, and example selection all happen before the LLM call, reducing hallucination
+- **Pre-LLM knowledge injection, post-LLM validation** -- Web search, example selection, and the pericoupling-database hint happen before the LLM call; pericoupling validation of the LLM's stated classification runs post-LLM on the parsed output, correcting hallucinated adjacency claims against the database
 - **Semantic RAG** -- Pre-computed BGE-base embeddings shipped with the package; semantic matching catches synonyms and paraphrases that TF-IDF misses. TF-IDF remains available as a fallback.
 - **Colab-compatible** -- Web search includes a zero-dependency stdlib fallback for restricted environments
 - **Deterministic-first for quantitative analysis (PR #35, #36)** -- The `metacouplingllm.indicators` math never calls an LLM; numbers are reproducible from the input DataFrame alone. The five LLM-assisted helpers are explicitly scoped to natural-language tasks (study setup, validation, interpretation, methods drafting) and always pair their output with an `LLMTrace` record. When the LLM is uncertain, it returns `"unknown"` rather than guess; the package never lets the LLM invent adjacency facts or flow values silently.
@@ -567,4 +569,4 @@ pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-1372 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.
+1374 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.

@@ -38,8 +38,11 @@ To rebuild::
     pip install fastembed
     python scripts/build_embeddings.py --force
 
-The script writes `chunk_embeddings.npy` (~15 MB for BGE-base). Commit
-the file to the repo so it ships with the next release.
+The script writes `chunk_embeddings.npy` (~15 MB for BGE-base) **and a
+sidecar `chunk_embeddings.manifest.json`** (chunk-order fingerprint). Commit
+BOTH files so they ship together — a missing or stale manifest makes
+`EmbeddingRetriever` raise `RuntimeError` ("Chunk-order fingerprint
+mismatch") at runtime for every RAG user.
 
 ## 4. Test and Smoke Test
 

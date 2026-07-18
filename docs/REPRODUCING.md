@@ -2,8 +2,8 @@
 
 This manual walks through rebuilding and verifying the two bundled adjacency
 datasets — the ADM1 edge list (8,466 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (698
-ADM1 pairs / 27 ADM0 roll-ups) — from scratch. It is written for a reader who
+ADM0 country matrix (326 pairs) with their water-only classification (747
+ADM1 pairs / 28 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
 limitations) and `docs/METHODS_adjacency.md` (why each methodological choice
@@ -16,8 +16,9 @@ important to know which one you are testing:
 
 1. **Build reproducibility** (fully automatic). The shipped CSVs are a pure
    function of (a) four pinned World Bank GeoPackages, (b) one reviewed
-   bridge-classification CSV, and (c) nine reviewed manifest CSVs shipped in
-   the repo. Re-running the build replays these inputs deterministically —
+   bridge-classification CSV, and (c) eleven reviewed manifest CSVs shipped in
+   the repo (two build-stage inputs plus the nine forming the engine's
+   correction layer). Re-running the build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
 2. **Audit traceability** (read, don't re-run). The nine manifests were
    *discovered* by deterministic Python screens and *adjudicated* by frozen
@@ -34,7 +35,7 @@ important to know which one you are testing:
 
 - Python ≥ 3.11 with `geopandas`, `shapely`, `pyproj`, `pandas` (the shipped
   lengths were produced with geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 —
-  see the byte-identity note in §4).
+  see the byte-identity note in §3).
 - The repository checkout (the nine manifest CSVs and the engine ship in it).
 - For the **full** rebuild only: the four pinned GeoPackages (~1 GB) and the
   bridge CSV below. The quick verification path (§2) needs no downloads.
@@ -81,10 +82,10 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,466 (3,375 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,088 / 7,768 |
-| water-only ADM1 | 698 = 320 with a fixed crossing / 378 without |
-| ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 299 |
-| ADM0 water roll-ups | 27 |
+| ADM1 moderate / stringent | 8,071 / 7,719 |
+| water-only ADM1 | 747 = 352 with a fixed crossing / 395 without |
+| ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 298 |
+| ADM0 water roll-ups | 28 |
 
 ## 3. Full rebuild from the pinned sources (~1–2 h)
 
@@ -122,7 +123,7 @@ S4):
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the nine manifests in registry order (idempotent, one pass; see §5).
   → +6 river-gap, +2 lake-gap, +5 land-gap, +16 rescreen-gap edges =
-  **8,466**; water rows 309 → **698**; ADM0 roll-up recomputed once (a
+  **8,466**; water rows 309 → **747**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 
@@ -155,8 +156,8 @@ any headline count in the prose disagrees with the live data.
 
 Eleven reviewed manifest CSVs in `src/metacouplingllm/data/` govern the
 build: the first two below are build-stage inputs (S1 relabel, S2 disputed)
-and the other **nine** form the engine's correction layer (394 pair-rows:
-29 edge-restoring + 365 water-flag-only). The engine
+and the other **nine** form the engine's correction layer (443 pair-rows:
+29 edge-restoring + 414 water-flag-only). The engine
 (`scripts/apply_overlays.py`) holds only behavior; editing a manifest and
 re-running the engine is the supported way to change the correction layer:
 
@@ -172,7 +173,7 @@ re-running the engine is the supported way to change the correction layer:
 | `hydro_water_overlay_pairs.csv` | water flags on 18 edges |
 | `hydro_lakes_overlay_pairs.csv` | water flags on 12 edges |
 | `rescreen_gap_overlay_pairs.csv` | +16 edges (2026-07 water-screen rebuild; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 319 edges (rebuild batches b1–b6 + holds; per-row `water_type`) |
+| `rescreen_water_overlay_pairs.csv` | water flags on 368 edges (rebuild batches b1–b6 + holds + the 2026-07-17 b2 consistency re-run; per-row `water_type`) |
 
 Engine semantics worth knowing:
 

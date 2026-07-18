@@ -3,7 +3,7 @@
 > **Note:** the OSM bridge-detection method below is the frozen discovery record for the base classification; current counts live in `docs/METHODS_adjacency.md` and `data/PROVENANCE.md`.
 
 **Status:** verification complete & human-validated · **Date:** 2026-06-03/04
-**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — leaving **314 pairs: 108 / 206** from this run; the current base `bridge_classified_authoritative.csv` carries **309 rows** (312 − 2 demoted − 1 orphan). Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **363 ADM1 pairs (125 with an open fixed crossing / 238 without; 286 river / 77 lake)** plus **22 ADM0 roll-ups (17 bridge / 5 no-bridge)**: river-gap 6, wide-river 13, audit-water 3, hydro-water 18, hydro-lakes 12, lake-gap 2. There is no lake filter and no lake overlay — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
+**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — leaving **314 pairs: 108 / 206** from this run; the current base `bridge_classified_authoritative.csv` carries **309 rows** (312 − 2 demoted − 1 orphan). Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **747 ADM1 pairs (352 with an open fixed crossing / 395 without)** plus **28 ADM0 roll-ups (22 bridge / 6 no-bridge)**: river-gap 6, wide-river 13, audit-water 3, hydro-water 18, hydro-lakes 12, lake-gap 2, rescreen-water 368, rescreen-gap 16. There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers, corrected only through the reviewed hydro-lakes/lake-gap overlays; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
 
 This document records, in detail, how the bridge-classification database was built: why it
 exists, the inputs, the OpenStreetMap (OSM) detection method and its evolution, the
@@ -251,7 +251,9 @@ direction for a connectivity dataset; the verification removed those.
 
 ---
 
-## 8. File inventory (all under `build_data/`, untracked by git)
+## 8. File inventory (under `build_data/`; untracked by git except
+`bridge_classified_authoritative.csv`, tracked since PR #89 as the pinned
+`--full`-rebuild input for validation-study reproducibility)
 
 **Inputs / pipeline**
 - `colab_candidates.gpkg` — 315 pairs + 387 units (OSM-pipeline input)
@@ -317,6 +319,14 @@ direction for a connectivity dataset; the verification removed those.
 
 ## 11. Final state & how it feeds `coupling_standard`
 
+> **Note (2026-07).** The verification pattern this document records — OSM
+> screen → independent web verification → adversarial recheck of
+> disagreements → geocode + province-polygon cross-check — was later
+> formalized as the **four-layer bridge pipeline**
+> (`docs/METHODS_adjacency.md` §8) and reused for every rescreen-water /
+> rescreen-gap addition, which now supply the majority of the 747 shipped
+> water-only pairs.
+
 `bridge_classified_authoritative.csv` → frozen as a dated **`water_separated_pairs.csv`**
 (`has_bridge` per pair). Applied to the 315 water-only ADM1 pairs of this run:
 
@@ -331,8 +341,8 @@ are water-only; it "has a bridge" if *any* does. Most country pairs have some la
 are unaffected.
 
 *(Current shipped state after the reviewed overlays: `water_separated_pairs.csv` carries
-**363 ADM1 pairs (125 / 238; 286 river / 77 lake)** plus **22 ADM0 roll-ups (17 bridge /
-5 no-bridge)**; the base `bridge_classified_authoritative.csv` is **309 rows**. See
+**747 ADM1 pairs (352 / 395)** plus **28 ADM0 roll-ups (22 bridge / 6 no-bridge)**;
+the base `bridge_classified_authoritative.csv` is **309 rows**. See
 `data/PROVENANCE.md`.)*
 
 ---

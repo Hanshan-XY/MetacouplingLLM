@@ -90,7 +90,10 @@ dual-AI agreement only number **239** (of 335); the study population was the
   stratum bounds: [0.418·0.06% + 0.582·0, 0.418·13.48% +
   0.582·9.03%] = **[0.03%, 10.9%]** (labelled post-hoc: the plan
   prespecified per-stratum CIs and the weighted point estimate; the combined
-  interval method is an addition). Inference beyond this frame — to borders
+  interval method is an addition; for the zero-event rest stratum the
+  combination deliberately uses the two-sided 97.5% upper limit 9.03% rather
+  than the one-sided 7.4% shown in the table — the more conservative choice,
+  consistent with the bound's "conservative" label). Inference beyond this frame — to borders
   never nominated by any screen — is a *coverage* claim governed by the
   datasets' documented floors (`docs/REPRODUCING.md` §6), not by this
   estimator; the mechanism-rejected stratum is bounded separately (0/20,
