@@ -19,7 +19,9 @@ Bank placeholder units the rater cannot locate on authoritative maps
 (`KHM000<->KHM018`, `MWI002<->MWI004`, `MWI003<->MWI004`, `MWI004<->TZA022` —
 all "Area under National Administration"); the negative sample loses
 `RUS024<->RUS050` ("Name Unknown" placeholder) and `MLT009<->MLT055`
-(rater-identified non-adjacency, recorded to the future-edge-audit list).
+(rater-identified non-adjacency, recorded to the future-edge-audit list —
+see `docs/FUTURE_EDGE_AUDITS.md`; the 2026-07-18 audit found the pair was
+never an edge: a correctly rejected non-touching recovery candidate).
 
 ## Results
 

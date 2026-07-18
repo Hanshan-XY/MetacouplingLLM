@@ -483,7 +483,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   polygons; 84 human-verified + 32 dual-AI); batches b3–b6 (837 pairs,
   standard two-pass restored) ship **169 further rescreen-water flags** (25
   human-verified + 144 dual-AI; 3 human not-adjacent verdicts recorded to the
-  future-edge-audit list, edges retained). All bridge flags come from the
+  future-edge-audit list, edges retained; consolidated register with the
+  2026-07-18 audit outcomes: `docs/FUTURE_EDGE_AUDITS.md`). All bridge flags come from the
   four-layer bridge pipeline (OSM Overpass screen, agent web verification,
   adversarial recheck, geocode + province-polygon cross-check — the polygon
   test caught three off-border citations in b2 and eight in b3–b6; three
