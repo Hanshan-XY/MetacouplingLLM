@@ -1,7 +1,7 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through rebuilding and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,466 subnational shared-border pairs) and the
+datasets — the ADM1 edge list (8,461 subnational shared-border pairs) and the
 ADM0 country matrix (326 pairs) with their water-only classification (747
 ADM1 pairs / 28 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
@@ -81,8 +81,8 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,466 (3,375 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,071 / 7,719 |
+| ADM1 edges (lenient) | 8,461 (3,374 regions, 196 countries) |
+| ADM1 moderate / stringent | 8,066 / 7,714 |
 | water-only ADM1 | 747 = 352 with a fixed crossing / 395 without |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 298 |
 | ADM0 water roll-ups | 28 |
@@ -111,19 +111,20 @@ S4):
   native edges. One reviewed denylist entry removes a fabricated domestic
   exclave-contact sliver (Balzers↔Planken). Border lengths are full geodesic
   shared-boundary lengths (WGS84, `pyproj.Geod`).
-  → 8,427 raw − 2 relabel − 1 denylist = **8,424** native pairs.
+  → 8,427 raw − 2 relabel − 3 unit merge (RUS050 → RUS024) − 3 denylist =
+  **8,419** native pairs.
 - **S2 — de-facto connectivity.** Each NDLSA disputed tract is folded into
   its de-facto administrator and adjacency re-measured; +13 ADM1 pairs whose
   sole link is a tract (+3 pairs at ADM0). Geometry-validated: an authored
   tract→unit attribution that does not touch its tract fails loudly.
-  → **8,437**; this is the base file the geometry build writes.
+  → **8,432**; this is the base file the geometry build writes.
 - **S3 — water classification (descriptive).** Natural Earth lakes/rivers +
   the reviewed bridge CSV label borders `water_type`/`has_bridge` (309 base
   water-only rows). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the nine manifests in registry order (idempotent, one pass; see §5).
   → +6 river-gap, +2 lake-gap, +5 land-gap, +16 rescreen-gap edges =
-  **8,466**; water rows 309 → **747**; ADM0 roll-up recomputed once (a
+  **8,461**; water rows 309 → **747**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 

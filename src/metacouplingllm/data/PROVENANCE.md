@@ -47,9 +47,13 @@ python scripts/build_all.py
    exclave-contact detector — none of which can decide a domestic exclave
    contact from WB geometry alone (the units genuinely touch in the polygons),
    so the candidates it surfaced were adjudicated against official
-   administrative maps instead. The denylist carries **one reviewed domestic
-   exclave-contact sliver** removed rather than
-   relabelled (§10.6): Balzers↔Planken.  (Three further candidates —
+   administrative maps instead. The denylist carries **three reviewed
+   entries** removed rather than relabelled: the domestic exclave-contact
+   sliver Balzers↔Planken (§10.6), and the two 2026-07-18 audit-confirmed
+   artifacts Grand Gedeh↔Rivercess (a quadripoint stretched into a 1.12 km
+   cardinal-leg connector) and Apure↔Amazonas (a mid-river seam; Amazonas'
+   territorial-division law names no Apure neighbour) — evidence in
+   `docs/FUTURE_EDGE_AUDITS.md`.  (Three further candidates —
    Dubai↔Fujairah, Chaguanas↔San Juan-Laventille, Chișinău↔Dubăsari — were
    screened the same way but confirmed genuine on the official maps and kept;
    an OSM/gazetteer adjacency verdict does not override a WB border.)
@@ -67,13 +71,16 @@ python scripts/build_all.py
 **Provenance chain (ADM1, execution order — every intermediate is a real,
 observable pipeline state):** [S1] 8,427 raw exact-contact
 (tol 0) −2 source-relabel (−4 bogus cross-country edges, +2 Kenya native) =
-8,425 native, −1 denylist (one domestic exclave-contact sliver: Balzers↔Planken; three
-further candidates confirmed genuine on official maps and kept) = 8,424;
-[S2] +13 disputed = 8,437 (the geometry build writes this file);
-[S4 overlays, in application order] +6 river-gap = 8,443, +2 lake-gap = 8,445,
-+5 land-gap (tolerance-band recovery) = 8,450, +16 rescreen-gap (water-screen
-rebuild, batch b1) = **8,466** shipped
-(lenient); **8,071** moderate; **7,719** stringent; 3,375 regions, 196 countries.
+8,425 native, −3 unit merge (RUS050 → RUS024: the GAUL-split western salient
+of Kalmykia rejoins its republic, dissolving its internal edge and folding its
+Rostov/Stavropol frontages into the existing RUS024 rows) = 8,422, −3 denylist
+(Balzers↔Planken; the audit-confirmed LBR006↔LBR014 and VEN001↔VEN003
+artifacts; further candidates confirmed genuine on official maps and kept) =
+8,419; [S2] +13 disputed = 8,432 (the geometry build writes this file);
+[S4 overlays, in application order] +6 river-gap = 8,438, +2 lake-gap = 8,440,
++5 land-gap (tolerance-band recovery) = 8,445, +16 rescreen-gap (water-screen
+rebuild, batch b1) = **8,461** shipped
+(lenient); **8,066** moderate; **7,714** stringent; 3,374 regions, 196 countries.
 **ADM0** 326 / 320 / 298. **Water-only 747** (352/395) + 28 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River into hydro-water and the
 Dead Sea into hydro-lakes — the two borders the raw-degree screens missed — and
@@ -173,7 +180,7 @@ municipal consolidation postdates the WB layer's 119-novadi representation).
 
 | File | Shape | Content |
 |---|---|---|
-| `pericoupled_adm1_edge_list.csv` | 8,466 edges · 3,375 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
+| `pericoupled_adm1_edge_list.csv` | 8,461 edges · 3,374 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
@@ -223,7 +230,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 
 > **Note.** The subsections below are the *discovery/validation record* for the
 > four-stage, tolerance-0 pipeline and the manifests listed in the Datasets
-> table above (authoritative counts: 8,466 / 8,071 / 7,719; water-only 747);
+> table above (authoritative counts: 8,461 / 8,066 / 7,714; water-only 747);
 > they document how each reviewed correction input was discovered and audited.
 
 
@@ -299,7 +306,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,466 → **8,071** moderate / **7,719** stringent; ADM0 326 →
+  shipped edges 8,461 → **8,066** moderate / **7,714** stringent; ADM0 326 →
   **320** moderate / **298** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -376,7 +383,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   likewise native (lenient-only, no ADM0 matrix patch needed). Counts at this
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1
   (125/238) + 22 ADM0 roll-ups; the rescreen overlays below take the shipped
-  totals to **8,466** / **747** (352/395) / **28** roll-ups.
+  totals to **8,461** / **747** (352/395) / **28** roll-ups.
 - **Land-gap overlay (survey-line offset corridors).** Along straight-surveyed
   borders the two countries' polygons can be digitized from different renderings
   of the same line, leaving an offset corridor wider than the ~55 m snap
@@ -462,7 +469,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
 - **Rescreen overlays (2026-07 water-screen rebuild, batches b1–b6 + the
   20 km holds).** Every
   water-screen threshold was re-anchored (NMAS/NSSDA map-accuracy anchors,
-  measured capture ladders) and the screens re-run over **all 8,466 edges —
+  measured capture ladders) and the screens re-run over the **full edge list —
   domestic borders in scope for the first time** — with lowered, measured bars:
   NE river 0.50 at geodesic 2.5/5/10/15/20 km rungs, NE lake 0.40 at geodesic
   125/250/500/1,000/1,500 m, HydroRIVERS nomination floor 10 m³/s plus the full
@@ -493,7 +500,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ends land in Bács-Kiskun via the documented Danube side-channel anomaly).
   Everything is **strictly additive** — the pre-rebuild set reproduces
   unchanged, verified against a frozen SHA-256 baseline. Current shipped
-  counts: ADM1 **8,466** edges (**8,071** moderate / **7,719** stringent),
+  counts: ADM1 **8,461** edges (**8,066** moderate / **7,714** stringent),
   ADM0 **326** (320 / 298), water-only **747** ADM1 (352/395) + **28** ADM0
   roll-ups (the rebuild completed five country borders as all-water: DEU↔LUX
   bridged Our–Sauer–Moselle, BEN↔NER bridged Niger/Mékrou, CMR↔GAB bridged
@@ -534,7 +541,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   manifest rows: a sensitivity sweep on the shipped (no-lake-filter,
   source-relabelled) geometry shows adjacency is stable across hypothetical
   snapping tolerances in [0, 10⁻³°] (rising at most 12 edges, ~0.14%, from the
-  native 8,425; the ADM0 matrix is exactly invariant at 323 across the same
+  then-native 8,425 — 8,422 after the 2026-07-18 reviewed RUS050 merge, a
+  fixed offset that does not affect the sensitivity result; the ADM0 matrix is exactly invariant at 323 across the same
   range, rising to 324 only at ≥2×10⁻³°), the sub-55 m band holds exactly
   seven pairs, and the five genuine ones ship as the land-gap overlay while
   the two artifacts (incl. `MLT002`/`MLT019` Balzan↔Iklin, ~31 m apart, no

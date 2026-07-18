@@ -36,16 +36,16 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8466, (
-            f"Expected 8466 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8461, (
+            f"Expected 8461 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_country
         assert _adm1_country is not None
-        assert len(_adm1_country) == 3375, (
-            f"Expected 3375 unique ADM1 codes, got {len(_adm1_country)}"
+        assert len(_adm1_country) == 3374, (
+            f"Expected 3374 unique ADM1 codes, got {len(_adm1_country)}"
         )
 
     def test_expected_country_count(self):
