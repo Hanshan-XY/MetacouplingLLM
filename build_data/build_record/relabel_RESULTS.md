@@ -20,13 +20,13 @@ SUR005, Dhekelia GBR001) are deliberately excluded — they are real territory.
 - **Total area drift +0.0002 km²** — corridors are moved, not deleted; every
   host loses exactly what its owners gain (Arusha 38,141→38,104; Mara +25.0;
   Kilimanjaro +12.5).
-- **All 3 fabricated cross-country edges removed** (tolerance-0 contact):
+- **All 4 fabricated cross-country edges removed** (tolerance-0 contact):
   Migori↔Arusha 83.2→0, Taita-Taveta↔Arusha 22.4→0, Salta↔Potosí 19.1→0,
   Braničevo↔Mehedinți 10.6→0.
 - **Starved edges recovered**: Migori↔Mara 20.0→103.2 km (raw, lake-inclusive;
   ≈86 km land after NE-lake subtraction, matching the sliver audit),
   Kitgum↔E.Equatoria 0.9→12.9, Taita-Taveta↔Kilimanjaro 147.9→170.4.
-- **Real neighbours absorbed the territory**: Jujuy↔Potosí 302→313,
+- **Real neighbours absorbed the territory**: Jujuy↔Potosí 302→321,
   Bor↔Mehedinți 153→164.
 
 ## Per-host opening radius
