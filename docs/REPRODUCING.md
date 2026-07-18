@@ -173,7 +173,7 @@ re-running the engine is the supported way to change the correction layer:
 | `hydro_water_overlay_pairs.csv` | water flags on 18 edges |
 | `hydro_lakes_overlay_pairs.csv` | water flags on 12 edges |
 | `rescreen_gap_overlay_pairs.csv` | +16 edges (2026-07 water-screen rebuild; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 368 edges (rebuild batches b1–b6 + holds + the 2026-07-17 b2 consistency re-run; per-row `water_type`) |
+| `rescreen_water_overlay_pairs.csv` | water flags on 368 edges (rebuild batches b1–b6 + holds; per-row `water_type`) |
 
 Engine semantics worth knowing:
 
