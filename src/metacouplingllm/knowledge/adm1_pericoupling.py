@@ -5,31 +5,37 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,450 border pairs** covering **3,375 unique ADM1
+The edge list contains **8,461 border pairs** covering **3,374 unique ADM1
 regions** across **196 countries** (four-stage build).  The graph is built in four
 stages (full provenance in ``data/PROVENANCE.md`` and
 ``docs/METHODS_adjacency.md``): (1) **topology** -- rook contiguity at exact
 contact (tolerance 0) over the World Bank polygons, with **no lake filter**
 (so lake-meeting pairs are native edges), a **source-relabel** step fixing
-10 reviewed cross-country sliver-corridor artifacts, and a **denylist** removing
-1 reviewed domestic exclave-contact sliver (Balzers<->Planken; 3 further
-candidates were screened but confirmed genuine on official maps and kept);
+10 reviewed cross-country sliver-corridor artifacts, a reviewed **unit merge**
+(RUS050 "Name Unknown", the GAUL-split western salient of Kalmykia, merged
+into RUS024), and a **denylist** removing 2 reviewed false-positive pairs
+(Grand Gedeh<->Rivercess, a stretched quadripoint; Apure<->Amazonas, a
+mid-river seam contradicted by Amazonas' territorial law);
 (2) the geometry-derived **13-pair
 disputed overlay**; (3) descriptive water classification; and (4) a reviewed
 correction layer of overlay manifests, each a deterministic Python screen +
 human/AI adjudication, frozen: a **6-pair river-gap overlay** (non-touching
 river banks), a **2-pair lake-gap overlay** (the only two non-touching lake
 borders -- Jogeva<->Pskov across Peipus, Malesi e Madhe<->Bar across Skadar),
-a **5-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
-placeholder-Malawi), and flags-only overlays that reclassify existing edges as
-water-only: **13 wide-river**, **3 audit-water**, **18 hydro-water**
-(HydroRIVERS geodesic 500 m sweep -- incl. the Uruguay River), and **12 hydro-lakes**
+a **4-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
+a domestic Anguilla pair), a **16-pair rescreen-gap overlay** (non-touching
+water borders recovered by the rebuilt water screens), and flags-only overlays
+that reclassify existing edges as water-only: **13 wide-river**, **3
+audit-water**, **18 hydro-water**
+(HydroRIVERS geodesic 500 m sweep -- incl. the Uruguay River), **12 hydro-lakes**
 (HydroLAKES geodesic 500 m sweep -- the Great Lakes, Lake Malawi median, Lake Chad,
-and the Dead Sea).
+and the Dead Sea), and **371 rescreen-water** (the 2026-07 water-screen
+rebuild's audit batches b1-b6 + the 20 km-hold tranche + 3 shore contacts from
+the placeholder-identity audit).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
-only those with a fixed crossing, ``stringent`` keeps none): the 363 water-only
-pairs give **8,450** lenient / **8,212** moderate / **8,087** stringent.
+only those with a fixed crossing, ``stringent`` keeps none): the 750 water-only
+pairs give **8,461** lenient / **8,063** moderate / **7,711** stringent.
 
 Source
 ------

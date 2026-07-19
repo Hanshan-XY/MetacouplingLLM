@@ -41,22 +41,14 @@ python scripts/build_all.py
    `build_data/arusha_sliver_audit/`). No tuned parameter; the old Malta snap
    false-positive never appears at exact contact. The remaining **130**
    candidates do not touch a cross-country border, so the fix above does not
-   apply to them; whether any instead fabricates a *domestic* edge was checked
-   separately (§10.6) via the scan's own corridor decomposition, an independent
-   corridor-fraction sweep over all 6,653 same-country adjacencies, and a global
-   exclave-contact detector — none of which can decide a domestic exclave
-   contact from WB geometry alone (the units genuinely touch in the polygons),
-   so the candidates it surfaced were adjudicated against official
-   administrative maps instead. The denylist carries **three reviewed
-   entries** removed rather than relabelled: the domestic exclave-contact
-   sliver Balzers↔Planken (§10.6), and the two 2026-07-18 audit-confirmed
+   apply to them. The denylist carries **two reviewed
+   entries** removed rather than relabelled: the 2026-07-18 audit-confirmed
    artifacts Grand Gedeh↔Rivercess (a quadripoint stretched into a 1.12 km
    cardinal-leg connector) and Apure↔Amazonas (a mid-river seam; Amazonas'
    territorial-division law names no Apure neighbour) — evidence in
-   `docs/FUTURE_EDGE_AUDITS.md`.  (Three further candidates —
-   Dubai↔Fujairah, Chaguanas↔San Juan-Laventille, Chișinău↔Dubăsari — were
-   screened the same way but confirmed genuine on the official maps and kept;
-   an OSM/gazetteer adjacency verdict does not override a WB border.)
+   `docs/FUTURE_EDGE_AUDITS.md`. An OSM/gazetteer adjacency verdict alone
+   does not override a WB border: removal requires a WB-computable signature
+   or the maintainer's official-map check.
 2. **De-facto connectivity** (NDLSA): the geometry-derived disputed overlay
    (+13 ADM1 / +3 ADM0).
 3. **Water classification** (descriptive only): Natural Earth + the reviewed
@@ -73,16 +65,15 @@ observable pipeline state):** [S1] 8,427 raw exact-contact
 (tol 0) −2 source-relabel (−4 bogus cross-country edges, +2 Kenya native) =
 8,425 native, −3 unit merge (RUS050 → RUS024: the GAUL-split western salient
 of Kalmykia rejoins its republic, dissolving its internal edge and folding its
-Rostov/Stavropol frontages into the existing RUS024 rows) = 8,422, −3 denylist
-(Balzers↔Planken; the audit-confirmed LBR006↔LBR014 and VEN001↔VEN003
-artifacts; further candidates confirmed genuine on official maps and kept) =
-8,419; [S2] +13 disputed = 8,432 (the geometry build writes this file);
-[S4 overlays, in application order] +6 river-gap = 8,438, +2 lake-gap = 8,440,
+Rostov/Stavropol frontages into the existing RUS024 rows) = 8,422, −2 denylist
+(the audit-confirmed LBR006↔LBR014 and VEN001↔VEN003 artifacts) =
+8,420; [S2] +13 disputed = 8,433 (the geometry build writes this file);
+[S4 overlays, in application order] +6 river-gap = 8,439, +2 lake-gap = 8,441,
 +4 land-gap (tolerance-band recovery; a fifth recovered pair, MOZXXX↔MWI003,
 was reversed 2026-07-18 by maintainer map ruling — the true contact is a
-point) = 8,444, +16 rescreen-gap (water-screen
-rebuild, batch b1) = **8,460** shipped
-(lenient); **8,062** moderate; **7,710** stringent; 3,374 regions, 196 countries.
+point) = 8,445, +16 rescreen-gap (water-screen
+rebuild, batch b1) = **8,461** shipped
+(lenient); **8,063** moderate; **7,711** stringent; 3,374 regions, 196 countries.
 **ADM0** 326 / 320 / 298. **Water-only 750** (352/398) + 28 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River into hydro-water and the
 Dead Sea into hydro-lakes — the two borders the raw-degree screens missed — and
@@ -182,7 +173,7 @@ municipal consolidation postdates the WB layer's 119-novadi representation).
 
 | File | Shape | Content |
 |---|---|---|
-| `pericoupled_adm1_edge_list.csv` | 8,460 edges · 3,374 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
+| `pericoupled_adm1_edge_list.csv` | 8,461 edges · 3,374 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
@@ -232,7 +223,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 
 > **Note.** The subsections below are the *discovery/validation record* for the
 > four-stage, tolerance-0 pipeline and the manifests listed in the Datasets
-> table above (authoritative counts: 8,460 / 8,062 / 7,710; water-only 750);
+> table above (authoritative counts: 8,461 / 8,063 / 7,711; water-only 750);
 > they document how each reviewed correction input was discovered and audited.
 
 
@@ -308,7 +299,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,460 → **8,062** moderate / **7,710** stringent; ADM0 326 →
+  shipped edges 8,461 → **8,063** moderate / **7,711** stringent; ADM0 326 →
   **320** moderate / **298** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -385,7 +376,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   likewise native (lenient-only, no ADM0 matrix patch needed). Counts at this
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1
   (125/238) + 22 ADM0 roll-ups; the rescreen overlays below take the shipped
-  totals to **8,460** / **750** (352/398) / **28** roll-ups.
+  totals to **8,461** / **750** (352/398) / **28** roll-ups.
 - **Land-gap overlay (survey-line offset corridors).** Along straight-surveyed
   borders the two countries' polygons can be digitized from different renderings
   of the same line, leaving an offset corridor wider than the ~55 m snap
@@ -505,7 +496,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ends land in Bács-Kiskun via the documented Danube side-channel anomaly).
   Everything is **strictly additive** — the pre-rebuild set reproduces
   unchanged, verified against a frozen SHA-256 baseline. Current shipped
-  counts: ADM1 **8,460** edges (**8,062** moderate / **7,710** stringent),
+  counts: ADM1 **8,461** edges (**8,063** moderate / **7,711** stringent),
   ADM0 **326** (320 / 298), water-only **750** ADM1 (352/398) + **28** ADM0
   roll-ups (the rebuild completed five country borders as all-water: DEU↔LUX
   bridged Our–Sauer–Moselle, BEN↔NER bridged Niger/Mékrou, CMR↔GAB bridged
@@ -554,10 +545,10 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ruling) while
   the two artifacts (incl. `MLT002`/`MLT019` Balzan↔Iklin, ~31 m apart, no
   shared frontier) never become edges at exact contact
-  (`docs/METHODS_adjacency.md` §2.4, §4). The only active
-  `_ADM1_FALSE_POSITIVE_DENYLIST` entry is the domestic exclave-contact sliver
-  `LIE001`/`LIE005` (Balzers↔Planken; see the provenance-chain "denylist" step
-  above).
+  (`docs/METHODS_adjacency.md` §2.4, §4). The active
+  `_ADM1_FALSE_POSITIVE_DENYLIST` entries are the two audit-confirmed pairs
+  `LBR006`/`LBR014` and `VEN001`/`VEN003` (see the provenance-chain "denylist"
+  step above).
 - **ADM1 granularity varies by country** (WB "first-order unit"): micro-states
   appear at municipal granularity (e.g. Latvia 119 units), so per-country region
   counts are not directly comparable.
