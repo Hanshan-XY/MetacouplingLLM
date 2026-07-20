@@ -4392,6 +4392,7 @@ LCA005,Region Number 4,Saint Lucia,LCA,LCR,LCA006,Region Number 5,Saint Lucia,LC
 LCA006,Region Number 5,Saint Lucia,LCA,LCR,LCA007,Region Number 6,Saint Lucia,LCA,LCR,False,9.7218,False,False
 LCA007,Region Number 6,Saint Lucia,LCA,LCR,LCA008,Region Number 7,Saint Lucia,LCA,LCR,False,8.9784,False,False
 LCA008,Region Number 7,Saint Lucia,LCA,LCR,LCA009,Region Number 8,Saint Lucia,LCA,LCR,False,11.5815,False,False
+LIE001,Balzers,Liechtenstein,LIE,Other,LIE005,Planken,Liechtenstein,LIE,Other,False,0.4175,True,True
 LIE001,Balzers,Liechtenstein,LIE,Other,LIE007,Schaan,Liechtenstein,LIE,Other,False,3.6447,True,False
 LIE001,Balzers,Liechtenstein,LIE,Other,LIE009,Triesen,Liechtenstein,LIE,Other,False,8.8548,False,False
 LIE001,Balzers,Liechtenstein,LIE,Other,LIE010,Triesenberg,Liechtenstein,LIE,Other,False,1.781,True,False

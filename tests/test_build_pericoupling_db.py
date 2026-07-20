@@ -11,8 +11,8 @@ These are the minimal, fast guards that would have caught it, and no more:
 
   * ``test_module_parses``   -- the file must parse.  Pure ``ast.parse`` with no
     third-party import, so it fires even in a bare environment.
-  * ``test_denylist_is_single_reviewed_pair`` -- the reviewed denylist must stay
-    the one audited pair (LIE001/LIE005).  A future N>1 regression, or a
+  * ``test_denylist_is_exactly_the_reviewed_pairs`` -- the reviewed denylist
+    must stay exactly the maintainer-decided pairs.  A regression, or a
     duplicated/broken block, fails here.  It imports the module, so it also
     catches import-time errors that ``ast.parse`` cannot see.
 
@@ -47,7 +47,7 @@ class TestBuildPericouplingDb:
         ast.parse(source, filename=str(BUILD_SCRIPT))
 
     def test_denylist_is_exactly_the_reviewed_pairs(self):
-        """The reviewed ADM1 false-positive denylist is exactly the three
+        """The reviewed ADM1 false-positive denylist is exactly the two
         maintainer-decided pairs (docs/FUTURE_EDGE_AUDITS.md; decisions
         2026-07-18), and the reviewed unit-merge map is exactly RUS050->RUS024.
 
@@ -57,7 +57,6 @@ class TestBuildPericouplingDb:
         """
         mod = _load("build_pericoupling_db")
         assert mod._ADM1_FALSE_POSITIVE_DENYLIST == {
-            frozenset({"LIE001", "LIE005"}),
             frozenset({"LBR006", "LBR014"}),
             frozenset({"VEN001", "VEN003"}),
         }

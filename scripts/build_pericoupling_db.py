@@ -177,27 +177,15 @@ _ADM1_SAMPLE_DEG = 0.01
 # needed.  The five genuine sub-tolerance borders the old snap recovered
 # (Egypt-Libya etc.) now ship as reviewed land-gap manifest rows instead.
 #
-# A SECOND, distinct class can survive at tolerance 0: exact-contact
-# exclave-simplification slivers.  Where a fragmented territory has a compact
-# exclave, the source's polygon generalisation can make that exclave share a
-# short frontier with a NON-neighbour across a narrow corridor that a third
-# same-country unit actually occupies.  Like the cross-country sliver corridors
-# of §10 this is a fake *touch* with no mislabelled ribbon to reassign, so it is
-# removed here rather than source-relabelled — but ONLY when it carries the
-# thin-sliver signature AND is confirmed non-adjacent on an authoritative map.
-# A geometry/OSM adjacency verdict alone is NOT sufficient to drop a WB edge:
-# an OSM or gazetteer neighbour list describes a different boundary dataset, and
-# a substantial WB frontier at a tripoint is usually genuine (see §10.6 and
-# build_data/arusha_sliver_audit/domestic_scan_ground_truth.md for the three
-# candidates — Dubai/Fujairah, Chaguanas/San Juan-Laventille, Chișinău/Dubăsari —
-# that were screened this way but confirmed GENUINE on the official maps and are
-# therefore NOT denylisted).
+# A SECOND, distinct class can survive at tolerance 0: reviewed exact-contact
+# false positives, where a short WB contact is a construction artifact of the
+# source polygons rather than a real frontier.  An edge is removed here ONLY on
+# a WB-computable shape signature or the maintainer's official-map check — a
+# geometry/OSM adjacency verdict alone is NOT sufficient to drop a WB edge,
+# because an OSM or gazetteer neighbour list describes a different boundary
+# dataset than the WB polygons.
 #
 # Verified not-adjacent (denylisted):
-#   LIE001/LIE005 — Balzers/Planken (Liechtenstein): a 0.42 km sliver; the
-#     communes do not share a frontier — Schaan/Vaduz/Triesenberg lie between,
-#     Balzers's alpine exclaves sit in the upper Valorsch/Gapfahl zone and
-#     Planken's Garselli on the lower Saminatal (Historisches Lexikon).
 #   LBR006/LBR014 — Grand Gedeh/Rivercess (Liberia): the four-county corner at
 #     the Cestos–Gwen Creek confluence is an exact quadripoint (OSM: one shared
 #     node; GADM 4.1: point intersection); the WB's 1.12 km contact is two
@@ -211,7 +199,6 @@ _ADM1_SAMPLE_DEG = 0.01
 #     Bolívar's sliver frontage was dropped (docs/FUTURE_EDGE_AUDITS.md #8;
 #     maintainer removal decision 2026-07-18).
 _ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
-    frozenset({"LIE001", "LIE005"}),
     frozenset({"LBR006", "LBR014"}),
     frozenset({"VEN001", "VEN003"}),
 }

@@ -52,9 +52,9 @@ RETAINED (edge confirmed genuine), DECISION (maintainer call pending).
    282.93+143.65 = 426.58 km).
 
 Count effects of all resolutions (incl. the shore-contact nominations
-below, ruled 2026-07-18): edges 8,466 -> 8,460; regions 3,375 -> 3,374;
-water-only 747 -> 750 (352/398); moderate 8,071 -> 8,062; stringent
-7,719 -> 7,710; ADM0 layer unchanged.
+below, ruled 2026-07-18): edges 8,467 -> 8,461; regions 3,375 -> 3,374;
+water-only 747 -> 750 (352/398); moderate 8,072 -> 8,063; stringent
+7,720 -> 7,711; ADM0 layer unchanged.
 
 ## Placeholder-unit identities (complete enumeration, 2026-07-18)
 
