@@ -11,11 +11,9 @@ This engine applies the whole layer in one pass:
   registry             manifest                               effect
   ==================== ====================================== ========================
   river_gap            river_gap_overlay_pairs.csv            +6 edges, +6 water rows
-  wide_river           wide_river_overlay_pairs.csv           water flags on 13 edges
   lake_gap             lake_gap_overlay_pairs.csv             +2 edges (Peipus, Skadar),
                                                               +2 water rows
-  land_gap             land_gap_overlay_pairs.csv             +5 land edges
-  audit_water          audit_water_overlay_pairs.csv          water flags on 3 edges
+  land_gap             land_gap_overlay_pairs.csv             +4 land edges
   hydro_water          hydro_water_overlay_pairs.csv          water flags on 18 edges
                                                               (incl. the Uruguay River,
                                                               geodesic 500 m)
@@ -25,17 +23,20 @@ This engine applies the whole layer in one pass:
   rescreen_gap         rescreen_gap_overlay_pairs.csv         +16 edges, +16 water rows
                                                               (water-screen rebuild,
                                                               per-row water_type)
-  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 319 edges
+  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 386 edges
                                                               (water-screen rebuild
-                                                              b1-b6 + 20km holds,
-                                                              per-row water_type)
+                                                              b1-b6 + 20km holds +
+                                                              identity-audit shore
+                                                              flags + the ru1-folded
+                                                              river rows, per-row
+                                                              water_type)
   ==================== ====================================== ========================
 
 The manifests are the single source of truth for the correction data; this
 file holds only behavior.  Water rows are matched to their overlay by the
 ``note`` constant in the registry (do not edit those strings -- they identify
 the shipped rows); rows are updated in place, so a ``has_bridge`` edit in a
-wide_river/audit_water manifest propagates on the next run.  Overlay pairs
+hydro_water/rescreen_water manifest propagates on the next run.  Overlay pairs
 whose water row comes from the base bridge classification (empty note -- the
 63 pre-classified lake pairs) are left untouched: the bridge CSV stays
 authoritative for them.  The ADM0 roll-up is recomputed once, at the end
@@ -70,14 +71,10 @@ NARROW_KM = 5.0
 REGISTRY = [
     ("river_gap", "river_gap_overlay_pairs.csv", True, "river_gap",
      "river", "river", "river-gap overlay (audited near-miss)"),
-    ("wide_river", "wide_river_overlay_pairs.csv", False, None,
-     "river", "water_body", "wide-river overlay (5km re-screen + ground-truth)"),
     ("lake_gap", "lake_gap_overlay_pairs.csv", True, "iso_lookup",
      "lake", "lake", "lake-gap overlay (non-touching lake borders: Peipus, Skadar)"),
     ("land_gap", "land_gap_overlay_pairs.csv", True, "iso_lookup",
      None, None, None),
-    ("audit_water", "audit_water_overlay_pairs.csv", False, None,
-     "river", "water_body", "audit-water overlay (10km completeness audit + human map verification)"),
     ("hydro_water", "hydro_water_overlay_pairs.csv", False, None,
      "river", "water_body", "hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)"),
     ("hydro_lakes", "hydro_lakes_overlay_pairs.csv", False, None,

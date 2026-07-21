@@ -1,7 +1,6 @@
 code_a,name_a,country_a,code_b,name_b,country_b,water_type,water_body,border_km,ne_cov,has_bridge,crossings,note
 CHN019,Nei Mongol Zizhiqu,China,RUS014,Chitinskaya Oblast,Russian Federation,river,Argun’; Hailar; Heilong Jiang,1017.5,0.84,True,yes; 呼古尔推桥; 苏斯落瓦桥,osm
 BRA004,Amazonas,Brazil,PER016,Loreto,Peru,river,Amazonas; Javari,1268.3,0.75,False,,verified:no-open-bridge
-AFG001,Badakhshan,Afghanistan,TJK001,Badakhshan Autonomous Mountainous Region,Tajikistan,river,Pamir; Panj,877.9,0.74,True,33.75km From Kuf Ab to Shiki-Darwaz; Gravel Road From Shahr-e-Buzurg to Ashkashim; Pamirsky Trakt; RB04; RB04 (M41),recheck2:physical-link-border-closed:border closed 2026
 GUY004,East Berbice/corentyne (region N°6),Guyana,SUR009,Sipaliwini,Suriname,river,Corantijn; Courantyne; Kabalebo,699.5,0.89,False,,osm
 USA044,Texas,United States of America,MEX028,Tamaulipas,Mexico,river,Rio Grande; San Juan,606.8,0.98,True,Anzalduas International Bridge; Carril SENTRI; FM 493; Free Trade International Bridge; Gateway International Bridge,osm
 CAF004,Haut-Oubangui,Central African Republic,COD012,Bas-Uélé,Democratic Republic of Congo,river,Bomu; Chinko; Uele,989.0,0.99,False,,osm
@@ -26,13 +25,10 @@ COG012,Sangha,Congo,GAB009,Woleu-Ntem,Gabon,river,Aïna,196.4,1.0,False,,osm
 MOZ001,Cabo Delgado,Mozambique,TZA020,Mtwara,Tanzania,river,Ruvuma,188.8,0.9,True,Unity 1,osm
 TKM003,Chardzhou,Turkmenistan,UZB007,Khorezm,Uzbekistan,river,Amu Darya,171.7,0.64,True,bridge; yes; Трубопроводный висячий мост через Амударью,osm
 LAO003,Bolikhamxai,Lao People's Democratic Republic,THA034,Nong Khai,Thailand,river,Mekong,166.2,1.0,False,,verified:no-open-bridge
-AGO005,Cuando Cubango,Angola,NAM005,Kavango,Namibia,river,Cubango; Cuito,583.0,0.72,False,,verified:no-open-bridge
 COL025,Putumayo,Colombia,PER016,Loreto,Peru,river,Putumayo,164.2,0.87,False,,osm
-CMR003,Est,Cameroon,COG012,Sangha,Congo,river,Dja; Kadéï; Sangha,486.3,0.73,False,,osm
 ZAF005,Limpopo,South Africa,BWA005,Kgatleng,Botswana,river,Limpopo; Marico; Notwani,153.0,1.0,False,,verified:no-open-bridge
 CHN017,Jilin Sheng,China,PRK011,Yanggang-do,D. P. R. of Korea,river,Tumen; Yalu,420.1,0.78,True,yes; 丹阿线; 千年崖城風景區; 长惠国际大桥; 长白山南坡公路,osm
 CMR004,Extrême - Nord,Cameroon,TCD008,Hadjer-Lamis,Chad,river,Chari,147.3,1.0,False,,verified:no-open-bridge
-LAO002,Bokeo,Lao People's Democratic Republic,THA010,Chiang Rai,Thailand,river,Lancang,146.2,0.69,True,สะพานมิตรภาพไทย-ลาว แห่งที่ 4 (เชียงของ-ห้วยทราย),osm
 COD030,Tanganyika,Democratic Republic of Congo,TZA024,Rukwa,Tanzania,lake,Lake Tanganyika,142.9,1.0,False,,huge-lake/knowledge
 ARG007,Corrientes,Argentina,BRA025,Rio Grande Do Sul,Brazil,river,Ibicuí; Uruguay,371.9,0.98,True,Ponte Internacional Getúlio Vargas-Agustín Pedro Justo; Ponte Internacional da Integração; Puente Internacional Getúlio Vargas-Agustín Pedro Justo; yes,osm
 CMR004,Extrême - Nord,Cameroon,TCD004,Chari-Baguirmi,Chad,river,Logone,137.2,0.88,False,,verified:no-open-bridge
@@ -205,7 +201,6 @@ GTM001,Alta Verapaz,Guatemala,MEX007,Chiapas,Mexico,river,Chixoy,0.6,1.0,False,,
 CHN011,Heilongjiang Sheng,China,RUS005,Amurskaya Oblast,Russian Federation,river,Amur; Heilong Jiang; Zeya,1248.2,0.99,True,Мост Благовещенск — Хэйхэ 中俄黑河—布拉戈维申斯克界河公路大桥; 中俄黑河—布拉戈维申斯克界河公路大桥　Мост Благовещенск — Хэйхэ; 黑河－布拉戈维申斯克界河公路大桥　Автомобильный мост через Амур,osm
 USA044,Texas,United States of America,MEX008,Chihuahua,Mexico,river,Conchos; Rio Grande,616.4,1.0,True,Avenida Rafael P. Serna; Avenida Rafael Pérez Serna; BNSF El Paso Subdivision; Border West Expressway; Bordo,osm
 CHN011,Heilongjiang Sheng,China,RUS090,Yevreyskaya A. Oblast,Russian Federation,river,Amur; Songhua,553.0,0.94,True,Ледовая переправа Нижнеленинское (Россия) - Тунцзян (КНР); 同江线; 同江黑龙江特大桥,osm
-ARG009,Formosa,Argentina,PRY016,Presidente Hayes,Paraguay,river,Pilcomayo,457.0,0.96,True,Puente Internacional San Ignacio de Loyola; yes,osm
 BWA004,Kgalagadi,Botswana,ZAF007,North West,South Africa,river,Molopo,402.5,0.96,False,,osm
 HND008,Gracias A Dios,Honduras,NIC014,Región Autónoma del Caribe Norte,Nicaragua,river,Coco,361.0,0.98,False,,verified:no-open-bridge
 ARG014,Misiones,Argentina,BRA025,Rio Grande Do Sul,Brazil,river,Uruguay,347.1,0.98,False,,osm
@@ -237,8 +232,6 @@ AFG001,Badakhshan,Afghanistan,TJK004,Khatlon Province,Tajikistan,river,Panj,111.
 ARG014,Misiones,Argentina,PRY002,Alto Parana,Paraguay,river,Paraná,97.4,0.97,False,,osm
 ARG009,Formosa,Argentina,PRY008,Central,Paraguay,river,Paraná; Pilcomayo,101.0,0.9,False,,verified:no-open-bridge
 MMR013,Shan,Myanmar,LAO002,Bokeo,Lao People's Democratic Republic,river,Lancang,93.5,1.0,False,,verified:no-open-bridge
-HRV006,Koprivnica-krizevci,Croatia,HUN015,Somogy,Hungary,river,Drau; Mur,87.0,0.71,True,(web-verified),verified:open-bridge
-LSO004,Mafeteng,Lesotho,ZAF002,Free State,South Africa,river,Caledon,82.8,0.63,True,(web-verified),verified:open-bridge
 LAO012,Savannakhét,Lao People's Democratic Republic,THA024,Mukdahan,Thailand,river,Mekong,72.4,0.98,True,yes; สะพานมิตรภาพ ไทย-ลาว แห่งที่ 2 (มุกดาหาร-สะหวันนะเขต),osm
 COD016,Haut-Uélé,Democratic Republic of Congo,CAF004,Haut-Oubangui,Central African Republic,river,Bomu,71.5,0.8,False,,verified:no-open-bridge
 MRT006,Guidimakha,Mauritania,SEN022,Tambacounda,Senegal,river,Sénégal,70.2,1.0,False,,verified:no-open-bridge
@@ -252,7 +245,6 @@ MDA017,Falesti,Moldova,ROU025,Iaşi,Romania,river,Prut,54.0,1.0,False,,osm
 AZE031,Jabrayil,Azerbaijan,IRN004,East Azarbayejan,Islamic Republic of Iran,river,Aras,53.4,0.71,True,yes,recheck2:physical-link-border-closed:Khudafarin closed/contested
 CMR004,Extrême - Nord,Cameroon,TCD022,Ville de N'Djamena,Chad,river,Chari; Logone,45.4,1.0,True,Pont Ngueli جسر انكلي; yes,osm
 MDA022,Leova,Moldova,ROU041,Vaslui,Romania,river,Prut,49.7,1.0,False,,verified:no-open-bridge
-CHE026,Zurich,Switzerland,DEU001,Baden-Wuerttemberg,Germany,river,Rhin,44.3,0.71,True,Rhiuferweg; Rüedifahrstrasse; Zollbrücke; bridge; yes,osm
 AZE035,Kengerli,Azerbaijan,IRN026,West Azarbayejan,Islamic Republic of Iran,river,Aras,43.3,1.0,True,yes,osm
 ZWE006,Mashonaland West,Zimbabwe,ZMB109,Southern,Zambia,river,Zambezi,41.2,1.0,True,(web-verified),verified:open-bridge
 MDA016,Edinet,Moldova,ROU007,Botoşani,Romania,river,Prut,40.4,1.0,False,,osm

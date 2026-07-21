@@ -1,7 +1,6 @@
 level,code_a,code_b,has_bridge,water_type,water_body,note
 adm1,CHN019,RUS014,True,river,Argun’; Hailar; Heilong Jiang,
 adm1,BRA004,PER016,False,river,Amazonas; Javari,
-adm1,AFG001,TJK001,True,river,Pamir; Panj,
 adm1,GUY004,SUR009,False,river,Corantijn; Courantyne; Kabalebo,
 adm1,USA044,MEX028,True,river,Rio Grande; San Juan,
 adm1,CAF004,COD012,False,river,Bomu; Chinko; Uele,
@@ -26,13 +25,10 @@ adm1,COG012,GAB009,False,river,Aïna,
 adm1,MOZ001,TZA020,True,river,Ruvuma,
 adm1,TKM003,UZB007,True,river,Amu Darya,
 adm1,LAO003,THA034,False,river,Mekong,
-adm1,AGO005,NAM005,False,river,Cubango; Cuito,
 adm1,COL025,PER016,False,river,Putumayo,
-adm1,CMR003,COG012,False,river,Dja; Kadéï; Sangha,
 adm1,ZAF005,BWA005,False,river,Limpopo; Marico; Notwani,
 adm1,CHN017,PRK011,True,river,Tumen; Yalu,
 adm1,CMR004,TCD008,False,river,Chari,
-adm1,LAO002,THA010,True,river,Lancang,
 adm1,COD030,TZA024,False,lake,Lake Tanganyika,
 adm1,ARG007,BRA025,True,river,Ibicuí; Uruguay,
 adm1,CMR004,TCD004,False,river,Logone,
@@ -205,7 +201,6 @@ adm1,GTM001,MEX007,False,river,Chixoy,
 adm1,CHN011,RUS005,True,river,Amur; Heilong Jiang; Zeya,
 adm1,USA044,MEX008,True,river,Conchos; Rio Grande,
 adm1,CHN011,RUS090,True,river,Amur; Songhua,
-adm1,ARG009,PRY016,True,river,Pilcomayo,
 adm1,BWA004,ZAF007,False,river,Molopo,
 adm1,HND008,NIC014,False,river,Coco,
 adm1,ARG014,BRA025,False,river,Uruguay,
@@ -237,8 +232,6 @@ adm1,AFG001,TJK004,False,river,Panj,
 adm1,ARG014,PRY002,False,river,Paraná,
 adm1,ARG009,PRY008,False,river,Paraná; Pilcomayo,
 adm1,MMR013,LAO002,False,river,Lancang,
-adm1,HRV006,HUN015,True,river,Drau; Mur,
-adm1,LSO004,ZAF002,True,river,Caledon,
 adm1,LAO012,THA024,True,river,Mekong,
 adm1,COD016,CAF004,False,river,Bomu,
 adm1,MRT006,SEN022,False,river,Sénégal,
@@ -252,7 +245,6 @@ adm1,MDA017,ROU025,False,river,Prut,
 adm1,AZE031,IRN004,True,river,Aras,
 adm1,CMR004,TCD022,True,river,Chari; Logone,
 adm1,MDA022,ROU041,False,river,Prut,
-adm1,CHE026,DEU001,True,river,Rhin,
 adm1,AZE035,IRN026,True,river,Aras,
 adm1,ZWE006,ZMB109,True,river,Zambezi,
 adm1,MDA016,ROU007,False,river,Prut,
@@ -314,24 +306,23 @@ adm1,ROU013,SRB001,False,river,Danube; Iron Gates,river-gap overlay (audited nea
 adm1,MDA006,ROU041,False,river,Prut,river-gap overlay (audited near-miss)
 adm1,DEU012,LUX002,True,river,Moselle,river-gap overlay (audited near-miss)
 adm1,GUF001,SUR004,False,river,Maroni,river-gap overlay (audited near-miss)
-adm1,BGR018,ROU012,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,BGR016,ROU020,True,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,BGR013,ROU037,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,BGR010,ROU018,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,BGR028,ROU018,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,BGR013,ROU031,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,BGR026,ROU037,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,BGR016,ROU037,False,river,Danube,wide-river overlay (5km re-screen + ground-truth)
-adm1,MOZ008,TZA025,True,river,Ruvuma,wide-river overlay (5km re-screen + ground-truth)
-adm1,ALB031,MNE020,True,river,Bojana,wide-river overlay (5km re-screen + ground-truth)
-adm1,DEU011,LUX002,True,river,Moselle; Sauer,wide-river overlay (5km re-screen + ground-truth)
-adm1,PRK002,RUS060,True,river,Tumen,wide-river overlay (5km re-screen + ground-truth)
-adm1,BWA002,ZMB109,True,river,Chobe; Zambezi,wide-river overlay (5km re-screen + ground-truth)
+adm1,BGR018,ROU012,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BGR016,ROU020,True,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BGR013,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BGR010,ROU018,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BGR028,ROU018,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BGR013,ROU031,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BGR026,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BGR016,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,MOZ008,TZA025,True,river,Ruvuma,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,ALB031,MNE020,True,river,Bojana,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,DEU011,LUX002,True,river,Moselle; Sauer,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,PRK002,RUS060,True,river,Tumen,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,BWA002,ZMB109,True,river,Chobe; Zambezi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,EST006,RUS061,False,lake,Lake Peipus,"lake-gap overlay (non-touching lake borders: Peipus, Skadar)"
 adm1,ALB022,MNE002,False,lake,Lake Skadar/Shkodra,"lake-gap overlay (non-touching lake borders: Peipus, Skadar)"
-adm1,ARM007,TUR045,True,river,Akhurian,audit-water overlay (10km completeness audit + human map verification)
-adm1,BGR028,ROU031,False,river,Danube,audit-water overlay (10km completeness audit + human map verification)
-adm1,TZA006,UGA094,False,river,Kagera,audit-water overlay (10km completeness audit + human map verification)
+adm1,BGR028,ROU031,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
+adm1,TZA006,UGA094,False,river,Kagera,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,AUT006,SVN009,True,river,Mur; Kucnica,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
 adm1,BDI013,RWA001,False,river,Kagera,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
 adm1,BIH002,HRV014,True,river,Una; Sava,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)
@@ -749,9 +740,7 @@ adm1,VNM025,VNM054,True,river,Luoc River (Sông Luộc),"rescreen-water overlay 
 adm1,KHM000,KHM004,False,lake,Tonle Sap,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,KHM000,KHM006,False,lake,Tonle Sap,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,ZWE008,ZWE011,False,lake,Lake Kariba,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
-adm0,AFG,TJK,True,,,adm1-rollup
 adm0,AFG,UZB,True,,,adm1-rollup
-adm0,ARG,PRY,True,,,adm1-rollup
 adm0,ARM,IRN,True,,,adm1-rollup
 adm0,AZE,TUR,True,,,adm1-rollup
 adm0,BDI,COD,True,,,adm1-rollup

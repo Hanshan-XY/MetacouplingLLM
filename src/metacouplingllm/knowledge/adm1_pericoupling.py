@@ -25,17 +25,17 @@ borders -- Jogeva<->Pskov across Peipus, Malesi e Madhe<->Bar across Skadar),
 a **4-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
 a domestic Anguilla pair), a **16-pair rescreen-gap overlay** (non-touching
 water borders recovered by the rebuilt water screens), and flags-only overlays
-that reclassify existing edges as water-only: **13 wide-river**, **3
-audit-water**, **18 hydro-water**
+that reclassify existing edges as water-only: **18 hydro-water**
 (HydroRIVERS geodesic 500 m sweep -- incl. the Uruguay River), **12 hydro-lakes**
 (HydroLAKES geodesic 500 m sweep -- the Great Lakes, Lake Malawi median, Lake Chad,
-and the Dead Sea), and **371 rescreen-water** (the 2026-07 water-screen
+and the Dead Sea), and **386 rescreen-water** (the 2026-07 water-screen
 rebuild's audit batches b1-b6 + the 20 km-hold tranche + 3 shore contacts from
-the placeholder-identity audit).
+the placeholder-identity audit + the 15 river rows folded in by the ru1
+river-screen unification, 2026-07-21).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
-only those with a fixed crossing, ``stringent`` keeps none): the 750 water-only
-pairs give **8,461** lenient / **8,063** moderate / **7,711** stringent.
+only those with a fixed crossing, ``stringent`` keeps none): the 741 water-only
+pairs give **8,461** lenient / **8,065** moderate / **7,720** stringent.
 
 Source
 ------
