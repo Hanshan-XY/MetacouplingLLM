@@ -789,17 +789,18 @@ class TestCouplingStandardAdm1:
         assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="moderate") is False
 
     def test_audit_water_overlay_pairs(self):
-        # 3-pair audit-water overlay: existing edges reclassified water-only
-        # (10 km completeness audit + human map verification 2026-07-02).
+        # The former 3-pair audit-water overlay after the ru1 river-screen
+        # unification (2026-07-21): Shirak <-> Kars was demoted to a mixed
+        # land border by maintainer map ruling (measured 0.67 water at 500 m),
+        # so it is pericoupled under every standard; the other two rows now
+        # ship via the rescreen-water manifest (ru1 fold), still lenient-only.
         from metacouplingllm.knowledge.adm1_pericoupling import (
             is_adm1_pericoupled,
         )
-        # Shirak <-> Kars: Akhurian river, fixed crossing -> kept under moderate.
-        assert is_adm1_pericoupled("ARM007", "TUR045", coupling_standard="lenient") is True
-        assert is_adm1_pericoupled("ARM007", "TUR045", coupling_standard="moderate") is True
-        assert is_adm1_pericoupled("ARM007", "TUR045", coupling_standard="stringent") is False
-        # Vratca <-> Olt (Danube, ferry only) and Kagera <-> Ntungamo
-        # (Kagera-thalweg arc, no crossing): lenient-only.
+        for std in ("lenient", "moderate", "stringent"):
+            assert is_adm1_pericoupled("ARM007", "TUR045", coupling_standard=std) is True
+        # Vratca <-> Olt (Danube, ferry only; measured 1.00 water at 500 m)
+        # and Kagera <-> Ntungamo (Kagera-thalweg arc, no crossing).
         for a, b in [("BGR028", "ROU031"), ("TZA006", "UGA094")]:
             assert is_adm1_pericoupled(a, b, coupling_standard="lenient") is True
             assert is_adm1_pericoupled(a, b, coupling_standard="moderate") is False

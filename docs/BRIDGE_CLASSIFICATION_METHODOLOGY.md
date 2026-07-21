@@ -3,7 +3,7 @@
 > **Note:** the OSM bridge-detection method below is the frozen discovery record for the base classification; current counts live in `docs/METHODS_adjacency.md` and `data/PROVENANCE.md`.
 
 **Status:** verification complete & human-validated · **Date:** 2026-06-03/04
-**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — leaving **314 pairs: 108 / 206** from this run; the current base `bridge_classified_authoritative.csv` carries **309 rows** (312 − 2 demoted − 1 orphan). Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **747 ADM1 pairs (352 with an open fixed crossing / 395 without)** plus **28 ADM0 roll-ups (22 bridge / 6 no-bridge)**: river-gap 6, wide-river 13, audit-water 3, hydro-water 18, hydro-lakes 12, lake-gap 2, rescreen-water 368, rescreen-gap 16. There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers, corrected only through the reviewed hydro-lakes/lake-gap overlays; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
+**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(A later geometry review reclassified Italy↔Vatican `ITA007`↔`VAT001` as a land border — Vatican is a ~2.7 km enclave in Rome, Tiber ~0.6 km away — leaving **314 pairs: 108 / 206** from this run; the current base `bridge_classified_authoritative.csv` carries **301 rows** (312 − 2 demoted − 1 orphan − 8 ru1 demotions, 2026-07-21). Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **741 ADM1 pairs (345 with an open fixed crossing / 396 without)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**: river-gap 6, hydro-water 18, hydro-lakes 12, lake-gap 2, rescreen-water 386 (incl. the ru1-folded former wide-river and audit-water rows), rescreen-gap 16. There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers, corrected only through the reviewed hydro-lakes/lake-gap overlays; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
 
 This document records, in detail, how the bridge-classification database was built: why it
 exists, the inputs, the OpenStreetMap (OSM) detection method and its evolution, the
@@ -324,7 +324,7 @@ direction for a connectivity dataset; the verification removed those.
 > disagreements → geocode + province-polygon cross-check — was later
 > formalized as the **four-layer bridge pipeline**
 > (`docs/METHODS_adjacency.md` §8) and reused for every rescreen-water /
-> rescreen-gap addition, which now supply the majority of the 747 shipped
+> rescreen-gap addition, which now supply the majority of the 741 shipped
 > water-only pairs.
 
 `bridge_classified_authoritative.csv` → frozen as a dated **`water_separated_pairs.csv`**
@@ -341,8 +341,8 @@ are water-only; it "has a bridge" if *any* does. Most country pairs have some la
 are unaffected.
 
 *(Current shipped state after the reviewed overlays: `water_separated_pairs.csv` carries
-**747 ADM1 pairs (352 / 395)** plus **28 ADM0 roll-ups (22 bridge / 6 no-bridge)**;
-the base `bridge_classified_authoritative.csv` is **309 rows**. See
+**741 ADM1 pairs (345 / 396)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**;
+the base `bridge_classified_authoritative.csv` is **301 rows**. See
 `data/PROVENANCE.md`.)*
 
 ---
