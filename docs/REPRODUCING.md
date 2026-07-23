@@ -1,8 +1,8 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through rebuilding and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,461 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (741
+datasets — the ADM1 edge list (8,459 subnational shared-border pairs) and the
+ADM0 country matrix (326 pairs) with their water-only classification (739
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -17,10 +17,10 @@ important to know which one you are testing:
 1. **Build reproducibility** (fully automatic). The shipped CSVs are a pure
    function of (a) four pinned World Bank GeoPackages, (b) one reviewed
    bridge-classification CSV, and (c) eleven reviewed manifest CSVs shipped in
-   the repo (two build-stage inputs plus the seven forming the engine's
+   the repo (two build-stage inputs plus the six forming the engine's
    correction layer). Re-running the build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
-2. **Audit traceability** (read, don't re-run). The seven manifests were
+2. **Audit traceability** (read, don't re-run). The six manifests were
    *discovered* by deterministic Python screens and *adjudicated* by frozen
    two-pass AI research + human map review. Those verdicts are frozen
    history: every manifest row carries its provenance in a `source` column,
@@ -36,7 +36,7 @@ important to know which one you are testing:
 - Python ≥ 3.11 with `geopandas`, `shapely`, `pyproj`, `pandas` (the shipped
   lengths were produced with geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 —
   see the byte-identity note in §3).
-- The repository checkout (the seven manifest CSVs and the engine ship in it).
+- The repository checkout (the six manifest CSVs and the engine ship in it).
 - For the **full** rebuild only: the four pinned GeoPackages (~1 GB) and the
   bridge CSV below. The quick verification path (§2) needs no downloads.
 
@@ -81,9 +81,9 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,461 (3,374 regions, 196 countries) |
+| ADM1 edges (lenient) | 8,459 (3,374 regions, 196 countries) |
 | ADM1 moderate / stringent | 8,065 / 7,720 |
-| water-only ADM1 | 741 = 345 with a fixed crossing / 396 without |
+| water-only ADM1 | 739 = 345 with a fixed crossing / 394 without |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 28 |
 
@@ -121,9 +121,9 @@ S4):
   the reviewed bridge CSV label borders `water_type`/`has_bridge` (301 base
   water-only rows). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
-  the seven manifests in registry order (idempotent, one pass; see §5).
-  → +6 river-gap, +2 lake-gap, +4 land-gap, +16 rescreen-gap edges =
-  **8,461**; water rows 301 → **741**; ADM0 roll-up recomputed once (a
+  the six manifests in registry order (idempotent, one pass; see §5).
+  → +1 lake-gap, +4 land-gap, +21 rescreen-gap edges =
+  **8,459**; water rows 301 → **739**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 

@@ -5,7 +5,7 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,461 border pairs** covering **3,374 unique ADM1
+The edge list contains **8,459 border pairs** covering **3,374 unique ADM1
 regions** across **196 countries** (four-stage build).  The graph is built in four
 stages (full provenance in ``data/PROVENANCE.md`` and
 ``docs/METHODS_adjacency.md``): (1) **topology** -- rook contiguity at exact
@@ -19,12 +19,13 @@ mid-river seam contradicted by Amazonas' territorial law);
 (2) the geometry-derived **13-pair
 disputed overlay**; (3) descriptive water classification; and (4) a reviewed
 correction layer of overlay manifests, each a deterministic Python screen +
-human/AI adjudication, frozen: a **6-pair river-gap overlay** (non-touching
-river banks), a **2-pair lake-gap overlay** (the only two non-touching lake
-borders -- Jogeva<->Pskov across Peipus, Malesi e Madhe<->Bar across Skadar),
+human/AI adjudication, frozen: a **1-pair lake-gap overlay** (the only non-touching lake
+border -- Malesi e Madhe<->Bar across Skadar),
 a **4-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
-a domestic Anguilla pair), a **16-pair rescreen-gap overlay** (non-touching
-water borders recovered by the rebuilt water screens), and flags-only overlays
+a domestic Anguilla pair), a **21-pair rescreen-gap overlay** (non-touching
+water borders recovered by the rebuilt water screens, incl. the 5 river rows
+the rg1 retirement folded in from the retired river-gap overlay, 2026-07-22),
+and flags-only overlays
 that reclassify existing edges as water-only: **18 hydro-water**
 (HydroRIVERS geodesic 500 m sweep -- incl. the Uruguay River), **12 hydro-lakes**
 (HydroLAKES geodesic 500 m sweep -- the Great Lakes, Lake Malawi median, Lake Chad,
@@ -34,8 +35,8 @@ the placeholder-identity audit + the 15 river rows folded in by the ru1
 river-screen unification, 2026-07-21).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
-only those with a fixed crossing, ``stringent`` keeps none): the 741 water-only
-pairs give **8,461** lenient / **8,065** moderate / **7,720** stringent.
+only those with a fixed crossing, ``stringent`` keeps none): the 739 water-only
+pairs give **8,459** lenient / **8,065** moderate / **7,720** stringent.
 
 Source
 ------

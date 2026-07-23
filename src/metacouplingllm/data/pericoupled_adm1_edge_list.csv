@@ -8432,13 +8432,11 @@ ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE007,Masvingo,Zimbabwe,ZWE,AFR,False,385.4528
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,418.5808,False,False
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE009,Matabeleland South,Zimbabwe,ZWE,AFR,False,291.3107,False,False
 ZWE011,Area under National Administration,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,417.7676,False,False
-ROU019,Galaţi,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,0.0200,True,False
-ROU039,Tulcea,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,15.2500,False,False
-ROU013,Caraş-Severin,Romania,ROU,ECA,SRB001,Borski,Serbia,SRB,ECA,True,0.6200,True,False
-MDA006,Cahul,Moldova,MDA,ECA,ROU041,Vaslui,Romania,ROU,ECA,True,1.7000,True,False
-DEU012,Saarland,Germany,DEU,Other,LUX002,Grevenmacher,Luxembourg,LUX,Other,True,6.6500,False,False
-GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.3600,True,False
-EST006,Jõgeva maakond,Estonia,EST,ECA,RUS061,Pskovskaya Oblast,Russian Federation,RUS,ECA,True,0.5,True,True
+ROU019,Galaţi,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,0.5,True,True
+ROU039,Tulcea,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,15.25,False,False
+ROU013,Caraş-Severin,Romania,ROU,ECA,SRB001,Borski,Serbia,SRB,ECA,True,0.62,True,True
+DEU012,Saarland,Germany,DEU,Other,LUX002,Grevenmacher,Luxembourg,LUX,Other,True,6.65,False,False
+GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.36,True,False
 ALB022,Malesi e Madhe,Albania,ALB,ECA,MNE002,Bar,Montenegro,MNE,ECA,True,22.9,False,False
 EGY016,Matrouh,Arab Republic of Egypt,EGY,MENA,LBY001,Ajdabiya (agedabia),Libya,LBY,MENA,True,49.3833,False,False
 DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republic,DOM,LCR,False,0.0414,True,True

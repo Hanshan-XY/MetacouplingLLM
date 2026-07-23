@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8461, (
-            f"Expected 8461 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8459, (
+            f"Expected 8459 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -783,9 +783,10 @@ class TestCouplingStandardAdm1:
         # Tanganyika <-> Kigoma across Lake Tanganyika: lenient only
         assert is_adm1_pericoupled("COD030", "TZA010", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("COD030", "TZA010", coupling_standard="moderate") is False
-        # Jogeva <-> Pskov across Lake Peipus (lake-gap addition: shores
-        # digitized as non-touching; manually verified): lenient only
-        assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="lenient") is True
+        # Jogeva <-> Pskov across Lake Peipus: REMOVED 2026-07-22 by
+        # maintainer ruling (WB signature: Tartu-Jogeva-Pskov corner contact,
+        # no shared segment) -- not pericoupled under any standard
+        assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="lenient") is False
         assert is_adm1_pericoupled("EST006", "RUS061", coupling_standard="moderate") is False
 
     def test_audit_water_overlay_pairs(self):

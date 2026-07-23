@@ -10,8 +10,7 @@ This engine applies the whole layer in one pass:
   ==================== ====================================== ========================
   registry             manifest                               effect
   ==================== ====================================== ========================
-  river_gap            river_gap_overlay_pairs.csv            +6 edges, +6 water rows
-  lake_gap             lake_gap_overlay_pairs.csv             +2 edges (Peipus, Skadar),
+  lake_gap             lake_gap_overlay_pairs.csv             +1 edge (Skadar),
                                                               +2 water rows
   land_gap             land_gap_overlay_pairs.csv             +4 land edges
   hydro_water          hydro_water_overlay_pairs.csv          water flags on 18 edges
@@ -64,15 +63,12 @@ DEFAULT_DATA = Path(__file__).resolve().parent.parent / "src" / "metacouplingllm
 NARROW_KM = 5.0
 
 # (name, manifest filename, adds_edges, edge_style, water_type, water_body_col, note)
-# edge_style: "river_gap" = names from edge-list meta, km as %.4f, artifact=False;
-#             "iso_lookup" = names from manifest, km as round(.,4), artifact=km<1;
+# edge_style: "iso_lookup" = names from manifest, km as round(.,4), artifact=km<1;
 #             None = flags-only (no edges added).
 # water_body_col None = no water rows (ordinary land edges).
 REGISTRY = [
-    ("river_gap", "river_gap_overlay_pairs.csv", True, "river_gap",
-     "river", "river", "river-gap overlay (audited near-miss)"),
     ("lake_gap", "lake_gap_overlay_pairs.csv", True, "iso_lookup",
-     "lake", "lake", "lake-gap overlay (non-touching lake borders: Peipus, Skadar)"),
+     "lake", "lake", "lake-gap overlay (non-touching lake border: Skadar)"),
     ("land_gap", "land_gap_overlay_pairs.csv", True, "iso_lookup",
      None, None, None),
     ("hydro_water", "hydro_water_overlay_pairs.csv", False, None,
@@ -88,7 +84,7 @@ REGISTRY = [
 
 def _read_manifest(path: Path) -> list[dict]:
     rows = list(csv.DictReader(open(path, newline="", encoding="utf-8-sig")))
-    # river_gap carries a level column; only adm1 rows are pair entries
+    # legacy manifests may carry a level column; only adm1 rows are pair entries
     return [r for r in rows if r.get("level", "adm1").strip() == "adm1"]
 
 
@@ -156,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # ---- 1. edge additions (registry order, manifest row order) -------------
     new_edge_rows: list[list] = []
-    for name, _fname, adds_edges, style, *_ in REGISTRY:
+    for name, _fname, adds_edges, _style, *_ in REGISTRY:
         if not adds_edges:
             continue
         for m in manifests[name]:
@@ -165,24 +161,14 @@ def main(argv: list[str] | None = None) -> int:
             if pair in present:
                 continue
             km = float(m["border_km"])
-            if style == "river_gap":
-                if ca not in meta or cb not in meta:
-                    raise SystemExit(f"overlay unit not in edge list: {ca} or {cb}")
-                na, cna, ia, ra = meta[ca]
-                nb, cnb, ib, rb = meta[cb]
-                new_edge_rows.append([
-                    ca, na, cna, ia, ra, cb, nb, cnb, ib, rb,
-                    ia != ib, f"{km:.4f}", km < NARROW_KM, False,
-                ])
-            else:  # iso_lookup (lake, land_gap)
-                ia, ib = m["iso_a"].strip(), m["iso_b"].strip()
-                if ia not in iso_country or ib not in iso_country:
-                    raise SystemExit(f"overlay ISO not in edge list: {ia} or {ib}")
-                new_edge_rows.append([
-                    ca, m["name_a"], iso_country[ia], ia, iso_region[ia],
-                    cb, m["name_b"], iso_country[ib], ib, iso_region[ib],
-                    str(ia != ib), round(km, 4), str(km < NARROW_KM), str(km < 1.0),
-                ])
+            ia, ib = m["iso_a"].strip(), m["iso_b"].strip()
+            if ia not in iso_country or ib not in iso_country:
+                raise SystemExit(f"overlay ISO not in edge list: {ia} or {ib}")
+            new_edge_rows.append([
+                ca, m["name_a"], iso_country[ia], ia, iso_region[ia],
+                cb, m["name_b"], iso_country[ib], ib, iso_region[ib],
+                str(ia != ib), round(km, 4), str(km < NARROW_KM), str(km < 1.0),
+            ])
             present.add(pair)
             pair_iso[pair] = (ia, ib)
 
