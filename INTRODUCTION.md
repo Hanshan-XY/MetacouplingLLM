@@ -283,7 +283,7 @@ Two geographic adjacency databases validate LLM coupling classifications:
 | Database | Scope | Coverage |
 |---|---|---|
 | Country-level | Sovereign states | Full global (ISO alpha-3) |
-| ADM1 (subnational) | First-level administrative regions | 3,374 regions, 8,461 shared-border pairs (8,065 under the default `moderate` coupling standard), 196 countries |
+| ADM1 (subnational) | First-level administrative regions | 3,374 regions, 8,459 shared-border pairs (8,065 under the default `moderate` coupling standard), 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
 
@@ -540,7 +540,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | 420 papers (Papers.zip) | Markdown for RAG — 192 indexed as full text, 228 as structured paraphrased summaries (papers that cannot be redistributed in full: paywalled, or open-to-read but restrictively licensed) |
 | BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2026) with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
-| ADM1 edge list (CSV) | 8,461 subnational shared-border pairs across 3,374 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
+| ADM1 edge list (CSV) | 8,459 subnational shared-border pairs across 3,374 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
 | ADM1 alias table (CSV) | 1,145 English exonyms / alternative spellings for 863 ADM1 regions in 136 countries (e.g. Bavaria→Bayern, Tuscany→Toscana), so `resolve_adm1_code` matches common English names; deterministically validated (see `data/PROVENANCE.md`) |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 

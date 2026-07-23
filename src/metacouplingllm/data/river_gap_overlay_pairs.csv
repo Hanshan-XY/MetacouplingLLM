@@ -1,7 +1,0 @@
-level,code_a,name_a,iso_a,code_b,name_b,iso_b,river,border_km,has_bridge,source
-adm1,ROU019,Galaţi,ROU,UKR016,Odes'ka,UKR,Danube,0.02,False,near-miss audit + ground-truth (SUPPLEMENT_river_border_audit.md)
-adm1,ROU039,Tulcea,ROU,UKR016,Odes'ka,UKR,Danube; Chilia branch,15.25,False,near-miss audit + ground-truth (SUPPLEMENT_river_border_audit.md)
-adm1,ROU013,Caraş-Severin,ROU,SRB001,Borski,SRB,Danube; Iron Gates,0.62,False,near-miss audit + ground-truth (SUPPLEMENT_river_border_audit.md)
-adm1,MDA006,Cahul,MDA,ROU041,Vaslui,ROU,Prut,1.70,False,near-miss audit + ground-truth (SUPPLEMENT_river_border_audit.md)
-adm1,DEU012,Saarland,DEU,LUX002,Grevenmacher,LUX,Moselle,6.65,True,near-miss audit + ground-truth (SUPPLEMENT_river_border_audit.md)
-adm1,GUF001,French Guiana,GUF,SUR004,Marowijne,SUR,Maroni,3.36,False,near-miss audit + ground-truth (SUPPLEMENT_river_border_audit.md)
