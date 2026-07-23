@@ -20,7 +20,7 @@ important to know which one you are testing:
    the repo (two build-stage inputs plus the six forming the engine's
    correction layer). Re-running the build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
-2. **Audit traceability** (read, don't re-run). The six manifests were
+2. **Audit traceability** (read, don't re-run). The five manifests were
    *discovered* by deterministic Python screens and *adjudicated* by frozen
    two-pass AI research + human map review. Those verdicts are frozen
    history: every manifest row carries its provenance in a `source` column,
@@ -36,7 +36,7 @@ important to know which one you are testing:
 - Python ≥ 3.11 with `geopandas`, `shapely`, `pyproj`, `pandas` (the shipped
   lengths were produced with geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 —
   see the byte-identity note in §3).
-- The repository checkout (the six manifest CSVs and the engine ship in it).
+- The repository checkout (the five manifest CSVs and the engine ship in it).
 - For the **full** rebuild only: the four pinned GeoPackages (~1 GB) and the
   bridge CSV below. The quick verification path (§2) needs no downloads.
 
@@ -121,8 +121,8 @@ S4):
   the reviewed bridge CSV label borders `water_type`/`has_bridge` (301 base
   water-only rows). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
-  the six manifests in registry order (idempotent, one pass; see §5).
-  → +1 lake-gap, +4 land-gap, +21 rescreen-gap edges =
+  the five manifests in registry order (idempotent, one pass; see §5).
+  → +4 land-gap, +22 rescreen-gap edges =
   **8,459**; water rows 301 → **739**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
@@ -165,8 +165,6 @@ re-running the engine is the supported way to change the correction layer:
 |---|---|
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
 | `disputed_overlay_pairs.csv` | S2 input: 13 ADM1 + 3 ADM0 de-facto pairs |
-| `river_gap_overlay_pairs.csv` | +6 edges (non-touching river banks) |
-| `lake_gap_overlay_pairs.csv` | +2 edges (Peipus, Skadar) |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
 | `hydro_water_overlay_pairs.csv` | water flags on 18 edges |
 | `hydro_lakes_overlay_pairs.csv` | water flags on 12 edges |

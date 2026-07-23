@@ -318,7 +318,7 @@ adm1,ALB031,MNE020,True,river,Bojana,"rescreen-water overlay (water-screen rebui
 adm1,DEU011,LUX002,True,river,Moselle; Sauer,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,PRK002,RUS060,True,river,Tumen,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,BWA002,ZMB109,True,river,Chobe; Zambezi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
-adm1,ALB022,MNE002,False,lake,Lake Skadar/Shkodra,lake-gap overlay (non-touching lake border: Skadar)
+adm1,ALB022,MNE002,False,lake,Lake Skadar/Shkodra,rescreen-gap overlay (water-screen rebuild: recovered non-touching water border
 adm1,BGR028,ROU031,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,TZA006,UGA094,False,river,Kagera,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)"
 adm1,AUT006,SVN009,True,river,Mur; Kucnica,hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)

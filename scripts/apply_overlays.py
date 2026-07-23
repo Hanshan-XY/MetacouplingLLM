@@ -10,7 +10,6 @@ This engine applies the whole layer in one pass:
   ==================== ====================================== ========================
   registry             manifest                               effect
   ==================== ====================================== ========================
-  lake_gap             lake_gap_overlay_pairs.csv             +1 edge (Skadar),
                                                               +2 water rows
   land_gap             land_gap_overlay_pairs.csv             +4 land edges
   hydro_water          hydro_water_overlay_pairs.csv          water flags on 18 edges
@@ -67,8 +66,6 @@ NARROW_KM = 5.0
 #             None = flags-only (no edges added).
 # water_body_col None = no water rows (ordinary land edges).
 REGISTRY = [
-    ("lake_gap", "lake_gap_overlay_pairs.csv", True, "iso_lookup",
-     "lake", "lake", "lake-gap overlay (non-touching lake border: Skadar)"),
     ("land_gap", "land_gap_overlay_pairs.csv", True, "iso_lookup",
      None, None, None),
     ("hydro_water", "hydro_water_overlay_pairs.csv", False, None,
