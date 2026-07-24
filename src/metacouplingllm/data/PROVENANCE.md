@@ -68,11 +68,11 @@ of Kalmykia rejoins its republic, dissolving its internal edge and folding its
 Rostov/Stavropol frontages into the existing RUS024 rows) = 8,422, −2 denylist
 (the audit-confirmed LBR006↔LBR014 and VEN001↔VEN003 artifacts) =
 8,420; [S2] +13 disputed = 8,433 (the geometry build writes this file);
-[S4 overlays, in application order] +1 lake-gap = 8,434,
-+4 land-gap (tolerance-band recovery; a fifth recovered pair, MOZXXX↔MWI003,
-was reversed 2026-07-18 by maintainer map ruling — the true contact is a
-point) = 8,438, +21 rescreen-gap (water-screen
-rebuild, batch b1, plus the rg1 river-gap fold 2026-07-22) = **8,459** shipped
+[S4 overlays, in application order] +4 land-gap (tolerance-band recovery; a
+fifth recovered pair, MOZXXX↔MWI003, was reversed 2026-07-18 by maintainer
+map ruling — the true contact is a point) = 8,437, +22 rescreen-gap
+(water-screen rebuild, batch b1, plus the rg1 river-gap fold 2026-07-22 and
+the lg1 lake-gap fold 2026-07-23) = **8,459** shipped
 (lenient); **8,065** moderate; **7,720** stringent; 3,374 regions, 196 countries.
 **ADM0** 326 / 320 / 300. **Water-only 739** (345/394) + 26 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River into hydro-water and the
@@ -87,11 +87,11 @@ verification, human map review) are how the correction layer was *discovered
 and validated* — reproducing the database does not require re-running them.
 
 Three LLM-adjudication designs appear below, all run *downstream* of the
-deterministic screens. The pre-rebuild overlays (lake-gap,
-hydro-water, hydro-lakes — and the former wide-river, audit-water, and
-river-gap rows, since re-adjudicated and folded into the rescreen manifests
-by the ru1 river-screen unification (2026-07-21) and the rg1 river-gap
-retirement (2026-07-22)) carry **human map
+deterministic screens. The pre-rebuild overlays (hydro-water,
+hydro-lakes — and the former wide-river, audit-water, river-gap, and
+lake-gap rows, since re-adjudicated or folded into the rescreen manifests by
+the ru1 river-screen unification (2026-07-21), the rg1 river-gap retirement
+(2026-07-22), and the lg1 lake-gap retirement (2026-07-23)) carry **human map
 verification of every shipped verdict**; the rescreen overlays carry human
 verification of every ship-affecting disagreement and medium-confidence
 verdict (140 rows in the shipped manifests) plus **9 rows shipped on
@@ -182,8 +182,7 @@ municipal consolidation postdates the WB layer's 119-novadi representation).
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
-| `water_separated_pairs.csv` | 739 ADM1 + 26 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (301 base + 1 lake-gap + 18 hydro-water + 12 hydro-lakes + 386 rescreen-water + 21 rescreen-gap; see *Water-separated pairs* below) |
-| `lake_gap_overlay_pairs.csv` | 1 ADM1 pair | Reviewed lake-gap manifest: the only non-touching lake border — Malësi e Madhe↔Bar across Skadar (census 1–100 km water-corridor band; the former Peipus row was removed 2026-07-22 by maintainer ruling on the WB tripoint signature). The ~63 lake-meeting pairs are now native edges (no lake filter). |
+| `water_separated_pairs.csv` | 739 ADM1 + 26 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (301 base + 18 hydro-water + 12 hydro-lakes + 386 rescreen-water + 22 rescreen-gap; see *Water-separated pairs* below) |
 | `hydro_lakes_overlay_pairs.csv` | 12 ADM1 pairs | Reviewed hydro-lakes manifest: borders reclassified land→water by the **HydroLAKES geodesic 500 m sweep** (15 candidates; 3 rejected as mixed — Burundi–Rwanda, two Norway–Sweden), covering the Great Lakes, Lake Malawi median, Lake Chad, Lake Titicaca, and the **Dead Sea** (Southern District↔Karak, no crossing), human-verified (flags only). |
 | `sliver_corridor_relabel.csv` | 10 host polygons | Reviewed source-relabel manifest: WB sliver-corridor artifacts reassigned to their true owner units before contiguity. |
 | `land_gap_overlay_pairs.csv` | 4 ADM1 pairs | Reviewed land-gap manifest: genuine sub-tolerance borders (Egypt–Libya … domestic Anguilla) recovered from the tolerance-0 band audit (ordinary land edges). A fifth recovered pair (MOZXXX↔MWI003) was reversed 2026-07-18: maintainer map ruling, point contact (`docs/FUTURE_EDGE_AUDITS.md`). |
@@ -315,7 +314,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   do not. Mid-lake "median-line" meetings are native edges (no lake
   filter removes them), so all three standards govern them like river
   borders directly. Full
-  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`. One post-classification correction: Italy↔Vatican (`ITA007`↔`VAT001`) was review-reclassified from water-only to a **land border** (the Vatican is a ~2.7 km land enclave within Rome; the Tiber is ~0.6 km away, not the border), so the land-classified subset is **314** ADM1 water-only pairs, not the 315 first geometrically flagged (the shipped total is **739** after the lake-gap, hydro-water, hydro-lakes, and rescreen overlays below; the land-classified subset itself is **309** after the 2026-07-02 corrections below). ITA↔VAT is therefore pericoupled under every `coupling_standard`.
+  method + per-pair sources: `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`. One post-classification correction: Italy↔Vatican (`ITA007`↔`VAT001`) was review-reclassified from water-only to a **land border** (the Vatican is a ~2.7 km land enclave within Rome; the Tiber is ~0.6 km away, not the border), so the land-classified subset is **314** ADM1 water-only pairs, not the 315 first geometrically flagged (the shipped total is **739** after the hydro-water, hydro-lakes, and rescreen overlays below; the land-classified subset itself is **309** after the 2026-07-02 corrections below). ITA↔VAT is therefore pericoupled under every `coupling_standard`.
 - **Correctly-absent pairs.** `ARE/QAT`, `KEN/SDN`, `SDN/UGA` are *not* land
   neighbours (separated by Saudi Arabia / South Sudan respectively) and are
   rightly absent — these differ from the older dataset, which listed them.
@@ -373,20 +372,15 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   Minnesota, New York, the last four reclassified land→water by the
   HydroLAKES full-database sweep below), and `stringent` keeps none
   (Flevoland↔Utrecht correctly stays lenient-only: the Stichtse Brug lands in
-  Noord-Holland). The one lake-related overlay is the small **lake-gap
-  overlay** (`lake_gap_overlay_pairs.csv`, applied by
-  `scripts/apply_overlays.py`, registry entry `lake_gap`) — the genuinely
-  *non-touching* lake borders the source digitizes as separate shores (**1**
-  shipped row today): Jõgeva↔Pskov across Lake Peipus (the ≤1 km near band —
-  gap ~0.0 km; accepted 2026-07-01, **removed 2026-07-22** by maintainer
-  ruling: the WB signature is a Tartu–Jõgeva–Pskov corner contact with no
-  shared segment, and the original verdict's map source was withdrawn) and
-  Malësi e Madhe↔Bar across Lake
-  Skadar (the 1–100 km water-corridor band; the two-pass adversarial adjudication
+  Noord-Holland). The one genuinely *non-touching* lake border the source
+  digitizes as separate shores — Malësi e Madhe↔Bar across Lake Skadar —
+  ships via the **rescreen-gap** overlay after the lg1 fold (2026-07-23,
+  registry entry `rescreen_gap`); it was recovered by the water-band census
+  (the 1–100 km water-corridor band; the two-pass adversarial adjudication
   of all 57 water-band candidates unanimously found it the one genuine
   lake-median border — `build_data/premeasure/adjudicate_water_band.wf.js` →
   `water_band_adjudication.json`, 1 genuine / 56 rejected — then human
-  map-verified 2026-07-04). The water band reaches 1–100 km; capping it at 10/25/50/100 km (`build_data/premeasure/census_waterband_cap_ladder.py`) confirms Skadar (gap 9.3 km) is the only genuine one — the candidate net grows 7→16→34→57 but the 25–100 km tail is 41 pairs on opposite shores of wide lakes (Victoria, Tanganyika, the Dead Sea), all non-adjacent, so the 100 km reach is a conservative bound that loses nothing. The one country
+  map-verified 2026-07-04). The water band reaches 1–100 km; capping it at 10/25/50/100 km (`build_data/premeasure/census_waterband_cap_ladder.py`) confirms Skadar (gap 9.3 km) is the only genuine one — the candidate net grows 7→16→34→57 but the 25–100 km tail is 41 pairs on opposite shores of wide lakes (Victoria, Tanganyika, the Dead Sea), all non-adjacent, so the 100 km reach is a conservative bound that loses nothing. (A former second non-touching lake border, Jõgeva↔Pskov across Lake Peipus, was removed 2026-07-22 by maintainer ruling: the WB signature is a Tartu–Jõgeva–Pskov corner contact with no shared segment, and the original verdict's map source was withdrawn.) The one country
   pair whose only contact is a lake — `COD`↔`TZA` across Lake Tanganyika — is
   likewise native (lenient-only, no ADM0 matrix patch needed). Counts at this
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1

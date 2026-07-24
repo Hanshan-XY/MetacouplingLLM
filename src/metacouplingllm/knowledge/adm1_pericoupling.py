@@ -19,12 +19,12 @@ mid-river seam contradicted by Amazonas' territorial law);
 (2) the geometry-derived **13-pair
 disputed overlay**; (3) descriptive water classification; and (4) a reviewed
 correction layer of overlay manifests, each a deterministic Python screen +
-human/AI adjudication, frozen: a **1-pair lake-gap overlay** (the only non-touching lake
-border -- Malesi e Madhe<->Bar across Skadar),
-a **4-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ...
-a domestic Anguilla pair), a **21-pair rescreen-gap overlay** (non-touching
-water borders recovered by the rebuilt water screens, incl. the 5 river rows
-the rg1 retirement folded in from the retired river-gap overlay, 2026-07-22),
+human/AI adjudication, frozen: a **4-pair land-gap overlay** (genuine sub-tolerance borders,
+Egypt-Libya ... a domestic Anguilla pair), a **22-pair rescreen-gap overlay**
+(non-touching water borders recovered by the rebuilt water screens, incl. the
+5 river rows the rg1 retirement folded in from the retired river-gap overlay
+(2026-07-22) and the Skadar lake row the lg1 retirement folded in from the
+retired lake-gap overlay (2026-07-23)),
 and flags-only overlays
 that reclassify existing edges as water-only: **18 hydro-water**
 (HydroRIVERS geodesic 500 m sweep -- incl. the Uruguay River), **12 hydro-lakes**
