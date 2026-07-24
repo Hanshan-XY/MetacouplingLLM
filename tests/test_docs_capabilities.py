@@ -477,3 +477,51 @@ def test_methods_adjacency_doc_counts_match_live_data():
         "paragraph (section 7), and the coupling-standard Data paragraph "
         "(section 8)."
     )
+
+
+# ---------------------------------------------------------------------------
+# Pinned-input SHA guard (protects `build_all.py --full` reproducibility)
+# ---------------------------------------------------------------------------
+
+BRIDGE_CSV = REPO_ROOT / "build_data" / "bridge_classified_authoritative.csv"
+PROVENANCE_MD = REPO_ROOT / "src" / "metacouplingllm" / "data" / "PROVENANCE.md"
+REPRODUCING_MD = REPO_ROOT / "docs" / "REPRODUCING.md"
+
+
+def test_bridge_csv_sha_matches_pin():
+    """The bridge CSV's hash must match build_all.py's pin AND both docs.
+
+    ``build_all.py --full`` verifies every pinned input's SHA-256 before
+    rebuilding, so a stale pin breaks full reproduction -- silently, because CI
+    runs pytest only and nothing else reads PINNED_SHA256.  This drifted once
+    already: the ru1 campaign re-pinned PROVENANCE.md and docs/REPRODUCING.md
+    but missed scripts/build_all.py, leaving `--full` failing on main.
+
+    Re-pin in all three places whenever the CSV changes.
+    """
+    import hashlib
+
+    spec = importlib.util.spec_from_file_location(
+        "build_all_for_pin_check", REPO_ROOT / "scripts" / "build_all.py"
+    )
+    build_all = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build_all)
+
+    actual = hashlib.sha256(BRIDGE_CSV.read_bytes()).hexdigest()
+    pinned = build_all.PINNED_SHA256["bridge_csv"]
+    assert actual == pinned, (
+        f"bridge_classified_authoritative.csv hashes to {actual}\n"
+        f"but scripts/build_all.py pins {pinned}.\n"
+        "`build_all.py --full` will abort. Re-pin the CSV in build_all.py, "
+        "data/PROVENANCE.md, and docs/REPRODUCING.md."
+    )
+
+    # PROVENANCE.md carries the full 64-char hash.
+    assert actual in PROVENANCE_MD.read_text(encoding="utf-8"), (
+        f"data/PROVENANCE.md does not carry the current bridge-CSV hash {actual}"
+    )
+    # docs/REPRODUCING.md carries an abbreviated first-8...last-7 form.
+    abbrev = f"{actual[:8]}…{actual[-7:]}"
+    assert abbrev in REPRODUCING_MD.read_text(encoding="utf-8"), (
+        f"docs/REPRODUCING.md does not carry the abbreviated hash {abbrev}"
+    )
