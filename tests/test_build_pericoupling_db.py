@@ -47,9 +47,11 @@ class TestBuildPericouplingDb:
         ast.parse(source, filename=str(BUILD_SCRIPT))
 
     def test_denylist_is_exactly_the_reviewed_pairs(self):
-        """The reviewed ADM1 false-positive denylist is exactly the two
+        """The reviewed ADM1 false-positive denylist is exactly the five
         maintainer-decided pairs (docs/FUTURE_EDGE_AUDITS.md; decisions
-        2026-07-18), and the reviewed unit-merge map is exactly RUS050->RUS024.
+        2026-07-18 for the first two, 2026-07-25 wu1 map rulings for the three
+        mid-lake contacts), and the reviewed unit-merge map is exactly
+        RUS050->RUS024.
 
         Importing the module also surfaces any top-level import error (which
         ``ast.parse`` cannot), and pins the values so a future regression or
@@ -59,5 +61,8 @@ class TestBuildPericouplingDb:
         assert mod._ADM1_FALSE_POSITIVE_DENYLIST == {
             frozenset({"LBR006", "LBR014"}),
             frozenset({"VEN001", "VEN003"}),
+            frozenset({"CAN003", "CAN006"}),
+            frozenset({"COD009", "UGA102"}),
+            frozenset({"TZA016", "UGA040"}),
         }
         assert mod._ADM1_UNIT_MERGES == {"RUS050": "RUS024"}

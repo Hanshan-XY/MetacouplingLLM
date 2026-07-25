@@ -1,8 +1,8 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through rebuilding and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,459 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (739
+datasets — the ADM1 edge list (8,456 subnational shared-border pairs) and the
+ADM0 country matrix (326 pairs) with their water-only classification (736
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -49,7 +49,7 @@ refuses to build from a mismatching file):
 | WB Admin 0 GeoPackage (layer `WB_GAD_ADM0`, 264 features) | same distribution | `97f0c8a0…f4b117e` |
 | WB Ocean Mask GeoPackage | same distribution | `c2b074fd…c88d702` |
 | WB NDLSA GeoPackage (24 disputed-area features) | same distribution | `159ef2d1…55d2fa4` |
-| Bridge classification CSV (301 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `9057f774…52c7822` |
+| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `fbcaba19…32ad1ba` |
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
 
@@ -81,9 +81,9 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,459 (3,374 regions, 196 countries) |
+| ADM1 edges (lenient) | 8,456 (3,374 regions, 196 countries) |
 | ADM1 moderate / stringent | 8,065 / 7,720 |
-| water-only ADM1 | 739 = 345 with a fixed crossing / 394 without |
+| water-only ADM1 | 736 = 345 with a fixed crossing / 391 without |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 28 |
 
@@ -111,19 +111,19 @@ S4):
   native edges. Border lengths are full geodesic
   shared-boundary lengths (WGS84, `pyproj.Geod`).
   → 8,427 raw − 2 relabel − 3 unit merge (RUS050 → RUS024) − 2 denylist =
-  **8,420** native pairs.
+  **8,417** native pairs.
 - **S2 — de-facto connectivity.** Each NDLSA disputed tract is folded into
   its de-facto administrator and adjacency re-measured; +13 ADM1 pairs whose
   sole link is a tract (+3 pairs at ADM0). Geometry-validated: an authored
   tract→unit attribution that does not touch its tract fails loudly.
-  → **8,433**; this is the base file the geometry build writes.
+  → **8,430**; this is the base file the geometry build writes.
 - **S3 — water classification (descriptive).** Natural Earth lakes/rivers +
-  the reviewed bridge CSV label borders `water_type`/`has_bridge` (301 base
+  the reviewed bridge CSV label borders `water_type`/`has_bridge` (298 base
   water-only rows). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the five manifests in registry order (idempotent, one pass; see §5).
   → +4 land-gap, +22 rescreen-gap edges =
-  **8,459**; water rows 301 → **739**; ADM0 roll-up recomputed once (a
+  **8,456**; water rows 298 → **736**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 
@@ -146,7 +146,7 @@ additionally requires the original toolchain (geopandas 1.1.2 / shapely 2.1.2
 python -m pytest tests/ -q
 ```
 
-The suite (1,374 tests at the time of writing) includes: the expected-count assertions, the engine
+The suite (1,375 tests at the time of writing) includes: the expected-count assertions, the engine
 byte-stability guard, registry-covers-all-manifests, loader behavior for
 `de_facto_borders` × `coupling_standard`, and **doc-drift guards** that parse
 `docs/METHODS_adjacency.md`, `INTRODUCTION.md`, and `MANUAL.md` and fail if

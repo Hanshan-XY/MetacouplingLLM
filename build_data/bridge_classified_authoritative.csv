@@ -29,7 +29,7 @@ COL025,Putumayo,Colombia,PER016,Loreto,Peru,river,Putumayo,164.2,0.87,False,,osm
 ZAF005,Limpopo,South Africa,BWA005,Kgatleng,Botswana,river,Limpopo; Marico; Notwani,153.0,1.0,False,,verified:no-open-bridge
 CHN017,Jilin Sheng,China,PRK011,Yanggang-do,D. P. R. of Korea,river,Tumen; Yalu,420.1,0.78,True,yes; 丹阿线; 千年崖城風景區; 长惠国际大桥; 长白山南坡公路,osm
 CMR004,Extrême - Nord,Cameroon,TCD008,Hadjer-Lamis,Chad,river,Chari,147.3,1.0,False,,verified:no-open-bridge
-COD030,Tanganyika,Democratic Republic of Congo,TZA024,Rukwa,Tanzania,lake,Lake Tanganyika,142.9,1.0,False,,huge-lake/knowledge
+COD030,Tanganyika,Democratic Republic of Congo,TZA024,Rukwa,Tanzania,lake,Lake Tanganyika,142.9,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 ARG007,Corrientes,Argentina,BRA025,Rio Grande Do Sul,Brazil,river,Ibicuí; Uruguay,371.9,0.98,True,Ponte Internacional Getúlio Vargas-Agustín Pedro Justo; Ponte Internacional da Integração; Puente Internacional Getúlio Vargas-Agustín Pedro Justo; yes,osm
 CMR004,Extrême - Nord,Cameroon,TCD004,Chari-Baguirmi,Chad,river,Logone,137.2,0.88,False,,verified:no-open-bridge
 AGO013,Lunda Sul,Angola,COD024,Lualaba,Democratic Republic of Congo,river,Kasai,348.4,0.94,False,,osm
@@ -41,7 +41,7 @@ BEN002,Atacora,Benin,BFA008,Est,Burkina Faso,river,Oti,295.4,0.96,True,(web-veri
 AGO008,Cunene,Angola,NAM007,Kunene,Namibia,river,Cunene,124.5,1.0,False,,verified:no-open-bridge
 COL033,Vichada,Colombia,VEN003,Apure,Republica Bolivariana de Venezuela,river,Meta; Orinoco,274.9,0.9,False,,osm
 CAF004,Haut-Oubangui,Central African Republic,COD027,Nord-Ubangi,Democratic Republic of Congo,river,Bomu; Kotto; Uele,257.3,0.99,False,,osm
-CAN009,Ontario,Canada,USA036,Ohio,United States of America,lake,Lake Erie,246.7,1.0,False,,huge-lake/knowledge
+CAN009,Ontario,Canada,USA036,Ohio,United States of America,lake,Lake Erie,246.7,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 COD017,Ituri,Democratic Republic of Congo,UGA093,Ntoroko,Uganda,river,Semliki,115.1,0.87,False,,osm
 BWA007,Ngamiland,Botswana,NAM001,Caprivi,Namibia,river,Cuando; Linyanti,242.4,0.63,False,,verified:no-open-bridge
 MDA006,Cahul,Moldova,ROU019,Galaţi,Romania,river,Prut,113.4,1.0,True,bridge; yes,osm
@@ -50,14 +50,14 @@ ROU027,Maramureş,Romania,UKR023,Zakarpats'ka,Ukraine,river,Tisza,110.1,0.62,Tru
 BFA013,Sud-ouest,Burkina Faso,GHA008,Upper West,Ghana,river,Mouhoun,209.0,0.95,False,,verified:no-open-bridge
 BDI013,Muyinga,Burundi,TZA006,Kagera,Tanzania,river,Kagera,104.6,0.61,True,yes,osm
 MDA030,Soroca,Moldova,UKR021,Vinnyts'ka,Ukraine,river,Dniester,101.0,1.0,False,,verified:no-open-bridge
-UGA026,Buvuma,Uganda,UGA040,Kalangala,Uganda,lake,Lake Victoria,94.0,1.0,False,,huge-lake/knowledge
+UGA026,Buvuma,Uganda,UGA040,Kalangala,Uganda,lake,Lake Victoria,94.0,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 MOZ010,Tete,Mozambique,ZMB105,Lusaka,Zambia,river,Luangwa; Zambezi,93.3,1.0,False,,osm
-USA023,Michigan,United States of America,USA024,Minnesota,United States of America,lake,Lake Superior,87.8,1.0,False,,huge-lake/knowledge
-BRA020,Parana,Brazil,PRY007,Canindeyu,Paraguay,lake,Represa Itaipu,85.5,1.0,False,,huge-lake/knowledge
-USA014,Illinois,United States of America,USA023,Michigan,United States of America,lake,Lake Michigan,83.0,1.0,False,,huge-lake/knowledge
+USA023,Michigan,United States of America,USA024,Minnesota,United States of America,lake,Lake Superior,87.8,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+BRA020,Parana,Brazil,PRY007,Canindeyu,Paraguay,river,Itaipu Reservoir (Parana River),85.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+USA014,Illinois,United States of America,USA023,Michigan,United States of America,lake,Lake Michigan,83.0,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 ARG007,Corrientes,Argentina,URY001,Artigas,Uruguay,river,Uruguay,80.4,1.0,False,,osm
 ZAF005,Limpopo,South Africa,ZWE009,Matabeleland South,Zimbabwe,river,Limpopo; Umzingwani,205.8,0.99,True,Harare-Beitbridge Highway; bridge; yes,osm
-TZA016,Mara,Tanzania,TZA021,Mwanza,Tanzania,lake,Lake Victoria,196.9,1.0,False,,huge-lake/knowledge
+TZA016,Mara,Tanzania,TZA021,Mwanza,Tanzania,lake,Lake Victoria,196.9,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 HUN012,Komarom-esztergom,Hungary,SVK004,Nitra,Slovak Republic,river,Danube,77.8,0.65,True,Alžbetin most; Barátság híd; Erzsébet híd; Erzsébet híd / Alžbetin most; Komárňanský železničný most,osm
 COD029,Sud-Ubangi,Democratic Republic of Congo,COG007,Likouala,Congo,river,Lua; Ubangi,194.5,0.94,False,,osm
 MDA008,Cantemir,Moldova,ROU041,Vaslui,Romania,river,Prut,74.0,1.0,True,603; yes,osm
@@ -65,19 +65,19 @@ JOR004,Balqa,Jordan,PSE003,Ariha (Jericho),West Bank and Gaza,river,Jordan,72.1,
 COD011,Sud-Kivu,Democratic Republic of Congo,BDI006,Cibitoke,Burundi,river,Rusizi,70.4,0.94,False,,verified:no-open-bridge
 ROU013,Caraş-Severin,Romania,SRB002,Branicevski,Serbia,river,Danube,69.1,0.63,False,,osm
 ARM002,Ararat,Armenia,TUR038,Igdir,Türkiye,river,Aras,67.0,1.0,False,,verified:no-open-bridge
-COD011,Sud-Kivu,Democratic Republic of Congo,TZA010,Kigoma,Tanzania,lake,Lake Tanganyika,64.5,1.0,False,,huge-lake/knowledge
-BRA025,Rio Grande Do Sul,Brazil,URY019,Treinta Y Tres,Uruguay,lake,Lagoa Mirim,62.1,1.0,False,,huge-lake/knowledge
+COD011,Sud-Kivu,Democratic Republic of Congo,TZA010,Kigoma,Tanzania,lake,Lake Tanganyika,64.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+BRA025,Rio Grande Do Sul,Brazil,URY019,Treinta Y Tres,Uruguay,lake,Lagoa Mirim / Laguna Merin (coastal lagoon),62.1,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 CHN018,Liaoning Sheng,China,PRK001,Chagang-do,D. P. R. of Korea,river,Yalu; Supung Reservoir,61.2,1.0,False,,osm
 RUS042,Leningradskaya Oblast,Russian Federation,EST004,Ida-Viru maakond,Estonia,river,Narva,59.7,0.96,True,Sõpruse sild / Нарвский мост Дружбы; yes,recheck2:physical-link-border-closed:Narva vehicles closed 2024
 BGR027,Vidin,Bulgaria,ROU018,Dolj,Romania,river,Danube,57.7,0.87,True,Podul Noua Europă - Мостът „Нова Европа“; yes,osm
-SWE012,Oestergoetlands Laen,Sweden,SWE021,Vaestra Goetalands Laen,Sweden,lake,Vättern,56.2,1.0,False,,huge-lake/knowledge
+SWE012,Oestergoetlands Laen,Sweden,SWE021,Vaestra Goetalands Laen,Sweden,lake,Vättern,56.2,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 ARG007,Corrientes,Argentina,PRY013,Misiones,Paraguay,river,Paraná,55.0,1.0,True,(web-verified),verified:open-bridge
 HRV009,Medimurje,Croatia,SVN009,Pomurska,Slovenia,river,Mur,53.9,0.9,True,1; Državna meja – Lendava; Pelinska ulica; Petrova ulica; yes,osm
 LSO005,Maseru,Lesotho,ZAF002,Free State,South Africa,river,Caledon,53.4,0.97,True,Maseru Bridge; yes,osm
 POL004,Lubeiskie,Poland,UKR022,Volyns'ka,Ukraine,river,Bug,188.6,0.99,True,Graniczny most kolejowy w Dorohusku; LHS; Linia Hutnicza Szerokotorowa; bridge; viaduct,osm
 MOZ008,Niassa,Mozambique,TZA020,Mtwara,Tanzania,river,Ruvuma,51.6,0.95,False,,osm
 COD029,Sud-Ubangi,Democratic Republic of Congo,CAF006,Plateaux,Central African Republic,river,Lobaye; Ubangi; Uele,171.4,0.98,False,,osm
-UGA026,Buvuma,Uganda,UGA075,Mayuge,Uganda,lake,Lake Victoria,164.6,1.0,False,,huge-lake/knowledge
+UGA026,Buvuma,Uganda,UGA075,Mayuge,Uganda,lake,Lake Victoria,164.6,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 HUN008,Gyor-moson-sopron,Hungary,SVK007,Trnava,Slovak Republic,river,Danube,48.9,1.0,True,bridge; yes,osm
 AZE051,Ordubad,Azerbaijan,IRN004,East Azarbayejan,Islamic Republic of Iran,river,Aras,45.1,0.72,False,,verified:no-open-bridge
 AFG004,Balkh,Afghanistan,TJK004,Khatlon Province,Tajikistan,river,Amu Darya,43.3,1.0,False,,osm
@@ -86,44 +86,42 @@ COD025,Mai-Ndombe,Democratic Republic of Congo,COG009,Plateaux,Congo,river,Congo
 HRV009,Medimurje,Croatia,HUN020,Zala,Hungary,river,Mur,38.7,1.0,True,DG - Čakovec – Kotoriba - DG; Murakeresztúri vasúti Mura-híd; Zrinski most; Zrínyi Miklós híd; Zrínyi Miklós híd / Zrinski most,osm
 LSO001,Berea,Lesotho,ZAF002,Free State,South Africa,river,Caledon,37.5,1.0,False,,verified:no-open-bridge
 MDA024,Ocnita,Moldova,UKR021,Vinnyts'ka,Ukraine,river,Dniester,36.4,1.0,True,Podul Prieteniei; Podul Prieteniei – міст Дружба; Podul „Unguri–Bronnița”; Podul „Unguri–Bronnița” / міст «Бронниця–Унгри»; Vălcineț - Могилів-Подільський (Україна),osm
-SWE014,Soedermanlands Laen,Sweden,SWE016,Uppsala Laen,Sweden,lake,Mälaren,35.7,1.0,True,(web-verified),verified:open-bridge
+SWE014,Soedermanlands Laen,Sweden,SWE016,Uppsala Laen,Sweden,lake,Mälaren,35.7,1.0,True,(web-verified),verified:open-bridge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 MDA019,Glodeni,Moldova,ROU007,Botoşani,Romania,river,Prut,34.5,1.0,False,,verified:no-open-bridge
 BIH002,Republika Srpska,Bosnia and Herzegovina,SRB020,Sremski,Serbia,river,Drina; Sava,32.9,1.0,True,Bijeljina - Šid; Most Evropa; Most u Rači; Бијељина - Шид; Мост Европа,osm
-RUS061,Pskovskaya Oblast,Russian Federation,EST004,Ida-Viru maakond,Estonia,lake,Lake Peipus (Chudskoye),31.2,0.74,False,,verified:no-open-bridge; reclassified river->lake (HydroRIVERS full-sweep + human map verification 2026-07-02)
+RUS061,Pskovskaya Oblast,Russian Federation,EST004,Ida-Viru maakond,Estonia,lake,Lake Peipus (Chudskoye),31.2,0.74,False,,verified:no-open-bridge; reclassified river->lake (HydroRIVERS full-sweep + human map verification 2026-07-02); wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 HRV018,Virovitica-podravina,Croatia,HUN002,Baranya,Hungary,river,Mur,29.0,1.0,False,,verified:no-open-bridge
 ZAF001,Eastern Cape,South Africa,LSO006,Mohale's Hoek,Lesotho,river,Orange,28.0,1.0,False,,osm
-UGA040,Kalangala,Uganda,UGA082,Mpigi,Uganda,lake,Lake Victoria,27.8,1.0,False,,huge-lake/knowledge
+UGA040,Kalangala,Uganda,UGA082,Mpigi,Uganda,lake,Lake Victoria,27.8,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 BWA010,Southern,Botswana,ZAF007,North West,South Africa,river,Molopo,156.8,0.89,True,low_water_crossing; yes,osm
-UGA026,Buvuma,Uganda,UGA084,Mukono,Uganda,lake,Lake Victoria,25.5,1.0,False,,huge-lake/knowledge
+UGA026,Buvuma,Uganda,UGA084,Mukono,Uganda,lake,Lake Victoria,25.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 AGO014,Malanje,Angola,COD021,Kwango,Democratic Republic of Congo,river,Kwango,149.5,0.98,False,,osm
 LAO012,Savannakhét,Lao People's Democratic Republic,THA001,Amnat Charoen,Thailand,river,Mekong,23.7,0.99,False,,osm
-BDI011,Makamba,Burundi,COD011,Sud-Kivu,Democratic Republic of Congo,lake,Lake Tanganyika,22.1,1.0,False,,huge-lake/knowledge
+BDI011,Makamba,Burundi,COD011,Sud-Kivu,Democratic Republic of Congo,lake,Lake Tanganyika,22.1,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 GHA015,Northern East,Ghana,TGO002,Kara,Togo,river,Oti,21.0,1.0,False,,osm
 IND005,Bihar,India,NPL001,Lumbini,Nepal,river,Gandak,20.4,1.0,True,yes,recheck2:tripoint-review:tripoint Bihar/Gandaki/Lumbini
 IRN001,Ardebil,Islamic Republic of Iran,AZE012,Beylagan,Azerbaijan,river,Aras,19.4,1.0,False,,verified:no-open-bridge
 LAO014,Vientiane [prefecture],Lao People's Democratic Republic,THA020,Loei,Thailand,river,Mekong,17.7,1.0,False,,osm
 LAO012,Savannakhét,Lao People's Democratic Republic,THA027,Nakhon Phanom,Thailand,river,Mekong,16.7,1.0,False,,osm
-TZA016,Mara,Tanzania,UGA075,Mayuge,Uganda,lake,Lake Victoria,15.5,1.0,False,,huge-lake/knowledge
-GHA004,Eastern,Ghana,GHA016,Oti,Ghana,lake,Lake Volta,14.3,1.0,False,,huge-lake/knowledge
+TZA016,Mara,Tanzania,UGA075,Mayuge,Uganda,lake,Lake Victoria,15.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+GHA004,Eastern,Ghana,GHA016,Oti,Ghana,river,Lake Volta (Volta River),14.3,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 COD029,Sud-Ubangi,Democratic Republic of Congo,CAF001,Bas-Oubangui,Central African Republic,river,Uele,13.5,1.0,False,,osm
 AUT003,Niederosterreich,Austria,SVK007,Trnava,Slovak Republic,river,Morava,9.8,1.0,True,bridge; yes,osm
 AFG004,Balkh,Afghanistan,UZB012,Surkhandarya,Uzbekistan,river,Amu Darya,146.5,0.96,True,Hayraton Do'stlik ko'prigi; پل دوستی افغانستان و ازبکستان,osm
 COD007,Kinshasa,Democratic Republic of Congo,COG002,Brazzaville,Congo,river,Congo,9.4,1.0,False,,osm
 JOR004,Balqa,Jordan,PSE015,Tubas,West Bank and Gaza,river,Jordan,8.7,1.0,False,,osm
 MRT003,Brakna,Mauritania,SEN015,Saint Louis,Senegal,river,Sénégal,7.7,1.0,False,,verified:no-open-bridge
-CHE016,Sankt Gallen,Switzerland,DEU001,Baden-Wuerttemberg,Germany,lake,Bodensee,6.9,1.0,False,,huge-lake/knowledge
+CHE016,Sankt Gallen,Switzerland,DEU001,Baden-Wuerttemberg,Germany,lake,Bodensee,6.9,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 CHE005,Basel-stadt,Switzerland,FRA002,Alsace,France,river,Rhin,5.6,0.64,False,,verified:no-open-bridge
-UGA027,Buyende,Uganda,UGA039,Kaberamaido,Uganda,lake,Lake Kyoga,5.0,1.0,False,,huge-lake/knowledge
+UGA027,Buyende,Uganda,UGA039,Kaberamaido,Uganda,lake,Lake Kyoga,5.0,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 CHE016,Sankt Gallen,Switzerland,LIE007,Schaan,Liechtenstein,river,Rhein,4.3,1.0,True,Energiebrücke; Rheinstrasse; Zollstrasse; bridge; yes,osm
 BIH002,Republika Srpska,Bosnia and Herzegovina,SRB008,Macvanski,Serbia,river,Drina; Sava,144.5,1.0,True,Most Aleksandra I Karađorđevića; Most Bratoljub; Most Ljubovija-Bratunac; yes; Дринска,osm
 CHE016,Sankt Gallen,Switzerland,LIE009,Triesen,Liechtenstein,river,Rhein,4.1,1.0,False,,recheck2:False:no bridge at this unit (Triesen)
 IND005,Bihar,India,NPL002,Gandaki,Nepal,river,Gandak,3.4,1.0,True,Gandak Barrage,osm
 BGR018,Silistra,Bulgaria,ROU020,Giurgiu,Romania,river,Danube,2.8,0.93,False,,recheck2:geometry-overruled:keep False: Friendship Bridge is Ruse not Silistra (32km)
 CHE016,Sankt Gallen,Switzerland,LIE002,Eschen,Liechtenstein,river,Rhein,2.2,1.0,False,,recheck2:False:no bridge at this unit (Eschen inland)
-AUT008,Vorarlberg,Austria,DEU001,Baden-Wuerttemberg,Germany,lake,Bodensee,1.2,1.0,False,,huge-lake/knowledge
+AUT008,Vorarlberg,Austria,DEU001,Baden-Wuerttemberg,Germany,lake,Bodensee,1.2,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 MDA019,Glodeni,Moldova,ROU025,Iaşi,Romania,river,Prut,0.9,1.0,False,,verified:no-open-bridge
-COD009,Nord-Kivu,Democratic Republic of Congo,UGA102,Rukungiri,Uganda,lake,Lake Edward,0.8,1.0,False,,huge-lake/knowledge
-CAN003,Manitoba,Canada,CAN006,Northwest Territories / Territoires du Nord-Ouest,Canada,lake,Kasba Lake,0.4,1.0,False,,osm
 MMR006,Kayin,Myanmar,THA022,Mae Hong Son,Thailand,river,Salween,140.0,0.95,False,,verified:no-open-bridge
 ARG008,Entre Rios,Argentina,URY011,Paysandu,Uruguay,river,Uruguay,136.8,1.0,True,Puente Internacional General Artigas,osm
 BEN001,Alibori,Benin,NER003,Dosso,Niger,river,Niger,133.6,1.0,True,Ancien Pont Gaya-Malanville; yes,recheck2:physical-link-border-closed:border closed (2023 coup)
@@ -139,13 +137,13 @@ LAO011,Saravan,Lao People's Democratic Republic,THA071,Ubon Ratchathani,Thailand
 ARG004,Chaco,Argentina,PRY014,Neembucu,Paraguay,river,Bermejo; Paraná,87.3,0.96,False,,osm
 ARM003,Armavir,Armenia,TUR038,Igdir,Türkiye,river,Aras,84.8,1.0,True,Iğdır - Alican Sınır Kapısı Yolu; yes,recheck2:physical-link-border-closed:border closed since 1993
 LAO013,Vientiane,Lao People's Democratic Republic,THA020,Loei,Thailand,river,Lancang; Mekong,82.9,1.0,False,,osm
-MOZXXX,Area under National Administration,Mozambique,MWI002,Northern Region,Malawi,lake,Lake Malawi,79.0,1.0,False,,huge-lake/knowledge
-BDI020,Rumonge,Burundi,COD011,Sud-Kivu,Democratic Republic of Congo,lake,Lake Tanganyika,77.8,1.0,False,,huge-lake/knowledge
+MOZXXX,Area under National Administration,Mozambique,MWI002,Northern Region,Malawi,lake,Lake Malawi,79.0,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+BDI020,Rumonge,Burundi,COD011,Sud-Kivu,Democratic Republic of Congo,lake,Lake Tanganyika,77.8,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 CHE001,Aargau,Switzerland,DEU001,Baden-Wuerttemberg,Germany,river,Rhin,72.7,1.0,True,Alte Rheinbrücke; Fridolinsbrücke; Hochrheinbrücke; Holzbrücke Bad Säckingen; Kraftwerk Ryburg-Schwörstadt,osm
-TZA016,Mara,Tanzania,UGA026,Buvuma,Uganda,lake,Lake Victoria,71.8,1.0,False,,huge-lake/knowledge
-KEN008,Homa Bay,Kenya,KEN038,Siaya,Kenya,lake,Lake Victoria,70.4,1.0,False,,huge-lake/knowledge
+TZA016,Mara,Tanzania,UGA026,Buvuma,Uganda,lake,Lake Victoria,71.8,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+KEN008,Homa Bay,Kenya,KEN038,Siaya,Kenya,lake,Lake Victoria,70.4,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 ISR004,Northern,Israel,JOR005,Irbid,Jordan,river,Jordan,68.1,0.77,True,abandoned; former Hejaz railway; yes; גשר אדם; גשר ביילי,osm
-CAN009,Ontario,Canada,USA039,Pennsylvania,United States of America,lake,Lake Erie,66.4,1.0,False,,huge-lake/knowledge
+CAN009,Ontario,Canada,USA039,Pennsylvania,United States of America,lake,Lake Erie,66.4,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 HRV018,Virovitica-podravina,Croatia,HUN015,Somogy,Hungary,river,Mur,64.0,0.93,True,yes,osm
 NAM001,Caprivi,Namibia,ZMB109,Southern,Zambia,river,Chobe; Zambezi,60.5,0.96,False,,osm
 NIC016,Río San Juan,Nicaragua,CRI004,Heredia,Costa Rica,river,San Juan,59.0,1.0,False,,verified:no-open-bridge
@@ -154,46 +152,46 @@ PRY004,Boqueron,Paraguay,ARG017,Salta,Argentina,river,Pilcomayo,55.7,1.0,True,Pu
 BIH001,Federacija Bosne I Hercegovine,Bosnia and Herzegovina,HRV019,Vukovar-srijem,Croatia,river,Sava,54.4,0.91,True,Most Županja - Orašje; yes,osm
 AZE073,Zangilan,Azerbaijan,IRN004,East Azarbayejan,Islamic Republic of Iran,river,Aras,53.6,0.92,False,,recheck2:False:under-construction (Aghband-Kalala)
 AGO012,Lunda Norte,Angola,COD019,Kasaï-Central,Democratic Republic of Congo,river,Kasai,53.2,1.0,False,,verified:no-open-bridge
-TZA006,Kagera,Tanzania,TZA016,Mara,Tanzania,lake,Lake Victoria,51.0,1.0,False,,huge-lake/knowledge
-NLD002,Flevoland,Netherlands,NLD004,Gelderland,Netherlands,lake,IJsselmeer,46.8,1.0,True,Nijkerkerbrug; Nijkerkerweg; Veldweg; boardwalk; yes,osm
+TZA006,Kagera,Tanzania,TZA016,Mara,Tanzania,lake,Lake Victoria,51.0,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+NLD002,Flevoland,Netherlands,NLD004,Gelderland,Netherlands,lake,IJsselmeer,46.8,1.0,True,Nijkerkerbrug; Nijkerkerweg; Veldweg; boardwalk; yes,osm; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 ARM008,Syunik,Armenia,IRN004,East Azarbayejan,Islamic Republic of Iran,river,Aras,44.8,0.86,True,yes; Երևան-Մեղրի ավտոմայրուղի; Կապան-Մեղրի մայրուղի; جاده خمارلو - جلفا,osm
-COD017,Ituri,Democratic Republic of Congo,UGA020,Buliisa,Uganda,lake,Lake Albert,43.5,1.0,False,,huge-lake/knowledge
+COD017,Ituri,Democratic Republic of Congo,UGA020,Buliisa,Uganda,lake,Lake Albert,43.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 AUT008,Vorarlberg,Austria,CHE016,Sankt Gallen,Switzerland,river,Rhein,43.3,0.89,True,Hauptstraße; Holzbrücke; Lustenauer Bundesstraße; Montlinger Straße; Paul Grüninger Brücke,osm
 MDA027,Riscani,Moldova,ROU007,Botoşani,Romania,river,Prut,42.7,1.0,True,(web-verified),verified:open-bridge
-CIV029,Lacs,Côte d'Ivoire,CIV032,Sassandra-Marahoué,Côte d'Ivoire,lake,Lac de Kossou,40.5,1.0,False,,huge-lake/knowledge
+CIV029,Lacs,Côte d'Ivoire,CIV032,Sassandra-Marahoué,Côte d'Ivoire,river,Lake Kossou (Bandama River),40.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 ESP002,Andalucía,Spain,PRT009,Faro,Portugal,river,Guadiana,39.4,1.0,True,Autovía del Quinto Centenario; Puente Internacional del Guadiana / Ponte Internacional do Guadiana; Via do Infante,osm
 CHN011,Heilongjiang Sheng,China,RUS014,Chitinskaya Oblast,Russian Federation,river,Heilong Jiang,37.8,1.0,False,,osm
 BIH001,Federacija Bosne I Hercegovine,Bosnia and Herzegovina,HRV015,Slavonski Brod-posav,Croatia,river,Sava,36.9,0.9,True,Most 5. gardijske brigade Slavonski sokolovi; Most Svilaj,osm
 BIH002,Republika Srpska,Bosnia and Herzegovina,HRV019,Vukovar-srijem,Croatia,river,Sava,36.1,0.97,True,Most Gunja - Brčko; Vinkovci – Drenovci – DG; yes; Željeznički most Brčko - Gunja,osm
-KEN038,Siaya,Kenya,UGA088,Namayingo,Uganda,lake,Lake Victoria,35.4,1.0,False,,huge-lake/knowledge
+KEN038,Siaya,Kenya,UGA088,Namayingo,Uganda,lake,Lake Victoria,35.4,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 IRN001,Ardebil,Islamic Republic of Iran,AZE015,Fuzuli,Azerbaijan,river,Aras,33.7,0.98,False,,osm
-NIC004,Chontales,Nicaragua,NIC006,Granada,Nicaragua,lake,Lago de Nicaragua,32.2,1.0,False,,huge-lake/knowledge
-TZA016,Mara,Tanzania,UGA088,Namayingo,Uganda,lake,Lake Victoria,30.6,1.0,False,,huge-lake/knowledge
+NIC004,Chontales,Nicaragua,NIC006,Granada,Nicaragua,lake,Lago de Nicaragua,32.2,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+TZA016,Mara,Tanzania,UGA088,Namayingo,Uganda,lake,Lake Victoria,30.6,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 AFG004,Balkh,Afghanistan,TKM003,Chardzhou,Turkmenistan,river,Amu Darya,28.4,0.91,False,,osm
-UGA040,Kalangala,Uganda,UGA109,Wakiso,Uganda,lake,Lake Victoria,27.9,1.0,False,,huge-lake/knowledge
+UGA040,Kalangala,Uganda,UGA109,Wakiso,Uganda,lake,Lake Victoria,27.9,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 MDA023,Nisporeni,Moldova,ROU025,Iaşi,Romania,river,Prut,26.6,1.0,False,,verified:no-open-bridge
 ZAF005,Limpopo,South Africa,ZWE007,Masvingo,Zimbabwe,river,Limpopo,26.4,1.0,False,,osm
 AZE033,Julfa,Azerbaijan,IRN004,East Azarbayejan,Islamic Republic of Iran,river,Aras,25.3,1.0,True,yes; پل آهنی جلفا,osm
 HND015,Olancho,Honduras,NIC014,Región Autónoma del Caribe Norte,Nicaragua,river,Coco,22.5,1.0,False,,osm
 JOR005,Irbid,Jordan,PSE015,Tubas,West Bank and Gaza,river,Jordan,22.0,1.0,False,,verified:no-open-bridge
 MDA020,Hincesti,Moldova,ROU025,Iaşi,Romania,river,Prut,20.9,1.0,False,,verified:no-open-bridge
-UGA040,Kalangala,Uganda,UGA100,Rakai,Uganda,lake,Lake Victoria,20.3,1.0,False,,huge-lake/knowledge
+UGA040,Kalangala,Uganda,UGA100,Rakai,Uganda,lake,Lake Victoria,20.3,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 USA044,Texas,United States of America,MEX019,Nuevo León,Mexico,river,Rio Grande,18.9,1.0,True,Laredo-Colombia Solidarity International Bridge; Puente Internacional Colombia-Solidaridad; Puente Internacional Solidaridad-Colombia,osm
 HUN008,Gyor-moson-sopron,Hungary,SVK004,Nitra,Slovak Republic,river,Danube,17.2,1.0,False,,osm
 ZMB105,Lusaka,Zambia,ZWE004,Mashonaland Central,Zimbabwe,river,Luangwa; Zambezi,16.6,1.0,False,,osm
-NLD002,Flevoland,Netherlands,NLD008,Noord-holland,Netherlands,lake,IJsselmeer,15.3,1.0,True,Flevolijn; Oude Landweg; Zilverstrandpoort; bridge,osm
+NLD002,Flevoland,Netherlands,NLD008,Noord-holland,Netherlands,lake,IJsselmeer,15.3,1.0,True,Flevolijn; Oude Landweg; Zilverstrandpoort; bridge,osm; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 ARM003,Armavir,Armenia,TUR045,Kars,Türkiye,river,Aras,14.1,1.0,False,,osm
-UGA020,Buliisa,Uganda,UGA091,Nebbi,Uganda,lake,Lake Albert,11.1,1.0,False,,huge-lake/knowledge
+UGA020,Buliisa,Uganda,UGA091,Nebbi,Uganda,lake,Lake Albert,11.1,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 HND009,Intibuca,Honduras,SLV002,Cabanas,El Salvador,river,Lempa,10.2,1.0,False,,verified:no-open-bridge
-UGA031,Hoima,Uganda,UGA093,Ntoroko,Uganda,lake,Lake Albert,9.7,1.0,False,,huge-lake/knowledge
+UGA031,Hoima,Uganda,UGA093,Ntoroko,Uganda,lake,Lake Albert,9.7,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 MOZ003,Gaza,Mozambique,ZWE003,Manicaland,Zimbabwe,river,Save,9.1,1.0,False,,osm
 AZE008,Babek,Azerbaijan,IRN004,East Azarbayejan,Islamic Republic of Iran,river,Aras,8.3,1.0,False,,verified:no-open-bridge
-BDI002,Mairie de Bujumbura,Burundi,COD011,Sud-Kivu,Democratic Republic of Congo,lake,Lake Tanganyika,7.1,1.0,False,,huge-lake/knowledge
+BDI002,Mairie de Bujumbura,Burundi,COD011,Sud-Kivu,Democratic Republic of Congo,lake,Lake Tanganyika,7.1,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 MRT013,Trarza,Mauritania,SEN015,Saint Louis,Senegal,river,Sénégal,6.4,1.0,False,,recheck2:False:under-construction (Rosso not open)
 HRV006,Koprivnica-krizevci,Croatia,HUN020,Zala,Hungary,river,Drau; Mur,5.5,1.0,False,,verified:no-open-bridge
 CHE016,Sankt Gallen,Switzerland,LIE011,Vaduz,Liechtenstein,river,Rhein,4.5,1.0,True,Alte Rheinbrücke Vaduz; Rheinstrasse; bridge; yes,osm
 MDA013,Donduseni,Moldova,UKR021,Vinnyts'ka,Ukraine,river,Dniester,4.2,1.0,False,,verified:no-open-bridge
-ISR005,Southern District,Israel,JOR009,Madaba,Jordan,lake,Dead Sea,3.9,1.0,False,,huge-lake/knowledge
+ISR005,Southern District,Israel,JOR009,Madaba,Jordan,lake,Dead Sea,3.9,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 CHE016,Sankt Gallen,Switzerland,LIE006,Ruggell,Liechtenstein,river,Rhein,3.3,1.0,True,Rheinstrasse; yes,osm
 ARG007,Corrientes,Argentina,URY015,Salto,Uruguay,river,Uruguay; Salto Grande Reservoir,1.9,1.0,False,,recheck2:geometry-overruled:keep False: Salto Grande is Entre Rios not Corrientes (62km)
 HUN016,Szabolcs-szatmar-bereg,Hungary,SVK003,Kosice,Slovak Republic,river,Tisza,1.0,1.0,False,,verified:no-open-bridge
@@ -276,27 +274,26 @@ AUT008,Vorarlberg,Austria,LIE006,Ruggell,Liechtenstein,river,Rhein,2.4,0.8,False
 AZE054,Sadarak,Azerbaijan,IRN026,West Azarbayejan,Islamic Republic of Iran,river,Aras,1.2,1.0,False,,verified:no-open-bridge
 BIH002,Republika Srpska,Bosnia and Herzegovina,MNE021,Zabljak,Montenegro,river,Drina,0.9,1.0,False,,osm
 FRA011,Franche-Comte,France,CHE006,Bern,Switzerland,river,Doubs; Lac des Brenets,0.8,1.0,False,,recheck2:False:wrong-canton (Doubs is Jura/Neuchatel not Bern)
-COD030,Tanganyika,Democratic Republic of Congo,TZA010,Kigoma,Tanzania,lake,Lake Tanganyika,233.5,1.0,False,,huge-lake/knowledge
-TZA006,Kagera,Tanzania,TZA021,Mwanza,Tanzania,lake,Lake Victoria,124.9,1.0,False,,huge-lake/knowledge
-COD017,Ituri,Democratic Republic of Congo,UGA031,Hoima,Uganda,lake,Lake Albert,88.1,1.0,False,,huge-lake/knowledge
-TZA006,Kagera,Tanzania,UGA040,Kalangala,Uganda,lake,Lake Victoria,83.5,1.0,False,,huge-lake/knowledge
-UGA040,Kalangala,Uganda,UGA073,Masaka,Uganda,lake,Lake Victoria,78.8,1.0,False,,huge-lake/knowledge
-RUS061,Pskovskaya Oblast,Russian Federation,EST013,Tartu maakond,Estonia,lake,Lake Peipus; Lake Pskov,67.8,1.0,False,,huge-lake/knowledge
-UGA026,Buvuma,Uganda,UGA015,Buikwe,Uganda,lake,Lake Victoria,61.7,1.0,False,,huge-lake/knowledge
-NIC004,Chontales,Nicaragua,NIC017,Rivas,Nicaragua,lake,Lago de Nicaragua,56.2,1.0,False,,huge-lake/knowledge
-KEN008,Homa Bay,Kenya,UGA088,Namayingo,Uganda,lake,Lake Victoria,51.8,1.0,False,,huge-lake/knowledge
-UGA040,Kalangala,Uganda,UGA084,Mukono,Uganda,lake,Lake Victoria,41.9,1.0,False,,huge-lake/knowledge
-CIV032,Sassandra-Marahoué,Côte d'Ivoire,CIV034,Vallée du Bandama,Côte d'Ivoire,lake,Lac de Kossou,39.3,1.0,False,,huge-lake/knowledge
-COD030,Tanganyika,Democratic Republic of Congo,TZA009,Katavi,Tanzania,lake,Lake Tanganyika,37.6,1.0,False,,huge-lake/knowledge
-JOR009,Madaba,Jordan,PSE004,Bethlehem,West Bank and Gaza,lake,Dead Sea,26.5,1.0,False,,huge-lake/knowledge
-KEN027,Migori,Kenya,UGA088,Namayingo,Uganda,lake,Lake Victoria,21.6,1.0,False,,huge-lake/knowledge
-UGA005,Amolatar,Uganda,UGA027,Buyende,Uganda,lake,Lake Kyoga,17.2,1.0,False,,huge-lake/knowledge
-COD009,Nord-Kivu,Democratic Republic of Congo,UGA101,Rubirizi,Uganda,lake,Lake Edward,14.5,1.0,False,,huge-lake/knowledge
-TZA016,Mara,Tanzania,UGA040,Kalangala,Uganda,lake,Lake Victoria,13.8,1.0,False,,huge-lake/knowledge
+COD030,Tanganyika,Democratic Republic of Congo,TZA010,Kigoma,Tanzania,lake,Lake Tanganyika,233.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+TZA006,Kagera,Tanzania,TZA021,Mwanza,Tanzania,lake,Lake Victoria,124.9,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+COD017,Ituri,Democratic Republic of Congo,UGA031,Hoima,Uganda,lake,Lake Albert,88.1,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+TZA006,Kagera,Tanzania,UGA040,Kalangala,Uganda,lake,Lake Victoria,83.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+UGA040,Kalangala,Uganda,UGA073,Masaka,Uganda,lake,Lake Victoria,78.8,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+RUS061,Pskovskaya Oblast,Russian Federation,EST013,Tartu maakond,Estonia,lake,Lake Peipus; Lake Pskov,67.8,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+UGA026,Buvuma,Uganda,UGA015,Buikwe,Uganda,lake,Lake Victoria,61.7,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+NIC004,Chontales,Nicaragua,NIC017,Rivas,Nicaragua,lake,Lago de Nicaragua,56.2,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+KEN008,Homa Bay,Kenya,UGA088,Namayingo,Uganda,lake,Lake Victoria,51.8,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+UGA040,Kalangala,Uganda,UGA084,Mukono,Uganda,lake,Lake Victoria,41.9,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+CIV032,Sassandra-Marahoué,Côte d'Ivoire,CIV034,Vallée du Bandama,Côte d'Ivoire,river,Lake Kossou (Bandama River),39.3,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+COD030,Tanganyika,Democratic Republic of Congo,TZA009,Katavi,Tanzania,lake,Lake Tanganyika,37.6,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+JOR009,Madaba,Jordan,PSE004,Bethlehem,West Bank and Gaza,lake,Dead Sea,26.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+KEN027,Migori,Kenya,UGA088,Namayingo,Uganda,lake,Lake Victoria,21.6,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+UGA005,Amolatar,Uganda,UGA027,Buyende,Uganda,lake,Lake Kyoga,17.2,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+COD009,Nord-Kivu,Democratic Republic of Congo,UGA101,Rubirizi,Uganda,lake,Lake Edward,14.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 MDA008,Cantemir,Moldova,ROU019,Galaţi,Romania,river,Prut,0.6,1.0,False,,osm
-JOR004,Balqa,Jordan,PSE004,Bethlehem,West Bank and Gaza,lake,Dead Sea,4.5,1.0,False,,huge-lake/knowledge
-PSE003,Ariha (Jericho),West Bank and Gaza,PSE004,Bethlehem,West Bank and Gaza,lake,Dead Sea,4.2,1.0,False,,huge-lake/knowledge
-UGA015,Buikwe,Uganda,UGA075,Mayuge,Uganda,lake,Lake Victoria,3.7,1.0,False,,huge-lake/knowledge
-NLD002,Flevoland,Netherlands,NLD010,Utrecht,Netherlands,lake,IJsselmeer,5.0,1.0,False,,verified:no-open-bridge
+JOR004,Balqa,Jordan,PSE004,Bethlehem,West Bank and Gaza,lake,Dead Sea,4.5,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+PSE003,Ariha (Jericho),West Bank and Gaza,PSE004,Bethlehem,West Bank and Gaza,lake,Dead Sea,4.2,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+UGA015,Buikwe,Uganda,UGA075,Mayuge,Uganda,lake,Lake Victoria,3.7,1.0,False,,huge-lake/knowledge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
+NLD002,Flevoland,Netherlands,NLD010,Utrecht,Netherlands,lake,IJsselmeer,5.0,1.0,False,,verified:no-open-bridge; wu1 water-unification re-adjudication 2026-07-25 (cross-vendor two-pass)
 BOL001,Beni,Bolivia,BRA026,Rondonia,Brazil,river,Guaporé; Madeira; Madre de Dios,963.1,0.76,False,,verified:no-open-bridge
 USA044,Texas,United States of America,MEX005,Coahuila de Zaragoza,Mexico,river,Pecos; Rio Grande,719.9,0.96,True,Camino Real International Bridge; Del Río–Ciudad Acuña International Bridge; Eagle Pass International Bridge I; Eagle Pass–Piedras Negras International Bridge; International Bridge II,osm

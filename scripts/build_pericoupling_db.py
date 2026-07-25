@@ -198,9 +198,28 @@ _ADM1_SAMPLE_DEG = 0.01
 #     separate the states; the WB's 2.35 km contact is a mid-river seam where
 #     Bolívar's sliver frontage was dropped (docs/FUTURE_EDGE_AUDITS.md #8;
 #     maintainer removal decision 2026-07-18).
+#
+#   The next three are mid-lake contacts denylisted by the wu1 water-unification
+#   campaign (maintainer map rulings 2026-07-25).  Note these differ from every
+#   prior denylist entry: the WB arc is STABLE across the tolerance ladder
+#   (0.563 / 1.081 / 14.019 km at 1e-3, single component), so there is no
+#   WB-computable artifact signature — each rests on the maintainer's
+#   official-map check, which the evidence hierarchy places above a dataset
+#   signature.  Recorded individually in docs/FUTURE_EDGE_AUDITS.md.
+#   CAN003/CAN006 — Manitoba/Northwest Territories: the contact sits at the
+#     Manitoba–NWT–Nunavut–Saskatchewan FOUR-CORNERS point in Kasba Lake; a
+#     quadripoint is not a shared border.
+#   COD009/UGA102 — Nord-Kivu/Rukungiri: a point on the Lake Edward boundary;
+#     Rukungiri lies inland, and Rubirizi/Kanungu hold the Ugandan shore.
+#   TZA016/UGA040 — Mara/Kalangala: diagonal non-adjacency in Lake Victoria —
+#     the Kagera–Mara transition reaches the international line east of
+#     Kalangala's limit, so Kagera faces Kalangala and Mara faces Buvuma.
 _ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
     frozenset({"LBR006", "LBR014"}),
     frozenset({"VEN001", "VEN003"}),
+    frozenset({"CAN003", "CAN006"}),
+    frozenset({"COD009", "UGA102"}),
+    frozenset({"TZA016", "UGA040"}),
 }
 
 # Reviewed ADM1 unit merges, applied before contiguity (source-data artifacts

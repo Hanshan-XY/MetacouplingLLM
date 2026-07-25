@@ -3,7 +3,7 @@
 > **Note:** the OSM bridge-detection method below is the frozen discovery record for the base classification; current counts live in `docs/METHODS_adjacency.md` and `data/PROVENANCE.md`.
 
 **Status:** verification complete & human-validated · **Date:** 2026-06-03/04
-**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(The current base `bridge_classified_authoritative.csv` carries **301 rows** — 238 river / 63 lake, 101 with an open fixed crossing / 200 without — every river row re-adjudicated under the ru1 cross-vendor process (2026-07-21); the correction history, including the Italy↔Vatican land reclassification, is in `CHANGELOG.md`. Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **739 ADM1 pairs (345 with an open fixed crossing / 394 without)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**: hydro-water 18, hydro-lakes 12, rescreen-water 386 (incl. the ru1-folded former wide-river and audit-water rows), rescreen-gap 22 (incl. the rg1-folded former river-gap rows (2026-07-22) and the lg1-folded former lake-gap row (Skadar, 2026-07-23)). There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers, corrected only through the reviewed hydro-lakes/rescreen-gap overlays; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
+**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(The current base `bridge_classified_authoritative.csv` carries **298 rows** — 242 river / 56 lake, 101 with an open fixed crossing / 197 without — every row re-adjudicated under the standard cross-vendor process: the river rows by ru1 (2026-07-21), the lake-class rows by wu1 (2026-07-25, which removed 3 mid-lake point contacts on the maintainer's map check and retyped 4 dam impoundments lake → river); the correction history, including the Italy↔Vatican land reclassification, is in `CHANGELOG.md`. Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **736 ADM1 pairs (345 with an open fixed crossing / 391 without)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**: hydro-water 18, hydro-lakes 12, rescreen-water 386 (incl. the ru1-folded former wide-river and audit-water rows), rescreen-gap 22 (incl. the rg1-folded former river-gap rows (2026-07-22) and the lg1-folded former lake-gap row (Skadar, 2026-07-23)). There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers, corrected only through the reviewed hydro-lakes/rescreen-gap overlays; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
 
 This document records, in detail, how the bridge-classification database was built: why it
 exists, the inputs, the OpenStreetMap (OSM) detection method and its evolution, the
@@ -324,7 +324,7 @@ direction for a connectivity dataset; the verification removed those.
 > disagreements → geocode + province-polygon cross-check — was later
 > formalized as the **four-layer bridge pipeline**
 > (`docs/METHODS_adjacency.md` §8) and reused for every rescreen-water /
-> rescreen-gap addition, which now supply the majority of the 739 shipped
+> rescreen-gap addition, which now supply the majority of the 736 shipped
 > water-only pairs.
 
 `bridge_classified_authoritative.csv` → frozen as a dated **`water_separated_pairs.csv`**
@@ -341,8 +341,8 @@ are water-only; it "has a bridge" if *any* does. Most country pairs have some la
 are unaffected.
 
 *(Current shipped state after the reviewed overlays: `water_separated_pairs.csv` carries
-**739 ADM1 pairs (345 / 394)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**;
-the base `bridge_classified_authoritative.csv` is **301 rows**. See
+**736 ADM1 pairs (345 / 391)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**;
+the base `bridge_classified_authoritative.csv` is **298 rows**. See
 `data/PROVENANCE.md`.)*
 
 ---
