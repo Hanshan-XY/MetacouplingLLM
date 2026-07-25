@@ -221,7 +221,11 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   re-adjudication (8 rows demoted to mixed land by maintainer map ruling,
   2026-07-21) and the wu1 water-screen unification (3 mid-lake point contacts
   removed and 4 dam impoundments retyped lake → river, 2026-07-25)) — SHA-256
-  `fbcaba19e187a78cd6040e6f4c7bdce647ff1acf22408d9cadbf00e3132ad1ba`.
+  `b23fb2307c7e553a74223c3142d5a4f354aeb964af001d940574d7cbccdaa5c7`
+  (**LF-normalised**: this is the one *text* input and the repo has no
+  `.gitattributes`, so a `core.autocrlf=true` checkout renders it CRLF while git
+  stores LF; `build_all.py` normalises before comparing so the pin holds on
+  either platform. The GeoPackage digests above are raw bytes).
 - **Natural Earth** 10m physical — `ne_10m_lakes` (used for descriptive
   water-type classification only; never an edge-removing filter).
   Rivers (`ne_10m_rivers_lake_centerlines`) are used only for advisory flags.

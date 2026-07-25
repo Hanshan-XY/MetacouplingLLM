@@ -44,13 +44,15 @@ DEFAULT_DATA = REPO / "src" / "metacouplingllm" / "data"
 
 # SHA-256 of the pinned inputs (World Bank Official Boundaries, 2026-05-14
 # release; bridge classification snapshot 2026-06).  Also recorded in
-# data/PROVENANCE.md "Sources (pinned)".
+# data/PROVENANCE.md "Sources (pinned)".  The GeoPackage digests are of the raw
+# bytes; `bridge_csv` is the LF-normalised digest (see _sha256) so the pin holds
+# on both CRLF and LF checkouts.
 PINNED_SHA256 = {
     "adm1_gpkg": "dbac29f4ecaabe6a9b3ecf50780e5e57a725c7f0eab3d2514ce54fb717b64b45",
     "adm0_gpkg": "97f0c8a0fa848b9a8414dbeb2e058fa37d59b13794ec232a87da000bdf4b117e",
     "ocean_gpkg": "c2b074fdd691f6d36ba4a89af2761a11b35dea4d4c8c4f186f6132f43c88d702",
     "ndlsa_gpkg": "159ef2d133d12491eb6ce2f0d0d1032083209b0cf7d28ddda774a503055d2fa4",
-    "bridge_csv": "fbcaba19e187a78cd6040e6f4c7bdce647ff1acf22408d9cadbf00e3132ad1ba",
+    "bridge_csv": "b23fb2307c7e553a74223c3142d5a4f354aeb964af001d940574d7cbccdaa5c7",
 }
 
 EXPECTED = {
@@ -62,8 +64,24 @@ EXPECTED = {
 }
 
 
-def _sha256(path: Path) -> str:
+def _sha256(path: Path, *, text: bool = False) -> str:
+    """SHA-256 of a pinned input.
+
+    ``text=True`` normalises CRLF -> LF before hashing, so the digest is a
+    property of the *content* rather than of the checkout's line endings.  The
+    bridge CSV is the one text input, and the repo carries no ``.gitattributes``:
+    with ``core.autocrlf=true`` a Windows checkout renders it CRLF while git
+    stores (and Linux/CI check out) LF, which are two different digests.  Pinning
+    either raw form makes ``--full`` abort on the other platform -- and it did:
+    the pin was the Windows rendering, so ``--full`` was unreproducible on Linux
+    until this normalisation landed.  The pins below are therefore the LF digest.
+
+    The GeoPackages are binary and must never be normalised.
+    """
     h = hashlib.sha256()
+    if text:
+        h.update(path.read_bytes().replace(b"\r\n", b"\n"))
+        return h.hexdigest()
     with open(path, "rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
@@ -168,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
             ap.error(f"--full requires {', '.join('--' + m.replace('_', '-') for m in missing)}")
         print("verifying input checksums against pins...")
         for key, path in inputs.items():
-            digest = _sha256(Path(path))
+            digest = _sha256(Path(path), text=(key == "bridge_csv"))
             pin = PINNED_SHA256[key]
             if pin is None:
                 print(f"  {key}: {digest}  (no pin recorded yet)")

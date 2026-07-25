@@ -497,17 +497,22 @@ def test_bridge_csv_sha_matches_pin():
     already: the ru1 campaign re-pinned PROVENANCE.md and docs/REPRODUCING.md
     but missed scripts/build_all.py, leaving `--full` failing on main.
 
+    The digest is LF-normalised, via the same ``build_all._sha256(text=True)``
+    the verifier uses.  The repo has no ``.gitattributes``, so with
+    ``core.autocrlf=true`` a Windows checkout renders this CSV CRLF while git
+    stores LF -- two different raw digests for identical content.  Hashing the
+    raw bytes therefore made the pin platform-dependent, and this test caught it:
+    it passed on the Windows checkout the pin was computed on and failed on CI.
+
     Re-pin in all three places whenever the CSV changes.
     """
-    import hashlib
-
     spec = importlib.util.spec_from_file_location(
         "build_all_for_pin_check", REPO_ROOT / "scripts" / "build_all.py"
     )
     build_all = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(build_all)
 
-    actual = hashlib.sha256(BRIDGE_CSV.read_bytes()).hexdigest()
+    actual = build_all._sha256(BRIDGE_CSV, text=True)
     pinned = build_all.PINNED_SHA256["bridge_csv"]
     assert actual == pinned, (
         f"bridge_classified_authoritative.csv hashes to {actual}\n"
@@ -525,3 +530,29 @@ def test_bridge_csv_sha_matches_pin():
     assert abbrev in REPRODUCING_MD.read_text(encoding="utf-8"), (
         f"docs/REPRODUCING.md does not carry the abbreviated hash {abbrev}"
     )
+
+
+def test_bridge_csv_pin_is_line_ending_independent(tmp_path):
+    """The bridge-CSV digest must not depend on the checkout's line endings.
+
+    This is the property that actually makes the pin portable: the same content
+    written CRLF and LF must hash identically, so `--full` verifies on a Windows
+    autocrlf checkout and on CI/Linux alike.  Regressing ``_sha256`` to raw bytes
+    fails here rather than only on whichever platform did not compute the pin.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "build_all_for_eol_check", REPO_ROOT / "scripts" / "build_all.py"
+    )
+    build_all = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build_all)
+
+    lf_bytes = BRIDGE_CSV.read_bytes().replace(b"\r\n", b"\n")
+    lf, crlf = tmp_path / "lf.csv", tmp_path / "crlf.csv"
+    lf.write_bytes(lf_bytes)
+    crlf.write_bytes(lf_bytes.replace(b"\n", b"\r\n"))
+
+    assert build_all._sha256(lf, text=True) == build_all._sha256(crlf, text=True)
+    # ...and the pin is that shared value, i.e. the LF/canonical digest.
+    assert build_all._sha256(lf, text=True) == build_all.PINNED_SHA256["bridge_csv"]
+    # The GeoPackage path must stay raw-byte: normalising binary would corrupt it.
+    assert build_all._sha256(crlf) != build_all._sha256(lf)

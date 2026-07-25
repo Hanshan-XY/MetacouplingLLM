@@ -49,9 +49,15 @@ refuses to build from a mismatching file):
 | WB Admin 0 GeoPackage (layer `WB_GAD_ADM0`, 264 features) | same distribution | `97f0c8a0…f4b117e` |
 | WB Ocean Mask GeoPackage | same distribution | `c2b074fd…c88d702` |
 | WB NDLSA GeoPackage (24 disputed-area features) | same distribution | `159ef2d1…55d2fa4` |
-| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `fbcaba19…32ad1ba` |
+| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `b23fb230…cdaa5c7` |
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
+
+> The GeoPackage digests are of the raw bytes. The bridge CSV is **text**, and
+> the repo carries no `.gitattributes`, so a `core.autocrlf=true` checkout
+> renders it CRLF while git stores LF — two different raw digests for identical
+> content. Its pin is therefore the **LF-normalised** digest, and `build_all.py`
+> normalises before comparing, so `--full` verifies on either platform.
 
 **What a clean clone contains.** Everything §2 and §4 need ships in the
 repository, including the bridge classification CSV (tracked at its
