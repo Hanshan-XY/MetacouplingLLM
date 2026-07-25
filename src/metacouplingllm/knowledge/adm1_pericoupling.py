@@ -5,7 +5,7 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,459 border pairs** covering **3,374 unique ADM1
+The edge list contains **8,456 border pairs** covering **3,374 unique ADM1
 regions** across **196 countries** (four-stage build).  The graph is built in four
 stages (full provenance in ``data/PROVENANCE.md`` and
 ``docs/METHODS_adjacency.md``): (1) **topology** -- rook contiguity at exact
@@ -35,8 +35,8 @@ the placeholder-identity audit + the 15 river rows folded in by the ru1
 river-screen unification, 2026-07-21).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
-only those with a fixed crossing, ``stringent`` keeps none): the 739 water-only
-pairs give **8,459** lenient / **8,065** moderate / **7,720** stringent.
+only those with a fixed crossing, ``stringent`` keeps none): the 736 water-only
+pairs give **8,456** lenient / **8,065** moderate / **7,720** stringent.
 
 Source
 ------

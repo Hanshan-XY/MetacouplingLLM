@@ -1331,7 +1331,6 @@ CAN002,British Columbia / Colombie-Britannique,Canada,CAN,Other,CAN006,Northwest
 CAN002,British Columbia / Colombie-Britannique,Canada,CAN,Other,CAN013,Yukon,Canada,CAN,Other,False,851.0835,False,False
 CAN002,British Columbia / Colombie-Britannique,Canada,CAN,Other,USA013,Idaho,United States of America,USA,Other,True,71.9474,False,False
 CAN002,British Columbia / Colombie-Britannique,Canada,CAN,Other,USA048,Washington,United States of America,USA,Other,True,423.0264,False,False
-CAN003,Manitoba,Canada,CAN,Other,CAN006,Northwest Territories / Territoires du Nord-Ouest,Canada,CAN,Other,False,0.3958,True,True
 CAN003,Manitoba,Canada,CAN,Other,CAN008,Nunavut,Canada,CAN,Other,False,400.6654,False,False
 CAN003,Manitoba,Canada,CAN,Other,CAN009,Ontario,Canada,CAN,Other,False,981.6113,False,False
 CAN003,Manitoba,Canada,CAN,Other,CAN012,Saskatchewan,Canada,CAN,Other,False,1267.9026,False,False
@@ -1698,7 +1697,6 @@ COD009,Nord-Kivu,Democratic Republic of Congo,COD,AFR,UGA046,Kanungu,Uganda,UGA,
 COD009,Nord-Kivu,Democratic Republic of Congo,COD,AFR,UGA048,Kasese,Uganda,UGA,AFR,True,94.7038,False,False
 COD009,Nord-Kivu,Democratic Republic of Congo,COD,AFR,UGA055,Kisoro,Uganda,UGA,AFR,True,48.9638,False,False
 COD009,Nord-Kivu,Democratic Republic of Congo,COD,AFR,UGA101,Rubirizi,Uganda,UGA,AFR,True,14.4997,False,False
-COD009,Nord-Kivu,Democratic Republic of Congo,COD,AFR,UGA102,Rukungiri,Uganda,UGA,AFR,True,0.8354,True,True
 COD011,Sud-Kivu,Democratic Republic of Congo,COD,AFR,BDI001,Bubanza,Burundi,BDI,AFR,True,25.9447,False,False
 COD011,Sud-Kivu,Democratic Republic of Congo,COD,AFR,BDI006,Cibitoke,Burundi,BDI,AFR,True,70.4086,False,False
 COD011,Sud-Kivu,Democratic Republic of Congo,COD,AFR,COD008,Maniema,Democratic Republic of Congo,COD,AFR,False,719.3201,False,False
@@ -7573,7 +7571,6 @@ TZA015,Manyara,Tanzania,TZA,AFR,TZA030,Tanga,Tanzania,TZA,AFR,False,244.6789,Fal
 TZA016,Mara,Tanzania,TZA,AFR,TZA021,Mwanza,Tanzania,TZA,AFR,False,196.9298,False,False
 TZA016,Mara,Tanzania,TZA,AFR,TZA027,Simiyu,Tanzania,TZA,AFR,False,236.5924,False,False
 TZA016,Mara,Tanzania,TZA,AFR,UGA026,Buvuma,Uganda,UGA,AFR,True,71.7885,False,False
-TZA016,Mara,Tanzania,TZA,AFR,UGA040,Kalangala,Uganda,UGA,AFR,True,13.7969,False,False
 TZA016,Mara,Tanzania,TZA,AFR,UGA075,Mayuge,Uganda,UGA,AFR,True,15.5303,False,False
 TZA016,Mara,Tanzania,TZA,AFR,UGA088,Namayingo,Uganda,UGA,AFR,True,30.6253,False,False
 TZA017,Mbeya,Tanzania,TZA,AFR,TZA022,Njombe,Tanzania,TZA,AFR,False,226.1097,False,False

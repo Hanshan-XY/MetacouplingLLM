@@ -477,3 +477,82 @@ def test_methods_adjacency_doc_counts_match_live_data():
         "paragraph (section 7), and the coupling-standard Data paragraph "
         "(section 8)."
     )
+
+
+# ---------------------------------------------------------------------------
+# Pinned-input SHA guard (protects `build_all.py --full` reproducibility)
+# ---------------------------------------------------------------------------
+
+BRIDGE_CSV = REPO_ROOT / "build_data" / "bridge_classified_authoritative.csv"
+PROVENANCE_MD = REPO_ROOT / "src" / "metacouplingllm" / "data" / "PROVENANCE.md"
+REPRODUCING_MD = REPO_ROOT / "docs" / "REPRODUCING.md"
+
+
+def test_bridge_csv_sha_matches_pin():
+    """The bridge CSV's hash must match build_all.py's pin AND both docs.
+
+    ``build_all.py --full`` verifies every pinned input's SHA-256 before
+    rebuilding, so a stale pin breaks full reproduction -- silently, because CI
+    runs pytest only and nothing else reads PINNED_SHA256.  This drifted once
+    already: the ru1 campaign re-pinned PROVENANCE.md and docs/REPRODUCING.md
+    but missed scripts/build_all.py, leaving `--full` failing on main.
+
+    The digest is LF-normalised, via the same ``build_all._sha256(text=True)``
+    the verifier uses.  The repo has no ``.gitattributes``, so with
+    ``core.autocrlf=true`` a Windows checkout renders this CSV CRLF while git
+    stores LF -- two different raw digests for identical content.  Hashing the
+    raw bytes therefore made the pin platform-dependent, and this test caught it:
+    it passed on the Windows checkout the pin was computed on and failed on CI.
+
+    Re-pin in all three places whenever the CSV changes.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "build_all_for_pin_check", REPO_ROOT / "scripts" / "build_all.py"
+    )
+    build_all = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build_all)
+
+    actual = build_all._sha256(BRIDGE_CSV, text=True)
+    pinned = build_all.PINNED_SHA256["bridge_csv"]
+    assert actual == pinned, (
+        f"bridge_classified_authoritative.csv hashes to {actual}\n"
+        f"but scripts/build_all.py pins {pinned}.\n"
+        "`build_all.py --full` will abort. Re-pin the CSV in build_all.py, "
+        "data/PROVENANCE.md, and docs/REPRODUCING.md."
+    )
+
+    # PROVENANCE.md carries the full 64-char hash.
+    assert actual in PROVENANCE_MD.read_text(encoding="utf-8"), (
+        f"data/PROVENANCE.md does not carry the current bridge-CSV hash {actual}"
+    )
+    # docs/REPRODUCING.md carries an abbreviated first-8...last-7 form.
+    abbrev = f"{actual[:8]}…{actual[-7:]}"
+    assert abbrev in REPRODUCING_MD.read_text(encoding="utf-8"), (
+        f"docs/REPRODUCING.md does not carry the abbreviated hash {abbrev}"
+    )
+
+
+def test_bridge_csv_pin_is_line_ending_independent(tmp_path):
+    """The bridge-CSV digest must not depend on the checkout's line endings.
+
+    This is the property that actually makes the pin portable: the same content
+    written CRLF and LF must hash identically, so `--full` verifies on a Windows
+    autocrlf checkout and on CI/Linux alike.  Regressing ``_sha256`` to raw bytes
+    fails here rather than only on whichever platform did not compute the pin.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "build_all_for_eol_check", REPO_ROOT / "scripts" / "build_all.py"
+    )
+    build_all = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build_all)
+
+    lf_bytes = BRIDGE_CSV.read_bytes().replace(b"\r\n", b"\n")
+    lf, crlf = tmp_path / "lf.csv", tmp_path / "crlf.csv"
+    lf.write_bytes(lf_bytes)
+    crlf.write_bytes(lf_bytes.replace(b"\n", b"\r\n"))
+
+    assert build_all._sha256(lf, text=True) == build_all._sha256(crlf, text=True)
+    # ...and the pin is that shared value, i.e. the LF/canonical digest.
+    assert build_all._sha256(lf, text=True) == build_all.PINNED_SHA256["bridge_csv"]
+    # The GeoPackage path must stay raw-byte: normalising binary would corrupt it.
+    assert build_all._sha256(crlf) != build_all._sha256(lf)
