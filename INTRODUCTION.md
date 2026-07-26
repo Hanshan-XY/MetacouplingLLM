@@ -569,4 +569,4 @@ pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-1375 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.
+1381 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.

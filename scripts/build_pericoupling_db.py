@@ -687,7 +687,7 @@ def write_water_separated_manifest(
 
     water_all: set[frozenset[str]] = set()
     has_b: dict[frozenset[str], bool] = {}
-    adm1_rows: list[tuple[str, str, str, str, str]] = []
+    adm1_rows: list[tuple[str, str, str, str, str, str, str]] = []
     with open(bridge_csv, newline="", encoding="utf-8-sig") as fh:
         for r in csv.DictReader(fh):
             ca, cb = r["code_a"].strip(), r["code_b"].strip()
@@ -695,8 +695,12 @@ def write_water_separated_manifest(
             pair = frozenset({ca, cb})
             water_all.add(pair)
             has_b[pair] = br == "True"
+            # the two provenance columns ride along from the reviewed bridge CSV;
+            # dropping them here would silently blank provenance for the base
+            # rows on every --full rebuild and break the byte-identity claim.
             adm1_rows.append(
-                (ca, cb, br, r.get("water_type", ""), r.get("water_body", ""))
+                (ca, cb, br, r.get("water_type", ""), r.get("water_body", ""),
+                 r.get("adjudication", ""), r.get("verification_tier", ""))
             )
 
     edges: set[frozenset[str]] = set()
@@ -721,14 +725,14 @@ def write_water_separated_manifest(
             adm0_rows.append((ia, ib, anyb))
 
     cols = ["level", "code_a", "code_b", "has_bridge",
-            "water_type", "water_body", "note"]
+            "water_type", "water_body", "note", "adjudication", "verification_tier"]
     with open(out_path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(cols)
-        for ca, cb, br, wt, wb in adm1_rows:
-            w.writerow(["adm1", ca, cb, br, wt, wb, ""])
+        for ca, cb, br, wt, wb, adj, tier in adm1_rows:
+            w.writerow(["adm1", ca, cb, br, wt, wb, "", adj, tier])
         for ia, ib, br in sorted(adm0_rows):
-            w.writerow(["adm0", ia, ib, br, "", "", "adm1-rollup"])
+            w.writerow(["adm0", ia, ib, br, "", "", "adm1-rollup", "", ""])
     log(f"  wrote {out_path} ({len(adm1_rows)} adm1 + "
         f"{len(adm0_rows)} adm0 water-separated pairs)")
 

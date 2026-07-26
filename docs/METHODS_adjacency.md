@@ -521,7 +521,15 @@ orthogonal to `de_facto_borders`:
 | `moderate` *(default)* | a **fixed crossing open to traffic** links the two units |
 | `stringent` | never (water never counts) |
 
-**Data.** `data/water_separated_pairs.csv` lists the **736 ADM1** water-only
+**Data.** Since 2026-07-25 each row also carries two **structured provenance**
+columns appended after `note` — `adjudication` (the process class; uniformly
+`cross-vendor` across all 736 rows after ru1/wu1/wu2) and `verification_tier`
+(the evidence strength: **A 201 / B 238 / C 297**, tier B pinned to the
+preregistered validation study's measured frame). ADM0 roll-up rows carry both
+blank, being derived arithmetic rather than adjudicated verdicts. Full
+semantics: `data/PROVENANCE.md`.
+
+`data/water_separated_pairs.csv` lists the **736 ADM1** water-only
 pairs with a `has_bridge` flag (298 land-classified + 18 hydro-water + 12
 hydro-lakes + 386
 rescreen-water + 22 rescreen-gap overlay pairs), plus **26 ADM0** country

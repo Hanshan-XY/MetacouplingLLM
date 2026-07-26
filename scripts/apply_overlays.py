@@ -189,11 +189,16 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             key = frozenset({r["code_a"].strip(), r["code_b"].strip()})
             row_index[key] = len(adm1_rows)
+            # 8-tuple; `note` MUST stay at index 5 -- the sync test below is a
+            # bare positional compare, and moving it silently stops every
+            # overlay from claiming its rows (no error, manifests just go inert).
             adm1_rows.append((r["code_a"].strip(), r["code_b"].strip(),
                               str(r.get("has_bridge", "")).strip(),
                               r.get("water_type", "").strip(),
                               r.get("water_body", "").strip(),
-                              r.get("note", "").strip()))
+                              r.get("note", "").strip(),
+                              r.get("adjudication", "").strip(),
+                              r.get("verification_tier", "").strip()))
 
     for name, _fname, _adds, _style, wtype, body_col, note in REGISTRY:
         if body_col is None:
@@ -204,14 +209,16 @@ def main(argv: list[str] | None = None) -> int:
             br = "True" if str(m.get("has_bridge", "")).strip() == "True" else "False"
             # registry water_type None = mixed manifest, type carried per row
             wt = wtype or m["water_type"].strip()
-            row = (ca, cb, br, wt, m[body_col].strip(), note)
+            adj = m.get("adjudication", "").strip()
+            tier = m.get("verification_tier", "").strip()
+            row = (ca, cb, br, wt, m[body_col].strip(), note, adj, tier)
             i = row_index.get(key)
             if i is None:                      # fresh build: append
                 row_index[key] = len(adm1_rows)
                 adm1_rows.append(row)
             elif adm1_rows[i][5] == note:      # this overlay's row: sync in place
                 adm1_rows[i] = (adm1_rows[i][0], adm1_rows[i][1], br,
-                                wt, m[body_col].strip(), note)
+                                wt, m[body_col].strip(), note, adj, tier)
             # else: base bridge-classification row (or another overlay's) wins
 
     # ---- 4. ADM0 roll-up, computed once --------------------------------------
@@ -254,9 +261,11 @@ def main(argv: list[str] | None = None) -> int:
             changed.append(edge_path.name)
 
     water_out = [["adm1", *row] for row in adm1_rows]
-    water_out += [["adm0", ia, ib, br, "", "", "adm1-rollup"]
+    # ADM0 roll-ups are derived, not adjudicated: both provenance columns blank.
+    water_out += [["adm0", ia, ib, br, "", "", "adm1-rollup", "", ""]
                   for ia, ib, br in sorted(adm0_rows)]
-    header = ["level", "code_a", "code_b", "has_bridge", "water_type", "water_body", "note"]
+    header = ["level", "code_a", "code_b", "has_bridge", "water_type", "water_body",
+              "note", "adjudication", "verification_tier"]
     if _write_if_changed(water_path, _serialize(water_out, header, eol=water_eol), args.check):
         changed.append(water_path.name)
 
