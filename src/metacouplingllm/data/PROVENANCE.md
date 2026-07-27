@@ -41,11 +41,13 @@ python scripts/build_all.py
    `build_data/arusha_sliver_audit/`). No tuned parameter; the old Malta snap
    false-positive never appears at exact contact. The remaining **130**
    candidates do not touch a cross-country border, so the fix above does not
-   apply to them. The denylist carries **two reviewed
+   apply to them. The denylist carries **five reviewed
    entries** removed rather than relabelled: the 2026-07-18 audit-confirmed
    artifacts Grand Gedeh↔Rivercess (a quadripoint stretched into a 1.12 km
    cardinal-leg connector) and Apure↔Amazonas (a mid-river seam; Amazonas'
-   territorial-division law names no Apure neighbour) — evidence in
+   territorial-division law names no Apure neighbour), plus the three mid-lake
+   point/corner contacts removed 2026-07-25 on the maintainer's official-map
+   check (CAN003↔CAN006, COD009↔UGA102, TZA016↔UGA040) — evidence in
    `docs/FUTURE_EDGE_AUDITS.md`. An OSM/gazetteer adjacency verdict alone
    does not override a WB border: removal requires a WB-computable signature
    or the maintainer's official-map check.
@@ -169,6 +171,42 @@ column):
   base set (OSM + independent web verification + geocode/polygon checks +
   maintainer review; its own correction lineage above).
 
+**These tiers are shipped as data, not prose.** Since 2026-07-25
+`water_separated_pairs.csv` carries two columns appended after `note` —
+`adjudication` and `verification_tier` — so the claims above are computable from
+the artifact instead of eyeballed from free-text `source` strings. They are
+deliberately **orthogonal**:
+
+- `adjudication` — the **process** class that produced the verdict. Uniformly
+  `cross-vendor` across all 736 rows: ru1 (2026-07-21) covered the river class,
+  wu1 (2026-07-25) the 94 rows that had never been through it, wu2 (2026-07-25)
+  the last 4 that had been settled by the placeholder-identity audit or the
+  validation study instead. This is what those campaigns upgraded.
+- `verification_tier` — the **evidence** strength: `A` / `B` / `C` above,
+  currently **201 / 238 / 297**. Tier B is pinned to the preregistered study's
+  measured frame and must not drift: widening it would silently rescope the
+  98.7% precision figure onto rows the study never sampled
+  (`tests/test_apply_overlays.py::test_tier_b_is_exactly_the_validation_study_frame`).
+
+ADM0 roll-up rows carry **both blank** — they are derived arithmetic (water-only
+iff every ADM1 crossing is; bridged iff any is), never adjudicated.
+
+**`water_type` for impounded bodies is a per-ARC judgement, not per-BODY**
+(maintainer ruling 2026-07-25, surfaced by the wu2 audit and previously
+undocumented):
+
+> `river` when the border follows the impounded river's drowned channel;
+> `lake` when it crosses or follows the impounded body away from that channel.
+
+So one reservoir can legitimately carry both labels on different arcs, and that
+is not an inconsistency. Lake Kariba: the international Zambia–Zimbabwe line
+(`ZMB109↔ZWE011`) is `river` because it follows the Zambezi thalweg, while the
+domestic Zimbabwe shoreline contacts (`ZWE006↔ZWE011`, `ZWE008↔ZWE011`) are
+`lake`. Lake Volta: the channel arc `GHA004↔GHA016` is `river`, the Obosom
+backwater and the cross-lake arcs are `lake`. The wu1 retypes (Itaipu, Kossou,
+Volta) were all channel-following arcs, and Lagoa Mirim stayed `lake` because a
+coastal lagoon has no channel to follow.
+
 The negatives carry measured uncertainty too: weighted false-omission
 1.07% within the audited candidate-negative frame (conservative combined
 95% bound [0.03%, 10.9%]), 0/20 among mechanism auto-rejects
@@ -221,7 +259,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   re-adjudication (8 rows demoted to mixed land by maintainer map ruling,
   2026-07-21) and the wu1 water-screen unification (3 mid-lake point contacts
   removed and 4 dam impoundments retyped lake → river, 2026-07-25)) — SHA-256
-  `b23fb2307c7e553a74223c3142d5a4f354aeb964af001d940574d7cbccdaa5c7`
+  `f94d0d34490c028c8b912ab5ad35074b6d6abd36e9042b1f8632b12e11f735d8`
   (**LF-normalised**: this is the one *text* input and the repo has no
   `.gitattributes`, so a `core.autocrlf=true` checkout renders it CRLF while git
   stores LF; `build_all.py` normalises before comparing so the pin holds on
