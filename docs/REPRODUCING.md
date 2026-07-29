@@ -16,11 +16,11 @@ important to know which one you are testing:
 
 1. **Build reproducibility** (fully automatic). The shipped CSVs are a pure
    function of (a) four pinned World Bank GeoPackages, (b) one reviewed
-   bridge-classification CSV, and (c) eleven reviewed manifest CSVs shipped in
-   the repo (two build-stage inputs plus the six forming the engine's
+   bridge-classification CSV, and (c) five reviewed manifest CSVs shipped in
+   the repo (two build-stage inputs plus the three forming the engine's
    correction layer). Re-running the build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
-2. **Audit traceability** (read, don't re-run). The five manifests were
+2. **Audit traceability** (read, don't re-run). The three overlay manifests were
    *discovered* by deterministic Python screens and *adjudicated* by frozen
    two-pass AI research + human map review. Those verdicts are frozen
    history: every manifest row carries its provenance in a `source` column,
@@ -128,7 +128,7 @@ S4):
   the reviewed bridge CSV label borders `water_type`/`has_bridge` (298 base
   water-only rows). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
-  the five manifests in registry order (idempotent, one pass; see §5).
+  the three manifests in registry order (idempotent, one pass; see §5).
   → +4 land-gap, +22 rescreen-gap edges =
   **8,456**; water rows 298 → **736**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
@@ -173,10 +173,8 @@ re-running the engine is the supported way to change the correction layer:
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
 | `disputed_overlay_pairs.csv` | S2 input: 13 ADM1 + 3 ADM0 de-facto pairs |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
-| `hydro_water_overlay_pairs.csv` | water flags on 18 edges |
-| `hydro_lakes_overlay_pairs.csv` | water flags on 12 edges |
-| `rescreen_gap_overlay_pairs.csv` | +16 edges (2026-07 water-screen rebuild; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 386 edges (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
+| `rescreen_gap_overlay_pairs.csv` | +22 edges (2026-07 water-screen rebuild + the rg1/lg1 folds; per-row `water_type`) |
+| `rescreen_water_overlay_pairs.csv` | water flags on 416 edges (incl. the 30 folded hydro rows, 2026-07-28) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
 
 Engine semantics worth knowing:
 

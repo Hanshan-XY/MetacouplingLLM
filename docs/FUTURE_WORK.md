@@ -65,3 +65,42 @@ GeoPackage, 3,591 polygons):
 Expected outcome is one of two useful answers: `PER007` is a one-off, or it is the
 visible member of a family. Either way the screen is cheap and the result is
 frozen evidence.
+
+## 3. Cross-border extension of the rebuilt hydro rungs (screen unification)
+
+**Status: EXECUTED 2026-07-28** — the extension ran over all 1,794 cross-border
+edges (`build_data/water_screen_rebuild/hydro_fold/crossborder_hydro_disposition.csv`):
+14/14 previously-unrecorded rows re-nominate, whole-graph attributability
+736/736, and the fold followed (registry 5 → 3; see CHANGELOG). **Two NEW
+cross-border nominations surfaced and were gated to the maintainer, not
+shipped:** `BRA025`↔`URY014` (Rio Grande do Sul / Rocha, lake 0.594) and
+`NER002`↔`TCD010` (Diffa / Lac across Lake Chad's nominal HydroLAKES extent,
+lake 0.653). Both await a maintainer decision: adjudicate (standard
+cross-vendor mini-batch) or record as a known screen-nomination without a
+verdict. The section below is retained as the original campaign spec.
+
+**Original status: precondition verified 2026-07-27; campaign not run.**
+
+The rebuild's HydroRIVERS/HydroLAKES rungs ran over **domestic borders only** —
+cross-border hydro coverage was inherited from the already-complete full-database
+sweeps (2026-07-02/06), so the rebuilt edge-screen disposition does not cover 14
+shipped rows (13 `hydro_water` + 1 `hydro_lakes`; Skadar is non-touching and
+covered by the recovery census). This is a division of labour, not a gap in the
+shipped set — but it means "one screen disposition covers the whole graph" is
+not yet a true sentence, and it is the reason the hydro manifests cannot be
+folded away (maintainer question 2026-07-27: "just use the rebuilt ladder?").
+
+**Precondition now verified:** shared-arc coverage was computed for all 14 rows
+(`build_data/water_screen_rebuild/water_unification/check_crossborder_hydro_renomination.py`)
+— **14/14 clear the rebuilt rung's 0.5 nomination bar** (river 0.776–1.000,
+lake 0.709). So the extension would re-nominate every currently-shipped row.
+
+**Campaign shape (ru1/rg1-class, ~one day):** run the hydro rungs over the
+~1,798 cross-border edges, record dispositions (`already-shipped` expected for
+all shipped rows, incl. re-nomination of the 3 HydroLAKES candidates whose
+frozen adjudications *rejected* them — the rejections replay from the manifest
+record, never re-adjudicated live), merge into one whole-graph disposition file.
+**Zero expected data change** — nominations only; shipped verdicts are the
+frozen adjudications either way. After it, folding `hydro_water`/`hydro_lakes`
+into `rescreen_water` (registry 5 → 3) becomes safe if still wanted, since every
+border would then be attributable to a recorded whole-graph screen.

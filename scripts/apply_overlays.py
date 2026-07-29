@@ -68,10 +68,11 @@ NARROW_KM = 5.0
 REGISTRY = [
     ("land_gap", "land_gap_overlay_pairs.csv", True, "iso_lookup",
      None, None, None),
-    ("hydro_water", "hydro_water_overlay_pairs.csv", False, None,
-     "river", "water_body", "hydro-water overlay (HydroRIVERS full-database cross-check + human map verification)"),
-    ("hydro_lakes", "hydro_lakes_overlay_pairs.csv", False, None,
-     "lake", "water_body", "hydro-lakes overlay (HydroLAKES full-database sweep + human map verification)"),
+    # hydro_water / hydro_lakes retired 2026-07-28: their 18 + 12 rows folded
+    # into rescreen_water (manifest consolidation; discovery provenance kept in
+    # each row's `source`), after the cross-border extension of the rebuilt
+    # hydro rungs verified every folded row re-nominates
+    # (build_data/water_screen_rebuild/hydro_fold/).
     ("rescreen_gap", "rescreen_gap_overlay_pairs.csv", True, "iso_lookup",
      None, "water_body", "rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)"),
     ("rescreen_water", "rescreen_water_overlay_pairs.csv", False, None,
