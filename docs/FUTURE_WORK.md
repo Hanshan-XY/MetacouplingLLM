@@ -68,16 +68,21 @@ frozen evidence.
 
 ## 3. Cross-border extension of the rebuilt hydro rungs (screen unification)
 
-**Status: EXECUTED 2026-07-28** — the extension ran over all 1,794 cross-border
-edges (`build_data/water_screen_rebuild/hydro_fold/crossborder_hydro_disposition.csv`):
+**Status: EXECUTED and CLOSED 2026-07-28** — the extension ran over all 1,794
+cross-border edges (`build_data/water_screen_rebuild/hydro_fold/crossborder_hydro_disposition.csv`):
 14/14 previously-unrecorded rows re-nominate, whole-graph attributability
-736/736, and the fold followed (registry 5 → 3; see CHANGELOG). **Two NEW
-cross-border nominations surfaced and were gated to the maintainer, not
-shipped:** `BRA025`↔`URY014` (Rio Grande do Sul / Rocha, lake 0.594) and
-`NER002`↔`TCD010` (Diffa / Lac across Lake Chad's nominal HydroLAKES extent,
-lake 0.653). Both await a maintainer decision: adjudicate (standard
-cross-vendor mini-batch) or record as a known screen-nomination without a
-verdict. The section below is retained as the original campaign spec.
+736/736, and the fold followed (registry 5 → 3; see CHANGELOG). The two NEW
+cross-border nominations it surfaced were **adjudicated the same day** under the
+standard cross-vendor mini-batch (Codex research → Sonnet-5 adversarial judge →
+deterministic measurement → maintainer gate) and **both ruled NOT water-only —
+zero data change** (`newcand_rulings.json`): `NER002`↔`TCD010` by dual-AI
+agreement (IBS-73 surveyed segments + the Northern Pool's post-1970s dryness);
+`BRA025`↔`URY014` by **maintainer official-map ruling** (land border, especially
+the straight-line segment) — overruling the judge's water_only=true (10.2% dry
+< the 20% bar) and the measurement lean (union water 0.861 @500 m), recorded
+verbatim per the evidence hierarchy. **Every nomination in the whole-graph
+screen record is now adjudicated; none pending.** The section below is retained
+as the original campaign spec.
 
 **Original status: precondition verified 2026-07-27; campaign not run.**
 
