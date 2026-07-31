@@ -25,14 +25,14 @@ Egypt-Libya ... a domestic Anguilla pair), a **22-pair rescreen-gap overlay**
 5 river rows the rg1 retirement folded in from the retired river-gap overlay
 (2026-07-22) and the Skadar lake row the lg1 retirement folded in from the
 retired lake-gap overlay (2026-07-23)),
-and flags-only overlays
-that reclassify existing edges as water-only: **18 hydro-water**
-(HydroRIVERS geodesic 500 m sweep -- incl. the Uruguay River), **12 hydro-lakes**
-(HydroLAKES geodesic 500 m sweep -- the Great Lakes, Lake Malawi median, Lake Chad,
-and the Dead Sea), and **386 rescreen-water** (the 2026-07 water-screen
-rebuild's audit batches b1-b6 + the 20 km-hold tranche + 3 shore contacts from
-the placeholder-identity audit + the 15 river rows folded in by the ru1
-river-screen unification, 2026-07-21).
+and one flags-only overlay
+that reclassifies existing edges as water-only: **416 rescreen-water** (the
+2026-07 water-screen rebuild's audit batches b1-b6 + the 20 km-hold tranche +
+3 shore contacts from the placeholder-identity audit + the 15 river rows
+folded in by the ru1 river-screen unification (2026-07-21) + the 18
+hydro-water and 12 hydro-lakes rows folded in by the 2026-07-28 consolidation
+-- HydroRIVERS/HydroLAKES geodesic 500 m full-database cross-checks, incl.
+the Uruguay River and the Dead Sea).
 ``coupling_standard`` governs river and
 lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
 only those with a fixed crossing, ``stringent`` keeps none): the 736 water-only

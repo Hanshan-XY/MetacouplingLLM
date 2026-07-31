@@ -808,10 +808,11 @@ class TestCouplingStandardAdm1:
             assert is_adm1_pericoupled(a, b, coupling_standard="stringent") is False
 
     def test_hydro_water_overlay_pairs(self):
-        # 17-pair hydro-water overlay: water-only borders the NE screens missed,
-        # found by the HydroRIVERS full-database cross-check and human-verified
-        # (2026-07-02). Spot-check one bridged and one unbridged pair, plus the
-        # two pairs the same audit REMOVED from the water set.
+        # Hydro-water rows: water-only borders the NE screens missed, found by
+        # the HydroRIVERS full-database cross-check and human-verified
+        # (2026-07-02); carried in the rescreen-water manifest since the
+        # 2026-07-28 consolidation. Spot-check one bridged and one unbridged
+        # pair, plus the two pairs the same audit REMOVED from the water set.
         from metacouplingllm.knowledge.adm1_pericoupling import (
             is_adm1_pericoupled,
         )

@@ -1,7 +1,7 @@
 """Tests for the unified overlay engine and the one-command rebuild.
 
 The engine (scripts/apply_overlays.py) applies the reviewed correction layer
-(five overlay manifests) on top of the geometry build.  Its contract: running
+(three overlay manifests) on top of the geometry build.  Its contract: running
 on already-overlaid shipped data is a byte-stable no-op, and the registry
 covers exactly the shipped overlay manifests.
 """
@@ -211,8 +211,9 @@ def test_all_provenance_bearing_files_carry_the_columns():
     ``--full``; omitting it there would blank provenance for the 298 base rows on
     every rebuild and break the byte-identity claim in docs/REPRODUCING.md.
     """
-    targets = ["hydro_water_overlay_pairs.csv", "hydro_lakes_overlay_pairs.csv",
-               "rescreen_gap_overlay_pairs.csv", "rescreen_water_overlay_pairs.csv"]
+    # hydro_water / hydro_lakes retired 2026-07-28 -- their rows (and columns)
+    # now live in rescreen_water
+    targets = ["rescreen_gap_overlay_pairs.csv", "rescreen_water_overlay_pairs.csv"]
     for name in targets:
         with open(DATA / name, newline="", encoding="utf-8-sig") as fh:
             cols = next(_csv.reader(fh))

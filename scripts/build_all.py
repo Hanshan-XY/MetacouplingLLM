@@ -7,8 +7,8 @@ The shipped database is the output of two stages:
    release; SHA-256 pins below and in ``data/PROVENANCE.md``) plus the
    reviewed static bridge classification
    (``build_data/bridge_classified_authoritative.csv``).
-2. **Reviewed correction layer** (``scripts/apply_overlays.py``): nine
-   manifest CSVs of individually audited, human/dual-AI-verified pairs.
+2. **Reviewed correction layer** (``scripts/apply_overlays.py``): three
+   overlay manifest CSVs of individually audited, human/dual-AI-verified pairs.
 
 Step-by-step reproduction manual: ``docs/REPRODUCING.md``.
 
