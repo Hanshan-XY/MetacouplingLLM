@@ -20,6 +20,21 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+    env:
+      # The paper-recommender tests (TestRecommendPapers +
+      # test_recommend_papers_accepts_coupling_first_analysis) embed their
+      # query with fastembed, which on a cold cache downloads the
+      # qdrant/bge-base-en-v1.5-onnx-q ONNX model from Hugging Face.
+      # Pin the cache to a workspace path (fastembed's default is
+      # $TMPDIR/fastembed_cache) so actions/cache below can persist it
+      # across runs.
+      FASTEMBED_CACHE_PATH: ${{ github.workspace }}/.fastembed_cache
+      # Download over plain HTTP instead of HF's Xet/CAS chunked CDN --
+      # a cas-server.xethub.hf.co outage put run 30606854966 into a
+      # ~10-min-per-test retry loop before failing. With Xet off, a
+      # cold-cache outage fails within the request timeout below.
+      HF_HUB_DISABLE_XET: "1"
+      HF_HUB_DOWNLOAD_TIMEOUT: "30"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -38,6 +53,23 @@ jobs:
 
       - name: Show installed package versions
         run: pip list
+
+      # The installed fastembed version determines which HF repo/revision
+      # backs BAAI/bge-base-en-v1.5, so key the model cache on it: a
+      # fastembed upgrade restores the old cache (restore-keys), fetches
+      # whatever changed, and saves under the new key.
+      - name: Get fastembed version for model-cache key
+        id: fastembed
+        run: |
+          echo "version=$(pip show fastembed | awk '/^Version:/{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache fastembed embedding model
+        uses: actions/cache@v4
+        with:
+          path: .fastembed_cache
+          key: fastembed-model-${{ steps.fastembed.outputs.version }}-qdrant-bge-base-en-v1.5-onnx-q
+          restore-keys: |
+            fastembed-model-
 
       - name: Run pytest
         # test_rag.py has a pre-existing 768-vs-384 embedding dimension
