@@ -609,6 +609,25 @@ accepted pair passed the same four-layer bridge pipeline (the
 province-polygon layer corrected one off-border citation, the Kerio
 crossing, to the on-reach Rorok structure).
 
+**Acceptance standard (Standard M, maintainer ruling 2026-09-01).** A pair is
+accepted as water-only only when its dry component is digitization noise, not a
+**genuine land corridor**: a named surveyed straight line, ridge/watershed
+stretch, or overland connector defeats `water_only` regardless of its share of
+the arc, and the "~20% dry" figure in the adjudication prompts is an AI-pass
+screening tolerance, never an acceptance license. Every maintainer ruling had
+already applied this standard (the register precedent `BRA025`↔`URY014` was
+ruled not water-only at 10.2% dry, over a judge verdict that applied the
+numeric bar), and no shipped water-only row carries an accepted verdict with a
+quantified 4–25% dry share (checked live 2026-09-01). The ruling closed the
+`rj1` campaign, which re-adjudicated the 48 rejected candidates in the
+cross-border hydrography screen record that rested solely on the pre-rebuild
+designs — **all 48 upheld, zero data change** — so no shipped verdict, and no
+rejection in that record, rests on the earlier designs alone; **153**
+design-era rejections remain in the contact-screen and non-touching records,
+enumerated the same day for the same treatment
+(`build_data/water_screen_rebuild/rejection_unification/rj1_rulings.json`,
+`rj2_residue.csv`).
+
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
 are excluded) lies in **both** units. The flag was derived from OpenStreetMap
