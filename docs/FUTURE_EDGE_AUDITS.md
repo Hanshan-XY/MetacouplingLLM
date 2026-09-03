@@ -11,7 +11,8 @@ and stay shipped until the maintainer decides.
 
 Items 1-10 were audited **2026-07-18** (deterministic geometry passes + five
 web-research adjudications); items 11-14 were raised **2026-07-25** by the wu1
-water-screen unification. Status codes: CLOSED (no action needed), RETAINED
+water-screen unification; item 15 was raised **2026-09-01** by the maintainer's
+map review at the rj2 gate. Status codes: CLOSED (no action needed), RETAINED
 (edge confirmed genuine), DECISION (maintainer call pending).
 
 | # | pair | question [raised] | outcome | status |
@@ -30,6 +31,7 @@ water-screen unification. Status codes: CLOSED (no action needed), RETAINED
 | 12 | COD009<->UGA102 | mid-lake contact flagged thin-arc by the wu1 measurement gate [2026-07-25] | **Maintainer map ruling: NOT ADJACENT — a point contact on the Lake Edward boundary** (Nord-Kivu / Rukungiri). Arc likewise stable: 1.081 / 2.064 / 5.749 km, one component (ratio 0.188). Same basis and same caveat as item 11. | RESOLVED 2026-07-25: **removed** (`_ADM1_FALSE_POSITIVE_DENYLIST`) |
 | 13 | TZA016<->UGA040 | mid-lake pair challenged by the wu1 re-adjudication [2026-07-25] | **Maintainer map ruling: NOT ADJACENT — diagonal non-adjacency on Lake Victoria** (Mara / Kalangala): the mid-lake median segment WB assigns to this pair belongs to a different unit pair. Not a thin arc — 14.019 / 14.906 / 18.235 km, one component (ratio 0.769) — so the instrument gave no signal at all; the ruling is purely the map check. The maintainer separately **upheld** the neighbouring TZA016<->UGA088 (Mara / Namayingo, arc 30.8 km) as a genuine water-only border, which is what distinguishes the two. | RESOLVED 2026-07-25: **removed** (`_ADM1_FALSE_POSITIVE_DENYLIST`) |
 | 14 | BOL004<->PER007 | WB source artifact surfaced while measuring wu1 [2026-07-25] | **OPEN — edge existence questioned, no action taken.** WB's `PER007` polygon is named *Callao* — Lima's Pacific port — but is 4-part with centre at lat -15.25 / lon -71.02, i.e. in the Puno altiplano ~800 km from Callao, and its contact with La Paz (`BOL004`) falls at lat -16.198 **inside Lake Titicaca**. La Paz already borders the real Puno (`PER021`) natively over 761.7 km. The polygon is 4-part and the parts are ~900 km apart: the LARGEST (by area) sits at Lake Titicaca (centre lon -68.97 / lat -16.36), while the other three are on the Pacific coast at the genuine Callao (lon -77.1 to -77.2, lat -11.9 to -12.1), so this looks like an upstream mislabel of a Puno fragment rather than a genuine La Paz-Callao border. Recorded, not removed: the failure mode is *unit identity* (a source-relabel-class question), not a water verdict, so it is outside wu1's scope and needs its own identity-fingerprinting pass against the pinned GeoPackage. The pair ships unchanged. | DECISION pending |
+| 15 | SUR008<->SUR009 | maintainer map review at the rj2 gate: "point-touch only / no real shared border" [2026-09-01] | **OPEN — edge existence questioned, no action taken.** Saramacca / Sipaliwini on the Saramacca River. The water question is settled (not water-only; rj2 rulings). The maintainer's official-map reading is a point contact, but the WB geometry shows a **stable** shared segment — 2.678 / 4.459 / 11.346 km at 1e-3 / 5e-3 / 2e-2 (ratio 0.236; edge-list length 2.44 km), one component — so, as with items 11-13, there is no WB-internal collapse signature and any removal would rest on the map check alone. The maintainer chose not to remove it yet ("too early to remove it now"). The pair ships unchanged. | DECISION pending |
 
 ## Method notes
 
