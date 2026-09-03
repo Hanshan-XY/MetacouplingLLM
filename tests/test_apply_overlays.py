@@ -168,7 +168,7 @@ def test_adjudication_is_uniformly_cross_vendor():
     adm1 = [r for r in _water_rows() if r["level"] == "adm1"]
     values = {r["adjudication"].strip() for r in adm1}
     assert values == {"cross-vendor"}, f"adjudication is not uniform: {sorted(values)}"
-    assert len(adm1) == 736, len(adm1)
+    assert len(adm1) == 751, len(adm1)
 
 
 def test_tier_b_is_exactly_the_validation_study_frame():

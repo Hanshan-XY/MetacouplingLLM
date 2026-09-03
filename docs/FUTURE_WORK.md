@@ -81,7 +81,7 @@ agreement (IBS-73 surveyed segments + the Northern Pool's post-1970s dryness);
 the straight-line segment) — overruling the judge's water_only=true (10.2% dry
 < the 20% bar) and the measurement lean (union water 0.861 @500 m), recorded
 verbatim per the evidence hierarchy. **Every nomination in the whole-graph
-screen record is now adjudicated; none pending.** The section below is retained
+screen record is now adjudicated; none pending.** *(Correction 2026-09-01: the rj2 completeness scan found 37 domestic large-river nominations — HydroRIVERS ≥ 0.5 in the ≥ 100 m³/s band — for which the 2026-07-10 queue registry had no domestic source — its medium-band source stopped at 100 m³/s, and large rivers were assumed covered by the Natural Earth rungs, which miss exactly these; all 37 were adjudicated cross-vendor with maintainer map rulings, 15 shipped water-only. The whole-graph claim holds as of that date.)* The section below is retained
 as the original campaign spec.
 
 **Original status: precondition verified 2026-07-27; campaign not run.**
