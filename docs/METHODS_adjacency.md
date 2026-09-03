@@ -311,7 +311,7 @@ is deliberate:
   of their border within 2.5 km of a river — *near*, not *on*, the border, so they
   cannot be water-only). Completeness is fixed by the buffer-independent
   database-wide HydroRIVERS/HydroLAKES sweeps, not the NE buffer width
-  (`build_data/wide_river_audit/screen_ladder_to_100km.py`).
+  (`build_data/_archive_pre_rebuild/wide_river_audit/screen_ladder_to_100km.py`).
 
 *Cautionary example (why the boundary between the two matters).* During the
 census re-verification, one diagnostic converted degree distances with a flat
@@ -574,29 +574,27 @@ CMR↔GAB, MWI↔TZA, and MOZ↔TZA (completed by the Lake Nyasa corner
 MOZXXX↔TZA025) are bridged, so they move only stringent; the stringent view ships at
 **300**).
 
-**Adjudication designs.** The water-only verdicts above were set by LLM
-ground-truth run *downstream* of the deterministic screens, with **human map
-verification of every shipped overlay pair**; two designs were used, and neither
-the completeness nor the correctness of the shipped set depends on the choice.
-The hydro / HydroRIVERS candidates were **two-stage ground-truthed** — a research
-pass feeding an adversarial verify pass
-(`build_data/hydro_full_sweep/verify_flags.wf.js`). The non-touching lake
-water-band was **two-pass adversarially adjudicated** — two independent passes
-over all 57 candidates (`build_data/premeasure/adjudicate_water_band.wf.js`) — to
-catch the case where a lake's mid-water median line belongs to a *different* unit
-pair (diagonal non-adjacency). Candidate coverage is fixed by the
-buffer-independent full-database HydroRIVERS/HydroLAKES sweeps — complete
-relative to those datasets' documented floors, a coverage claim rather than a
-recall claim against the unknown true adjacency set — and correctness by the
-human/dual-AI verification; the LLM passes only nominate and cross-check
-within that frame.
-The rescreen overlays use a **cross-vendor** variant of the two-stage design:
-the research pass ran on OpenAI Codex and the adversarial judgment pass on
-Claude Sonnet 5, so no single model family sets a verdict alone; medium-
+**Adjudication design.** Every water-only verdict on record — the 751 shipped
+rows and every rejected candidate in the audit record — was set by one design
+run *downstream* of the deterministic screens: a **cross-vendor two-pass** in
+which the research pass ran on OpenAI Codex and the adversarial judgment pass
+on Claude Sonnet 5, so no single model family sets a verdict alone; medium-
 confidence verdicts were human map-verified, high-confidence ones dual-AI
 cross-checked, and every new *edge* additionally passed the four-layer bridge
 pipeline (OSM Overpass screen, agent web verification, adversarial recheck of
 disagreements, geocode + province-polygon cross-check) before shipping.
+Candidate coverage is fixed by the buffer-independent full-database
+HydroRIVERS/HydroLAKES sweeps and the rebuilt whole-graph screens — complete
+relative to those datasets' documented floors, a coverage claim rather than a
+recall claim against the unknown true adjacency set — and correctness by the
+human/dual-AI verification; the LLM passes only nominate and cross-check
+within that frame. Two single-family designs ran before the rebuild — a
+two-stage ground truth for the 2026-07-02 hydro sweeps and a two-pass
+adversarial adjudication of the 57 lake water-band candidates (2026-07-04) —
+and survive only as discovery history in each row's `source` (evidence
+archived under `build_data/_archive_pre_rebuild/`): every verdict they produced
+was re-adjudicated under the cross-vendor design (the shipped rows on
+2026-07-21/25; the 201 rejected candidates on 2026-09-01) and upheld.
 Ten verdicts the maintainer could not resolve from available map evidence —
 the pre-2021 Latvia/Lithuania subdivision-vintage pairs and the two `Area
 under National Administration` placeholder units — were delegated to a
