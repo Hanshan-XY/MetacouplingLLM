@@ -121,12 +121,12 @@ the 80 sampled rows were NA placeholder units), weighted false-omission
 inter-rater κ = 0.867 (95% CI [0.69, 1.00]) on a 30-row blind subsample; both discovered errors were corrected through the
 manifest path (`docs/VALIDATION_STUDY.md`). The river / HydroRIVERS candidates were **two-stage
 ground-truthed** — a research pass feeding an adversarial verify pass
-(`build_data/hydro_full_sweep/verify_flags.wf.js`,
-`build_data/wide_river_audit/verify_entrants*.wf.js`) — reinforced by a
+(`build_data/_archive_pre_rebuild/hydro_full_sweep/verify_flags.wf.js`,
+`build_data/_archive_pre_rebuild/wide_river_audit/verify_entrants*.wf.js`) — reinforced by a
 dedicated **second adversarial verify pass** on the marginal 10 km set
-(`build_data/wide_river_audit/verify_second_pass78.wf.js`). The non-touching
+(`build_data/_archive_pre_rebuild/wide_river_audit/verify_second_pass78.wf.js`). The non-touching
 lake water-band was **two-pass adversarially adjudicated** — two independent
-passes over all 57 candidates (`build_data/premeasure/adjudicate_water_band.wf.js`
+passes over all 57 candidates (`build_data/_archive_pre_rebuild/premeasure/adjudicate_water_band.wf.js`
 → `water_band_adjudication.json`) — because a lake's mid-water median line can
 belong to a *different* unit pair (diagonal non-adjacency), a case two
 independent reads guard against. Neither the candidate coverage nor the correctness of
@@ -426,9 +426,9 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   registry entry `rescreen_gap`); it was recovered by the water-band census
   (the 1–100 km water-corridor band; the two-pass adversarial adjudication
   of all 57 water-band candidates unanimously found it the one genuine
-  lake-median border — `build_data/premeasure/adjudicate_water_band.wf.js` →
+  lake-median border — `build_data/_archive_pre_rebuild/premeasure/adjudicate_water_band.wf.js` →
   `water_band_adjudication.json`, 1 genuine / 56 rejected — then human
-  map-verified 2026-07-04). The water band reaches 1–100 km; capping it at 10/25/50/100 km (`build_data/premeasure/census_waterband_cap_ladder.py`) confirms Skadar (gap 9.3 km) is the only genuine one — the candidate net grows 7→16→34→57 but the 25–100 km tail is 41 pairs on opposite shores of wide lakes (Victoria, Tanganyika, the Dead Sea), all non-adjacent, so the 100 km reach is a conservative bound that loses nothing. (A former second non-touching lake border, Jõgeva↔Pskov across Lake Peipus, was removed 2026-07-22 by maintainer ruling: the WB signature is a Tartu–Jõgeva–Pskov corner contact with no shared segment, and the original verdict's map source was withdrawn.) The one country
+  map-verified 2026-07-04). The water band reaches 1–100 km; capping it at 10/25/50/100 km (`build_data/_archive_pre_rebuild/premeasure/census_waterband_cap_ladder.py`) confirms Skadar (gap 9.3 km) is the only genuine one — the candidate net grows 7→16→34→57 but the 25–100 km tail is 41 pairs on opposite shores of wide lakes (Victoria, Tanganyika, the Dead Sea), all non-adjacent, so the 100 km reach is a conservative bound that loses nothing. (A former second non-touching lake border, Jõgeva↔Pskov across Lake Peipus, was removed 2026-07-22 by maintainer ruling: the WB signature is a Tartu–Jõgeva–Pskov corner contact with no shared segment, and the original verdict's map source was withdrawn.) The one country
   pair whose only contact is a lake — `COD`↔`TZA` across Lake Tanganyika — is
   likewise native (lenient-only, no ADM0 matrix patch needed). Counts at this
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1
@@ -475,7 +475,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   to a mixed land border by maintainer map ruling (measured 0.67 water at
   500 m) and the two remaining rows were folded into the rescreen-water
   manifest (overlay and registry entry retired). All are existing edges —
-  flags only, no new edges. Audit artifacts: `build_data/wide_river_audit/`.
+  flags only, no new edges. Audit artifacts: `build_data/_archive_pre_rebuild/wide_river_audit/`.
   Shipped counts after this overlay: water-only **337** ADM1 (116/221) +
   **21** ADM0 roll-ups (ARM↔TUR stays mixed at ADM0 via the non-water
   Shirak↔Ardahan segment); final views follow the hydro-water overlay below.
@@ -505,7 +505,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   309 rows (SHA-256 re-pinned; 301 after the ru1 demotions, 2026-07-21). One further flag, Comoé↔Western (Tano), was
   human-rejected as not water-only over the verifier's confirmation. New ADM0
   roll-up: **GUF↔SUR** (Maroni system, ferry only → lenient-only at ADM0).
-  Audit artifacts: `build_data/hydro_full_sweep/`.
+  Audit artifacts: `build_data/_archive_pre_rebuild/hydro_full_sweep/`.
   Counts at this waypoint: ADM1 8,450 edges (8,212 moderate / 8,087
   stringent), ADM0 326 pairs (321 moderate / 304 stringent), water-only
   363 ADM1 (125/238) + 22 ADM0 roll-ups (the geodesic re-screen's two recoveries — the Uruguay River into hydro-water, the Dead Sea into hydro-lakes — are included); final shipped counts follow the rescreen overlays below.
