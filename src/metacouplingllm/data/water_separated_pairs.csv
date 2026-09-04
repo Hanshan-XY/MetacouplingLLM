@@ -53,7 +53,7 @@ adm1,MDA030,UKR021,False,river,Dniester,,cross-vendor,C
 adm1,UGA026,UGA040,False,lake,Lake Victoria,,cross-vendor,C
 adm1,MOZ010,ZMB105,False,river,Luangwa; Zambezi,,cross-vendor,C
 adm1,USA023,USA024,False,lake,Lake Superior,,cross-vendor,C
-adm1,BRA020,PRY007,False,river,Itaipu Reservoir (Parana River),,cross-vendor,C
+adm1,BRA020,PRY007,False,lake,Represa Itaipu,,cross-vendor,C
 adm1,USA014,USA023,False,lake,Lake Michigan,,cross-vendor,C
 adm1,ARG007,URY001,False,river,Uruguay,,cross-vendor,C
 adm1,ZAF005,ZWE009,True,river,Limpopo; Umzingwani,,cross-vendor,C
@@ -66,7 +66,7 @@ adm1,COD011,BDI006,False,river,Rusizi,,cross-vendor,C
 adm1,ROU013,SRB002,False,river,Danube,,cross-vendor,C
 adm1,ARM002,TUR038,False,river,Aras,,cross-vendor,C
 adm1,COD011,TZA010,False,lake,Lake Tanganyika,,cross-vendor,C
-adm1,BRA025,URY019,False,lake,Lagoa Mirim / Laguna Merin (coastal lagoon),,cross-vendor,C
+adm1,BRA025,URY019,False,lake,Lagoa Mirim,,cross-vendor,C
 adm1,CHN018,PRK001,False,river,Yalu; Supung Reservoir,,cross-vendor,C
 adm1,RUS042,EST004,True,river,Narva,,cross-vendor,C
 adm1,BGR027,ROU018,True,river,Danube,,cross-vendor,C
@@ -104,7 +104,7 @@ adm1,IRN001,AZE012,False,river,Aras,,cross-vendor,C
 adm1,LAO014,THA020,False,river,Mekong,,cross-vendor,C
 adm1,LAO012,THA027,False,river,Mekong,,cross-vendor,C
 adm1,TZA016,UGA075,False,lake,Lake Victoria,,cross-vendor,C
-adm1,GHA004,GHA016,False,river,Lake Volta (Volta River),,cross-vendor,C
+adm1,GHA004,GHA016,False,lake,Lake Volta,,cross-vendor,C
 adm1,COD029,CAF001,False,river,Uele,,cross-vendor,C
 adm1,AUT003,SVK007,True,river,Morava,,cross-vendor,C
 adm1,AFG004,UZB012,True,river,Amu Darya,,cross-vendor,C
@@ -158,7 +158,7 @@ adm1,ARM008,IRN004,True,river,Aras,,cross-vendor,C
 adm1,COD017,UGA020,False,lake,Lake Albert,,cross-vendor,C
 adm1,AUT008,CHE016,True,river,Rhein,,cross-vendor,C
 adm1,MDA027,ROU007,True,river,Prut,,cross-vendor,C
-adm1,CIV029,CIV032,False,river,Lake Kossou (Bandama River),,cross-vendor,C
+adm1,CIV029,CIV032,False,lake,Lac de Kossou,,cross-vendor,C
 adm1,ESP002,PRT009,True,river,Guadiana,,cross-vendor,C
 adm1,CHN011,RUS014,False,river,Heilong Jiang,,cross-vendor,C
 adm1,BIH001,HRV015,True,river,Sava,,cross-vendor,C
@@ -284,7 +284,7 @@ adm1,UGA026,UGA015,False,lake,Lake Victoria,,cross-vendor,C
 adm1,NIC004,NIC017,False,lake,Lago de Nicaragua,,cross-vendor,C
 adm1,KEN008,UGA088,False,lake,Lake Victoria,,cross-vendor,C
 adm1,UGA040,UGA084,False,lake,Lake Victoria,,cross-vendor,C
-adm1,CIV032,CIV034,False,river,Lake Kossou (Bandama River),,cross-vendor,C
+adm1,CIV032,CIV034,False,lake,Lac de Kossou,,cross-vendor,C
 adm1,COD030,TZA009,False,lake,Lake Tanganyika,,cross-vendor,C
 adm1,JOR009,PSE004,False,lake,Dead Sea,,cross-vendor,C
 adm1,KEN027,UGA088,False,lake,Lake Victoria,,cross-vendor,C
