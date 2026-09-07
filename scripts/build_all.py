@@ -52,7 +52,7 @@ PINNED_SHA256 = {
     "adm0_gpkg": "97f0c8a0fa848b9a8414dbeb2e058fa37d59b13794ec232a87da000bdf4b117e",
     "ocean_gpkg": "c2b074fdd691f6d36ba4a89af2761a11b35dea4d4c8c4f186f6132f43c88d702",
     "ndlsa_gpkg": "159ef2d133d12491eb6ce2f0d0d1032083209b0cf7d28ddda774a503055d2fa4",
-    "bridge_csv": "f94d0d34490c028c8b912ab5ad35074b6d6abd36e9042b1f8632b12e11f735d8",
+    "bridge_csv": "ba97f2df42e897ecb356c9acfd5d4e04fc4f62dff6a31be3b0e3e0020e687aff",
 }
 
 EXPECTED = {

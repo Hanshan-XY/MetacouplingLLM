@@ -192,21 +192,20 @@ deliberately **orthogonal**:
 ADM0 roll-up rows carry **both blank** — they are derived arithmetic (water-only
 iff every ADM1 crossing is; bridged iff any is), never adjudicated.
 
-**`water_type` for impounded bodies is a per-ARC judgement, not per-BODY**
-(maintainer ruling 2026-07-25, surfaced by the wu2 audit and previously
-undocumented):
-
-> `river` when the border follows the impounded river's drowned channel;
-> `lake` when it crosses or follows the impounded body away from that channel.
-
-So one reservoir can legitimately carry both labels on different arcs, and that
-is not an inconsistency. Lake Kariba: the international Zambia–Zimbabwe line
-(`ZMB109↔ZWE011`) is `river` because it follows the Zambezi thalweg, while the
-domestic Zimbabwe shoreline contacts (`ZWE006↔ZWE011`, `ZWE008↔ZWE011`) are
-`lake`. Lake Volta: the channel arc `GHA004↔GHA016` is `river`, the Obosom
-backwater and the cross-lake arcs are `lake`. The wu1 retypes (Itaipu, Kossou,
-Volta) were all channel-following arcs, and Lagoa Mirim stayed `lake` because a
-coastal lagoon has no channel to follow.
+**`water_type` is a label of nomination, not a hydrological ruling**: `lake`
+when the Natural Earth lakes layer nominated the row, `river` when the
+river-centerline screen or the HydroRIVERS rungs did. A 2026-07-25 wu1 ruling
+had retyped four reservoir-on-river arcs (Itaipu `BRA020↔PRY007`, Kossou
+`CIV029↔CIV032` and `CIV032↔CIV034`, Volta `GHA004↔GHA016`) from `lake` to
+`river` under a per-arc "drowned channel" rule; the maintainer **reversed that
+on 2026-09-04 and withdrew the rule** (no code reads `water_type`, and the
+retype forced a screened-vs-shipped reconciliation in every ledger table). The
+four rows are `lake` again with their original body names, the base
+classification reads 238 river / 60 lake, and the shipped split is 637 river /
+114 lake. A reservoir can therefore carry `river` on one arc and `lake` on
+another according to which screen nominated each row (Kariba: `ZMB109↔ZWE011`
+river-screen nominated; the `ZWE006↔ZWE011` and `ZWE008↔ZWE011` shore contacts
+`lake`); that is a provenance label, not a claim about the water body.
 
 The negatives carry measured uncertainty too: weighted false-omission
 1.07% within the audited candidate-negative frame (conservative combined
@@ -257,8 +256,8 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   further pairs demoted and one orphan row removed) and the ru1 river
   re-adjudication (8 rows demoted to mixed land by maintainer map ruling,
   2026-07-21) and the wu1 water-screen unification (3 mid-lake point contacts
-  removed and 4 dam impoundments retyped lake → river, 2026-07-25)) — SHA-256
-  `f94d0d34490c028c8b912ab5ad35074b6d6abd36e9042b1f8632b12e11f735d8`
+  removed, 2026-07-25; its 4 lake → river retypes reversed 2026-09-04)) — SHA-256
+  `ba97f2df42e897ecb356c9acfd5d4e04fc4f62dff6a31be3b0e3e0020e687aff`
   (**LF-normalised**: this is the one *text* input and the repo has no
   `.gitattributes`, so a `core.autocrlf=true` checkout renders it CRLF while git
   stores LF; `build_all.py` normalises before comparing so the pin holds on
