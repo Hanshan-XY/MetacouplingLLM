@@ -109,3 +109,5 @@ record, never re-adjudicated live), merge into one whole-graph disposition file.
 frozen adjudications either way. After it, folding `hydro_water`/`hydro_lakes`
 into `rescreen_water` (registry 5 → 3) becomes safe if still wanted, since every
 border would then be attributable to a recorded whole-graph screen.
+
+*(2026-09-09: the whole-graph attributability check was re-run on the shipped data — 751/751 — and the pre-rebuild discovery nets (near-miss net, lake band, 5/10 km widenings, 2026-07-02/04 hydro cross-checks) were retired as nomination steps; see `docs/METHODS_adjacency.md` §8. "One screen disposition covers the whole graph" is now a true sentence.)*
