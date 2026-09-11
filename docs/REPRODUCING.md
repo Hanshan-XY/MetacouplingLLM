@@ -1,8 +1,8 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through rebuilding and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,456 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (751
+datasets — the ADM1 edge list (8,458 subnational shared-border pairs) and the
+ADM0 country matrix (326 pairs) with their water-only classification (753
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -87,10 +87,10 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,456 (3,374 regions, 196 countries) |
+| ADM1 edges (lenient) | 8,458 (3,374 regions, 196 countries) |
 | ADM1 moderate / stringent | 8,061 / 7,705 |
-| water-only ADM1 | 751 = 356 with a fixed crossing / 395 without |
-| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 216 / B 238 / C 297 |
+| water-only ADM1 | 753 = 356 with a fixed crossing / 397 without |
+| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 218 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
 
@@ -129,8 +129,8 @@ S4):
   water-only rows). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the three manifests in registry order (idempotent, one pass; see §5).
-  → +4 land-gap, +22 rescreen-gap edges =
-  **8,456**; water rows 298 → **751**; ADM0 roll-up recomputed once (a
+  → +4 land-gap, +24 rescreen-gap edges =
+  **8,458**; water rows 298 → **753**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 
