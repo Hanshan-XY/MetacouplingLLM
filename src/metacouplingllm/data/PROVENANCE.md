@@ -452,8 +452,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   screened with the recovered-length diagnostic; `build_data/snap_extras_audit/`)
   surfaced two such cases on the Kenya-Tanzania survey line, both confirmed by
   human map review (2026-07-01): **Kajiado↔Kilimanjaro** (`KEN010`↔`TZA011`,
-  ~54 km, the Loitokitok-Rombo sector) and **Narok↔Mara** (`KEN033`↔`TZA016`,
-  ~70 km, the Maasai Mara-Serengeti sector). Both are **native tolerance-0
+  44.7 km as a native edge — ~54 km on the recovered-length diagnostic at 1×10⁻²° — the Loitokitok-Rombo sector) and **Narok↔Mara** (`KEN033`↔`TZA016`,
+  62.6 km as a native edge — ~70 km at 1×10⁻²° — the Maasai Mara-Serengeti sector). Both are **native tolerance-0
   edges**, produced directly by the source-relabel stage
   (`scripts/relabel_sliver_corridors.py` via `sliver_corridor_relabel.csv`,
   which reassigns the Tanzanian sliver corridors from Arusha to Kilimanjaro

@@ -240,7 +240,7 @@ four are river recoveries restored to the shipped graph (carried in the
 rescreen-gap manifest under the rg1 fold, 2026-07-22), one — Cahul↔Vaslui —
 is the four-corner artifact the rg1 re-adjudication demoted, and
 the two long survey-line corridors on the straight-surveyed Kenya-Tanzania
-border — Kajiado↔Kilimanjaro (~54 km) and Narok↔Mara (~70 km) — were
+border — Kajiado↔Kilimanjaro (44.7 km as a native edge; ~54 km on the recovered-length diagnostic at 1×10⁻²°) and Narok↔Mara (62.6 km native; ~70 km at 1×10⁻²°) — were
 map-verified as genuine borders and are **native** edges after the
 source-relabel (§10). The remaining additions are confirmed artifact corridors.
 Per-pair results: `build_data/snap_extras_audit/extras.csv` (local audit
