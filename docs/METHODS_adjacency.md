@@ -636,9 +636,25 @@ re-derived on 2026-09-10 (v2: HydroLAKES joins NE lakes; the HydroRIVERS buffer 
 geodesic and discharge-laddered, where the 2026-07 run buffered in planar degrees;
 transect corridors along the facing frontage replace the single nearest-approach
 segment; third-unit and wedge flags are recorded). It re-nominates all 22 earlier
-rescreen-gap rows, and its 46 new nominations went through the cross-vendor two-pass
-and maintainer map rulings: two shipped (Équateur↔Cuvette, Entre Ríos↔Artigas), 44
-rejected (record: `build_data/water_screen_rebuild/corridor_census_v2/`). Each row keeps its discovery
+rescreen-gap rows and produced 80 new nominations (8 by the 0.80 share rule, 30 only
+under the wide ladder, 42 by the short-gap presence rule), all adjudicated by the
+cross-vendor two-pass and maintainer map rulings in two campaigns: nt2 (46 pairs — 7
+share-rule nominations not already ruled, 30 ladder, 9 presence-rule with ≥ 0.25
+transect support): two shipped (Équateur↔Cuvette, Entre Ríos↔Artigas), 44 rejected;
+nt3 (2026-09-11; the 33 presence-rule nominations a post-hoc 0.25 transect-support
+floor had set aside): all 33 rejected on convergent verdicts (15 sea-separated, 18 dry
+gaps), the floor withdrawn — the presence rule nominates, it does not drop (record:
+`build_data/water_screen_rebuild/corridor_census_v2/`). Its population is every pair
+whose polygons lie within 100 km yet do not touch (a point contact has no corridor:
+Jõgeva↔Pskov and Salta↔Potosí are outside it); the 100 km reach is checked against the
+lakes — of the 357 Natural Earth lakes ≥ 500 km², five have surfaces the WB layer
+leaves unassigned, none wider than 60 km
+(`corridor_census_v2/lake_surface_coverage_2026-09-10.txt`). Of its thresholds, the
+500 m river width (one HydroSHEDS cell), the 250 m transect spacing and the 5 km river
+cap (recovered river gaps 0.2–1.7 km) are anchored to measured quantities; the 0.80
+bar, the 125 m lake rung and the 1,000 m³/s big-reach threshold are inherited
+conventions with sensitivity reported: every bar from 0.60 to 0.85 re-nominates all 22
+shipped recoveries, and 0.75 → 0.85 moves the new share-rule nominations 51 → 35. Each row keeps its discovery
 provenance in `source`, and the nets' audit records (the 48-pair near-miss
 funnel, the 10 km double-verification, the Natural Earth omissions that
 motivated the hydro rungs) remain validation evidence.
