@@ -656,7 +656,12 @@ bar and the 125 m lake rung are inherited conventions and the 1,000 m³/s big-re
 threshold a judgment value introduced with the re-derivation, all reported for
 sensitivity: every bar from 0.60 to 0.85 re-nominates all 22 shipped recoveries; 0.75 →
 0.85 leaves the new share-rule nominations almost unchanged (10 / 8 / 8) and moves the
-share-or-ladder nominations 50 → 32. Each row keeps its discovery
+share-or-ladder nominations 50 → 32. Recomputed on the full ladder
+(`corridor_census_v2/ladder_profile_2026-09-11.csv`), the 42 ladder-only nominations first
+cross the bar at 250 m (1), 500 m (3), 1,000 m (16) and 1,500 m (14) on the lake axis and at
+1,000 m (4) and 2,500 m (3) on the big-reach axis, one only with both wide rungs; the 34
+lake-axis pairs are all adjudicated rejections and the one genuine ladder-only border, the
+Congo pair, crosses at the 1,000 m big-reach rung. Each row keeps its discovery
 provenance in `source`, and the nets' audit records (the 48-pair near-miss
 funnel, the 10 km double-verification, the Natural Earth omissions that
 motivated the hydro rungs) remain validation evidence.
