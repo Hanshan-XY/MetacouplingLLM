@@ -293,6 +293,27 @@ is deliberate:
   cutoff itself is exactly the bug that transiently produced a census of 38
   instead of 41; see the cautionary example below.)
 
+- **Why the hydro widths are single-valued while the Natural Earth widths are
+  laddered (diagnostic 2026-09-10).** HydroRIVERS is derived from 15 arc-second
+  HydroSHEDS, so the geodesic 500 m sample-to-reach width is one cell of the
+  dataset's own positional accuracy; Natural Earth's 1:10M centerlines can sit
+  kilometres from the bank, which is why that width is wide and laddered. A
+  wider hydro width would nominate on proximity to neighbouring rivers rather
+  than on the border's own water, and the one case a fixed 500 m under-measures
+  — a wide channel whose modelled reach lies more than 500 m from a median- or
+  bank-line border — is already carried by the Natural Earth rung, wide rivers
+  being named rivers: 34 of the 623 shipped river borders the two hydro sweeps
+  cover fall below the 0.50 bar at 500 m (Orinoco, Paraguay, Elbe estuary,
+  Yellow River, Danube, Rhône, Potomac, Amu Darya), every one carrying a
+  Natural Earth rung in `screen_disposition.csv`. Re-running the edge screen
+  with the corridor census's discharge-scaled ladder (1,000 / 2,500 m for
+  reaches ≥ 1,000 m³/s) raises the big-river nominations from 176 to 250 and
+  adds no unaudited candidate — the 26 added non-water edges were all
+  adjudicated in the rebuild (22 from its audit queue, 4 on frozen verdicts);
+  `build_data/water_screen_rebuild/hydro_bigreach_ladder_edges_2026-09-10.txt`.
+  The ladder is therefore reserved for the non-touching corridor census, where
+  a bank-line rendering places the reach half a channel width from each
+  polygon edge by construction.
 - **The water-only screens are nomination screens (thresholds nominate, audits
   decide), now measured geodesically.** They do *not* decide membership — they
   nominate candidates adjudicated per pair. The river-centerline screen uses a
@@ -547,8 +568,9 @@ reclassified water-only) and **rescreen-gap** (24 non-touching water borders
 restored as edges) — both from the 2026-07 water-screen rebuild's audit
 batches b1–b6 and the 20 km-hold tranche, every row nominated by the rebuilt
 full-ladder screens (river bar 0.50 at geodesic 2.5/5/10/15/20 km rungs; lake
-bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS nomination floor
-10 m³/s plus the full creek band; HydroLAKES bar 0.5; union-mask corridor
+bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS bar 0.50 at a fixed
+geodesic 500 m sample-to-reach width (one 15 arc-second HydroSHEDS cell), nomination floor
+10 m³/s plus the full creek band; HydroLAKES bar 0.5 at geodesic 500 m; union-mask corridor
 census for non-touching pairs; domestic borders in scope for the first time),
 every candidate Tier-2 adjudicated and
 every shipped verdict human- or dual-AI-verified with per-row provenance in
