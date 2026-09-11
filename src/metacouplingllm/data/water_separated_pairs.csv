@@ -750,6 +750,8 @@ adm1,UGA029,UGA042,False,river,Katonga River,"rescreen-water overlay (water-scre
 adm1,URY010,URY016,False,river,Santa Lucia River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM004,VNM027,True,river,Cau River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM010,VNM036,True,river,Dong Nai River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,COD013,COG003,False,river,Congo River,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,ARG008,URY001,False,river,Salto Grande Reservoir (Uruguay River),"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
 adm0,AFG,UZB,True,,,adm1-rollup,,
 adm0,ARM,IRN,True,,,adm1-rollup,,
 adm0,AZE,TUR,True,,,adm1-rollup,,
