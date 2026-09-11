@@ -429,8 +429,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   Minnesota, New York, the last four reclassified land→water by the
   HydroLAKES full-database sweep below), and `stringent` keeps none
   (Flevoland↔Utrecht correctly stays lenient-only: the Stichtse Brug lands in
-  Noord-Holland). The one genuinely *non-touching* lake border the source
-  digitizes as separate shores — Malësi e Madhe↔Bar across Lake Skadar —
+  Noord-Holland). The one genuinely *non-touching* cross-border lake border the source
+  digitizes as separate shores — Malësi e Madhe↔Bar across Lake Skadar (the two domestic ones, Kampong Thom↔Pursat across Tonlé Sap and Jura↔Neuchâtel across the Lac de Biaufond, ship in the same overlay from the rebuild's own corridor census) —
   ships via the **rescreen-gap** overlay after the lg1 fold (2026-07-23,
   registry entry `rescreen_gap`); it was recovered by the water-band census
   (the 1–100 km water-corridor band; the two-pass adversarial adjudication
