@@ -173,7 +173,7 @@ re-running the engine is the supported way to change the correction layer:
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
 | `disputed_overlay_pairs.csv` | S2 input: 13 ADM1 + 3 ADM0 de-facto pairs |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
-| `rescreen_gap_overlay_pairs.csv` | +22 edges (2026-07 water-screen rebuild + the rg1/lg1 folds; per-row `water_type`) |
+| `rescreen_gap_overlay_pairs.csv` | +24 edges (2026-07 water-screen rebuild + the rg1/lg1 folds + the 2 nt2 corridor-census recoveries of 2026-09-10; per-row `water_type`) |
 | `rescreen_water_overlay_pairs.csv` | water flags on 431 edges (incl. the 15 domestic large-river rows added 2026-09-01 and the 30 folded hydro rows, 2026-07-28) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
 
 Engine semantics worth knowing:

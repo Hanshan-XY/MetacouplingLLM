@@ -151,7 +151,7 @@ Byte-identity scope (a clean-room `--full` rebuild — 2026-07-02, geopandas
 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 — verified the base **adjacency pair set
 reproduces exactly** at 8,451; the then-shipped **8,450** is that base less the 1
 deterministic `_ADM1_FALSE_POSITIVE_DENYLIST` drop applied inside the build,
-so the pair set remains exactly reproducible; the 16 rescreen-gap edges added
+so the pair set remains exactly reproducible; the 24 rescreen-gap edges added
 since are manifest-applied by the toolchain-independent overlay engine), and `water_separated_pairs.csv`,
 `PeriTelecoupling_clean.csv`, and `disputed_overlay_pairs.csv` are
 **byte-identical**; the advisory `border_length_km` column (a length-only
