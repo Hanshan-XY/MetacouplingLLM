@@ -363,7 +363,11 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   **320** moderate / **300** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
-  search, a deterministic geocode + province-polygon check, and manual review.
+  search, a deterministic geocode + province-polygon check, and manual review;
+  since the crossing unification of 2026-09-16 every one of the 807 rows carries
+  the same four-layer record — unified OSM screen (130 m in-both-units test),
+  web verification, adversarial recheck of every unsettled row, location test
+  (≤ 500 m of the shared arc or ≤ 750 m of both units), maintainer rulings.
   It is a **reviewed static artifact** shipped in `water_separated_pairs.csv`,
   NOT regenerated from geometry alone (only the ADM0 roll-up is, by
   `write_water_separated_manifest`). A *completed* bridge on a politically closed
