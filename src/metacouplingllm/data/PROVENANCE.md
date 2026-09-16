@@ -78,8 +78,8 @@ fifth recovered pair, MOZXXX↔MWI003, was reversed 2026-07-18 by maintainer
 map ruling — the true contact is a point) = 8,434, +24 rescreen-gap
 (water-screen rebuild, batch b1, plus the rg1 river-gap fold 2026-07-22 and
 the lg1 lake-gap fold 2026-07-23) = **8,458** shipped
-(lenient); **8,054** moderate; **7,651** stringent; 3,374 regions, 196 countries.
-**ADM0** 326 / 320 / 300. **Water-only 807** (403/404) + 26 ADM0 roll-ups
+(lenient); **8,060** moderate; **7,651** stringent; 3,374 regions, 196 countries.
+**ADM0** 326 / 320 / 300. **Water-only 807** (409/398) + 26 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River and the
 Dead Sea into the hydro row families — the two borders the raw-degree screens
 missed, both in rescreen-water since the 2026-07-28 consolidation — and
@@ -266,8 +266,8 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   further pairs demoted and one orphan row removed) and the ru1 river
   re-adjudication (8 rows demoted to mixed land by maintainer map ruling,
   2026-07-21) and the wu1 water-screen unification (3 mid-lake point contacts
-  removed, 2026-07-25; its 4 lake → river retypes reversed 2026-09-04)) — SHA-256
-  `ba97f2df42e897ecb356c9acfd5d4e04fc4f62dff6a31be3b0e3e0020e687aff`
+  removed, 2026-07-25; its 4 lake → river retypes reversed 2026-09-04) and the bu1 crossing unification (2026-09-16: the four-layer bridge pipeline re-run over all 807 rows; 6 base flags changed on maintainer rulings — 5 crossings added (Spiersbachbrücke, Aghband–Kalaleh, Niangoloko, Vonkoro, Kogui), 1 removed (Oti) — and a `bu1` clause appended to every row's `note`)) — SHA-256
+  `00e4447a214f836cba9124e227bddaf8264bbf0025499d5da68f16b228f6b769`
   (**LF-normalised**: this is the one *text* input and the repo has no
   `.gitattributes`, so a `core.autocrlf=true` checkout renders it CRLF while git
   stores LF; `build_all.py` normalises before comparing so the pin holds on
@@ -283,7 +283,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 
 > **Note.** The subsections below are the *discovery/validation record* for the
 > four-stage, tolerance-0 pipeline and the manifests listed in the Datasets
-> table above (authoritative counts: 8,458 / 8,054 / 7,651; water-only 807);
+> table above (authoritative counts: 8,458 / 8,060 / 7,651; water-only 807);
 > they document how each reviewed correction input was discovered and audited.
 
 
@@ -359,7 +359,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,458 → **8,054** moderate / **7,651** stringent; ADM0 326 →
+  shipped edges 8,458 → **8,060** moderate / **7,651** stringent; ADM0 326 →
   **320** moderate / **300** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -443,7 +443,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1
   (125/238) + 22 ADM0 roll-ups; the rescreen overlays and the ru1
   re-adjudication below take the shipped
-  totals to **8,458** / **807** (403/404) / **26** roll-ups.
+  totals to **8,458** / **807** (409/398) / **26** roll-ups.
 - **Land-gap overlay (survey-line offset corridors).** Along straight-surveyed
   borders the two countries' polygons can be digitized from different renderings
   of the same line, leaving an offset corridor wider than the ~55 m snap
@@ -569,8 +569,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ends land in Bács-Kiskun via the documented Danube side-channel anomaly).
   Everything is **strictly additive** — the pre-rebuild set reproduces
   unchanged, verified against a frozen SHA-256 baseline. Current shipped
-  counts: ADM1 **8,458** edges (**8,054** moderate / **7,651** stringent),
-  ADM0 **326** (320 / 300), water-only **807** ADM1 (403/404) + **26** ADM0
+  counts: ADM1 **8,458** edges (**8,060** moderate / **7,651** stringent),
+  ADM0 **326** (320 / 300), water-only **807** ADM1 (409/398) + **26** ADM0
   roll-ups (the rebuild completed five country borders as all-water: DEU↔LUX
   bridged Our–Sauer–Moselle, BEN↔NER bridged Niger/Mékrou, CMR↔GAB bridged
   Ntem, MWI↔TZA bridged Songwe + Lake Malawi/Nyasa, GUY↔SUR ferry-only
