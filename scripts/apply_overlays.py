@@ -43,7 +43,9 @@ bridge iff any).
 
 Idempotent and byte-stable: running on already-overlaid data changes no
 file (each output is composed in memory and written only if its bytes
-differ).  ``--check`` exits 2 instead of writing.
+differ).  ``--check`` exits 2 instead of writing.  Row order is canonical:
+native/base rows in build order, then the overlay rows in registry order and
+manifest row order -- identical to a fresh ``--full`` rebuild (since 2026-09-16).
 
 Usage:  python scripts/apply_overlays.py [--data-dir PATH] [--check]
 """
@@ -256,11 +258,61 @@ def main(argv: list[str] | None = None) -> int:
     # ---- 6. compose outputs; write only what changed -------------------------
     changed = []
 
-    if new_edge_rows:  # append-only, exactly like the superseded scripts
-        content = edge_path.read_bytes() + _serialize(new_edge_rows, eol=edge_eol)
-        if _write_if_changed(edge_path, content, args.check):
-            changed.append(edge_path.name)
+    # Edge list, canonical order: the native rows (geometry-build order) stay
+    # verbatim; the overlay-added rows follow in registry order, manifest row
+    # order -- the order a fresh --full rebuild produces, so the committed file
+    # and a rebuild agree byte for byte (before 2026-09-16 the engine appended
+    # new rows at the end, and the committed order drifted with the append
+    # history even though the row set was identical).
+    overlay_edge_order: dict[frozenset[str], tuple[int, int]] = {}
+    for ri, (name, _fname, adds_edges, *_) in enumerate(REGISTRY):
+        if not adds_edges:
+            continue
+        for mi, m in enumerate(manifests[name]):
+            overlay_edge_order[frozenset({m["code_a"].strip(), m["code_b"].strip()})] = (ri, mi)
+    new_edge_line = {frozenset({row[0], row[5]}): _serialize([row], eol="").decode("utf-8")
+                     for row in new_edge_rows}
+    raw_edge = edge_path.read_bytes()
+    bom = b"\xef\xbb\xbf" if raw_edge.startswith(b"\xef\xbb\xbf") else b""
+    edge_text = raw_edge.decode("utf-8-sig")
+    edge_lines = edge_text.split(edge_eol)
+    if edge_lines and edge_lines[-1] == "":
+        edge_lines.pop()
+    header_line, body_lines = edge_lines[0], edge_lines[1:]
+    native_lines: list[str] = []
+    existing_overlay_line: dict[frozenset[str], str] = {}
+    for line in body_lines:
+        fields = next(csv.reader([line]))
+        key = frozenset({fields[0].strip(), fields[5].strip()})
+        if key in overlay_edge_order:
+            existing_overlay_line[key] = line
+        else:
+            native_lines.append(line)
+    overlay_lines = [existing_overlay_line.get(key) or new_edge_line[key]
+                     for key, _ in sorted(overlay_edge_order.items(), key=lambda kv: kv[1])]
+    content = bom + (edge_eol.join([header_line, *native_lines, *overlay_lines]) + edge_eol).encode("utf-8")
+    if _write_if_changed(edge_path, content, args.check):
+        changed.append(edge_path.name)
 
+    # Water table, canonical order: base rows (S3 build order) first, then the
+    # rows each overlay claims (note == the registry note) in registry order,
+    # manifest row order -- again the order a fresh --full rebuild produces.
+    overlay_water_order: dict[frozenset[str], tuple[int, int]] = {}
+    registry_note = {}
+    for ri, (name, _fname, _adds, _style, _wt, body_col, note) in enumerate(REGISTRY):
+        if body_col is None:
+            continue
+        registry_note[name] = note
+        for mi, m in enumerate(manifests[name]):
+            overlay_water_order.setdefault(frozenset({m["code_a"].strip(), m["code_b"].strip()}), (ri, mi))
+    claimed_notes = set(registry_note.values())
+
+    def _claimed(row):
+        return frozenset({row[0], row[1]}) in overlay_water_order and row[5] in claimed_notes
+
+    adm1_rows = ([row for row in adm1_rows if not _claimed(row)]
+                 + sorted((row for row in adm1_rows if _claimed(row)),
+                          key=lambda row: overlay_water_order[frozenset({row[0], row[1]})]))
     water_out = [["adm1", *row] for row in adm1_rows]
     # ADM0 roll-ups are derived, not adjudicated: both provenance columns blank.
     water_out += [["adm0", ia, ib, br, "", "", "adm1-rollup", "", ""]

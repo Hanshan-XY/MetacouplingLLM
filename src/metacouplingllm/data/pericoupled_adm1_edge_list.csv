@@ -8429,12 +8429,6 @@ ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE007,Masvingo,Zimbabwe,ZWE,AFR,False,385.4528
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,418.5808,False,False
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE009,Matabeleland South,Zimbabwe,ZWE,AFR,False,291.3107,False,False
 ZWE011,Area under National Administration,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,417.7676,False,False
-ROU019,Galaţi,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,0.5,True,True
-ROU039,Tulcea,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,15.25,False,False
-ROU013,Caraş-Severin,Romania,ROU,ECA,SRB001,Borski,Serbia,SRB,ECA,True,0.62,True,True
-DEU012,Saarland,Germany,DEU,Other,LUX002,Grevenmacher,Luxembourg,LUX,Other,True,6.65,False,False
-GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.36,True,False
-ALB022,Malesi e Madhe,Albania,ALB,ECA,MNE002,Bar,Montenegro,MNE,ECA,True,22.9,False,False
 EGY016,Matrouh,Arab Republic of Egypt,EGY,MENA,LBY001,Ajdabiya (agedabia),Libya,LBY,MENA,True,49.3833,False,False
 DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republic,DOM,LCR,False,0.0414,True,True
 ETH013,Tigray,Ethiopia,ETH,AFR,SDN004,Kassala,Sudan,SDN,AFR,True,0.1282,True,True
@@ -8455,5 +8449,11 @@ VNM028,Hau Giang,Viet Nam,VNM,EAP,VNM061,Vinh Long,Viet Nam,VNM,EAP,False,4.2,Tr
 VNM051,Soc Trang,Viet Nam,VNM,EAP,VNM059,Tra Vinh,Viet Nam,VNM,EAP,False,8.6,False,False
 VNM051,Soc Trang,Viet Nam,VNM,EAP,VNM061,Vinh Long,Viet Nam,VNM,EAP,False,7.8,False,False
 VNM058,Tien Giang,Viet Nam,VNM,EAP,VNM061,Vinh Long,Viet Nam,VNM,EAP,False,3.2,True,False
+ROU019,Galaţi,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,0.5,True,True
+ROU039,Tulcea,Romania,ROU,ECA,UKR016,Odes'ka,Ukraine,UKR,ECA,True,15.25,False,False
+ROU013,Caraş-Severin,Romania,ROU,ECA,SRB001,Borski,Serbia,SRB,ECA,True,0.62,True,True
+DEU012,Saarland,Germany,DEU,Other,LUX002,Grevenmacher,Luxembourg,LUX,Other,True,6.65,False,False
+GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.36,True,False
+ALB022,Malesi e Madhe,Albania,ALB,ECA,MNE002,Bar,Montenegro,MNE,ECA,True,22.9,False,False
 COD013,Équateur,Democratic Republic of Congo,COD,AFR,COG003,Cuvette,Congo,COG,AFR,True,2.2,True,False
 ARG008,Entre Rios,Argentina,ARG,LCR,URY001,Artigas,Uruguay,URY,LCR,True,1.2,True,False

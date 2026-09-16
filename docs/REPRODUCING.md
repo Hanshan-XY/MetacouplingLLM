@@ -145,13 +145,14 @@ and ocean-clip operations preceding the length measurement are sensitive to
 the buffer implementation — lengths never add or drop an edge, so this does
 not affect the pair set or any count. Exact byte-identity of lengths
 additionally requires the original toolchain (geopandas 1.1.2 / shapely 2.1.2
-/ pyproj 3.7.2). The correction layer is toolchain-independent. One further
-scope limit, recorded 2026-09-16: a fresh `--full` run appends the overlay rows
-(the edge list after its 8,430 native edges, the water table after its 298 base
-rows) in registry order, whereas the committed files carry the order in which
-those rows were appended over the project's history — the row *sets* are
-identical (8,458 edges, 807 water rows), the order of the appended rows is not.
-Making the writer sort deterministically is an open follow-up.
+/ pyproj 3.7.2). The correction layer is toolchain-independent, and its row
+order is canonical: the native rows keep the geometry-build order (the edge
+list's 8,430 native edges, the water table's 298 base rows), and the overlay rows
+follow in registry order and manifest row order, which is exactly what a fresh
+`--full` run produces. (Until 2026-09-16 the engine appended new rows at the end,
+so the committed order drifted with the append history while the row sets stayed
+identical; the engine now enforces the canonical order and the committed files
+were re-sorted once, verified byte-identical against a clean `--full` rebuild.)
 
 ## 4. Run the test suite
 

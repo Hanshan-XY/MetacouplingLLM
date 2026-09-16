@@ -297,57 +297,6 @@ adm1,UGA015,UGA075,False,lake,Lake Victoria,,cross-vendor,C
 adm1,NLD002,NLD010,False,lake,IJsselmeer,,cross-vendor,C
 adm1,BOL001,BRA026,False,river,Guaporé; Madeira; Madre de Dios,,cross-vendor,C
 adm1,USA044,MEX005,True,river,Pecos; Rio Grande,,cross-vendor,C
-adm1,ROU019,UKR016,False,river,Danube,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
-adm1,ROU039,UKR016,False,river,Danube; Chilia branch,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
-adm1,ROU013,SRB001,False,river,Danube; Iron Gates,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
-adm1,DEU012,LUX002,True,river,Moselle,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
-adm1,GUF001,SUR004,False,river,Maroni,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR018,ROU012,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR016,ROU020,True,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR013,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR010,ROU018,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR028,ROU018,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR013,ROU031,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR026,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR016,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,MOZ008,TZA025,True,river,Ruvuma,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,ALB031,MNE020,False,river,Bojana,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,DEU011,LUX002,True,river,Moselle; Sauer,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,PRK002,RUS060,True,river,Tumen,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BWA002,ZMB109,True,river,Chobe; Zambezi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,ALB022,MNE002,False,lake,Lake Skadar/Shkodra,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
-adm1,BGR028,ROU031,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,TZA006,UGA094,False,river,Kagera,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,AUT006,SVN009,True,river,Mur; Kucnica,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BDI013,RWA001,False,river,Kagera,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BIH002,HRV014,True,river,Una; Sava,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BLZ003,MEX023,True,river,Rio Hondo,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BOL006,BRA026,False,river,Madeira; Abuna,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BRA027,GUY008,False,river,Ireng,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CIV025,LBR006,False,river,Cavally,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CIV025,LBR010,False,river,Cavally,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CIV025,LBR013,False,river,Cavally,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CMR009,GNQ006,False,river,Ntem (Campo),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,COG012,GAB006,False,river,Djoua,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,DEU004,POL005,True,river,Oder; Neisse,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,GEO005,AZE018,False,river,Alazani,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,GIN008,SLE001,False,river,Meli; Moa/Makona,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,GUF001,SUR009,False,river,Maroni; Lawa; Litani,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,LBR005,SLE001,False,river,Mano; Morro,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,LBR005,SLE004,True,river,Mano,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,MOZXXX,MWI004,False,lake,Lake Malawi/Nyasa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,MWI004,TZA017,False,lake,Lake Malawi/Nyasa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,MWI004,TZA025,False,lake,Lake Malawi/Nyasa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,NGA008,TCD010,False,lake,Lake Chad,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CMR004,TCD010,False,lake,Lake Chad,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,KEN004,UGA088,False,lake,Lake Victoria,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,BOL004,PER007,False,lake,Lake Titicaca,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,COD011,RWA005,True,lake,Lake Kivu; Ruzizi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CAN009,USA023,True,lake,Great Lakes; connecting rivers,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CAN009,USA024,True,lake,Rainy; Pigeon; Lake Superior,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,CAN009,USA033,True,lake,Niagara; St. Lawrence; Great Lakes,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,ISR005,JOR007,False,lake,Dead Sea,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,ARG008,URY012,True,river,Uruguay River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,CHE011,CHE013,False,lake,Lac de Biaufond,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
 adm1,DEU004,DEU009,False,river,Elbe,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
 adm1,GMB003,GMB006,False,river,River Gambia,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
@@ -364,6 +313,14 @@ adm1,VNM028,VNM061,False,river,"Hau River (Bassac River, southern Mekong distrib
 adm1,VNM051,VNM059,False,river,"Hau River (Song Hau / Bassac River, lower Mekong distributary)","rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM051,VNM061,False,river,Hau River (Sông Hậu),"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM058,VNM061,True,river,"Tien River (Sông Tiền, a main Mekong distributary)","rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,ROU019,UKR016,False,river,Danube,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,ROU039,UKR016,False,river,Danube; Chilia branch,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,ROU013,SRB001,False,river,Danube; Iron Gates,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,DEU012,LUX002,True,river,Moselle,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,GUF001,SUR004,False,river,Maroni,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,ALB022,MNE002,False,lake,Lake Skadar/Shkodra,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,COD013,COG003,False,river,Congo River,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
+adm1,ARG008,URY001,False,river,Salto Grande Reservoir (Uruguay River),"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
 adm1,ALB011,ALB017,True,lake,Fierza Reservoir (Liqeni i Fierzës),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,B
 adm1,ALB011,ALB029,False,lake,Fierza Reservoir (Liqeni i Fierzës) on the Drin River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,B
 adm1,AZE007,IRN009,True,river,Astara River (Astarachay),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,B
@@ -735,6 +692,51 @@ adm1,VNM025,VNM054,True,river,Luoc River (Sông Luộc),"rescreen-water overlay 
 adm1,KHM000,KHM004,False,lake,Tonle Sap,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,KHM000,KHM006,False,lake,Tonle Sap,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,ZWE008,ZWE011,False,lake,Lake Kariba,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR018,ROU012,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR016,ROU020,True,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR013,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR010,ROU018,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR028,ROU018,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR013,ROU031,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR026,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR016,ROU037,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,MOZ008,TZA025,True,river,Ruvuma,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,ALB031,MNE020,False,river,Bojana,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,DEU011,LUX002,True,river,Moselle; Sauer,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,PRK002,RUS060,True,river,Tumen,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BWA002,ZMB109,True,river,Chobe; Zambezi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BGR028,ROU031,False,river,Danube,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,TZA006,UGA094,False,river,Kagera,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,AUT006,SVN009,True,river,Mur; Kucnica,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BDI013,RWA001,False,river,Kagera,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BIH002,HRV014,True,river,Una; Sava,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BLZ003,MEX023,True,river,Rio Hondo,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BOL006,BRA026,False,river,Madeira; Abuna,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BRA027,GUY008,False,river,Ireng,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CIV025,LBR006,False,river,Cavally,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CIV025,LBR010,False,river,Cavally,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CIV025,LBR013,False,river,Cavally,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CMR009,GNQ006,False,river,Ntem (Campo),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,COG012,GAB006,False,river,Djoua,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,DEU004,POL005,True,river,Oder; Neisse,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,GEO005,AZE018,False,river,Alazani,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,GIN008,SLE001,False,river,Meli; Moa/Makona,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,GUF001,SUR009,False,river,Maroni; Lawa; Litani,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,LBR005,SLE001,False,river,Mano; Morro,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,LBR005,SLE004,True,river,Mano,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,ARG008,URY012,True,river,Uruguay River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,MOZXXX,MWI004,False,lake,Lake Malawi/Nyasa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,MWI004,TZA017,False,lake,Lake Malawi/Nyasa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,MWI004,TZA025,False,lake,Lake Malawi/Nyasa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,NGA008,TCD010,False,lake,Lake Chad,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CMR004,TCD010,False,lake,Lake Chad,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,KEN004,UGA088,False,lake,Lake Victoria,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,BOL004,PER007,False,lake,Lake Titicaca,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,COD011,RWA005,True,lake,Lake Kivu; Ruzizi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CAN009,USA023,True,lake,Great Lakes; connecting rivers,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CAN009,USA024,True,lake,Rainy; Pigeon; Lake Superior,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,CAN009,USA033,True,lake,Niagara; St. Lawrence; Great Lakes,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,ISR005,JOR007,False,lake,Dead Sea,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,ALB008,ALB036,True,river,Vjosa River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,ALB023,ALB036,True,river,Vjosa River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,CMR005,CMR009,True,river,Nyong River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
@@ -750,8 +752,6 @@ adm1,UGA029,UGA042,False,river,Katonga River,"rescreen-water overlay (water-scre
 adm1,URY010,URY016,False,river,Santa Lucia River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM004,VNM027,True,river,Cau River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM010,VNM036,True,river,Dong Nai River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,COD013,COG003,False,river,Congo River,"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
-adm1,ARG008,URY001,False,river,Salto Grande Reservoir (Uruguay River),"rescreen-gap overlay (water-screen rebuild: recovered non-touching water border, two-pass adjudication + verification)",cross-vendor,A
 adm1,COG006,COG008,False,river,"Mpoukou, Louessé and Niari rivers","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM001,DOM020,True,river,Ocoa River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM010,DOM027,True,river,"Higuamo, Maguá and Casuí tributary network","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
