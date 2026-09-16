@@ -5,7 +5,7 @@
 > **Status note (2026-09-16).** The four-layer pipeline this document describes for the June run was re-run uniformly over all 807 shipped water-only rows (crossing unification, campaign `bu1`): the unified OSM screen (this classifier's query and tag rules, 130 m in-both-units test, dense 500 m sweep on long borders), a Codex adversarial recheck of the 131 rows it did not settle, a location test (≤ 500 m of the shared arc or ≤ 750 m of both units) and maintainer map rulings on 27 proposed flips. 14 flags changed (10 added, 4 removed); the base file now carries 105 with a crossing / 193 without and a `bu1` clause on every row's `note`; SHA re-pinned. Record: `build_data/water_screen_rebuild/bridge_unification/`. The lineage below (315 → 108/207) is unchanged as history.
 
 **Status:** verification complete & human-validated · **Date:** 2026-06-03/04
-**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(The current base `bridge_classified_authoritative.csv` carries **298 rows** — 242 river / 56 lake, 101 with an open fixed crossing / 197 without — every row re-adjudicated under the standard cross-vendor process: the river rows by ru1 (2026-07-21), the lake-class rows by wu1 (2026-07-25, which removed 3 mid-lake point contacts on the maintainer's map check and retyped 4 dam impoundments lake → river); the correction history, including the Italy↔Vatican land reclassification, is in `CHANGELOG.md`. Subsequent reviewed overlays extend the shipped `water_separated_pairs.csv` to **736 ADM1 pairs (345 with an open fixed crossing / 391 without)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**: hydro-water 18, hydro-lakes 12, rescreen-water 386 (incl. the ru1-folded former wide-river and audit-water rows), rescreen-gap 22 (incl. the rg1-folded former river-gap rows (2026-07-22) and the lg1-folded former lake-gap row (Skadar, 2026-07-23)). There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers, corrected only through the reviewed hydro-lakes/rescreen-gap overlays; see `data/PROVENANCE.md`. The 315 figures below describe the original OSM classification run.)*
+**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(The current base `bridge_classified_authoritative.csv` carries **298 rows**, every row re-adjudicated under the standard cross-vendor process and, since 2026-09-16, carrying the unified four-layer crossing record; its correction history is in `CHANGELOG.md`, and the current shipped counts and the row-by-row composition of `water_separated_pairs.csv` live in `docs/METHODS_adjacency.md` and `data/PROVENANCE.md` — this document does not restate them. There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers. The 315 figures below describe the original OSM classification run.)*
 
 This document records, in detail, how the bridge-classification database was built: why it
 exists, the inputs, the OpenStreetMap (OSM) detection method and its evolution, the
@@ -326,8 +326,8 @@ direction for a connectivity dataset; the verification removed those.
 > disagreements → geocode + province-polygon cross-check — was later
 > formalized as the **four-layer bridge pipeline**
 > (`docs/METHODS_adjacency.md` §8) and reused for every rescreen-water /
-> rescreen-gap addition, which now supply the majority of the 736 shipped
-> water-only pairs.
+> rescreen-gap addition, which now supply the majority of the shipped
+> water-only pairs (current counts: `data/PROVENANCE.md`).
 
 `bridge_classified_authoritative.csv` → frozen as a dated **`water_separated_pairs.csv`**
 (`has_bridge` per pair). Applied to the 315 water-only ADM1 pairs of this run:
@@ -342,10 +342,9 @@ ADM0 roll-up: a country pair is water-only only if *all* its province crossings
 are water-only; it "has a bridge" if *any* does. Most country pairs have some land border and
 are unaffected.
 
-*(Current shipped state after the reviewed overlays: `water_separated_pairs.csv` carries
-**736 ADM1 pairs (345 / 391)** plus **26 ADM0 roll-ups (20 bridge / 6 no-bridge)**;
-the base `bridge_classified_authoritative.csv` is **298 rows**. See
-`data/PROVENANCE.md`.)*
+*(Current shipped state after the reviewed overlays: see `data/PROVENANCE.md` and
+`docs/METHODS_adjacency.md`; the base `bridge_classified_authoritative.csv` is **298 rows**.
+This document does not restate the shipped counts.)*
 
 ---
 

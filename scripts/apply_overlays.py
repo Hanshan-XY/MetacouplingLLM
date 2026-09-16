@@ -21,7 +21,7 @@ This engine applies the whole layer in one pass:
   rescreen_gap         rescreen_gap_overlay_pairs.csv         +16 edges, +16 water rows
                                                               (water-screen rebuild,
                                                               per-row water_type)
-  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 386 edges
+  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 485 edges
                                                               (water-screen rebuild
                                                               b1-b6 + 20km holds +
                                                               identity-audit shore
