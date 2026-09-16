@@ -49,7 +49,7 @@ refuses to build from a mismatching file):
 | WB Admin 0 GeoPackage (layer `WB_GAD_ADM0`, 264 features) | same distribution | `97f0c8a0…f4b117e` |
 | WB Ocean Mask GeoPackage | same distribution | `c2b074fd…c88d702` |
 | WB NDLSA GeoPackage (24 disputed-area features) | same distribution | `159ef2d1…55d2fa4` |
-| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `ba97f2df…e687aff` |
+| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `00e4447a…8f6b769` |
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
 
@@ -88,8 +88,8 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,458 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,054 / 7,651 |
-| water-only ADM1 | 807 = 403 with a fixed crossing / 404 without |
+| ADM1 moderate / stringent | 8,060 / 7,651 |
+| water-only ADM1 | 807 = 409 with a fixed crossing / 398 without |
 | water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 272 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
@@ -145,7 +145,13 @@ and ocean-clip operations preceding the length measurement are sensitive to
 the buffer implementation — lengths never add or drop an edge, so this does
 not affect the pair set or any count. Exact byte-identity of lengths
 additionally requires the original toolchain (geopandas 1.1.2 / shapely 2.1.2
-/ pyproj 3.7.2). The correction layer is toolchain-independent.
+/ pyproj 3.7.2). The correction layer is toolchain-independent. One further
+scope limit, recorded 2026-09-16: a fresh `--full` run appends the overlay rows
+(the edge list after its 8,430 native edges, the water table after its 298 base
+rows) in registry order, whereas the committed files carry the order in which
+those rows were appended over the project's history — the row *sets* are
+identical (8,458 edges, 807 water rows), the order of the appended rows is not.
+Making the writer sort deterministically is an open follow-up.
 
 ## 4. Run the test suite
 
@@ -174,7 +180,7 @@ re-running the engine is the supported way to change the correction layer:
 | `disputed_overlay_pairs.csv` | S2 input: 13 ADM1 + 3 ADM0 de-facto pairs |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
 | `rescreen_gap_overlay_pairs.csv` | +24 edges (2026-07 water-screen rebuild + the rg1/lg1 folds + the 2 nt2 corridor-census recoveries of 2026-09-10; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 485 edges (incl. the 15 domestic large-river rows added 2026-09-01, the 54 domestic creek-band rows added 2026-09-14 and the 30 folded hydro rows, 2026-07-28) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
+| `rescreen_water_overlay_pairs.csv` | water flags on 485 edges (incl. the 15 domestic large-river rows added 2026-09-01, the 54 domestic creek-band rows added 2026-09-14 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
 
 Engine semantics worth knowing:
 
