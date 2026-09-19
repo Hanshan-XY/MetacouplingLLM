@@ -174,7 +174,9 @@ column):
 
 - **Tier A — human map-verified:** all pre-rebuild overlay rows, the 140
   rescreen disagreement/medium rows, the 9 rows ruled by the maintainer on the
-  shipped WB geometry (2026-09-19), and every validation-study
+  shipped WB geometry (2026-09-19), the rows accepted by maintainer map ruling
+  in 2026-09 (the 15 domestic large-river rows, the 2 corridor-census rows, the
+  54 creek-band rows and the pilot row), and every validation-study
   correction.
 - **Tier B — dual-AI convergent:** 238 rescreen rows shipped on documented
   two-model agreement; measured precision 98.7% (exact 95% CI
@@ -195,7 +197,8 @@ deliberately **orthogonal**:
   the last 4 that had been settled by the placeholder-identity audit or the
   validation study instead. This is what those campaigns upgraded. (The nine-pair pilot of the 2026-07 audit queue, adjudicated by a single-vendor two-pass and wholly rejected, was the last set outside the design; it was re-adjudicated on 2026-09-18, pr1: eight rejections upheld, Kapisa↔Parwan accepted.)
 - `verification_tier` — the **evidence** strength: `A` / `B` / `C` above,
-  currently **201 / 238 / 297**. Tier B is pinned to the preregistered study's
+  currently **273 / 238 / 297** (tier A: 248 rescreen-water rows, all 24
+  rescreen-gap rows and 1 base row). Tier B is pinned to the preregistered study's
   measured frame and must not drift: widening it would silently rescope the
   98.7% precision figure onto rows the study never sampled
   (`tests/test_apply_overlays.py::test_tier_b_is_exactly_the_validation_study_frame`).
