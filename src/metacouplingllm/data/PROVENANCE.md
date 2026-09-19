@@ -278,7 +278,21 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   Rivers (`ne_10m_rivers_lake_centerlines`) are used only for advisory flags.
   The WB distribution ships **no inland-hydrography layer** (admin polygons plus
   a single-feature ocean mask only), and its admin polygons *include* lake
-  water; inland lakes and rivers are therefore sourced from Natural Earth.
+  water; inland lakes and rivers are therefore sourced from Natural Earth and,
+  in the water-screen rebuild, from HydroRIVERS and HydroLAKES (next item).
+- **HydroRIVERS v10 and HydroLAKES v10** (HydroSHEDS, https://www.hydrosheds.org)
+  — screening inputs of the water-screen rebuild only: the HydroRIVERS and
+  HydroLAKES rungs (geodesic 500 m; bars 0.50 and 0.40) and the water union of
+  the non-touching corridor census. They nominate candidates for adjudication
+  and never add, move or drop an edge by themselves; every border is World Bank
+  geometry. **No HydroSHEDS file is redistributed** with the package, and none is
+  pinned by checksum, because the shipped database is rebuilt from the reviewed
+  manifests and the pinned GeoPackages, not from these layers; they are needed
+  only to re-run the candidate screens (`docs/REPRODUCING.md`). Cite as Lehner &
+  Grill (2013), *Hydrological Processes* 27(15), 2171–2186,
+  https://doi.org/10.1002/hyp.9740 (HydroRIVERS) and Messager et al. (2016),
+  *Nature Communications* 7, 13603, https://doi.org/10.1038/ncomms13603
+  (HydroLAKES).
 
 ## Method
 
