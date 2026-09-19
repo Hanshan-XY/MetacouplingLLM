@@ -806,6 +806,7 @@ adm1,VNM025,VNM026,True,river,Sông Mía-Sông Cầu Xe-Sông Thái Bình canal 
 adm1,VNM025,VNM049,True,river,Sông Kinh Thầy,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM026,VNM049,True,river,Sông Đá Bạch-Bạch Đằng,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM026,VNM054,True,river,Sông Hóa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,AFG016,AFG028,True,river,Panjshir River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm0,AFG,UZB,True,,,adm1-rollup,,
 adm0,ARM,IRN,True,,,adm1-rollup,,
 adm0,AZE,TUR,True,,,adm1-rollup,,

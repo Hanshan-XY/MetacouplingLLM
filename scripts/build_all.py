@@ -57,9 +57,9 @@ PINNED_SHA256 = {
 
 EXPECTED = {
     "adm1_edges": 8458, "adm1_regions": 3374, "adm1_countries": 196,
-    "water_adm1": 807, "water_bridge": 409, "water_nobridge": 398,
+    "water_adm1": 808, "water_bridge": 410, "water_nobridge": 398,
     "water_adm0": 26,
-    "adm1_moderate": 8060, "adm1_stringent": 7651,
+    "adm1_moderate": 8060, "adm1_stringent": 7650,
     "adm0_pairs": 326, "adm0_moderate": 320, "adm0_stringent": 300,
 }
 
