@@ -547,7 +547,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   domestic borders in scope for the first time** — with lowered, measured bars:
   NE river 0.50 at geodesic 2.5/5/10/15/20 km rungs, NE lake 0.40 at geodesic
   125/250/500/1,000/1,500 m, HydroRIVERS nomination floor 10 m³/s plus the
-  creek band (its 715 domestic creek-only edges adjudicated 2026-09-14), HydroLAKES bar 0.5, and a union-mask non-touching recovery rule
+  creek band (its 715 domestic creek-only edges adjudicated 2026-09-14), HydroLAKES bar 0.40 (0.5 until 2026-09-19, when it was aligned with the NE lake bar and the 21 newly nominated borders were adjudicated, none water-only), and a union-mask non-touching recovery rule
   (corridor ≥ 0.80 inside NE lakes ∪ geodesic-500 m HydroRIVERS buffer, with a
   short-corridor proximity amendment). Every rung candidate was **Tier-2
   adjudicated** with a cross-vendor two-pass design — research on OpenAI's
