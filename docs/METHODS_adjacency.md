@@ -76,7 +76,11 @@ denylist entry.
 ADM0** roll-ups, by source: 298 base bridge classification + 486
 rescreen-water + 24 rescreen-gap. Every one of the 808 is nominated by the
 rebuilt screens run over every edge (NE rungs ∪ HydroRIVERS/HydroLAKES rungs ∪
-the corridor census, v2 since 2026-09-10; whole-graph attributability 808/808). The
+the corridor census, v2 since 2026-09-10; whole-graph attributability 808/808). ("Every
+edge" means every edge with a shared border arc to sample: 8,421 of the 8,458. The 13
+de-facto overlay edges meet only across a disputed tract and have no arc in the standard
+layer — the sweep records mark them `non-touching (census/NDLSA domain)` — and none is
+water-only; the 24 rescreen-gap pairs are the corridor census's domain.) The
 pre-rebuild discovery campaigns — the ~1 km near-miss net and the 1–100 km lake
 band (6 rescreen-gap rows), the 5 km/10 km widening re-screens (15
 rescreen-water rows), and the 2026-07-02/04 HydroRIVERS/HydroLAKES geodesic
