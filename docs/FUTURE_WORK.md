@@ -73,7 +73,7 @@ cross-border edges (`build_data/water_screen_rebuild/hydro_fold/crossborder_hydr
 14/14 previously-unrecorded rows re-nominate, whole-graph attributability
 736/736, and the fold followed (registry 5 → 3; see CHANGELOG). The two NEW
 cross-border nominations it surfaced were **adjudicated the same day** under the
-standard cross-vendor mini-batch (Codex research → Sonnet-5 adversarial judge →
+standard cross-vendor mini-batch (GPT-5.6 Sol research → Sonnet-5 adversarial judge →
 deterministic measurement → maintainer gate) and **both ruled NOT water-only —
 zero data change** (`newcand_rulings.json`): `NER002`↔`TCD010` by dual-AI
 agreement (IBS-73 surveyed segments + the Northern Pool's post-1970s dryness);

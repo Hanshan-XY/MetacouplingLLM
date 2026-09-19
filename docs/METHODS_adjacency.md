@@ -58,7 +58,7 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S3** Natural Earth water classification | 8,430 → 8,430 | — → 298 | descriptive: base bridge classification flags 298 water-only borders (238 river / 60 lake — the river rows ru1-re-adjudicated 2026-07-21, the lake-class rows wu1-re-adjudicated 2026-07-25); **adds no edge** |
 | **S4** + land-gap overlay (*applied* here; *discovered* by the S1 tolerance-band audit, §2.4/§4) | 8,430 → 8,434 | 298 → 298 | +4 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … a domestic Anguilla pair); no water rows |
 | **S4** + rescreen-gap overlay (water-screen rebuild + corridor census v2) | 8,434 → 8,458 | 298 → 322 | +24 non-touching water borders: 22 nominated by the rebuild's 2026-07 union-mask corridor census (≥ 0.80 of the gap corridor inside NE lakes ∪ a 500 m HydroRIVERS buffer — planar degrees in that run; river gaps to 5 km, lake corridors to 100 km; short-corridor amendment), Tier-2 two-pass adjudicated and human/dual-AI verified, and 2 by its 2026-09-10 successor, the corridor census v2 (NE lakes ∪ HydroLAKES ∪ a geodesic, discharge-laddered HydroRIVERS buffer; transect corridors along the facing frontage; third-unit and wedge flags recorded) — 46 nominations, cross-vendor two-pass, maintainer map rulings 2026-09-10: Équateur↔Cuvette across the Congo and Entre Ríos↔Artigas across Salto Grande, tier A (record `build_data/water_screen_rebuild/corridor_census_v2/`); the v2 census re-nominates all 22 earlier rows. Six of the 22 were first found by the retired ~1 km near-miss net (5 river rows, rg1 fold 2026-07-22; Galați↔Odesa upheld by maintainer map ruling via Insula Cailor, arc corrected to 0.5 km) and the retired 1–100 km lake band (the Skadar row, lg1 fold 2026-07-23; human-map-verified 2026-07-04) — all six independently re-nominated by the corridor census, discovery provenance retained in `source` |
-| **S4** rescreen-water overlay (water-screen rebuild + identity audit + unification folds) | 8,458 → 8,458 | 322 → 808 | +0 edges; 486 existing borders reclassified water-only, every one nominated by the rebuilt screens (NE rungs; HydroRIVERS/HydroLAKES domestic and cross-border rungs): 368 adjudicated in the rebuild's Tier-2 audit (batches b1–b6 + the 20 km-hold tranche: 72 + 125 + 169 + 2; incl. 9 rows on human-delegated Fable-5 final arbitration), 15 domestic large-river borders nominated by the HydroRIVERS ≥ 100 m³/s rung and adjudicated 2026-09-01 (rj2: cross-vendor two-pass + maintainer map rulings under Standard M; 11 bridged / 4 not; four-layer bridge pipeline), 54 domestic creek-band borders nominated by the HydroRIVERS creek rung (≥ 0.5 of the border within geodesic 500 m of any reach, < 0.5 at ≥ 10 m³/s) and adjudicated 2026-09-14 (dc1: the whole 715-edge band through the cross-vendor two-pass, a deterministic gap measurement of the 90 pairs with at least one water-only verdict and maintainer map rulings under Standard M; 47 bridged / 7 not; four-layer bridge pipeline), 1 border of the nine-pair pilot, re-adjudicated 2026-09-18 when the pilot's single-vendor verdicts were replaced by the cross-vendor two-pass (pr1: Kapisa↔Parwan along the Panjshir River, accepted by maintainer map ruling; bridged), 3 shore contacts of proven water-surface polygons from the 2026-07-18 placeholder-identity audit (2 Tonle Sap + 1 Lake Kariba; human-map-verified), and 45 rows first found by pre-rebuild campaigns now retired as nomination steps, folded in with their discovery provenance retained in `source` — 15 river rows by the 5 km/10 km widening re-screens (ru1 fold 2026-07-21; 9 further pre-rebuild river verdicts demoted to mixed land by maintainer map ruling), 18 by the 2026-07-02 HydroRIVERS and 12 by the 2026-07-04 HydroLAKES geodesic 500 m cross-checks (2026-07-28 fold; incl. the Uruguay River and the Dead Sea; two-stage ground-truthed and 100% human-map-verified at the time) — all re-nominated by the rebuilt rungs (whole-graph attributability 808/808, `build_data/water_screen_rebuild/hydro_fold/attributability_check.py`) |
+| **S4** rescreen-water overlay (water-screen rebuild + identity audit + unification folds) | 8,458 → 8,458 | 322 → 808 | +0 edges; 486 existing borders reclassified water-only, every one nominated by the rebuilt screens (NE rungs; HydroRIVERS/HydroLAKES domestic and cross-border rungs): 368 adjudicated in the rebuild's Tier-2 audit (batches b1–b6 + the 20 km-hold tranche: 72 + 125 + 169 + 2; incl. 9 rows ruled by the maintainer on the shipped WB geometry, 2026-09-19, in place of a delegated arbitration pass), 15 domestic large-river borders nominated by the HydroRIVERS ≥ 100 m³/s rung and adjudicated 2026-09-01 (rj2: cross-vendor two-pass + maintainer map rulings under Standard M; 11 bridged / 4 not; four-layer bridge pipeline), 54 domestic creek-band borders nominated by the HydroRIVERS creek rung (≥ 0.5 of the border within geodesic 500 m of any reach, < 0.5 at ≥ 10 m³/s) and adjudicated 2026-09-14 (dc1: the whole 715-edge band through the cross-vendor two-pass, a deterministic gap measurement of the 90 pairs with at least one water-only verdict and maintainer map rulings under Standard M; 47 bridged / 7 not; four-layer bridge pipeline), 1 border of the nine-pair pilot, re-adjudicated 2026-09-18 when the pilot's single-vendor verdicts were replaced by the cross-vendor two-pass (pr1: Kapisa↔Parwan along the Panjshir River, accepted by maintainer map ruling; bridged), 3 shore contacts of proven water-surface polygons from the 2026-07-18 placeholder-identity audit (2 Tonle Sap + 1 Lake Kariba; human-map-verified), and 45 rows first found by pre-rebuild campaigns now retired as nomination steps, folded in with their discovery provenance retained in `source` — 15 river rows by the 5 km/10 km widening re-screens (ru1 fold 2026-07-21; 9 further pre-rebuild river verdicts demoted to mixed land by maintainer map ruling), 18 by the 2026-07-02 HydroRIVERS and 12 by the 2026-07-04 HydroLAKES geodesic 500 m cross-checks (2026-07-28 fold; incl. the Uruguay River and the Dead Sea; two-stage ground-truthed and 100% human-map-verified at the time) — all re-nominated by the rebuilt rungs (whole-graph attributability 808/808, `build_data/water_screen_rebuild/hydro_fold/attributability_check.py`) |
 | **shipped (lenient)** | **8,458** | 808 | 3,374 regions, 196 countries — every edge kept |
 | moderate (default) | **8,060** | −398 | 8,458 − 398 water-only pairs with no fixed crossing |
 | stringent | **7,650** | −808 | 8,458 − all 808 water-only pairs |
@@ -603,8 +603,12 @@ MOZXXX↔TZA025) are bridged, so they move only stringent; the stringent view sh
 **Adjudication design.** Every water-only verdict on record — the 808 shipped
 rows and every rejected candidate in the audit record — was set by one design
 run *downstream* of the deterministic screens: a **cross-vendor two-pass** in
-which the research pass ran on OpenAI Codex and the adversarial judgment pass
-on Claude Sonnet 5, so no single model family sets a verdict alone; medium-
+which the research pass ran on OpenAI's GPT-5.6 Sol, as a web-enabled agent in
+the Codex app, and the adversarial judgment pass on Anthropic's Claude Sonnet 5,
+blind to the repository's prior verdicts, so no single model family sets a
+verdict alone. Both passes are labelled by their model throughout — `GPT-5.6 Sol
+research`, `Sonnet-5 adversarial judgment` — in the per-row `source` strings and in
+the campaign paragraphs below. Medium-
 confidence verdicts were human map-verified, high-confidence ones dual-AI
 cross-checked, and every new *edge* additionally passed the four-layer bridge
 pipeline (OSM Overpass screen, agent web verification, adversarial recheck of
@@ -665,14 +669,15 @@ Congo pair, crosses at the 1,000 m big-reach rung. Each row keeps its discovery
 provenance in `source`, and the nets' audit records (the 48-pair near-miss
 funnel, the 10 km double-verification, the Natural Earth omissions that
 motivated the hydro rungs) remain validation evidence.
-Ten verdicts the maintainer could not resolve from available map evidence —
-the pre-2021 Latvia/Lithuania subdivision-vintage pairs and the two `Area
-under National Administration` placeholder units — were delegated to a
-**Fable 5 final-arbitration pass** (2026-07-17), which shipped nine and
-rejected one, establishing the two placeholder polygons' identities from
-the WB geometry itself (the Malawian and Mozambican Lake Malawi/Niassa
-water-surface units; one arbiter-internal disagreement settled by a
-deterministic re-measurement tie-break, frozen with the verdicts). Every
+Ten verdicts the maintainer could not at first resolve from available map
+evidence — the pre-2021 Latvia/Lithuania subdivision-vintage pairs and the two
+`Area under National Administration` placeholder units — were **ruled by the
+maintainer on 2026-09-19 on the shipped WB geometry itself** (a deterministic
+overlay of OSM waterways and HydroRIVERS along each arc, read at 100/250/500 m,
+and a rendered map per pair): nine accepted, one rejected. The rulings replace a
+delegated final-arbitration pass of 2026-07-17 and reach the same verdicts; the
+two placeholder polygons are the Malawian and Mozambican Lake Malawi/Niassa
+water-surface units (placeholder-identity audit, 2026-07-18). Every
 accepted pair passed the same four-layer bridge pipeline (the
 province-polygon layer corrected one off-border citation, the Kerio
 crossing, to the on-reach Rorok structure).
@@ -708,7 +713,7 @@ co-nominated the edge, but the 2026-07-10 gate set its 714 domestic creek-only e
 document-only. That gate was withdrawn on 2026-09-12 (thresholds nominate, audits decide) and
 the band went through the same design as every other nomination band (`dc1`), together with
 the one edge restored on 2026-07-19 after the screen populations froze and therefore never
-screened (Balzers↔Planken, which screens into the band): 715 edges, Codex research (65
+screened (Balzers↔Planken, which screens into the band): 715 edges, GPT-5.6 Sol research (65
 water-only) → Sonnet-5 adversarial judgment (55; no repository access, one structured return
 per agent), gate A 30 / B 60 / C 175 / D 450. Because the judges, lacking web access, mostly
 derived their dry component from the complement of the HydroRIVERS share, a deterministic gap
@@ -716,7 +721,7 @@ measurement (`domestic_creek/measure_dc1.csv`: kilometres of border more than 50
 reach, the longest contiguous such run at 500 and 1,000 m, its position on the arc)
 accompanied the 90 pairs with at least one water-only verdict to the maintainer, whose map rulings of 2026-09-14 accepted
 **54** (20 dual-true, 21 research-only, 13 judge-only) and upheld 36 as land; the 54 passed the
-four-layer bridge pipeline (OSM screen with the in-both-units test, 19 settled; Codex adversarial
+four-layer bridge pipeline (OSM screen with the in-both-units test, 19 settled; GPT-5.6 Sol adversarial
 recheck of the 35 disagreements and unknowns; coordinate cross-check against the shared WB arc;
 47 bridged / 7 not) — the 753 → 807 change (`build_data/water_screen_rebuild/domestic_creek/`,
 `dc1_rulings.json`). The forward completeness check (`rejection_unification/completeness_check.py`)
@@ -733,7 +738,7 @@ record at all (45 rescreen-water, 6 rescreen-gap, 3 shore contacts). The unified
 screen was re-run over all 807 rows: it agreed with the shipped flag on 691, found
 no bridge way for 54 bridged rows and a bridge way for 56 unbridged rows, and only
 a tunnel or dam-top way for 6 bridged rows. Those 116, plus the 15 bridged rows
-without a location record, went to the Codex adversarial recheck (88 yes / 43 no),
+without a location record, went to the GPT-5.6 Sol adversarial recheck (88 yes / 43 no),
 every *yes* to the location test (26 of the 88 fell outside 500 m of the arc; 18
 of those are mid-span pins within 750 m of both units, 6 bank-line gaps within
 3 km, 2 wrong-unit citations — Yacyretá lands in a different Paraguayan
@@ -754,14 +759,14 @@ re-pinned. Record: `build_data/water_screen_rebuild/bridge_unification/`
 **Pilot re-adjudication (`pr1`, 2026-09-18).** The nine-pair pilot of the 2026-07
 audit queue had been adjudicated by the original audit design — a Sonnet-5
 research pass feeding a Fable-5 judgment pass, both on one vendor — before the
-research pass moved to Codex, and was then frozen. All nine were rejected and
+research pass moved to GPT-5.6 Sol, and was then frozen. All nine were rejected and
 none shipped, but they were the one set of verdicts on record that the
 cross-vendor design had never covered: the 2026-09-01 statement above that no
 verdict rests on an earlier design overlooked them, because
 `completeness_check.py` counted membership of `audit_queue.csv`, which lists the
 pilot, as a cross-vendor record (fixed 2026-09-18). All nine were still nominated
 by a current screen, so all nine went through the standard process, blind to the
-pilot verdicts: Codex research (9/9 valid; 8 not water-only, 1 water-only),
+pilot verdicts: GPT-5.6 Sol research (9/9 valid; 8 not water-only, 1 water-only),
 Sonnet-5 judgment (9 agents, one structured return each), gate A 0 / B 2 / C 4 /
 D 3, a deterministic gap measurement of the 8 contact pairs, and maintainer map
 rulings on the two disagreements. **Kapisa↔Parwan was accepted** as water-only
@@ -777,6 +782,25 @@ row: the 807 → 808 change (410 with a fixed crossing / 398 without; moderate
 unchanged at 8,060, stringent 7,650)
 (`build_data/water_screen_rebuild/pilot_readjudication/`).
 
+**Arbitration review (`ar1`, 2026-09-19).** Ten verdicts of the 2026-07 audit
+(the pre-2021 Latvia/Lithuania subdivision-vintage pairs and the two lake-surface
+placeholder contacts) had been delegated by the maintainer, for want of map
+evidence, to a final-arbitration pass on a third model (Fable 5, 2026-07-17),
+which shipped nine and rejected one. They were the only verdicts in the database
+resting on that model. The maintainer ruled on all ten on 2026-09-19, on the
+shipped WB geometry itself — the Latvian units are municipalities abolished in
+2021, so current maps do not show these lines — using a worksheet built for the
+purpose: the existing GPT-5.6 Sol research and Sonnet-5 judgment verdicts (both
+water-only on all ten), a deterministic overlay of OSM waterways along each arc
+(50 m sampling; share within 100, 250 and 500 m of a river or stream, longest dry
+run and its position), the HydroRIVERS/HydroLAKES instrument of the creek-band
+campaign, and a rendered map per pair. **All ten rulings match the arbitration**
+(Telšiai↔Saldus not water-only; nine water-only), so no flag and no count
+changes; the nine rows' `source` now cites the maintainer ruling, their tier A is
+literally human-verified, and no shipped provenance string names the third model.
+The adjudication design is therefore two models, one per vendor, plus maintainer
+map rulings (`build_data/water_screen_rebuild/arbitration_review/`).
+
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
 are excluded) lies in **both** units. Every one of the 808 rows now carries the
@@ -790,7 +814,8 @@ pairs use the nearest-approach corridor, and borders wider than 0.5 deg² are
 swept along the line every 500 m with a 400 m radius (complete for the
 in-both-units test, since a qualifying way must touch the line); (2) the row's
 **independent web verification** (the research pass of the campaign that
-nominated it); (3) an **adversarial recheck** of every row the screen does not
+nominated it); (3) an **adversarial recheck** (run on GPT-5.6 Sol, the research
+model) of every row the screen does not
 settle — a disagreement with the shipped flag, a bridged row with only a
 tunnel/dam-top way, or a bridged row with no location on record — which must
 name the structure, its coordinates, and answer separately whether it is open to
