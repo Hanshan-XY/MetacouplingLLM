@@ -570,7 +570,7 @@ batches b1–b6 and the 20 km-hold tranche, every row nominated by the rebuilt
 full-ladder screens (river bar 0.50 at geodesic 2.5/5/10/15/20 km rungs; lake
 bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS bar 0.50 at a fixed
 geodesic 500 m sample-to-reach width (one 15 arc-second HydroSHEDS cell), nomination floor
-10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges, set aside on 2026-07-10 as document-only, were adjudicated on 2026-09-14 (54 shipped); HydroLAKES bar 0.5 at geodesic 500 m; union-mask corridor
+10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges, set aside on 2026-07-10 as document-only, were adjudicated on 2026-09-14 (54 shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); union-mask corridor
 census for non-touching pairs; domestic borders in scope for the first time),
 every candidate Tier-2 adjudicated and
 every shipped verdict human- or dual-AI-verified with per-row provenance in
@@ -800,6 +800,30 @@ changes; the nine rows' `source` now cites the maintainer ruling, their tier A i
 literally human-verified, and no shipped provenance string names the third model.
 The adjudication design is therefore two models, one per vendor, plus maintainer
 map rulings (`build_data/water_screen_rebuild/arbitration_review/`).
+
+**HydroLAKES band (`hl1`, 2026-09-19).** The two lake rungs had carried different
+bars for no recorded reason. The Natural Earth lake bar, 0.40 at geodesic 125 m,
+has a derivation (`build_data/lake_screen_analysis/lake_ladders.py`, 2026-07-09):
+lake coverage is sharply bimodal — of the 1,772 cross-border edges measured,
+1,659 score zero, 40 score at least 0.8 and only 16 fall between 0.2 and 0.6 —
+so the bar sits in the empty valley, at the first round value below the weakest
+genuine lake border Natural Earth captures (0.48), and the candidate set barely
+moves with it (53–55 candidates across widths of 110–500 m). The HydroLAKES bar,
+0.5 at geodesic 500 m, had only been lowered from the 0.6 of the 2026-07-04
+cross-check to match the river bars, and had no derivation of its own.
+On 2026-09-19 it was lowered to the same 0.40 and the newly nominated band
+adjudicated, thresholds nominating and audits deciding. The band [0.40, 0.50)
+holds 55 edges: 14 ship water-only, every one also nominated by a river rung
+(rivers with a reservoir or lake stretch); 20 had been rejected by earlier
+audits; **21 were new** (20 domestic, 1 cross-border), every one below 0.5 on
+HydroRIVERS and without a Natural Earth rung. GPT-5.6 Sol research, blind: 20 not
+water-only, 1 water-only; Sonnet-5 adversarial judgment: 21 not water-only. The
+one disagreement (St. Paul↔St. Peter, Antigua: a 5 km line whose eastern ~2 km
+crosses the Potworks Dam reservoir and whose western ~3 km runs straight over
+land) went to a maintainer map ruling: not water-only. **All 21 rejected; no flag
+and no count changes.** At 0.40 the HydroLAKES rung nominates 293 edges, 164 of
+them shipped water-only, and each of the other 129 carries a cross-vendor
+rejection (`build_data/water_screen_rebuild/hydrolakes_band/`).
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and

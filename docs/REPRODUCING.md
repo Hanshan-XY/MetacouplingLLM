@@ -219,7 +219,8 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
 - **HydroRIVERS v10 / HydroLAKES sweeps** (hydrosheds.org): every border
   sampled against a geodesic **500 m** buffer (the datasets' positional
   accuracy); river nomination ≥ 0.5 coverage at discharge ≥ 10 m³/s plus the
-  full creek band (≥ 0.5 at any discharge; its 715 domestic creek-only edges adjudicated 2026-09-14); lake bar 0.5.
+  full creek band (≥ 0.5 at any discharge; its 715 domestic creek-only edges adjudicated 2026-09-14); lake bar 0.40,
+  the same as the Natural Earth lake bar.
 - **Non-touching recovery census**: for unit pairs whose polygons do not
   touch, nominate when ≥ 0.80 of the corridor between the facing boundaries
   lies inside the union water mask (NE lakes ∪ 500 m HydroRIVERS buffer),
