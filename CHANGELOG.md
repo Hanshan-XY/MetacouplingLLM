@@ -9,6 +9,8 @@ file. The format is loosely based on
 
 ### Added
 
+- **METHODS: the population of the edge screens stated exactly (docs only).**  "Screens run over every edge" means every edge that has a shared border arc to sample, **8,421** of the 8,458: the 13 de-facto overlay edges meet only across a disputed tract and have no arc in the standard layer (none is water-only), and the 24 rescreen-gap pairs belong to the corridor census.  Nomination and acceptance counts are unaffected.
+
 - **PROVENANCE: verification-tier counts brought up to date (docs only).**  The "Verification tiers" section still gave the tier split as 201 / 238 / 297; the shipped `verification_tier` column reads **273 / 238 / 297** (tier A grew with the rows accepted by maintainer map ruling in 2026-09: 15 domestic large-river, 2 corridor-census, 54 creek-band and 1 pilot row).  The tier-A definition now names those groups.  METHODS and REPRODUCING already carried 273.  No data change.
 
 - **PROVENANCE: HydroRIVERS and HydroLAKES added to the pinned-sources list (docs only).**  The list named the World Bank boundaries, the bridge classification and Natural Earth, and said inland water was "sourced from Natural Earth", although the HydroRIVERS and HydroLAKES rungs of the water-screen rebuild nominate a large part of the water-only set.  The new entry states their role (screening inputs only: they nominate, audits decide; no HydroSHEDS file is redistributed or checksum-pinned, because the database is rebuilt from the reviewed manifests and the pinned GeoPackages) and gives the two dataset citations (Lehner & Grill 2013; Messager et al. 2016).  No data change.
