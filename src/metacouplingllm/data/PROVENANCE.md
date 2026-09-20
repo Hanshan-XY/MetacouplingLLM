@@ -551,7 +551,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   1961 Uruguay River Treaty) into **hydro-water** (→ 18), and the **Dead Sea**
   (`ISR005`↔`JOR007`, Southern District↔Karak; no crossing → lenient-only; 1994
   Israel–Jordan Treaty median line) into **hydro-lakes** (→ 12). The HydroLAKES
-  geodesic sweep nominates 15 cross-border lake candidates, **3** rejected as mixed
+  sweep had flagged 15 cross-border borders not yet water-only (11 accepted, 2 mixed,
+  2 left as they were); the geodesic re-run nominates 4 more, **3** rejected as mixed
   (the Burundi–Rwanda inter-lake connector; two Norway–Sweden segments); the
   HydroRIVERS geodesic sweep likewise rejects one (Vlaams↔Limburg). All confirmations
   two-pass adjudicated water-only. Flags only, no new edges; the water-only

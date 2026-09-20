@@ -225,12 +225,13 @@ units across rivers and straits. Exact contact therefore sits at the foot of a
 low-sensitivity plateau, an order of magnitude below the width at which
 spurious edges appear.
 
-The **[0, 55 m] band holds exactly seven pairs**: the five genuine land-gap
-borders (Egypt–Libya 0.4 m, placeholder–Malawi 0.9 m, Anguilla 1.4 m,
-Ethiopia–Sudan ~32 m, Dominican ~40 m — shipped as the reviewed land-gap
-overlay, §4) plus two **rejected artifacts** — the ~0.8 m remnant where the
-source-relabel removed the bogus Braničevo↔Mehedinți corridor edge (§10), which
-a tolerance would re-fabricate, and the Malta Balzan↔Iklin councils (31 m),
+The **[0, 55 m] band holds exactly seven pairs**: the four genuine land-gap
+borders (Egypt–Libya 0.4 m, Anguilla 1.4 m, Ethiopia–Sudan ~32 m, Dominican
+~40 m — shipped as the reviewed land-gap overlay, §4) plus three **rejected
+artifacts** — the ~0.8 m remnant where the source-relabel removed the bogus
+Braničevo↔Mehedinți corridor edge (§10), which a tolerance would re-fabricate;
+the placeholder–Malawi lake corner (0.9 m), first restored and then reversed on
+2026-07-18 as a true point contact; and the Malta Balzan↔Iklin councils (31 m),
 which exact contact excludes for free. Genuine and artifact gaps **interleave**
 (0.4 / 0.8 / 0.9 / 1.4 / 31 / 32 / 40 m), so no tolerance value separates
 them — the per-pair audit, not a threshold, is load-bearing.
@@ -275,7 +276,10 @@ operations are *topological or artifact-scale*: the edge test is **exact
 contact (tolerance 0), which is unit-free** — the same in degrees, metres, or
 anything else — so the "how many metres is a degree here?" question vanishes
 from the shipped build. The surviving degree constants (`2×10⁻³°` opening
-radius, `5×10⁻⁴°` disputed-tract touch) are artifact-scale thresholds whose
+radius, `5×10⁻⁴°` disputed-tract touch, and the water screens' border-arc
+tolerances of `5×10⁻⁴°` to `2×10⁻²°`, which decide the arc for six edges only —
+8,415 of the 8,434 edges outside the corridor census share an exact line) are
+artifact-scale thresholds whose
 east–west metric width shrinks by cos(latitude) (≈55 m N–S everywhere; ≈39 m
 E–W at 45°, ≈28 m at 60°); at tens-of-metres scale that anisotropy never flips
 a verdict, and it is stated rather than hidden.
@@ -313,26 +317,30 @@ is deliberate:
   with the corridor census's discharge-scaled ladder (1,000 / 2,500 m for
   reaches ≥ 1,000 m³/s) raises the big-river nominations from 176 to 250 and
   adds no unaudited candidate — the 26 added non-water edges were all
-  adjudicated in the rebuild (22 from its audit queue, 4 on frozen verdicts);
+  adjudicated in the rebuild (22 from its audit queue, 4 earlier rejections re-adjudicated on 2026-09-01);
   `build_data/water_screen_rebuild/hydro_bigreach_ladder_edges_2026-09-10.txt`.
   The ladder is therefore reserved for the non-touching corridor census, where
   a bank-line rendering places the reach half a channel width from each
   polygon edge by construction.
 - **The water-only screens are nomination screens (thresholds nominate, audits
   decide), now measured geodesically.** They do *not* decide membership — they
-  nominate candidates adjudicated per pair. The river-centerline screen uses a
-  ~2.5 km degree approximation (`d° · 111.32 · cos φ`); the HydroRIVERS and
-  HydroLAKES proximity buffers use a **geodesic 500 m** metric (`GEOD.inv`, a
-  uniform 500 m buffer with a cos-φ-widened candidate query), because a
+  nominate candidates adjudicated per pair. The June base run's river-centerline
+  screen used a ~2.5 km degree approximation (`d° · 111.32 · cos φ`); every current
+  screen — the Natural Earth river and lake ladders and the HydroRIVERS and
+  HydroLAKES 500 m buffers — uses a **geodesic** metric (`GEOD.inv`, a uniform
+  width in metres with a cos-φ-widened candidate query), because a
   raw-degree buffer reaches only `X · cos φ` metres east–west and so
   *under*-measures E–W distance at latitude — the one direction a completeness
   screen must not err (a planar control reproduces the frozen numbers bit-for-bit,
   proving only the metric changed). The geodesic buffer feeds both hydro
   row families (carried in rescreen-water since the 2026-07-28 consolidation;
   both cross-checks are retired as nomination steps, every row being
-  re-nominated by the rebuilt cross-border hydro rung). The **HydroLAKES** sweep is the hydro-lakes row family: 15 cross-border lake
-  candidates, 3 rejected as mixed (Burundi–Rwanda; two Norway–Sweden), 12 shipped —
-  including the **Dead Sea** (Southern District↔Karak, no crossing). The **HydroRIVERS**
+  re-nominated by the rebuilt cross-border hydro rung). The **HydroLAKES** sweep is the hydro-lakes row family: 19 cross-border lake
+  candidates — the 15 borders not yet water-only among the first sweep's 27 flags (11
+  accepted, 2 mixed, 2 left as they were and accepted by the later audit) and 4 more
+  from the geodesic 500 m re-run (3 rejected as mixed: Burundi–Rwanda; two
+  Norway–Sweden) — 12 shipped, including the **Dead Sea** (Southern District↔Karak,
+  no crossing). The **HydroRIVERS**
   sweep is the hydro-water row family (18 borders); the geodesic metric recovered one the
   raw-degree screen had missed — the **Uruguay River** (hidden by ~0.04 of E–W
   anisotropy: planar coverage 0.46 vs geodesic 0.54). There is no separate
@@ -389,7 +397,7 @@ recovered-length-vs-tolerance diagnostic:
 | pair | min gap | recovered length vs tolerance | verdict |
 |---|---|---|---|
 | EGY016 Matrouh ↔ LBY001 Ajdabiya | 0.4 m | ~constant (49.4 km) → real border | genuine — land-gap overlay row |
-| MOZXXX ↔ MWI003 (MOZ placeholder unit) | 0.9 m | grows with tol | genuine — land-gap overlay row |
+| **MOZXXX ↔ MWI003 (MOZ placeholder unit)** | **0.9 m** | grows with tol | **artifact — a point contact at a four-unit lake corner** (first restored as a land-gap row; reversed 2026-07-18 by maintainer map ruling) |
 | AIA001 ↔ AIA003 (Anguilla, domestic) | 1.4 m | grows with tol | genuine — land-gap overlay row |
 | ETH013 Tigray ↔ SDN004 Kassala | ~32 m | grows with tol | genuine — land-gap overlay row |
 | DOM011 Independencia ↔ DOM026 San Juan | ~40 m | grows with tol | genuine — land-gap overlay row |
@@ -407,9 +415,9 @@ rather than trusted to any threshold value. Note that min-gap alone does
 0.8 m is smaller than everything except Egypt–Libya), so **no tolerance value
 can get all seven right** — the per-pair audit is load-bearing.
 
-The five genuine pairs ship as the reviewed **land-gap overlay**
+The four genuine pairs ship as the reviewed **land-gap overlay**
 (`land_gap_overlay_pairs.csv`, applied by `scripts/apply_overlays.py`) —
-ordinary land edges, pericoupled under every `coupling_standard`; the two
+ordinary land edges, pericoupled under every `coupling_standard`; the three
 artifacts never enter the graph at exact contact, so they need no denylist
 entry. The full count chain is the provenance ledger at the top of this
 document.
@@ -628,7 +636,10 @@ adversarial adjudication of the 57 lake water-band candidates (2026-07-04) —
 and survive only as discovery history in each row's `source` (evidence
 archived under `build_data/_archive_pre_rebuild/`): every verdict they produced
 was re-adjudicated under the cross-vendor design (the shipped rows on
-2026-07-21/25; the 201 rejected candidates on 2026-09-01) and upheld.
+2026-07-21/25; of the 201 rejected candidates, 199 on 2026-09-01 and the two that
+were first closed mechanically, because no screen then nominated them, on
+2026-07-22 (Cahul↔Vaslui, river-gap retirement) and 2026-09-20 (Vorarlberg↔Vaduz,
+`nt4`)) and upheld.
 The pre-rebuild *discovery nets* are likewise retired as nomination steps
 (2026-09-09): the ~1 km near-miss net and the 1–100 km lake band, the 5 km/10 km
 widening re-screens, the 2026-07-02/04 HydroRIVERS/HydroLAKES cross-checks and,
@@ -653,16 +664,24 @@ nt3 (2026-09-11; the 33 presence-rule nominations a post-hoc 0.25 transect-suppo
 floor had set aside): all 33 rejected on convergent verdicts (15 sea-separated, 18 dry
 gaps), the floor withdrawn — the presence rule nominates, it does not drop (record:
 `build_data/water_screen_rebuild/corridor_census_v2/`). Its population is every pair
-whose polygons lie within 100 km yet do not touch (a point contact has no corridor:
-Jõgeva↔Pskov and Salta↔Potosí are outside it); the 100 km reach is checked against the
+whose polygons lie within 0.9° (a planar pre-filter, then a geodesic gap of at most
+100.2 km) yet do not touch and are not already edges (a point contact has no corridor:
+Jõgeva↔Pskov and Salta↔Potosí are outside it, as are the 13 de-facto edges); the 100 km reach is checked against the
 lakes — of the 357 Natural Earth lakes ≥ 500 km², five have surfaces the WB layer
 leaves unassigned, none wider than 60 km
-(`corridor_census_v2/lake_surface_coverage_2026-09-10.txt`). Of its thresholds, the
+(`corridor_census_v2/lake_surface_coverage_2026-09-10.txt`). The rule as implemented
+(`recovery_census_v2.py`): transects every 250 m along the facing frontage, samples every
+100 m; lake share = share of samples within geodesic 125 m of a lake polygon (the larger of
+NE and HydroLAKES ≥ 0.25 km²); river share = share within geodesic 500 m of a reach (gaps
+≤ 5 km only); nominated when lake share + river share ≥ 0.80 (a sum capped at 1 — a
+generous stand-in for the union), or, in the wide variant, with lakes at 1,500 m and
+reaches ≥ 1,000 m³/s at 2,500 m (a 1,000 m rung is recorded alongside), or, for gaps
+≤ 1,000 m, when any sample lies within 500 m of a reach. Of its thresholds, the
 500 m river width (one HydroSHEDS cell), the 250 m transect spacing and the 5 km river
 cap (recovered river gaps 0.2–1.7 km) are anchored to measured quantities; the 0.80
 bar and the 125 m lake rung are inherited conventions and the 1,000 m³/s big-reach
 threshold a judgment value introduced with the re-derivation, all reported for
-sensitivity: every bar from 0.60 to 0.85 re-nominates all 22 shipped recoveries; 0.75 →
+sensitivity: every bar from 0.60 to 0.85 re-nominates all 24 shipped recoveries; 0.75 →
 0.85 leaves the new share-rule nominations almost unchanged (10 / 8 / 8) and moves the
 share-or-ladder nominations 50 → 32. Recomputed on the full ladder
 (`corridor_census_v2/ladder_profile_2026-09-11.csv`), the 42 ladder-only nominations first
@@ -829,6 +848,22 @@ and no count changes.** At 0.40 the HydroLAKES rung nominates 293 edges, 164 of
 them shipped water-only, and each of the other 129 carries a cross-vendor
 rejection (`build_data/water_screen_rebuild/hydrolakes_band/`).
 
+**Census residue (`nt4`, 2026-09-20).** A code-level audit of the papers found that
+one of the 245 nominations of the 2026-09-10 corridor census, Vorarlberg↔Vaduz
+(`AUT008<->LIE011`; gap 492 m, short-corridor hit), carried no two-model record. It
+had a near-miss-era verdict and the *mechanical* closure of 2026-09-01 ("no current
+screen nominates this pair"), a premise that stopped holding when the re-derived
+census nominated the pair nine days later; it was never queued for the census
+campaigns because it sat in the predecessor's file and was counted as already
+adjudicated, and the completeness check had hidden it by counting the mechanical
+closure as a record (it no longer does). The pair went through the standard two-pass,
+blind: GPT-5.6 Sol research and Sonnet-5 adversarial judgment both returned not
+water-only at high confidence — the units are not adjacent (other Liechtenstein
+municipalities hold the Austrian line) and the gap is dry alpine ridge — so no
+maintainer ruling was needed. **Rejection upheld; no flag and no count changes**;
+every nomination of every screen now carries a two-model record, and the completeness
+check shows 0 open (`build_data/water_screen_rebuild/corridor_census_v2/`, `nt4_*`).
+
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
 are excluded) lies in **both** units. Every one of the 808 rows now carries the
@@ -870,10 +905,12 @@ the unified run's record: `build_data/water_screen_rebuild/bridge_unification/`.
 - *Mid-lake "median-line" meetings* (two units meeting in open water — e.g. Lake
   Victoria, the Great Lakes, Lake Constance) are **native edges** in the
   build — no lake filter removes them — so `coupling_standard` governs them
-  directly, exactly like river borders (the rescreen-water manifest carries the twelve HydroLAKES-nominated
-  land→water reclassifications and the **rescreen-gap** overlay the one
-  non-touching restoration (Malësi e Madhe↔Bar across Lake Skadar; the former
-  Peipus restoration was removed 2026-07-22)): `lenient` keeps every audited water contact, `moderate`
+  directly, exactly like river borders (the rescreen-water manifest carries 51 lake-class
+  land→water reclassifications, twelve of them first found by the HydroLAKES
+  cross-check, and the **rescreen-gap** overlay the three non-touching lake
+  restorations — Malësi e Madhe↔Bar across Lake Skadar, the one cross-border
+  case, Kampong Thom↔Pursat across Tonlé Sap and Jura↔Neuchâtel across the Lac de
+  Biaufond; the former Peipus restoration was removed 2026-07-22): `lenient` keeps every audited water contact, `moderate`
   keeps only the twelve lake pairs with a fixed crossing (Flevoland↔Noord-Holland
   via the Houtribdijk, Flevoland↔Gelderland via the Nijkerkerbrug,
   Södermanland↔Uppsala via the Hjulstabron, Sud-Kivu↔Rwanda's Western Province
