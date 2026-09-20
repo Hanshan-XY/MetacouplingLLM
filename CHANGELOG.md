@@ -9,6 +9,8 @@ file. The format is loosely based on
 
 ### Added
 
+- **METHODS §2.5 (units policy) brought in line with the current screens (docs only).**  The section still said "the river-centerline screen uses a ~2.5 km degree approximation"; that was the June base run.  Every current screen — the Natural Earth river and lake ladders as well as the HydroRIVERS / HydroLAKES buffers — measures geodesic distance (`GEOD.inv`).  The list of surviving degree constants now also names the water screens' border-arc tolerances (5×10⁻⁴° to 2×10⁻²°), with the measured fact that they decide the arc for six edges only: 8,415 of the 8,434 edges outside the corridor census share an exact line.  No data change.
+
 - **METHODS: the population of the edge screens stated exactly (docs only).**  "Screens run over every edge" means every edge that has a shared border arc to sample, **8,421** of the 8,458: the 13 de-facto overlay edges meet only across a disputed tract and have no arc in the standard layer (none is water-only), and the 24 rescreen-gap pairs belong to the corridor census.  Nomination and acceptance counts are unaffected.
 
 - **PROVENANCE: verification-tier counts brought up to date (docs only).**  The "Verification tiers" section still gave the tier split as 201 / 238 / 297; the shipped `verification_tier` column reads **273 / 238 / 297** (tier A grew with the rows accepted by maintainer map ruling in 2026-09: 15 domestic large-river, 2 corridor-census, 54 creek-band and 1 pilot row).  The tier-A definition now names those groups.  METHODS and REPRODUCING already carried 273.  No data change.

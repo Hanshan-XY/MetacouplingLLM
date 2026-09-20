@@ -275,7 +275,10 @@ operations are *topological or artifact-scale*: the edge test is **exact
 contact (tolerance 0), which is unit-free** — the same in degrees, metres, or
 anything else — so the "how many metres is a degree here?" question vanishes
 from the shipped build. The surviving degree constants (`2×10⁻³°` opening
-radius, `5×10⁻⁴°` disputed-tract touch) are artifact-scale thresholds whose
+radius, `5×10⁻⁴°` disputed-tract touch, and the water screens' border-arc
+tolerances of `5×10⁻⁴°` to `2×10⁻²°`, which decide the arc for six edges only —
+8,415 of the 8,434 edges outside the corridor census share an exact line) are
+artifact-scale thresholds whose
 east–west metric width shrinks by cos(latitude) (≈55 m N–S everywhere; ≈39 m
 E–W at 45°, ≈28 m at 60°); at tens-of-metres scale that anisotropy never flips
 a verdict, and it is stated rather than hidden.
@@ -320,10 +323,11 @@ is deliberate:
   polygon edge by construction.
 - **The water-only screens are nomination screens (thresholds nominate, audits
   decide), now measured geodesically.** They do *not* decide membership — they
-  nominate candidates adjudicated per pair. The river-centerline screen uses a
-  ~2.5 km degree approximation (`d° · 111.32 · cos φ`); the HydroRIVERS and
-  HydroLAKES proximity buffers use a **geodesic 500 m** metric (`GEOD.inv`, a
-  uniform 500 m buffer with a cos-φ-widened candidate query), because a
+  nominate candidates adjudicated per pair. The June base run's river-centerline
+  screen used a ~2.5 km degree approximation (`d° · 111.32 · cos φ`); every current
+  screen — the Natural Earth river and lake ladders and the HydroRIVERS and
+  HydroLAKES 500 m buffers — uses a **geodesic** metric (`GEOD.inv`, a uniform
+  width in metres with a cos-φ-widened candidate query), because a
   raw-degree buffer reaches only `X · cos φ` metres east–west and so
   *under*-measures E–W distance at latitude — the one direction a completeness
   screen must not err (a planar control reproduces the frozen numbers bit-for-bit,
