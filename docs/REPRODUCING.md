@@ -225,10 +225,14 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   touch, nominate when ≥ 0.80 of the corridor between the facing boundaries
   lies inside the union water mask (NE lakes ∪ 500 m HydroRIVERS buffer),
   with a short-corridor proximity amendment for sub-kilometre gaps.
-- **Bridge screen** (OpenStreetMap Overpass): road/rail bridge, causeway,
-  dam-top road, or tunnel intersecting both units' polygons (ferries and
-  footbridges excluded) — layer 1 of the four-layer `has_bridge`
-  classification (`docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`).
+- **Bridge screen** (OpenStreetMap Overpass): any way tagged as a bridge on a
+  road, path or railway (or `man_made=bridge`), not under construction or
+  proposed, intersecting both units' polygons buffered ~130 m — layer 1 of the
+  four-layer `has_bridge` classification
+  (`docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`). The screen does not filter by
+  way class: the rule that only a road or rail bridge, causeway, dam-top road
+  or tunnel counts (ferries, fords and footbridges never do) is applied by the
+  later layers — web verification, adversarial recheck, maintainer rulings.
 
 Thresholds are anchored, not tuned: 2.5 km ≈ ½ × the NMAS horizontal
 accuracy at 1:10M (0.5 mm map distance ≈ 5 km ground); 500 m = the
