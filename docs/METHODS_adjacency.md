@@ -317,7 +317,7 @@ is deliberate:
   with the corridor census's discharge-scaled ladder (1,000 / 2,500 m for
   reaches ≥ 1,000 m³/s) raises the big-river nominations from 176 to 250 and
   adds no unaudited candidate — the 26 added non-water edges were all
-  adjudicated in the rebuild (22 from its audit queue, 4 on frozen verdicts);
+  adjudicated in the rebuild (22 from its audit queue, 4 earlier rejections re-adjudicated on 2026-09-01);
   `build_data/water_screen_rebuild/hydro_bigreach_ladder_edges_2026-09-10.txt`.
   The ladder is therefore reserved for the non-touching corridor census, where
   a bank-line rendering places the reach half a channel width from each
@@ -335,9 +335,12 @@ is deliberate:
   proving only the metric changed). The geodesic buffer feeds both hydro
   row families (carried in rescreen-water since the 2026-07-28 consolidation;
   both cross-checks are retired as nomination steps, every row being
-  re-nominated by the rebuilt cross-border hydro rung). The **HydroLAKES** sweep is the hydro-lakes row family: 15 cross-border lake
-  candidates, 3 rejected as mixed (Burundi–Rwanda; two Norway–Sweden), 12 shipped —
-  including the **Dead Sea** (Southern District↔Karak, no crossing). The **HydroRIVERS**
+  re-nominated by the rebuilt cross-border hydro rung). The **HydroLAKES** sweep is the hydro-lakes row family: 19 cross-border lake
+  candidates — the 15 borders not yet water-only among the first sweep's 27 flags (11
+  accepted, 2 mixed, 2 left as they were and accepted by the later audit) and 4 more
+  from the geodesic 500 m re-run (3 rejected as mixed: Burundi–Rwanda; two
+  Norway–Sweden) — 12 shipped, including the **Dead Sea** (Southern District↔Karak,
+  no crossing). The **HydroRIVERS**
   sweep is the hydro-water row family (18 borders); the geodesic metric recovered one the
   raw-degree screen had missed — the **Uruguay River** (hidden by ~0.04 of E–W
   anisotropy: planar coverage 0.46 vs geodesic 0.54). There is no separate
