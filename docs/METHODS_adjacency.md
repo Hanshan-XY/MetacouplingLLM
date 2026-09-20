@@ -633,7 +633,10 @@ adversarial adjudication of the 57 lake water-band candidates (2026-07-04) —
 and survive only as discovery history in each row's `source` (evidence
 archived under `build_data/_archive_pre_rebuild/`): every verdict they produced
 was re-adjudicated under the cross-vendor design (the shipped rows on
-2026-07-21/25; the 201 rejected candidates on 2026-09-01) and upheld.
+2026-07-21/25; of the 201 rejected candidates, 199 on 2026-09-01 and the two that
+were first closed mechanically, because no screen then nominated them, on
+2026-07-22 (Cahul↔Vaslui, river-gap retirement) and 2026-09-20 (Vorarlberg↔Vaduz,
+`nt4`)) and upheld.
 The pre-rebuild *discovery nets* are likewise retired as nomination steps
 (2026-09-09): the ~1 km near-miss net and the 1–100 km lake band, the 5 km/10 km
 widening re-screens, the 2026-07-02/04 HydroRIVERS/HydroLAKES cross-checks and,
@@ -841,6 +844,22 @@ land) went to a maintainer map ruling: not water-only. **All 21 rejected; no fla
 and no count changes.** At 0.40 the HydroLAKES rung nominates 293 edges, 164 of
 them shipped water-only, and each of the other 129 carries a cross-vendor
 rejection (`build_data/water_screen_rebuild/hydrolakes_band/`).
+
+**Census residue (`nt4`, 2026-09-20).** A code-level audit of the papers found that
+one of the 245 nominations of the 2026-09-10 corridor census, Vorarlberg↔Vaduz
+(`AUT008<->LIE011`; gap 492 m, short-corridor hit), carried no two-model record. It
+had a near-miss-era verdict and the *mechanical* closure of 2026-09-01 ("no current
+screen nominates this pair"), a premise that stopped holding when the re-derived
+census nominated the pair nine days later; it was never queued for the census
+campaigns because it sat in the predecessor's file and was counted as already
+adjudicated, and the completeness check had hidden it by counting the mechanical
+closure as a record (it no longer does). The pair went through the standard two-pass,
+blind: GPT-5.6 Sol research and Sonnet-5 adversarial judgment both returned not
+water-only at high confidence — the units are not adjacent (other Liechtenstein
+municipalities hold the Austrian line) and the gap is dry alpine ridge — so no
+maintainer ruling was needed. **Rejection upheld; no flag and no count changes**;
+every nomination of every screen now carries a two-model record, and the completeness
+check shows 0 open (`build_data/water_screen_rebuild/corridor_census_v2/`, `nt4_*`).
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
