@@ -267,7 +267,7 @@ adm1,AZE015,IRN004,False,river,Aras,,cross-vendor,C
 adm1,HRV010,SRB005,False,river,Danube,,cross-vendor,C
 adm1,IRQ010,SYR001,True,river,Dicle; Tigris,,cross-vendor,C
 adm1,MRT006,SEN014,False,river,Sénégal,,cross-vendor,C
-adm1,CHE004,DEU001,True,river,Rhin,,cross-vendor,C
+adm1,CHE004,DEU001,False,river,Rhin,,cross-vendor,C
 adm1,CHE016,LIE001,True,river,Rhein,,cross-vendor,C
 adm1,CHE016,LIE003,True,river,Rhein,,cross-vendor,C
 adm1,AUT008,LIE006,True,river,Rhein,,cross-vendor,C
