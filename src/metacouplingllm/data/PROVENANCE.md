@@ -34,7 +34,10 @@ python scripts/build_all.py
    host polygons, all adjudicated against
    independent geodata (GADM 4.1, geoBoundaries, Natural Earth, OSM/Nominatim,
    official border open data) — 10 confirmed artifacts (the manifest), 3 genuine
-   narrow territories kept (Vennbahn, Courantyne, Dhekelia); the fix is an area-conserving
+   narrow territories kept (Vennbahn, Courantyne, Dhekelia), all 14 re-adjudicated
+   2026-09-20 under the standard two-vendor design (blind GPT-5.6 Sol research +
+   Sonnet-5 adversarial judgment, both confirming every attribution; no change —
+   `build_data/sliver_readjudication/`); the fix is an area-conserving
    morphological-opening move (drift +0.0002 km²) that removes all 4
    fabricated cross-country edges and corrects ~15 border lengths (full
    detail: `docs/METHODS_adjacency.md` §10; evidence:

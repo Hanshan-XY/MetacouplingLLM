@@ -1016,12 +1016,32 @@ found **144** candidates, of which **14** touch a cross-country border across
 The screen only nominates, and every flagged host is treated identically. Each
 was ground-truthed against **independent geodata** — GADM 4.1, geoBoundaries,
 Natural Earth, OSM/Nominatim, and official government border open-data — in a
-research pass plus an adversarial refutation pass (unanimous): **10 confirmed
+research pass plus an adversarial judgment pass (unanimous): **10 confirmed
 artifacts** (their strips belong to a same-country neighbour — the reviewed
 relabel manifest) and **3 genuine** narrow territories, correctly kept — the
 Vennbahn treaty corridor (BEL), the Courantyne west-bank strip (SUR), and the
 Dhekelia road corridor (GBR). Thresholds nominate, audits decide. Evidence:
 `build_data/arusha_sliver_audit/scan_ground_truth.md`.
+
+**Re-adjudicated under the current design (`sr1`, 2026-09-20).** That audit ran
+before the research pass moved to GPT-5.6 Sol — the first Codex handoff is
+2026-07-10 — and its workflow script and output were not kept, so no model was
+on record for either of its passes while every other adjudicated input of the
+database carries one. The shape screen was therefore re-run on the pinned
+GeoPackage (144 candidates, 14 touching a cross-country border across 13 hosts —
+identical to the frozen scan) and all 14 strips went through the standard
+two-vendor pass, blind to the shipped treatment: GPT-5.6 Sol research, then a
+Sonnet-5 adversarial judgment pass with no repository access. Both passes
+confirmed every attribution, owner codes included — 11 strips to a same-country
+neighbour, 3 kept as the host's own territory — so the gate proposed no change
+(K 12 / C 2, the two being the judge's requests for a human glance, closed by
+the maintainer the same day; one asks whether the Dhekelia link road is
+sovereign territory or a right of way, the other whether GADM and OSM are
+independent sources for Uganda — where the source's own geometry leaves Kitgum a
+residual 0.89 km of frontier under the ribbon, and the reassignment conserves the
+frontage, 171.02 → 158.99 + 12.92 km). **No data change**; the relabel manifest
+now rests on a model-labelled adjudication
+(`build_data/sliver_readjudication/`, `sr1_*`).
 
 ### 10.3 The fix (pure geometry, area-conserving)
 
