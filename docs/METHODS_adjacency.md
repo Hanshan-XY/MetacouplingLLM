@@ -837,7 +837,7 @@ moves with it (53–55 candidates across widths of 110–500 m). The HydroLAKES 
 cross-check to match the river bars, and had no derivation of its own.
 On 2026-09-19 it was lowered to the same 0.40 and the newly nominated band
 adjudicated, thresholds nominating and audits deciding. The band [0.40, 0.50)
-holds 55 edges: 14 ship water-only, every one also nominated by a river rung
+then held 55 edges: 14 shipped water-only, every one also nominated by a river rung
 (rivers with a reservoir or lake stretch); 20 had been rejected by earlier
 audits; **21 were new** (20 domestic, 1 cross-border), every one below 0.5 on
 HydroRIVERS and without a Natural Earth rung. GPT-5.6 Sol research, blind: 20 not
@@ -845,9 +845,13 @@ water-only, 1 water-only; Sonnet-5 adversarial judgment: 21 not water-only. The
 one disagreement (St. Paul↔St. Peter, Antigua: a 5 km line whose eastern ~2 km
 crosses the Potworks Dam reservoir and whose western ~3 km runs straight over
 land) went to a maintainer map ruling: not water-only. **All 21 rejected; no flag
-and no count changes.** At 0.40 the HydroLAKES rung nominates 293 edges, 164 of
-them shipped water-only, and each of the other 129 carries a cross-vendor
-rejection (`build_data/water_screen_rebuild/hydrolakes_band/`).
+and no count changes.** At 0.40 the HydroLAKES rung nominates 291 edges of the
+edge list, 164 of them shipped water-only, and each of the other 127 carries a
+cross-vendor rejection (`build_data/water_screen_rebuild/hydrolakes_band/`); the
+sweep's records hold two more pairs that are not edges and are not counted
+(RUS024↔RUS050, dissolved by the unit merge; Manitoba↔Northwest Territories, a
+corner contact). Since the geodesic sampling of 2026-09-21 (`gs1` below) the band
+holds 56 edges, 15 of them shipped, every one also nominated by a river rung.
 
 **Census residue (`nt4`, 2026-09-20).** A code-level audit of the papers found that
 one of the 245 nominations of the 2026-09-10 corridor census, Vorarlberg↔Vaduz
