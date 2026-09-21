@@ -40,13 +40,13 @@ produced the reviewed inputs, not steps a reader re-runs.
    AI adjudication, so the discovery is auditable and the verdicts are frozen;
    since the 2026-07 water-screen rebuild that screen is the rebuilt full-ladder
    set run over every edge (NE rungs, HydroRIVERS/HydroLAKES rungs, union-mask
-   corridor census), to which every shipped water row is attributable (808/808;
+   corridor census), to which every shipped water row is attributable (805/805;
    the pre-rebuild nets that first found 51 of them are retired discovery
    history, §8).
 
 **ADM1 provenance chain (every number reproducible from the shipped CSVs):**
 
-Every pipeline step appears in **execution order**, and each row shows the edge count *before → after* — including the water-classification overlays, which add **no edge** (`8,458 → 8,458`) but reclassify existing edges as water-only, moving the `moderate`/`stringent` views; the *water-only* column is the running count that drives the three views (808 = 409 with a fixed crossing / 399 without). S1 = WB geometry (tolerance-0 core, source-relabel, denylist); S2 = NDLSA de-facto (same geometry build, which writes the 8,430-row base file); S3 = Natural Earth water classification (adds no edge — the 298-pair base water set); S4 = the reviewed correction overlays applied afterwards by `scripts/apply_overlays.py` in registry order (the land-gap overlay is *applied* here though its tolerance-band *discovery* belongs to Stage 1, §2.4/§4).
+Every pipeline step appears in **execution order**, and each row shows the edge count *before → after* — including the water-classification overlays, which add **no edge** (`8,458 → 8,458`) but reclassify existing edges as water-only, moving the `moderate`/`stringent` views; the *water-only* column is the running count that drives the three views (805 = 408 with a fixed crossing / 397 without). S1 = WB geometry (tolerance-0 core, source-relabel, denylist); S2 = NDLSA de-facto (same geometry build, which writes the 8,430-row base file); S3 = Natural Earth water classification (adds no edge — the 298-pair base water set); S4 = the reviewed correction overlays applied afterwards by `scripts/apply_overlays.py` in registry order (the land-gap overlay is *applied* here though its tolerance-band *discovery* belongs to Stage 1, §2.4/§4).
 
 | step (execution order) | ADM1 edges | water-only | source / reason |
 |---|---|---|---|
@@ -58,10 +58,10 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S3** Natural Earth water classification | 8,430 → 8,430 | — → 298 | descriptive: base bridge classification flags 298 water-only borders (238 river / 60 lake — the river rows ru1-re-adjudicated 2026-07-21, the lake-class rows wu1-re-adjudicated 2026-07-25); **adds no edge** |
 | **S4** + land-gap overlay (*applied* here; *discovered* by the S1 tolerance-band audit, §2.4/§4) | 8,430 → 8,434 | 298 → 298 | +4 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … a domestic Anguilla pair); no water rows |
 | **S4** + rescreen-gap overlay (water-screen rebuild + corridor census v2) | 8,434 → 8,458 | 298 → 322 | +24 non-touching water borders: 22 nominated by the rebuild's 2026-07 union-mask corridor census (≥ 0.80 of the gap corridor inside NE lakes ∪ a 500 m HydroRIVERS buffer — planar degrees in that run; river gaps to 5 km, lake corridors to 100 km; short-corridor amendment), Tier-2 two-pass adjudicated and human/dual-AI verified, and 2 by its 2026-09-10 successor, the corridor census v2 (NE lakes ∪ HydroLAKES ∪ a geodesic, discharge-laddered HydroRIVERS buffer; transect corridors along the facing frontage; third-unit and wedge flags recorded) — 46 nominations, cross-vendor two-pass, maintainer map rulings 2026-09-10: Équateur↔Cuvette across the Congo and Entre Ríos↔Artigas across Salto Grande, tier A (record `build_data/water_screen_rebuild/corridor_census_v2/`); the v2 census re-nominates all 22 earlier rows. Six of the 22 were first found by the retired ~1 km near-miss net (5 river rows, rg1 fold 2026-07-22; Galați↔Odesa upheld by maintainer map ruling via Insula Cailor, arc corrected to 0.5 km) and the retired 1–100 km lake band (the Skadar row, lg1 fold 2026-07-23; human-map-verified 2026-07-04) — all six independently re-nominated by the corridor census, discovery provenance retained in `source` |
-| **S4** rescreen-water overlay (water-screen rebuild + identity audit + unification folds) | 8,458 → 8,458 | 322 → 808 | +0 edges; 486 existing borders reclassified water-only, every one nominated by the rebuilt screens (NE rungs; HydroRIVERS/HydroLAKES domestic and cross-border rungs): 368 adjudicated in the rebuild's Tier-2 audit (batches b1–b6 + the 20 km-hold tranche: 72 + 125 + 169 + 2; incl. 9 rows ruled by the maintainer on the shipped WB geometry, 2026-09-19, in place of a delegated arbitration pass), 15 domestic large-river borders nominated by the HydroRIVERS ≥ 100 m³/s rung and adjudicated 2026-09-01 (rj2: cross-vendor two-pass + maintainer map rulings under Standard M; 11 bridged / 4 not; four-layer bridge pipeline), 54 domestic creek-band borders nominated by the HydroRIVERS creek rung (≥ 0.5 of the border within geodesic 500 m of any reach, < 0.5 at ≥ 10 m³/s) and adjudicated 2026-09-14 (dc1: the whole 715-edge band through the cross-vendor two-pass, a deterministic gap measurement of the 90 pairs with at least one water-only verdict and maintainer map rulings under Standard M; 47 bridged / 7 not at adjudication, 48 / 6 since the crossing unification; four-layer bridge pipeline), 1 border of the nine-pair pilot, re-adjudicated 2026-09-18 when the pilot's single-vendor verdicts were replaced by the cross-vendor two-pass (pr1: Kapisa↔Parwan along the Panjshir River, accepted by maintainer map ruling; bridged), 3 shore contacts of proven water-surface polygons from the 2026-07-18 placeholder-identity audit (2 Tonle Sap + 1 Lake Kariba; human-map-verified), and 45 rows first found by pre-rebuild campaigns now retired as nomination steps, folded in with their discovery provenance retained in `source` — 15 river rows by the 5 km/10 km widening re-screens (ru1 fold 2026-07-21; 9 further pre-rebuild river verdicts demoted to mixed land by maintainer map ruling), 18 by the 2026-07-02 HydroRIVERS and 12 by the 2026-07-04 HydroLAKES geodesic 500 m cross-checks (2026-07-28 fold; incl. the Uruguay River and the Dead Sea; two-stage ground-truthed and 100% human-map-verified at the time) — all re-nominated by the rebuilt rungs (whole-graph attributability 808/808, `build_data/water_screen_rebuild/hydro_fold/attributability_check.py`) |
-| **shipped (lenient)** | **8,458** | 808 | 3,374 regions, 196 countries — every edge kept |
-| moderate (default) | **8,059** | −399 | 8,458 − 399 water-only pairs with no fixed crossing |
-| stringent | **7,650** | −808 | 8,458 − all 808 water-only pairs |
+| **S4** rescreen-water overlay (water-screen rebuild + identity audit + unification folds) | 8,458 → 8,458 | 322 → 805 | +0 edges; 483 existing borders reclassified water-only, every one nominated by the rebuilt screens (NE rungs; HydroRIVERS/HydroLAKES domestic and cross-border rungs): 368 adjudicated in the rebuild's Tier-2 audit (batches b1–b6 + the 20 km-hold tranche: 72 + 125 + 169 + 2; incl. 9 rows ruled by the maintainer on the shipped WB geometry, 2026-09-19, in place of a delegated arbitration pass), 15 domestic large-river borders nominated by the HydroRIVERS ≥ 100 m³/s rung and adjudicated 2026-09-01 (rj2: cross-vendor two-pass + maintainer map rulings under Standard M; 11 bridged / 4 not; four-layer bridge pipeline), 51 domestic creek-band borders nominated by the HydroRIVERS creek rung (≥ 0.5 of the border within geodesic 500 m of any reach, < 0.5 at ≥ 10 m³/s) and adjudicated 2026-09-14 (dc1: the whole 715-edge band through the cross-vendor two-pass, a deterministic gap measurement of the 90 pairs with at least one water-only verdict and maintainer map rulings under Standard M; 54 accepted, 47 bridged / 7 not at adjudication, 48 / 6 after the crossing unification; three left the water-only set on 2026-09-21 when no screen nominated them any more (gs1 below), so 51 ship, 47 / 4; four-layer bridge pipeline), 1 border of the nine-pair pilot, re-adjudicated 2026-09-18 when the pilot's single-vendor verdicts were replaced by the cross-vendor two-pass (pr1: Kapisa↔Parwan along the Panjshir River, accepted by maintainer map ruling; bridged), 3 shore contacts of proven water-surface polygons from the 2026-07-18 placeholder-identity audit (2 Tonle Sap + 1 Lake Kariba; human-map-verified), and 45 rows first found by pre-rebuild campaigns now retired as nomination steps, folded in with their discovery provenance retained in `source` — 15 river rows by the 5 km/10 km widening re-screens (ru1 fold 2026-07-21; 9 further pre-rebuild river verdicts demoted to mixed land by maintainer map ruling), 18 by the 2026-07-02 HydroRIVERS and 12 by the 2026-07-04 HydroLAKES geodesic 500 m cross-checks (2026-07-28 fold; incl. the Uruguay River and the Dead Sea; two-stage ground-truthed and 100% human-map-verified at the time) — all re-nominated by the rebuilt rungs (whole-graph attributability 805/805, `build_data/water_screen_rebuild/hydro_fold/attributability_check.py`) |
+| **shipped (lenient)** | **8,458** | 805 | 3,374 regions, 196 countries — every edge kept |
+| moderate (default) | **8,061** | −397 | 8,458 − 397 water-only pairs with no fixed crossing |
+| stringent | **7,653** | −805 | 8,458 − all 805 water-only pairs |
 
 **What Stage 1 changed vs a naïve build (add/remove reasons):** removed 4
 fabricated cross-border edges (Salta↔Potosí, Braničevo↔Mehedinți, and the two
@@ -72,11 +72,11 @@ their border territory back to Mara/Kilimanjaro); the Malta false edge
 (Balzan↔Iklin, ~31 m apart) never appears at tolerance 0, so it needs no
 denylist entry.
 
-**Water-only set = 808 ADM1** (409 with a fixed crossing / 399 without) + **26
-ADM0** roll-ups, by source: 298 base bridge classification + 486
-rescreen-water + 24 rescreen-gap. Every one of the 808 is nominated by the
+**Water-only set = 805 ADM1** (408 with a fixed crossing / 397 without) + **26
+ADM0** roll-ups, by source: 298 base bridge classification + 483
+rescreen-water + 24 rescreen-gap. Every one of the 805 is nominated by the
 rebuilt screens run over every edge (NE rungs ∪ HydroRIVERS/HydroLAKES rungs ∪
-the corridor census, v2 since 2026-09-10; whole-graph attributability 808/808). ("Every
+the corridor census, v2 since 2026-09-10; whole-graph attributability 805/805). ("Every
 edge" means every edge with a shared border arc to sample: 8,421 of the 8,458. The 13
 de-facto overlay edges meet only across a disputed tract and have no arc in the standard
 layer — the sweep records mark them `non-touching (census/NDLSA domain)` — and none is
@@ -111,7 +111,7 @@ drops all 26 roll-ups.
 
 ---
 
-> **Note.** Sections 2–4 below are the *validation record* for the shipped parameter-free design: why **exact contact (tolerance 0)** is safe (the tolerance sensitivity sweep and the sub-55 m band audit), and why `border_length_km` is the full geodesic shared-boundary length. The audits described here produced the reviewed correction manifests the build replays; the authoritative counts are the provenance ledger above (shipped 8,458 / moderate 8,060 / water-only 808).
+> **Note.** Sections 2–4 below are the *validation record* for the shipped parameter-free design: why **exact contact (tolerance 0)** is safe (the tolerance sensitivity sweep and the sub-55 m band audit), and why `border_length_km` is the full geodesic shared-boundary length. The audits described here produced the reviewed correction manifests the build replays; the authoritative counts are the provenance ledger above (shipped 8,458 / moderate 8,061 / water-only 805).
 
 ## 1. Contiguity rule: rook, not queen
 
@@ -332,7 +332,10 @@ is deliberate:
   raw-degree buffer reaches only `X · cos φ` metres east–west and so
   *under*-measures E–W distance at latitude — the one direction a completeness
   screen must not err (a planar control reproduces the frozen numbers bit-for-bit,
-  proving only the metric changed). The geodesic buffer feeds both hydro
+  proving only the metric changed). Each of these screens samples each part of the arc at
+  points spaced evenly along it, their number set by the part's geodesic length so
+  that the average spacing is below 500 m (the HydroRIVERS screens since 2026-09-21,
+  `gs1` below). The geodesic buffer feeds both hydro
   row families (carried in rescreen-water since the 2026-07-28 consolidation;
   both cross-checks are retired as nomination steps, every row being
   re-nominated by the rebuilt cross-border hydro rung). The **HydroLAKES** sweep is the hydro-lakes row family: 19 cross-border lake
@@ -561,28 +564,28 @@ orthogonal to `de_facto_borders`:
 
 **Data.** Since 2026-07-25 each row also carries two **structured provenance**
 columns appended after `note` — `adjudication` (the process class; uniformly
-`cross-vendor` across all 808 rows after ru1/wu1/wu2/rj2/nt2/dc1/pr1) and `verification_tier`
-(the evidence strength: **A 273 / B 238 / C 297**, tier B pinned to the
+`cross-vendor` across all 805 rows after ru1/wu1/wu2/rj2/nt2/dc1/pr1) and `verification_tier`
+(the evidence strength: **A 270 / B 238 / C 297**, tier B pinned to the
 preregistered validation study's measured frame). ADM0 roll-up rows carry both
 blank, being derived arithmetic rather than adjudicated verdicts. Full
 semantics: `data/PROVENANCE.md`.
 
-`data/water_separated_pairs.csv` lists the **808 ADM1** water-only
-pairs with a `has_bridge` flag (298 land-classified + 486
+`data/water_separated_pairs.csv` lists the **805 ADM1** water-only
+pairs with a `has_bridge` flag (298 land-classified + 483
 rescreen-water + 24 rescreen-gap overlay pairs), plus **26 ADM0** country
 pairs rolled up from them (a
 country pair is water-only iff *all* its ADM1 crossings are, and has a bridge
 iff *any* does). The base is **298** rows (238 river / 60 lake, SHA-256-pinned), every row
 carrying a cross-vendor re-adjudication — river rows from ru1 (2026-07-21),
 lake-class rows from wu1 (2026-07-25) — correction history in `CHANGELOG.md`.
-Two reviewed overlays feed the rest — **rescreen-water** (486 existing edges
+Two reviewed overlays feed the rest — **rescreen-water** (483 existing edges
 reclassified water-only) and **rescreen-gap** (24 non-touching water borders
 restored as edges) — both from the 2026-07 water-screen rebuild's audit
 batches b1–b6 and the 20 km-hold tranche, every row nominated by the rebuilt
 full-ladder screens (river bar 0.50 at geodesic 2.5/5/10/15/20 km rungs; lake
 bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS bar 0.50 at a fixed
 geodesic 500 m sample-to-reach width (one 15 arc-second HydroSHEDS cell), nomination floor
-10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges, set aside on 2026-07-10 as document-only, were adjudicated on 2026-09-14 (54 shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); union-mask corridor
+10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges, set aside on 2026-07-10 as document-only, were adjudicated on 2026-09-14 (54 accepted, 51 of them shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); union-mask corridor
 census for non-touching pairs; domestic borders in scope for the first time),
 every candidate Tier-2 adjudicated and
 every shipped verdict human- or dual-AI-verified with per-row provenance in
@@ -602,8 +605,8 @@ the 15 river rows of the 5 km/10 km widening re-screens (ru1 fold,
 2026-07-21), the 5 river rows of the ~1 km near-miss net (rg1 fold,
 2026-07-22) and the Skadar lake row of the 1–100 km lake band (lg1 fold,
 2026-07-23) — all independently re-nominated by the rebuilt screens
-(whole-graph attributability 808/808). Under
-the default, ADM1 pericoupled edges fall 8,458 → **8,059** and ADM0 country
+(whole-graph attributability 805/805). Under
+the default, ADM1 pericoupled edges fall 8,458 → **8,061** and ADM0 country
 pairs 326 → **320** (the hydro-water rows' GUF↔SUR roll-up — the Maroni
 system, ferry only — joins COD↔TZA, MRT↔SEN, CAF↔COD, NGA↔TCD across
 Lake Chad, and the rescreen roll-up GUY↔SUR — the ferry-only Corentyne — as
@@ -612,7 +615,7 @@ CMR↔GAB, MWI↔TZA, and MOZ↔TZA (completed by the Lake Nyasa corner
 MOZXXX↔TZA025) are bridged, so they move only stringent; the stringent view ships at
 **300**).
 
-**Adjudication design.** Every water-only verdict on record — the 808 shipped
+**Adjudication design.** Every water-only verdict on record — the 805 shipped
 rows and every rejected candidate in the audit record — was set by one design
 run *downstream* of the deterministic screens: a **cross-vendor two-pass** in
 which the research pass ran on OpenAI's GPT-5.6 Sol, as a web-enabled agent in
@@ -650,7 +653,7 @@ every shipped water row nominated by the rebuilt screens alone — 298/298 base
 rows by the NE rungs, 15/15 widening rows, 18/18 hydro-water and 12/12
 hydro-lakes rows by the hydro rungs, 6/6 near-miss/lake-band rows by the
 corridor census, the 15 domestic large-river rows by the HydroRIVERS ≥ 100 m³/s
-rung, the 54 domestic creek-band rows by the HydroRIVERS creek rung (2026-09-14) — so no shipped row depends on a retired net. The corridor census was itself
+rung, the 51 domestic creek-band rows by the HydroRIVERS creek rung (2026-09-14) — so no shipped row depends on a retired net. The corridor census was itself
 re-derived on 2026-09-10 (v2: HydroLAKES joins NE lakes; the HydroRIVERS buffer is
 geodesic and discharge-laddered, where the 2026-07 run buffered in planar degrees;
 transect corridors along the facing frontage replace the single nearest-approach
@@ -836,7 +839,7 @@ moves with it (53–55 candidates across widths of 110–500 m). The HydroLAKES 
 cross-check to match the river bars, and had no derivation of its own.
 On 2026-09-19 it was lowered to the same 0.40 and the newly nominated band
 adjudicated, thresholds nominating and audits deciding. The band [0.40, 0.50)
-holds 55 edges: 14 ship water-only, every one also nominated by a river rung
+then held 55 edges: 14 shipped water-only, every one also nominated by a river rung
 (rivers with a reservoir or lake stretch); 20 had been rejected by earlier
 audits; **21 were new** (20 domestic, 1 cross-border), every one below 0.5 on
 HydroRIVERS and without a Natural Earth rung. GPT-5.6 Sol research, blind: 20 not
@@ -844,9 +847,13 @@ water-only, 1 water-only; Sonnet-5 adversarial judgment: 21 not water-only. The
 one disagreement (St. Paul↔St. Peter, Antigua: a 5 km line whose eastern ~2 km
 crosses the Potworks Dam reservoir and whose western ~3 km runs straight over
 land) went to a maintainer map ruling: not water-only. **All 21 rejected; no flag
-and no count changes.** At 0.40 the HydroLAKES rung nominates 293 edges, 164 of
-them shipped water-only, and each of the other 129 carries a cross-vendor
-rejection (`build_data/water_screen_rebuild/hydrolakes_band/`).
+and no count changes.** At 0.40 the HydroLAKES rung nominates 291 edges of the
+edge list, 164 of them shipped water-only, and each of the other 127 carries a
+cross-vendor rejection (`build_data/water_screen_rebuild/hydrolakes_band/`); the
+sweep's records hold two more pairs that are not edges and are not counted
+(RUS024↔RUS050, dissolved by the unit merge; Manitoba↔Northwest Territories, a
+corner contact). Since the sampling change of 2026-09-21 (`gs1` below) the band
+holds 56 edges, 15 of them shipped, every one also nominated by a river rung.
 
 **Census residue (`nt4`, 2026-09-20).** A code-level audit of the papers found that
 one of the 245 nominations of the 2026-09-10 corridor census, Vorarlberg↔Vaduz
@@ -887,9 +894,46 @@ its track in place (convention below): **409 bridged / 399 not** (was 410/398),
 moderate 8,060 → **8,059**, ADM0 roll-ups unchanged
 (`build_data/water_screen_rebuild/bridge_unification/`, `bridge_way_class_*`, `wc1_*`).
 
+**The HydroRIVERS screens take the other screens' sampling rule (`gs1`,
+2026-09-20/21).** The HydroRIVERS-family screens (the domestic and cross-border sweeps,
+the latter also computing the cross-border HydroLAKES share, and the creek-band
+enrichment) set the number of samples on each part of the arc from its coordinate
+length, one per 4.5×10⁻³° — about 500 m along a north–south line but only about
+500·cos(latitude) m along an east–west one — so how many points a border received, and
+with it the resolution of its coverage share, depended on its latitude and orientation;
+the Natural Earth screens and the domestic HydroLAKES sweep already set it from the
+geodesic length. On the maintainer's decision all three now use that rule: n = max(2,
+⌊L/500 m⌋ + 1) intervals for a part of geodesic length L. Both rules space the points
+evenly along a part in coordinates, so the average spacing is below 500 m while single
+intervals vary with direction and latitude (median 493 m, 5th–95th percentile 403–545 m
+on the shipped borders, `sample_spacing_shipped.txt`); the switch changes how many
+points fall on a border and where, not how a share is weighted along a part.
+Re-run on the pinned inputs, the change reshuffles bar-edge cases in both directions
+(median coverage change about zero) with two consequences. **Nineteen creek-band pairs
+were newly nominated** with no adjudication record (17 domestic, 2 cross-border); they
+went through the standard two-pass — blind GPT-5.6 Sol research (19/19 valid; one
+water-only) and Sonnet-5 adversarial judgment (none water-only) — gate A 0 / B 1 / C 6 /
+D 12, and the maintainer ruled the one disagreement (Vitebsk↔Zilupes novads) not
+water-only after a gap measurement: all 19 rejected. **Three shipped rows were no
+longer nominated by any screen** — Lekoumou↔Niari (0.50 → 0.49), Kyegegwa↔Ssembabule
+(0.50 → 0.33 on a 0.65 km border sampled at three points) and Hai Duong↔Quang Ninh
+(0.51 → 0.49), all creek-band rows ruled water-only on maps on 2026-09-14. On the
+maintainer's decision they **leave the water-only set** (the edges stay, as ordinary land
+borders): the database is complete relative to its screens, and a row no recorded screen
+nominates falls outside the method however it was ruled — which is not a finding that
+they are land; they are listed as known omissions in `docs/FUTURE_WORK.md`. A 100 m step on
+all four screens was measured before the decision and not adopted: it would nominate
+Lekoumou↔Niari again but leave four other shipped tier-A rows with no nominating screen and
+open 19 new candidates without a record among the edges near a bar
+(`step_sensitivity_all_screens.py`). Water-only
+808 → **805** (409/399 → **408/397**), moderate 8,059 → **8,061**, stringent
+7,650 → **7,653**, tier A 273 → **270**, ADM0 unchanged (all three domestic); completeness
+0 open, attributability 805/805. Record: `build_data/geodesic_sampling/` (`gs1_*`; the
+degree-step predecessors frozen as `*_degree-step_pre-gs1.csv`).
+
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
-are excluded) lies in **both** units. Every one of the 808 rows now carries the
+are excluded) lies in **both** units. Every one of the 805 rows now carries the
 same **four-layer** record (crossing unification, 2026-09-16, campaign `bu1`; the row added on 2026-09-18 went through the same pipeline;
 before it the base classification, the rebuild-era rows and the folded
 pre-rebuild rows had come through three implementations of the same design):

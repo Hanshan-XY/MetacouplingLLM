@@ -2,7 +2,7 @@
 
 This manual walks through rebuilding and verifying the two bundled adjacency
 datasets — the ADM1 edge list (8,458 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (808
+ADM0 country matrix (326 pairs) with their water-only classification (805
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -88,9 +88,9 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,458 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,059 / 7,650 |
-| water-only ADM1 | 808 = 409 with a fixed crossing / 399 without |
-| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 273 / B 238 / C 297 |
+| ADM1 moderate / stringent | 8,061 / 7,653 |
+| water-only ADM1 | 805 = 408 with a fixed crossing / 397 without |
+| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 270 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
 
@@ -130,7 +130,7 @@ S4):
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the three manifests in registry order (idempotent, one pass; see §5).
   → +4 land-gap, +24 rescreen-gap edges =
-  **8,458**; water rows 298 → **808**; ADM0 roll-up recomputed once (a
+  **8,458**; water rows 298 → **805**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 
@@ -181,7 +181,7 @@ re-running the engine is the supported way to change the correction layer:
 | `disputed_overlay_pairs.csv` | S2 input: 13 ADM1 + 3 ADM0 de-facto pairs |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
 | `rescreen_gap_overlay_pairs.csv` | +24 edges (2026-07 water-screen rebuild + the rg1/lg1 folds + the 2 nt2 corridor-census recoveries of 2026-09-10; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 486 edges (incl. the 15 domestic large-river rows added 2026-09-01, the 54 domestic creek-band rows added 2026-09-14, the one pilot re-adjudication row added 2026-09-18 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
+| `rescreen_water_overlay_pairs.csv` | water flags on 483 edges (incl. the 15 domestic large-river rows added 2026-09-01, the 51 domestic creek-band rows (54 added 2026-09-14, three removed 2026-09-21), the one pilot re-adjudication row added 2026-09-18 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
 
 Engine semantics worth knowing:
 
@@ -217,7 +217,9 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   lake candidates = ≥ 0.40 within 125 m of an NE lake polygon (rungs to
   1,500 m). Sampling every ~500 m geodesic along the border.
 - **HydroRIVERS v10 / HydroLAKES sweeps** (hydrosheds.org): every border
-  sampled against a geodesic **500 m** buffer (the datasets' positional
+  sampled by the rule of the Natural Earth screens (points spaced evenly along
+  each part of the arc, their number set by its geodesic length; the HydroRIVERS
+  sweeps and the cross-border HydroLAKES share since 2026-09-21), against a geodesic **500 m** buffer (the datasets' positional
   accuracy); river nomination ≥ 0.5 coverage at discharge ≥ 10 m³/s plus the
   full creek band (≥ 0.5 at any discharge; its 715 domestic creek-only edges adjudicated 2026-09-14); lake bar 0.40,
   the same as the Natural Earth lake bar.
