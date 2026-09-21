@@ -217,8 +217,9 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   lake candidates = ≥ 0.40 within 125 m of an NE lake polygon (rungs to
   1,500 m). Sampling every ~500 m geodesic along the border.
 - **HydroRIVERS v10 / HydroLAKES sweeps** (hydrosheds.org): every border
-  sampled at intervals of at most 500 m of geodesic length, the rule of the
-  Natural Earth screens (the HydroRIVERS sweeps since 2026-09-21), against a geodesic **500 m** buffer (the datasets' positional
+  sampled by the rule of the Natural Earth screens (points spaced evenly along
+  each part of the arc, their number set by its geodesic length; the HydroRIVERS
+  sweeps and the cross-border HydroLAKES share since 2026-09-21), against a geodesic **500 m** buffer (the datasets' positional
   accuracy); river nomination ≥ 0.5 coverage at discharge ≥ 10 m³/s plus the
   full creek band (≥ 0.5 at any discharge; its 715 domestic creek-only edges adjudicated 2026-09-14); lake bar 0.40,
   the same as the Natural Earth lake bar.

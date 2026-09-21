@@ -328,12 +328,14 @@ is deliberate:
   screen used a ~2.5 km degree approximation (`d° · 111.32 · cos φ`); every current
   screen — the Natural Earth river and lake ladders and the HydroRIVERS and
   HydroLAKES 500 m buffers — uses a **geodesic** metric (`GEOD.inv`, a uniform
-  width in metres with a cos-φ-widened candidate query) and, since 2026-09-21, samples
-  the arc at intervals of at most 500 m of geodesic length (`gs1` below), because a
+  width in metres with a cos-φ-widened candidate query), because a
   raw-degree buffer reaches only `X · cos φ` metres east–west and so
   *under*-measures E–W distance at latitude — the one direction a completeness
   screen must not err (a planar control reproduces the frozen numbers bit-for-bit,
-  proving only the metric changed). The geodesic buffer feeds both hydro
+  proving only the metric changed). Each of these screens samples each part of the arc at
+  points spaced evenly along it, their number set by the part's geodesic length so
+  that the average spacing is below 500 m (the HydroRIVERS screens since 2026-09-21,
+  `gs1` below). The geodesic buffer feeds both hydro
   row families (carried in rescreen-water since the 2026-07-28 consolidation;
   both cross-checks are retired as nomination steps, every row being
   re-nominated by the rebuilt cross-border hydro rung). The **HydroLAKES** sweep is the hydro-lakes row family: 19 cross-border lake
@@ -850,7 +852,7 @@ edge list, 164 of them shipped water-only, and each of the other 127 carries a
 cross-vendor rejection (`build_data/water_screen_rebuild/hydrolakes_band/`); the
 sweep's records hold two more pairs that are not edges and are not counted
 (RUS024↔RUS050, dissolved by the unit merge; Manitoba↔Northwest Territories, a
-corner contact). Since the geodesic sampling of 2026-09-21 (`gs1` below) the band
+corner contact). Since the sampling change of 2026-09-21 (`gs1` below) the band
 holds 56 edges, 15 of them shipped, every one also nominated by a river rung.
 
 **Census residue (`nt4`, 2026-09-20).** A code-level audit of the papers found that
@@ -892,13 +894,20 @@ its track in place (convention below): **409 bridged / 399 not** (was 410/398),
 moderate 8,060 → **8,059**, ADM0 roll-ups unchanged
 (`build_data/water_screen_rebuild/bridge_unification/`, `bridge_way_class_*`, `wc1_*`).
 
-**Geodesic sampling for the HydroRIVERS screens (`gs1`, 2026-09-20/21).** The
-HydroRIVERS-family screens (the domestic and cross-border sweeps and the creek-band
-enrichment) walked the shared arc at a fixed 4.5×10⁻³° of *planar* length, about
-500 m north–south but only about 500·cos(latitude) m east–west, so their coverage was
-a direction-weighted rather than a length-weighted share; the Natural Earth and
-HydroLAKES screens had always sampled by geodesic length. On the maintainer's decision
-all three now sample at intervals of at most 500 m of geodesic length, the same rule.
+**The HydroRIVERS screens take the other screens' sampling rule (`gs1`,
+2026-09-20/21).** The HydroRIVERS-family screens (the domestic and cross-border sweeps,
+the latter also computing the cross-border HydroLAKES share, and the creek-band
+enrichment) set the number of samples on each part of the arc from its coordinate
+length, one per 4.5×10⁻³° — about 500 m along a north–south line but only about
+500·cos(latitude) m along an east–west one — so how many points a border received, and
+with it the resolution of its coverage share, depended on its latitude and orientation;
+the Natural Earth screens and the domestic HydroLAKES sweep already set it from the
+geodesic length. On the maintainer's decision all three now use that rule: n = max(2,
+⌊L/500 m⌋ + 1) intervals for a part of geodesic length L. Both rules space the points
+evenly along a part in coordinates, so the average spacing is below 500 m while single
+intervals vary with direction and latitude (median 493 m, 5th–95th percentile 403–545 m
+on the shipped borders, `sample_spacing_shipped.txt`); the switch changes how many
+points fall on a border and where, not how a share is weighted along a part.
 Re-run on the pinned inputs, the change reshuffles bar-edge cases in both directions
 (median coverage change about zero) with two consequences. **Nineteen creek-band pairs
 were newly nominated** with no adjudication record (17 domestic, 2 cross-border); they
@@ -915,7 +924,8 @@ nominates falls outside the method however it was ruled — which is not a findi
 they are land; they are listed as known omissions in `docs/FUTURE_WORK.md`. A 100 m step on
 all four screens was measured before the decision and not adopted: it would nominate
 Lekoumou↔Niari again but leave four other shipped tier-A rows with no nominating screen and
-open 19 new candidates without a record (`step_sensitivity_all_screens.py`). Water-only
+open 19 new candidates without a record among the edges near a bar
+(`step_sensitivity_all_screens.py`). Water-only
 808 → **805** (409/399 → **408/397**), moderate 8,059 → **8,061**, stringent
 7,650 → **7,653**, tier A 273 → **270**, ADM0 unchanged (all three domestic); completeness
 0 open, attributability 805/805. Record: `build_data/geodesic_sampling/` (`gs1_*`; the
