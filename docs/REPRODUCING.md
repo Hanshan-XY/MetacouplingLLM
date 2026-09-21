@@ -49,7 +49,7 @@ refuses to build from a mismatching file):
 | WB Admin 0 GeoPackage (layer `WB_GAD_ADM0`, 264 features) | same distribution | `97f0c8a0…f4b117e` |
 | WB Ocean Mask GeoPackage | same distribution | `c2b074fd…c88d702` |
 | WB NDLSA GeoPackage (24 disputed-area features) | same distribution | `159ef2d1…55d2fa4` |
-| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `a14cd879…0c7ac9b` |
+| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `b95d5f08…c986cff` |
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
 
@@ -88,8 +88,8 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,458 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,060 / 7,650 |
-| water-only ADM1 | 808 = 410 with a fixed crossing / 398 without |
+| ADM1 moderate / stringent | 8,059 / 7,650 |
+| water-only ADM1 | 808 = 409 with a fixed crossing / 399 without |
 | water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 273 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |

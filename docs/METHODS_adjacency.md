@@ -46,7 +46,7 @@ produced the reviewed inputs, not steps a reader re-runs.
 
 **ADM1 provenance chain (every number reproducible from the shipped CSVs):**
 
-Every pipeline step appears in **execution order**, and each row shows the edge count *before → after* — including the water-classification overlays, which add **no edge** (`8,458 → 8,458`) but reclassify existing edges as water-only, moving the `moderate`/`stringent` views; the *water-only* column is the running count that drives the three views (808 = 410 with a fixed crossing / 398 without). S1 = WB geometry (tolerance-0 core, source-relabel, denylist); S2 = NDLSA de-facto (same geometry build, which writes the 8,430-row base file); S3 = Natural Earth water classification (adds no edge — the 298-pair base water set); S4 = the reviewed correction overlays applied afterwards by `scripts/apply_overlays.py` in registry order (the land-gap overlay is *applied* here though its tolerance-band *discovery* belongs to Stage 1, §2.4/§4).
+Every pipeline step appears in **execution order**, and each row shows the edge count *before → after* — including the water-classification overlays, which add **no edge** (`8,458 → 8,458`) but reclassify existing edges as water-only, moving the `moderate`/`stringent` views; the *water-only* column is the running count that drives the three views (808 = 409 with a fixed crossing / 399 without). S1 = WB geometry (tolerance-0 core, source-relabel, denylist); S2 = NDLSA de-facto (same geometry build, which writes the 8,430-row base file); S3 = Natural Earth water classification (adds no edge — the 298-pair base water set); S4 = the reviewed correction overlays applied afterwards by `scripts/apply_overlays.py` in registry order (the land-gap overlay is *applied* here though its tolerance-band *discovery* belongs to Stage 1, §2.4/§4).
 
 | step (execution order) | ADM1 edges | water-only | source / reason |
 |---|---|---|---|
@@ -60,7 +60,7 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S4** + rescreen-gap overlay (water-screen rebuild + corridor census v2) | 8,434 → 8,458 | 298 → 322 | +24 non-touching water borders: 22 nominated by the rebuild's 2026-07 union-mask corridor census (≥ 0.80 of the gap corridor inside NE lakes ∪ a 500 m HydroRIVERS buffer — planar degrees in that run; river gaps to 5 km, lake corridors to 100 km; short-corridor amendment), Tier-2 two-pass adjudicated and human/dual-AI verified, and 2 by its 2026-09-10 successor, the corridor census v2 (NE lakes ∪ HydroLAKES ∪ a geodesic, discharge-laddered HydroRIVERS buffer; transect corridors along the facing frontage; third-unit and wedge flags recorded) — 46 nominations, cross-vendor two-pass, maintainer map rulings 2026-09-10: Équateur↔Cuvette across the Congo and Entre Ríos↔Artigas across Salto Grande, tier A (record `build_data/water_screen_rebuild/corridor_census_v2/`); the v2 census re-nominates all 22 earlier rows. Six of the 22 were first found by the retired ~1 km near-miss net (5 river rows, rg1 fold 2026-07-22; Galați↔Odesa upheld by maintainer map ruling via Insula Cailor, arc corrected to 0.5 km) and the retired 1–100 km lake band (the Skadar row, lg1 fold 2026-07-23; human-map-verified 2026-07-04) — all six independently re-nominated by the corridor census, discovery provenance retained in `source` |
 | **S4** rescreen-water overlay (water-screen rebuild + identity audit + unification folds) | 8,458 → 8,458 | 322 → 808 | +0 edges; 486 existing borders reclassified water-only, every one nominated by the rebuilt screens (NE rungs; HydroRIVERS/HydroLAKES domestic and cross-border rungs): 368 adjudicated in the rebuild's Tier-2 audit (batches b1–b6 + the 20 km-hold tranche: 72 + 125 + 169 + 2; incl. 9 rows ruled by the maintainer on the shipped WB geometry, 2026-09-19, in place of a delegated arbitration pass), 15 domestic large-river borders nominated by the HydroRIVERS ≥ 100 m³/s rung and adjudicated 2026-09-01 (rj2: cross-vendor two-pass + maintainer map rulings under Standard M; 11 bridged / 4 not; four-layer bridge pipeline), 54 domestic creek-band borders nominated by the HydroRIVERS creek rung (≥ 0.5 of the border within geodesic 500 m of any reach, < 0.5 at ≥ 10 m³/s) and adjudicated 2026-09-14 (dc1: the whole 715-edge band through the cross-vendor two-pass, a deterministic gap measurement of the 90 pairs with at least one water-only verdict and maintainer map rulings under Standard M; 47 bridged / 7 not at adjudication, 48 / 6 since the crossing unification; four-layer bridge pipeline), 1 border of the nine-pair pilot, re-adjudicated 2026-09-18 when the pilot's single-vendor verdicts were replaced by the cross-vendor two-pass (pr1: Kapisa↔Parwan along the Panjshir River, accepted by maintainer map ruling; bridged), 3 shore contacts of proven water-surface polygons from the 2026-07-18 placeholder-identity audit (2 Tonle Sap + 1 Lake Kariba; human-map-verified), and 45 rows first found by pre-rebuild campaigns now retired as nomination steps, folded in with their discovery provenance retained in `source` — 15 river rows by the 5 km/10 km widening re-screens (ru1 fold 2026-07-21; 9 further pre-rebuild river verdicts demoted to mixed land by maintainer map ruling), 18 by the 2026-07-02 HydroRIVERS and 12 by the 2026-07-04 HydroLAKES geodesic 500 m cross-checks (2026-07-28 fold; incl. the Uruguay River and the Dead Sea; two-stage ground-truthed and 100% human-map-verified at the time) — all re-nominated by the rebuilt rungs (whole-graph attributability 808/808, `build_data/water_screen_rebuild/hydro_fold/attributability_check.py`) |
 | **shipped (lenient)** | **8,458** | 808 | 3,374 regions, 196 countries — every edge kept |
-| moderate (default) | **8,060** | −398 | 8,458 − 398 water-only pairs with no fixed crossing |
+| moderate (default) | **8,059** | −399 | 8,458 − 399 water-only pairs with no fixed crossing |
 | stringent | **7,650** | −808 | 8,458 − all 808 water-only pairs |
 
 **What Stage 1 changed vs a naïve build (add/remove reasons):** removed 4
@@ -72,7 +72,7 @@ their border territory back to Mara/Kilimanjaro); the Malta false edge
 (Balzan↔Iklin, ~31 m apart) never appears at tolerance 0, so it needs no
 denylist entry.
 
-**Water-only set = 808 ADM1** (410 with a fixed crossing / 398 without) + **26
+**Water-only set = 808 ADM1** (409 with a fixed crossing / 399 without) + **26
 ADM0** roll-ups, by source: 298 base bridge classification + 486
 rescreen-water + 24 rescreen-gap. Every one of the 808 is nominated by the
 rebuilt screens run over every edge (NE rungs ∪ HydroRIVERS/HydroLAKES rungs ∪
@@ -603,7 +603,7 @@ the 15 river rows of the 5 km/10 km widening re-screens (ru1 fold,
 2026-07-22) and the Skadar lake row of the 1–100 km lake band (lg1 fold,
 2026-07-23) — all independently re-nominated by the rebuilt screens
 (whole-graph attributability 808/808). Under
-the default, ADM1 pericoupled edges fall 8,458 → **8,060** and ADM0 country
+the default, ADM1 pericoupled edges fall 8,458 → **8,059** and ADM0 country
 pairs 326 → **320** (the hydro-water rows' GUF↔SUR roll-up — the Maroni
 system, ferry only — joins COD↔TZA, MRT↔SEN, CAF↔COD, NGA↔TCD across
 Lake Chad, and the rescreen roll-up GUY↔SUR — the ferry-only Corentyne — as
@@ -864,6 +864,29 @@ maintainer ruling was needed. **Rejection upheld; no flag and no count changes**
 every nomination of every screen now carries a two-model record, and the completeness
 check shows 0 open (`build_data/water_screen_rebuild/corridor_census_v2/`, `nt4_*`).
 
+**Way-class follow-up (`wc1`, 2026-09-20).** Layer 1 of the crossing pipeline accepts
+any OpenStreetMap way tagged as a bridge on a road, path or railway; the rule that
+only a road or rail crossing counts is applied by the later layers, and a row on which
+the screen and the web verification agreed never reached the adversarial recheck, the
+one layer that states the footbridge exclusion. The screen had kept way names, not
+classes, so a diagnostic re-query recorded the class of every qualifying way for the
+354 bridged rows with a layer-1 "bridge way found" (OpenStreetMap as of 2026-09-20;
+4,923 ways, 899 of them foot or cycle ways): **340 rows have a road or rail way in
+both units**; 6 have foot or cycle ways only, 5 a service road, farm track or
+access-restricted way only, 3 a disused railway or a bridge outline only. Of those 14,
+11 rest on a road or rail structure named by the web verification or an earlier
+recheck, or on a maintainer ruling (the screen misses such a structure when the
+generalized polygons leave it outside the 130 m test, or when it is a dam-top road or
+a tunnel rather than a bridge way). The 3 with no such structure on record went to the
+GPT-5.6 Sol adversarial recheck: Sankt Gallen↔Gamprin was confirmed (the Haag–Bendern
+road bridge, 370 m from the farther unit), and two downgrades were proposed. The
+maintainer's rulings of 2026-09-20 accepted one — **Basel-Landschaft↔Baden-Württemberg,
+whose only crossing is the foot and cycle way over the Augst–Wyhlen barrage** — and
+kept Telšiai↔Vaiņodes novads, whose only structure is a disused railway bridge with
+its track in place (convention below): **409 bridged / 399 not** (was 410/398),
+moderate 8,060 → **8,059**, ADM0 roll-ups unchanged
+(`build_data/water_screen_rebuild/bridge_unification/`, `bridge_way_class_*`, `wc1_*`).
+
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
 are excluded) lies in **both** units. Every one of the 808 rows now carries the
@@ -872,7 +895,9 @@ before it the base classification, the rebuild-era rows and the folded
 pre-rebuild rows had come through three implementations of the same design):
 (1) a deterministic **OSM Overpass screen** — a bridge/tunnel/causeway way counts
 only if it intersects both units' polygons buffered 0.0012° (~130 m, the OSM↔WB
-registration tolerance), construction/proposed tags are dropped, non-touching
+registration tolerance), construction/proposed tags are dropped, the class of the
+way is not tested (a footpath bridge passes; the classes were checked separately,
+`wc1` above), non-touching
 pairs use the nearest-approach corridor, and borders wider than 0.5 deg² are
 swept along the line every 500 m with a 400 m radius (complete for the
 in-both-units test, since a qualifying way must touch the line); (2) the row's
@@ -899,7 +924,11 @@ the unified run's record: `build_data/water_screen_rebuild/bridge_unification/`.
   finished bridge on a **politically closed** border (e.g. Armenia–Turkey,
   closed since 1993; Tajikistan–Afghanistan) still counts — pericoupling is a
   *structural* relation and closures are transient; only
-  **under-construction/proposed** links are dropped. Political openness is not
+  **under-construction/proposed** links are dropped. By the same logic a
+  structurally complete railway bridge on a **disused** line with its track in
+  place counts, because the line can reopen (maintainer ruling 2026-09-20 on
+  Telšiai↔Vaiņodes novads, the one row of the way-class diagnostic whose only
+  structure is such a bridge); a dismantled line would not. Political openness is not
   checked for any other (land-border) pair, so applying it selectively here
   would be inconsistent.
 - *Mid-lake "median-line" meetings* (two units meeting in open water — e.g. Lake
