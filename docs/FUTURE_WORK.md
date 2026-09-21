@@ -111,3 +111,44 @@ into `rescreen_water` (registry 5 → 3) becomes safe if still wanted, since eve
 border would then be attributable to a recorded whole-graph screen.
 
 *(2026-09-09: the whole-graph attributability check was re-run on the shipped data — 751/751 — and the pre-rebuild discovery nets (near-miss net, lake band, 5/10 km widenings, 2026-07-02/04 hydro cross-checks) were retired as nomination steps; see `docs/METHODS_adjacency.md` §8. "One screen disposition covers the whole graph" is now a true sentence.)*
+
+---
+
+## 4. Known water-only borders below every screen's bar (method-scope omissions)
+
+**Status: recorded 2026-09-21; no action planned.** Three borders were ruled
+water-only on maps by the maintainer on 2026-09-14 (creek-band campaign `dc1`,
+bucket B, `build_data/water_screen_rebuild/domestic_creek/`) and shipped until
+2026-09-21. When the HydroRIVERS screens moved to sampling the shared arc every
+500 m of geodesic length (campaign `gs1`, `build_data/geodesic_sampling/`), none
+of the four edge screens nominates them any more, and the maintainer took them out
+of the water-only set: the database is complete relative to its screens, and a row
+no recorded screen nominates falls outside the documented method however it was
+ruled ("Even we take 100m, we may still miss pairs"). **They are not found to be
+land**; the edges stay in the edge list as ordinary land borders.
+
+| pair | units | water body | border | HydroRIVERS coverage at 500 m (degree step → geodesic) |
+|---|---|---|---|---|
+| `COG006`↔`COG008` | Lekoumou ↔ Niari (Republic of the Congo) | Mpoukou, Louessé and Niari rivers | 213.9 km | 0.50 → 0.49 |
+| `UGA063`↔`UGA107` | Kyegegwa ↔ Ssembabule (Uganda) | River Katonga | 0.65 km | 0.50 → 0.33 (three sample points) |
+| `VNM025`↔`VNM049` | Hai Duong ↔ Quang Ninh (Viet Nam) | Sông Kinh Thầy | 25.3 km | 0.51 → 0.49 |
+
+Why the screens miss them: the coverage is a distance to HydroRIVERS' *modelled*
+centerlines, traced on a 15 arc-second elevation grid, and on these borders the
+model runs more than 500 m from the real channel for long stretches (for
+Lekoumou↔Niari 92.5 km of the 213.9 km border lies beyond 500 m of any modelled
+reach, but only 50.8 km beyond 1 km); the Natural Earth layers do not carry these
+rivers and no lake is in play. The 500 m step is itself a discretization: measured
+at 100 m and 25 m (2026-09-21) the shares converge to 0.502–0.503 for
+Lekoumou↔Niari — just above the bar, so a converged screen would nominate it —
+but to 0.10 for Kyegegwa↔Ssembabule and 0.45 for Hai Duong↔Quang Ninh, well
+below. A screen measured against a surveyed river network (national hydrography,
+OpenStreetMap waterways) is the other route; either is a new screen with its own
+nominations to adjudicate. A finer step for every screen is not a remedy on its
+own: measured over all four screens at 100 m (2026-09-21,
+`build_data/geodesic_sampling/step_sensitivity_all_screens.py`), it would nominate
+Lekoumou↔Niari again but would leave four other shipped tier-A rows with no
+nominating screen (Kelantan↔Narathiwat on the Golok River, Canelones↔San Jose,
+Montevideo↔San Jose, Ninh Binh↔Nam Dinh) and would open 19 new candidates without
+an adjudication record in the measured near-bar population. The maintainer kept
+all four screens at 500 m and the removal.

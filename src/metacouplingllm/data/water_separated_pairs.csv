@@ -752,7 +752,6 @@ adm1,UGA029,UGA042,False,river,Katonga River,"rescreen-water overlay (water-scre
 adm1,URY010,URY016,False,river,Santa Lucia River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM004,VNM027,True,river,Cau River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM010,VNM036,True,river,Dong Nai River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,COG006,COG008,False,river,"Mpoukou, Louessé and Niari rivers","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM001,DOM020,True,river,Ocoa River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM010,DOM027,True,river,"Higuamo, Maguá and Casuí tributary network","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM012,DOM013,True,river,Chavón River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
@@ -790,7 +789,6 @@ adm1,UGA045,UGA101,True,river,Buhindagi River and Lake George,"rescreen-water ov
 adm1,UGA051,UGA062,True,river,River Mpongo,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,UGA051,UGA063,True,river,River Muzizi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,UGA053,UGA063,False,river,River Katonga,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,UGA063,UGA107,False,river,River Katonga,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,UGA065,UGA098,True,river,Achwa River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,UGA077,UGA104,True,river,River Rwizi,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,UGA078,UGA094,True,river,River Kabukyera,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
@@ -803,7 +801,6 @@ adm1,URY006,URY007,True,river,Arroyo Maciel,"rescreen-water overlay (water-scree
 adm1,URY014,URY019,True,river,Río Cebollatí and Laguna Merín,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM004,VNM006,True,river,Sông Cầu,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM025,VNM026,True,river,Sông Mía-Sông Cầu Xe-Sông Thái Bình canal chain,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,VNM025,VNM049,True,river,Sông Kinh Thầy,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM026,VNM049,True,river,Sông Đá Bạch-Bạch Đằng,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM026,VNM054,True,river,Sông Hóa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,AFG016,AFG028,True,river,Panjshir River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
