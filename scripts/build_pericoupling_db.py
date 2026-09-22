@@ -741,6 +741,38 @@ def write_water_separated_manifest(
 # Main
 # ---------------------------------------------------------------------------
 
+def load_ocean_mask(ocean_gpkg: str, ocean_layer: str = "WB_GAD_ocean_mask"):
+    """The ocean mask as one geometry, exactly as the build uses it for ``--clip-ocean``."""
+    ocean_gdf = _make_valid(gpd.read_file(ocean_gpkg, layer=ocean_layer).to_crs(4326))
+    return unary_union(list(ocean_gdf.geometry))
+
+
+def load_adm1_build_geometry(adm1_gpkg: str, adm1_layer: str = "WB_GAD_ADM1", ocean=None,
+                             relabel_sliver: bool = True, log=None) -> gpd.GeoDataFrame:
+    """The ADM1 polygons the build derives its edges from: validity-repaired, in EPSG:4326, clipped to land
+    when ``ocean`` is given (the ``--clip-ocean`` build), the reviewed source-relabel applied, the reviewed
+    unit merges applied.  The build's own Stage 1 calls this; the water screens read the same polygons
+    through it (``build_data/water_screen_rebuild/border_arc.py``), so the two cannot drift apart."""
+    log = log or (lambda *_a, **_k: None)
+    a1 = _make_valid(gpd.read_file(adm1_gpkg, layer=adm1_layer).to_crs(4326))
+    if ocean is not None:
+        a1 = _clip_to_land(a1, ocean)
+    if relabel_sliver:
+        from relabel_sliver_corridors import relabel as _relabel_sliver
+        log("  source-relabel: reassigning reviewed sliver-corridor artifacts")
+        a1, _rl_log = _relabel_sliver(a1, code_col="ADM1CD_c", verbose=True)
+        log(f"  source-relabel: {len(_rl_log)} corridor(s) reassigned")
+    for _src, _dst in _ADM1_UNIT_MERGES.items():
+        _si = a1.index[a1["ADM1CD_c"] == _src]
+        _di = a1.index[a1["ADM1CD_c"] == _dst]
+        if len(_si) and len(_di):
+            log(f"  unit merge: {_src} -> {_dst} (reviewed; see denylist block)")
+            a1.loc[_di[0], a1.geometry.name] = unary_union(
+                [a1.loc[_di[0]].geometry, a1.loc[_si[0]].geometry])
+            a1 = a1.drop(index=_si)
+    return a1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--adm1-gpkg", required=True)
@@ -780,10 +812,7 @@ def main() -> int:
     ocean = None
     if args.clip_ocean:
         log("loading ocean mask")
-        ocean_gdf = _make_valid(
-            gpd.read_file(args.ocean_gpkg, layer=args.ocean_layer).to_crs(4326)
-        )
-        ocean = unary_union(list(ocean_gdf.geometry))
+        ocean = load_ocean_mask(args.ocean_gpkg, args.ocean_layer)
 
     # Stage 1 is pure World Bank geometry -- Natural Earth is NOT used in
     # the topology build (no lake filter, no river-buffer length).  Water
@@ -815,20 +844,8 @@ def main() -> int:
 
     if "adm1" in levels:
         log("=== Stage 1: ADM1 topology (WB only, exact contact) ===")
-        a1 = _prep(args.adm1_gpkg, args.adm1_layer)
-        if not args.no_relabel_sliver:
-            from relabel_sliver_corridors import relabel as _relabel_sliver
-            log("  source-relabel: reassigning reviewed sliver-corridor artifacts")
-            a1, _rl_log = _relabel_sliver(a1, code_col="ADM1CD_c", verbose=True)
-            log(f"  source-relabel: {len(_rl_log)} corridor(s) reassigned")
-        for _src, _dst in _ADM1_UNIT_MERGES.items():
-            _si = a1.index[a1["ADM1CD_c"] == _src]
-            _di = a1.index[a1["ADM1CD_c"] == _dst]
-            if len(_si) and len(_di):
-                log(f"  unit merge: {_src} -> {_dst} (reviewed; see denylist block)")
-                a1.loc[_di[0], a1.geometry.name] = unary_union(
-                    [a1.loc[_di[0]].geometry, a1.loc[_si[0]].geometry])
-                a1 = a1.drop(index=_si)
+        a1 = load_adm1_build_geometry(args.adm1_gpkg, args.adm1_layer, ocean=ocean,
+                                      relabel_sliver=not args.no_relabel_sliver, log=log)
         e1 = build_edges(a1, "ADM1CD_c")
         write_adm1_csv(e1, out_dir / "pericoupled_adm1_edge_list.csv")
 
