@@ -38,8 +38,11 @@ python scripts/build_all.py
    2026-09-20 under the standard two-vendor design (blind GPT-5.6 Sol research +
    Sonnet-5 adversarial judgment, both confirming every attribution; no change —
    `build_data/sliver_readjudication/`); the fix is an area-conserving
-   morphological-opening move (drift +0.0002 km²) that removes all 4
-   fabricated cross-country edges and corrects ~15 border lengths (full
+   morphological-opening move (drift below 0.0001 km²; since 2026-09-22 each
+   corridor's cut points are vertices of every outline through them, and the
+   two corridors whose cut falls next to a junction close at it — maintainer
+   rulings, `build_data/sliver_remnant/`) that removes all 4 fabricated
+   cross-country edges and changes 30 border lengths (full
    detail: `docs/METHODS_adjacency.md` §10; evidence:
    `build_data/arusha_sliver_audit/`). No tuned parameter; the old Malta snap
    false-positive never appears at exact contact. The remaining **130**
@@ -491,8 +494,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   screened with the recovered-length diagnostic; `build_data/snap_extras_audit/`)
   surfaced two such cases on the Kenya-Tanzania survey line, both confirmed by
   human map review (2026-07-01): **Kajiado↔Kilimanjaro** (`KEN010`↔`TZA011`,
-  44.7 km as a native edge — ~54 km on the recovered-length diagnostic at 1×10⁻²° — the Loitokitok-Rombo sector) and **Narok↔Mara** (`KEN033`↔`TZA016`,
-  62.6 km as a native edge — ~70 km at 1×10⁻²° — the Maasai Mara-Serengeti sector). Both are **native tolerance-0
+  47.9 km as a native edge — ~54 km on the recovered-length diagnostic at 1×10⁻²° — the Loitokitok-Rombo sector) and **Narok↔Mara** (`KEN033`↔`TZA016`,
+  67.5 km as a native edge — ~70 km at 1×10⁻²° — the Maasai Mara-Serengeti sector). Both are **native tolerance-0
   edges**, produced directly by the source-relabel stage
   (`scripts/relabel_sliver_corridors.py` via `sliver_corridor_relabel.csv`,
   which reassigns the Tanzanian sliver corridors from Arusha to Kilimanjaro
@@ -651,15 +654,16 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   vertices). The at-risk band is small, fully audited, and shipped as explicit
   manifest rows: a sensitivity sweep on the shipped (no-lake-filter,
   source-relabelled) geometry shows adjacency is stable across hypothetical
-  snapping tolerances in [0, 10⁻³°] (rising at most 12 edges, ~0.14%, from the
+  snapping tolerances in [0, 10⁻³°] (re-measured 2026-09-22 on the fixed
+  relabel, `build_data/snap_sweep/`: rising at most 11 edges, ~0.13%, from the
   then-native 8,425 — 8,422 after the 2026-07-18 reviewed RUS050 merge, a
   fixed offset that does not affect the sensitivity result; the ADM0 matrix is exactly invariant at 323 across the same
   range, rising to 324 only at ≥2×10⁻³°), the sub-55 m band holds exactly
-  seven pairs; four genuine ones ship as the land-gap overlay (a fifth,
+  six pairs; four genuine ones ship as the land-gap overlay (a fifth,
   MOZXXX↔MWI003, was reversed 2026-07-18 — point contact per maintainer map
   ruling) while
-  the two artifacts (incl. `MLT002`/`MLT019` Balzan↔Iklin, ~31 m apart, no
-  shared frontier) never become edges at exact contact
+  the remaining artifact (`MLT002`/`MLT019` Balzan↔Iklin, ~31 m apart, no
+  shared frontier) never becomes an edge at exact contact
   (`docs/METHODS_adjacency.md` §2.4, §4). The active
   `_ADM1_FALSE_POSITIVE_DENYLIST` entries are the two audit-confirmed pairs
   `LBR006`/`LBR014` and `VEN001`/`VEN003` (see the provenance-chain "denylist"

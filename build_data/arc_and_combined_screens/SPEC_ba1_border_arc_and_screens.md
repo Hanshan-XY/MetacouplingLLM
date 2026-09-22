@@ -227,3 +227,11 @@ shared arc module. Screen parameters live in one module that the documentation t
   input only once its campaign's rulings are frozen); the ten went through the same two-pass as a second tranche (`ba1r_*`:
   gate A 0 / B 1 / C 3 / D 6; maintainer ruling "mixed" on LVA070<->LVA113): all ten rejected. Completeness 0 open;
   attributability 803/803 (779 on the border arc, 24 by the corridor census).
+- 2026-09-22 source-relabel fix, in the same pull request (maintainer ruling item 4, after the border-arc work; record
+  `build_data/sliver_remnant/`): the relabel's cut points are now shared vertices and two corridors close at a junction
+  (maintainer rulings "Close at junction", and "Use the default" for Salta's opening radius). The build polygons of 26
+  units change; the cache was regenerated in full on them (the one before kept as
+  `water_screen_rebuild/arc_cache_pre-relabelfix.jsonl`): 31 edges' arcs change, every one an edge of a changed unit; exact
+  1,227,467.7 -> 1,227,377.3 km; overlap 455.7 km on 11 edges -> 444.2 km on the four Saint-Louis borders; facing and
+  land-gap unchanged. Re-run of the screens: no nomination changes (3,248; `compare_screens_relabelfix.txt`); the
+  exact-only method check reads 7,430 of 7,464 (34 differ, all where the build polygons differ from the raw file).

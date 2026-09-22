@@ -60,3 +60,28 @@ notes had before/after reversed and cited numbers that don't match any real
 geometry. All four length-only corrections are *increases*, not decreases —
 see the corrected `sliver_corridor_relabel.csv` notes and
 `docs/METHODS_adjacency.md` §10.4 for the true values.
+
+## Correction (2026-09-22): zero-width spikes; cut points shared; two corridors closed at a junction
+
+The overlay `host - union(corridors)` left a zero-width spike wherever a corridor's cut point
+(where the opening's outline meets the host's raw outline) lay inside a raw segment: the unit
+across that segment had no vertex at the cut point, so the host kept the rest of the segment,
+which the exact-contact measure counted as host frontage, and the owner's new edge matched no
+neighbour's line, so its frontage went unmeasured. On the pinned geometry: Kitgum<->E.Equatoria
+read 12.92 km (21.28 with the frontage measured), Lamwo<->E.Equatoria 158.99 (150.63),
+Garissa<->Wajir 265.10 (229.70: a 17.7 km spike and slit counted twice), and 9.4 km of the
+Kenya-Somalia border sat in no edge. The "Kitgum<->E.Equatoria 0.9->12.9" and "+0.0002 km2"
+lines above describe that relabel.
+
+The relabel now inserts each cut point as a vertex into every outline through it, and closes a
+corridor whose cut falls on a raw segment facing a third unit and ending at a junction at that
+junction (maintainer ruling: ARG017, 304.2 m from its cut, and SRB002, 13.8 m). ARG017's opening
+radius returns to the default 2e-3 deg (maintainer ruling): the "8.2 km residual Salta<->Potosi
+contact" at 2e-3 recorded above was such a spike -- the old relabel at 2e-3 leaves Salta a needle
+along an 8.18 km raw segment, while the ribbon detaches at both radii (1.90 vs 1.91 km2).
+Result: area drift below 0.0001 km2; no spike in any host or owner; no edge added or removed;
+30 border lengths differ from the raw polygons (29 from the relabel before the fix); every
+group of touching relabels conserves each neighbour's frontage exactly. Record:
+`build_data/sliver_remnant/` (check_relabel_fix.log, relabel_length_delta.txt,
+maintainer_rulings_2026-09-22.txt).
+

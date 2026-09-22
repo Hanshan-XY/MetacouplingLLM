@@ -205,21 +205,25 @@ shipping exact contact is **robustness**: sweep a hypothetical snapping
 tolerance and show the graph barely moves. The sweep runs on the shipped
 geometry (source-relabelled, ocean-clipped, no lake filter), with the candidate
 search widened by each tolerance — as a tolerance build's must be, so no
-within-tolerance pair escapes the test. Counts are native (before the denylist
-and the correction overlays); measured 2026-07-07, record
-`build_data/snap_sweep_tol0_report.txt`:
+within-tolerance pair escapes the test. Counts are native (before the unit
+merge, the denylist and the correction overlays); measured 2026-09-22 by
+`build_data/snap_sweep/snap_sweep_tol.py`, record
+`build_data/snap_sweep/snap_sweep_fixed_relabel.txt` (the script reproduces the
+earlier record `build_data/snap_sweep_tol0_report.txt` exactly on the polygons
+that record was measured on; the ADM0 column, which the relabel does not touch,
+is that record's):
 
 | tolerance (°) | ≈ metres | ADM1 edges | Δ vs 0 | ADM0 pairs |
 |---|---|---|---|---|
 | **0 (recorded)** | **0** | **8,425** | — | **323** |
-| 1×10⁻⁴ | 11 | 8,429 | +4 | 323 |
-| 2×10⁻⁴ | 22 | 8,429 | +4 | 323 |
-| 5×10⁻⁴ | 55 | 8,432 | +7 | 323 |
-| 1×10⁻³ | 111 | 8,437 | +12 (+0.14%) | 323 |
-| 2×10⁻³ | 222 | 8,452 | +27 (+0.32%) | 324 |
-| 5×10⁻³ | 555 | 8,517 | +92 (+1.09%) | 324 |
+| 1×10⁻⁴ | 11 | 8,428 | +3 | 323 |
+| 2×10⁻⁴ | 22 | 8,428 | +3 | 323 |
+| 5×10⁻⁴ | 55 | 8,431 | +6 | 323 |
+| 1×10⁻³ | 111 | 8,436 | +11 (+0.13%) | 323 |
+| 2×10⁻³ | 222 | 8,451 | +26 (+0.31%) | 324 |
+| 5×10⁻³ | 555 | 8,515 | +90 (+1.07%) | 324 |
 
-Over **[0, 10⁻³°]** the ADM1 edge count rises by at most 12 edges (~0.14%) and
+Over **[0, 10⁻³°]** the ADM1 edge count rises by at most 11 edges (~0.13%) and
 the ADM0 matrix is **exactly invariant at 323** (rising to 324 only at
 ≥2×10⁻³°: one Namibia–Zimbabwe pair, gap ~140 m). Counts climb materially only
 above ~2×10⁻³°, where a tolerance grows large enough to fuse genuinely separate
@@ -227,19 +231,20 @@ units across rivers and straits. Exact contact therefore sits at the foot of a
 low-sensitivity plateau, an order of magnitude below the width at which
 spurious edges appear.
 
-The **[0, 55 m] band holds exactly seven pairs**: the four genuine land-gap
+The **[0, 55 m] band holds exactly six pairs**: the four genuine land-gap
 borders (Egypt–Libya 0.4 m, Anguilla 1.4 m, Ethiopia–Sudan ~32 m, Dominican
-~40 m — shipped as the reviewed land-gap overlay, §4) plus three **rejected
-artifacts** — the ~0.8 m remnant where the source-relabel removed the bogus
-Braničevo↔Mehedinți corridor edge (§10), which a tolerance would re-fabricate;
-the placeholder–Malawi lake corner (0.9 m), first restored and then reversed on
-2026-07-18 as a true point contact; and the Malta Balzan↔Iklin councils (31 m),
-which exact contact excludes for free. Genuine and artifact gaps **interleave**
-(0.4 / 0.8 / 0.9 / 1.4 / 31 / 32 / 40 m), so no tolerance value separates
+~40 m — shipped as the reviewed land-gap overlay, §4) plus two **rejected
+artifacts** — the placeholder–Malawi lake corner (0.9 m), first restored and
+then reversed on 2026-07-18 as a true point contact; and the Malta Balzan↔Iklin
+councils (31 m), which exact contact excludes for free. (Braničevo↔Mehedinți,
+the fabricated corridor edge the source-relabel removes, meets at a single
+point where the corridor closes, §10, and no tolerance turns a point into a
+shared segment.) Genuine and artifact gaps **interleave**
+(0.4 / 0.9 / 1.4 / 31 / 32 / 40 m), so no tolerance value separates
 them — the per-pair audit, not a threshold, is load-bearing.
 
-The **85 pairs the sweep adds beyond the 55 m band** (+5 at 1×10⁻³, +15 at
-2×10⁻³, +65 at 5×10⁻³) were audited per pair with the §4
+The **84 pairs the sweep adds beyond the 55 m band** (+5 at 1×10⁻³, +15 at
+2×10⁻³, +64 at 5×10⁻³) were audited per pair with the §4
 recovered-length-vs-tolerance diagnostic: **every one shows the growing
 gap-corridor signature** and none the flat genuine-border signature. Every
 cross-border addition falls within the ground-truthed near-miss census set:
@@ -247,7 +252,7 @@ four are river recoveries restored to the shipped graph (carried in the
 rescreen-gap manifest under the rg1 fold, 2026-07-22), one — Cahul↔Vaslui —
 is the four-corner artifact the rg1 re-adjudication demoted, and
 the two long survey-line corridors on the straight-surveyed Kenya-Tanzania
-border — Kajiado↔Kilimanjaro (44.7 km as a native edge; ~54 km on the recovered-length diagnostic at 1×10⁻²°) and Narok↔Mara (62.6 km native; ~70 km at 1×10⁻²°) — were
+border — Kajiado↔Kilimanjaro (47.9 km as a native edge; ~54 km on the recovered-length diagnostic at 1×10⁻²°) and Narok↔Mara (67.5 km native; ~70 km at 1×10⁻²°) — were
 map-verified as genuine borders and are **native** edges after the
 source-relabel (§10). The remaining additions are confirmed artifact corridors.
 Per-pair results: `build_data/snap_extras_audit/extras.csv` (local audit
@@ -397,7 +402,7 @@ those flags motivated.)
 
 ## 4. Auditing the sub-55 m band (the land-gap overlay)
 
-Exactly **7 ADM1 pairs** sit in the [0, 55 m] band — present the moment a
+Exactly **6 ADM1 pairs** sit in the [0, 55 m] band — present the moment a
 snapping tolerance reaches their gap, absent at exact contact (§2.4). Because
 this set is small it was **manually reviewed against imagery**, with a
 recovered-length-vs-tolerance diagnostic:
@@ -409,7 +414,6 @@ recovered-length-vs-tolerance diagnostic:
 | AIA001 ↔ AIA003 (Anguilla, domestic) | 1.4 m | grows with tol | genuine — land-gap overlay row |
 | ETH013 Tigray ↔ SDN004 Kassala | ~32 m | grows with tol | genuine — land-gap overlay row |
 | DOM011 Independencia ↔ DOM026 San Juan | ~40 m | grows with tol | genuine — land-gap overlay row |
-| **SRB002 ↔ ROU028 relabel remnant** | **0.8 m** | grows with tol | **artifact — excluded at exact contact** (the source-relabel removed this fabricated corridor edge, §10; a tolerance would re-fabricate it) |
 | **MLT002 Balzan ↔ MLT019 Iklin** | **31 m** | grows with tol | **artifact — excluded at exact contact** (the councils share no frontier) |
 
 A **flat** recovered-length-vs-tolerance curve indicates a true shared border
@@ -419,13 +423,16 @@ swallowed. By this diagnostic only EGY/LBY is unambiguously a real border; the
 others required human judgment — which is exactly why the band is audited
 rather than trusted to any threshold value. Note that min-gap alone does
 **not** separate genuine from artifact (Malta's artifact gap of 31 m is
-*smaller* than the genuine Dominican pair's ~40 m; the artifact remnant's
-0.8 m is smaller than everything except Egypt–Libya), so **no tolerance value
-can get all seven right** — the per-pair audit is load-bearing.
+*smaller* than the genuine Dominican pair's ~40 m; the placeholder–Malawi
+corner's 0.9 m is smaller than Anguilla's genuine 1.4 m), so **no tolerance
+value can get all six right** — the per-pair audit is load-bearing.
+Braničevo↔Mehedinți, the fabricated corridor edge the source-relabel removes,
+is not in the band: the corridor closes at the Caraș-Severin–Mehedinți
+junction, so the two units meet at a single point (§10.3).
 
 The four genuine pairs ship as the reviewed **land-gap overlay**
 (`land_gap_overlay_pairs.csv`, applied by `scripts/apply_overlays.py`) —
-ordinary land edges, pericoupled under every `coupling_standard`; the three
+ordinary land edges, pericoupled under every `coupling_standard`; the two
 artifacts never enter the graph at exact contact, so they need no denylist
 entry. The full count chain is the provenance ledger at the top of this
 document.
@@ -966,14 +973,14 @@ and bars, and three screens join them: a **combined river** screen (a point coun
 2.5 km of a Natural Earth river or 500 m of a HydroRIVERS reach; bar 0.50), a **combined lake**
 screen (within 125 m of a Natural Earth lake or 500 m of a HydroLAKES polygon; bar 0.40) and a
 **cross-type union** of all four layers at their operating widths with the corridor census's bar,
-0.80. Over the 8,421 edges with a border arc, the arc holds 1,227,468 km of exact line (8,417
-edges), 5,903 km of facing stretches (954 edges; median width 286 m), 456 km of overlap (11 edges)
-and 50 km of land-gap band (4 edges). Measured blind on the frozen rule, 3,248 edges are nominated
+0.80. Over the 8,421 edges with a border arc, the arc holds 1,227,377 km of exact line (8,417
+edges), 5,903 km of facing stretches (954 edges; median width 286 m), 444 km of overlap (the four
+Saint-Louis borders) and 50 km of land-gap band (4 edges). Measured blind on the frozen rule, 3,248 edges are nominated
 (the earlier records nominated 3,257); 75 nominations are new, 14 of them with a two-model record
 and 61 without (15 only through a combined screen, none only through the union); three shipped
 water-only rows are nominated by no screen; and two rows that left the set on 2026-09-21 are
 nominated again. Where the rule coincides with the earlier one it reproduces the HydroRIVERS share
-and point count on 7,429 of the 7,457 exact-only edges (the others lie where the build's polygons
+and point count on 7,430 of the 7,464 exact-only edges (the others lie where the build's polygons
 differ from the raw file); the shares computed on B's outline differ from A's by a median of 0.002;
 and a reach of 500 or 2,000 m or a reciprocity tolerance of 250 or 1,000 m moves between 5 and 12
 nominations (gained plus lost), a union bar of 0.70 or 0.90 none, and no shipped row loses its
@@ -1159,7 +1166,7 @@ the maintainer the same day; one asks whether the Dhekelia link road is
 sovereign territory or a right of way, the other whether GADM and OSM are
 independent sources for Uganda — where the source's own geometry leaves Kitgum a
 residual 0.89 km of frontier under the ribbon, and the reassignment conserves the
-frontage, 171.02 → 158.99 + 12.92 km). **No data change**; the relabel manifest
+two units' frontage, 171.02 + 0.89 → 150.63 + 21.28 km). **No data change**; the relabel manifest
 now rests on a model-labelled adjudication
 (`build_data/sliver_readjudication/`, `sr1_*`).
 
@@ -1170,17 +1177,37 @@ rows — Arusha is the only multi-owner host):
 
 1. **Detach** the ribbon by morphological opening: `buffer(-D).buffer(+D)`
    removes anything thinner than ~2D and regrows the body; `corridor =
-   polygon − opening` (parts > 0.5 km²). Default D = 2×10⁻³° (~220 m); each
-   host records the smallest D that fully detaches its ribbon
-   (`opening_d_deg`; only ARG017 Salta needs 3×10⁻³ — at the default its
-   wider ribbon under-detaches, leaving 8.2 km of residual bogus contact).
+   polygon − opening` (parts > 0.5 km²). D = 2×10⁻³° (~220 m) for every
+   host; the manifest's `opening_d_deg` column would record a larger D for a
+   ribbon the default does not detach, and none needs one.
 2. **Assign** each detached piece to the reviewed owner whose boundary it
    touches (Arusha resolves automatically: NW piece → Mara, E pieces →
    Kilimanjaro). Safety rails: a thin part touching *no* reviewed owner is
    left on the host (not the targeted artifact); touching *two* owners is a
    hard error; an owner receiving *nothing* is a hard error.
-3. **Move, never delete**: host loses exactly the pieces, owners gain exactly
-   them. Measured global area drift: **+0.0002 km²** (rounding noise).
+3. **Close at a junction**: the opening's outline meets the host's raw
+   outline at a *cut point* inside a raw segment. Where that segment faces a
+   third unit and ends at a junction — a World Bank vertex where the unit
+   across the outline changes — the corridor is closed at the junction, so it
+   carries all of the host's frontage with that neighbour or none of it. Two
+   corridors close this way (maintainer ruling, 2026-09-22): Salta's, whose cut
+   falls 304.2 m short of the Potosí–Tarija point, and Braničevo's, whose cut
+   falls 13.8 m past the Caraș-Severin–Mehedinți point. Salta↔Potosí and
+   Braničevo↔Mehedinți then meet at a single point, and Bor meets
+   Caraș-Severin at that point too, leaving their Danube border to the
+   rescreen-gap overlay (§8).
+4. **Node**: every other cut point is inserted as a vertex into each polygon
+   whose outline passes through it — host, owner and the unit across the
+   border — so the new three-unit junction is a shared vertex. Without it the
+   host would keep the rest of the raw segment as a zero-width spike and the
+   owner's new frontage would coincide with no neighbour's line: the
+   exact-contact measure would credit the host and miss the owner
+   (Lamwo↔Eastern Equatoria would keep 8.36 km that is Kitgum's, and
+   Kitgum↔Eastern Equatoria read 12.92 km for 21.28 km).
+5. **Move, never delete**: host loses exactly the pieces, owners gain exactly
+   them. Measured global area drift: below 0.0001 km² (the standalone run
+   below), and each unit's frontage with every neighbour is conserved
+   (`build_data/sliver_remnant/check_relabel_fix.py`).
 
 Contiguity then runs on the corrected polygons, so every downstream number
 (edges, lengths, water rows, the §2.4 sweep) inherits the fix consistently —
@@ -1192,22 +1219,25 @@ one deterministic operation instead of a pile of post-hoc edge patches.
 |---|---|
 | **4 fabricated cross-country edges removed** | Migori↔Arusha (83.2 km → 0), Taita-Taveta↔Arusha (22.4 → 0), Salta↔Potosí (19.1 → 0), Braničevo↔Mehedinți (10.6 → 0). All four would otherwise ship as eligible pericoupled pairs (three under every standard; Braničevo↔Mehedinți, water-only unbridged, under `lenient`). |
 | **1 orphaned water row deleted** | Braničevo↔Mehedinți's Danube row classified an edge that no longer exists and was removed from the base bridge classification with it. |
-| **Starved true borders recovered** | Migori↔Mara 20 → 103 km (raw), Kitgum↔E. Equatoria 0.9 → 12.9, Taita-Taveta↔Kilimanjaro 148 → 170. |
+| **Starved true borders recovered** | Migori↔Mara 20 → 103 km (raw), Kitgum↔E. Equatoria 0.9 → 21.3, Taita-Taveta↔Kilimanjaro 148 → 170. |
 | **Rightful owners absorbed the strips** | Jujuy↔Potosí 302 → 321, Bor↔Mehedinți 153 → 164. |
-| **7 length-only artifacts corrected** | Gedo, Wajir, Galgaduud, Lamwo, ʿAsīr, Atyrau, Béchar — the true adjacency existed via the correct unit; only `border_length_km` was starved or inflated (e.g. Wajir↔Lower Juba 69.7 → 72.5, Garissa↔Lower Juba 198.7 → 250.4, Mudug↔Ethiopian-Somali 12.9 → 44.5 — all *increases*, since the ceded corridor lengthens the rightful owner's true frontage). |
+| **7 length-only artifacts corrected** | Gedo, Wajir, Galgaduud, Lamwo, ʿAsīr, Atyrau, Béchar — the true adjacency existed via the correct unit; only `border_length_km` was starved or inflated (e.g. Wajir↔Lower Juba 69.7 → 85.1, Garissa↔Lower Juba 198.7 → 255.6, Mudug↔Ethiopian-Somali 12.9 → 46.2 — all *increases*, since the ceded corridor lengthens the rightful owner's true frontage). |
 | **2 pairs upgraded overlay → native** | Kajiado↔Kilimanjaro and Narok↔Mara touch at exact contact once the ribbon moves — no land-gap overlay row is needed for them. |
 
 Net effect on the exact-contact native count: **8,427 → 8,425** (−2 — four
 fabricated cross-country edges removed, two Kenya survey-line pairs made
-native); ~15 border lengths corrected; one orphaned water row deleted
-(record: `build_data/build_record/relabel_edge_delta.txt`).
+native); 30 border lengths change; one orphaned water row deleted
+(records: `build_data/build_record/relabel_edge_delta.txt` for the edge set,
+`build_data/sliver_remnant/relabel_length_delta.txt` for every length).
 
 ### 10.5 Verification and reproduction
 
 `tests/test_relabel_sliver_corridors.py` asserts the manifest's integrity in
 CI and — when the pinned GeoPackage is present — area conservation, all 12
-corridor moves, the four bogus edges at zero contact, and the starved-edge
-recoveries. Standalone re-run:
+corridor moves, the four bogus edges at zero contact, the starved-edge
+recoveries, no zero-width spike in any host or owner, the owner taking the
+host's frontage exactly (Kitgum↔Eastern Equatoria 21.28 km, the two units'
+frontage conserved), and the two junction closings. Standalone re-run:
 
     python scripts/relabel_sliver_corridors.py --adm1-gpkg "<WB Admin 1 .gpkg>"
 

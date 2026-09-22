@@ -41,9 +41,8 @@ class TestManifest:
         assert len(m) == 10, f"expected 10 reviewed host polygons, got {len(m)}"
         # Arusha is the only multi-owner host (NW->Mara, E->Kilimanjaro)
         assert set(m["TZA001"]["owners"]) == {"TZA016", "TZA011"}
-        # ARG017 carries the per-host opening override
-        assert m["ARG017"]["d_deg"] == pytest.approx(3e-3)
-        assert m["SRB002"]["d_deg"] == pytest.approx(2e-3)
+        # every host uses the default opening radius
+        assert all(s["d_deg"] == pytest.approx(mod.OPENING_D_DEG) for s in m.values())
 
 
 class TestGeometry:
@@ -108,3 +107,54 @@ class TestGeometry:
         # Migori<->Mara: starved to ~20 km (18 in-lake), recovered to ~103 km raw
         assert contact(g, "KEN027", "TZA016") < 25
         assert contact(g2, "KEN027", "TZA016") > 90
+
+    def test_no_zero_width_spikes(self, relabeled):
+        # the cut points are shared vertices, so no host or owner ring runs out
+        # along a line and back (the spike the overlay left before 2026-09-22)
+        import math
+        mod, _, g2, _ = relabeled
+        idx = {c: i for i, c in enumerate(g2["ADM1CD_c"])}
+        units = {u for h, s in mod.load_relabel_manifest().items() for u in (h, *s["owners"])}
+        for u in sorted(units):
+            geom = g2.geometry.iloc[idx[u]]
+            for ring in mod._rings(geom):
+                c = list(ring.coords)[:-1]
+                for i in range(len(c)):
+                    a, t, b = c[i - 1], c[i], c[(i + 1) % len(c)]
+                    vx, vy, wx, wy = a[0] - t[0], a[1] - t[1], b[0] - t[0], b[1] - t[1]
+                    la, lb = math.hypot(vx, vy), math.hypot(wx, wy)
+                    spike = (la and lb and (vx * wx + vy * wy) / (la * lb) > 0.999999
+                             and abs(vx * wy - vy * wx) / max(la, lb) < 1e-6)
+                    assert not spike, f"{u}: zero-width spike at {t}"
+
+    def test_owner_takes_the_hosts_frontage_exactly(self, relabeled):
+        # Lamwo's corridor carries ~20 km of the South Sudan border to Kitgum:
+        # the two units' frontage with Eastern Equatoria is conserved and
+        # Kitgum's share is measured in full (12.92 km while it was not noded)
+        from pyproj import Geod
+        geod = Geod(ellps="WGS84")
+        _, g, g2, _ = relabeled
+        idx = {c: i for i, c in enumerate(g2["ADM1CD_c"])}
+
+        def km(gdf, ca, cb):
+            s = gdf.geometry.iloc[idx[ca]].boundary.intersection(gdf.geometry.iloc[idx[cb]].boundary)
+            return 0.0 if s.is_empty else geod.geometry_length(s) / 1000.0
+
+        before = km(g, "UGA065", "SSD002") + km(g, "UGA056", "SSD002")
+        after = km(g2, "UGA065", "SSD002") + km(g2, "UGA056", "SSD002")
+        assert after == pytest.approx(before, abs=1e-6)
+        assert km(g2, "UGA056", "SSD002") == pytest.approx(21.279, abs=0.01)
+
+    def test_corridors_close_at_junctions(self, relabeled):
+        # Salta's corridor would stop 304.2 m short of the Potosi-Tarija point and
+        # Branicevo's run 13.8 m past the Caras-Severin-Mehedinti point; closed at
+        # those points, neither Salta<->Potosi nor Bor<->Caras-Severin has a line
+        _, _, g2, log = relabeled
+        closed = {e["host"]: e["closed_at_junction_m"] for e in log if e["closed_at_junction_m"]}
+        assert set(closed) == {"ARG017", "SRB002"}
+        assert closed["ARG017"] == [pytest.approx(304.2, abs=0.1)]
+        assert closed["SRB002"] == [pytest.approx(13.8, abs=0.1)]
+        idx = {c: i for i, c in enumerate(g2["ADM1CD_c"])}
+        for ca, cb in [("ARG017", "BOL007"), ("SRB001", "ROU013")]:
+            s = g2.geometry.iloc[idx[ca]].boundary.intersection(g2.geometry.iloc[idx[cb]].boundary)
+            assert s.is_empty or s.geom_type in ("Point", "MultiPoint"), f"{ca}-{cb} line contact"

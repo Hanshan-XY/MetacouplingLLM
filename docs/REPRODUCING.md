@@ -112,7 +112,9 @@ S4):
   (hard error on mismatch). A **source-relabel** step first reassigns 10
   reviewed WB sliver-corridor artifacts to their true owner units
   (`scripts/relabel_sliver_corridors.py` + manifest
-  `sliver_corridor_relabel.csv`). Then rook contiguity at **exact contact
+  `sliver_corridor_relabel.csv`; each corridor's cut points become vertices
+  of every outline through them, so an owner takes exactly the frontage its
+  host gives up). Then rook contiguity at **exact contact
   (tolerance 0)** over the land-clipped polygons: two units are adjacent iff
   their boundaries share a segment of non-zero geodesic length (a shared
   corner does not count). No lake filter — units meeting across a lake are
