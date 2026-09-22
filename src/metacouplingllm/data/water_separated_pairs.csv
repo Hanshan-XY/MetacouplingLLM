@@ -749,9 +749,9 @@ adm1,MEX028,MEX030,True,river,Tamesi-Panuco river system,"rescreen-water overlay
 adm1,NGA003,NGA033,False,river,lower Imo River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,PER005,PER012,True,river,Mantaro River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,UGA029,UGA042,False,river,Katonga River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,URY010,URY016,False,river,Santa Lucia River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM004,VNM027,True,river,Cau River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM010,VNM036,True,river,Dong Nai River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
+adm1,COG006,COG008,False,river,"Mpoukou, Louessé and Niari rivers","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM001,DOM020,True,river,Ocoa River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM010,DOM027,True,river,"Higuamo, Maguá and Casuí tributary network","rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,DOM012,DOM013,True,river,Chavón River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
@@ -762,7 +762,6 @@ adm1,GUY003,GUY005,True,river,Demerara River,"rescreen-water overlay (water-scre
 adm1,JAM002,JAM010,True,river,Great River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,JAM007,JAM011,True,river,White River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,JOR007,JOR009,True,river,Wadi al-Mujib tributaries,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,JPN038,JPN040,True,river,Edo River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,LIE001,LIE005,False,river,Samina (Saminabach),"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,LVA019,LVA069,True,river,Seda River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,LVA019,LVA090,True,river,Rūja River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
@@ -801,7 +800,6 @@ adm1,URY006,URY007,True,river,Arroyo Maciel,"rescreen-water overlay (water-scree
 adm1,URY014,URY019,True,river,Río Cebollatí and Laguna Merín,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM004,VNM006,True,river,Sông Cầu,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM025,VNM026,True,river,Sông Mía-Sông Cầu Xe-Sông Thái Bình canal chain,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
-adm1,VNM026,VNM049,True,river,Sông Đá Bạch-Bạch Đằng,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,VNM026,VNM054,True,river,Sông Hóa,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm1,AFG016,AFG028,True,river,Panjshir River,"rescreen-water overlay (water-screen rebuild full-ladder audit, two-pass adjudication + verification)",cross-vendor,A
 adm0,AFG,UZB,True,,,adm1-rollup,,

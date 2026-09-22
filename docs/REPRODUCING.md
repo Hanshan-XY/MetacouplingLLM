@@ -2,7 +2,7 @@
 
 This manual walks through rebuilding and verifying the two bundled adjacency
 datasets — the ADM1 edge list (8,458 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (805
+ADM0 country matrix (326 pairs) with their water-only classification (803
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -27,9 +27,10 @@ important to know which one you are testing:
    and the discovery record lives in PROVENANCE.md / METHODS. Reproducing
    the database does **not** require re-running any audit. Section 5.
 3. **Screen re-derivability** (optional, heavier). The deterministic screens
-   that *nominated* the audit candidates (Natural Earth ladders,
-   HydroRIVERS/HydroLAKES sweeps, the non-touching corridor census) can be
-   re-run from public data to confirm the candidate lists. Section 6.
+   that *nominate* the audit candidates (the edge screens on one border arc —
+   Natural Earth ladders, HydroRIVERS, HydroLAKES, the combined river and lake
+   screens and the cross-type union — and the non-touching corridor census) can
+   be re-run from public data to confirm the candidate lists. Section 6.
 
 ## 1. Prerequisites
 
@@ -88,9 +89,9 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,458 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,061 / 7,653 |
-| water-only ADM1 | 805 = 408 with a fixed crossing / 397 without |
-| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 270 / B 238 / C 297 |
+| ADM1 moderate / stringent | 8,061 / 7,655 |
+| water-only ADM1 | 803 = 406 with a fixed crossing / 397 without |
+| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 268 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
 
@@ -130,7 +131,7 @@ S4):
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the three manifests in registry order (idempotent, one pass; see §5).
   → +4 land-gap, +24 rescreen-gap edges =
-  **8,458**; water rows 298 → **805**; ADM0 roll-up recomputed once (a
+  **8,458**; water rows 298 → **803**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 
@@ -181,7 +182,7 @@ re-running the engine is the supported way to change the correction layer:
 | `disputed_overlay_pairs.csv` | S2 input: 13 ADM1 + 3 ADM0 de-facto pairs |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
 | `rescreen_gap_overlay_pairs.csv` | +24 edges (2026-07 water-screen rebuild + the rg1/lg1 folds + the 2 nt2 corridor-census recoveries of 2026-09-10; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 483 edges (incl. the 15 domestic large-river rows added 2026-09-01, the 51 domestic creek-band rows (54 added 2026-09-14, three removed 2026-09-21), the one pilot re-adjudication row added 2026-09-18 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
+| `rescreen_water_overlay_pairs.csv` | water flags on 481 edges (incl. the 14 domestic large-river rows (15 added 2026-09-01, one removed 2026-09-22), the 50 domestic creek-band rows (54 added 2026-09-14, three removed 2026-09-21, two removed and one returned 2026-09-22), the one pilot re-adjudication row added 2026-09-18 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
 
 Engine semantics worth knowing:
 
@@ -211,18 +212,29 @@ screen found it, which audit design judged it, and who verified it.
 The audits' *candidate lists* came from deterministic screens over public
 datasets; each can be re-run to confirm no candidate was hand-picked:
 
-- **Natural Earth screens** (`ne_10m_lakes`, `ne_10m_rivers_lake_centerlines`,
-  1:10M): river candidates = ≥ 0.50 of a shared border within geodesic
-  2.5 km of a named NE river centerline (ladder rungs 2.5/5/10/15/20 km);
-  lake candidates = ≥ 0.40 within 125 m of an NE lake polygon (rungs to
-  1,500 m). Sampling every ~500 m geodesic along the border.
-- **HydroRIVERS v10 / HydroLAKES sweeps** (hydrosheds.org): every border
-  sampled by the rule of the Natural Earth screens (points spaced evenly along
-  each part of the arc, their number set by its geodesic length; the HydroRIVERS
-  sweeps and the cross-border HydroLAKES share since 2026-09-21), against a geodesic **500 m** buffer (the datasets' positional
-  accuracy); river nomination ≥ 0.5 coverage at discharge ≥ 10 m³/s plus the
-  full creek band (≥ 0.5 at any discharge; its 715 domestic creek-only edges adjudicated 2026-09-14); lake bar 0.40,
-  the same as the Natural Earth lake bar.
+- **The border arc** (`build_data/water_screen_rebuild/border_arc.py`; specification
+  `build_data/arc_and_combined_screens/SPEC_ba1_border_arc_and_screens.md`): every
+  edge screen measures the same set of points. For an edge A↔B, on the build's
+  own polygons (`load_adm1_build_geometry` in `scripts/build_pericoupling_db.py`),
+  the arc is A's outline where it coincides with B's (merged into continuous
+  lines), where it runs inside B (overlapping polygons), within 5×10⁻⁴° of B for
+  the four land-gap pairs only, and where it faces B across a gap of at most
+  1,000 m (not on or across a third unit's outline, reciprocal, the chord's
+  midpoint inside neither unit). Each continuous piece of geodesic length L gets
+  n + 1 points at equal geodesic intervals, n = max(2, ⌊L/500 m⌋ + 1).
+  `build_arc_cache.py` stores, per point, the geodesic distance to each layer
+  (`arc_cache.jsonl`); `run_screens_ba1.py` computes the exact shares and
+  nominations (`ba1_screens.csv`, report `ba1_report.txt`).
+- **Edge screens on the arc:** Natural Earth river ladder
+  (`ne_10m_rivers_lake_centerlines`, 1:10M, named rivers): ≥ 0.50 within 2.5 km,
+  rungs 5/10/15/20 km; Natural Earth lake ladder (`ne_10m_lakes`): ≥ 0.40 within
+  125 m, rungs to 1,500 m; HydroRIVERS v10 (hydrosheds.org): ≥ 0.50 within 500 m
+  of any reach (discharge tiers 0 / 10 / 100 m³/s recorded); HydroLAKES v10:
+  ≥ 0.40 within 500 m; combined river (a point within 2.5 km of a Natural Earth
+  river or 500 m of a HydroRIVERS reach): ≥ 0.50; combined lake (125 m of a
+  Natural Earth lake or 500 m of a HydroLAKES polygon): ≥ 0.40; cross-type union
+  (any of the four layers at its operating width): ≥ 0.80. An edge is nominated
+  when any screen reaches its bar.
 - **Non-touching recovery census**: for unit pairs whose polygons do not
   touch, nominate when ≥ 0.80 of the corridor between the facing boundaries
   lies inside the union water mask (NE lakes ∪ 500 m HydroRIVERS buffer),
@@ -239,7 +251,8 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
 Thresholds are anchored, not tuned: 2.5 km ≈ ½ × the NMAS horizontal
 accuracy at 1:10M (0.5 mm map distance ≈ 5 km ground); 500 m = the
 HydroSHEDS-derived datasets' stated positional accuracy; the rung ladders
-were extended until the capture pattern was fully characterized. Screens
+were extended until the capture pattern was fully characterized; the 1,000 m
+facing reach is the corridor census's short-gap presence rule and 0.80 its bar. Screens
 only ever **nominate** — no threshold ships a row by itself.
 
 ## 7. Loader-level reproduction (how users consume the data)

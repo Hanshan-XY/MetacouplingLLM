@@ -204,3 +204,26 @@ shared arc module. Screen parameters live in one module that the documentation t
 - 2026-09-21 draft.
 - 2026-09-21 approved: section 5 geodesic placement kept; section 10 changed from restoration to re-adjudication of
   rows nominated again (maintainer decision). Frozen.
+- 2026-09-22 blind measurement on the frozen rule (build_data/water_screen_rebuild/ba1_report_blind_2026-09-22.txt): 3,248 nominated; 75 new,
+  61 without a record; 3 shipped rows nominated by no screen; 2 rows nominated again. Map check of the 96-row sample by the
+  maintainer: "All fine"; no correction to section 4. Implementation: border_arc.py, build_arc_cache.py, run_screens_ba1.py.
+- 2026-09-22 implementation defect, fixed (section 9.1): `border_arc.build_arc` recorded a facing candidate part's length as
+  one interval per sample point, (n + 1) L / n instead of L, so the per-class kilometres of the facing and excluded classes
+  over-counted one interval per part (A's outline: facing 6,210.6 -> 5,902.6 km, excluded 44,769.9 -> 36,269.1 km;
+  `arc_km_check.py` aligned all 8,384 edges with candidate points). Points, classes, shares and nominations were unaffected;
+  the research and judgment prompts had carried the over-counted facing lengths. Each point now weighs the half-intervals on
+  either side of it; the cache was rebuilt with the fixed code and every other field reproduces (`compare_cache_kmfix.py`).
+  The blind-measurement outputs are kept as `*_blind_2026-09-22.*`. The screen record now also carries every rung of both
+  ladders and `nominated_by_ge10` (the screens that nominate when reaches below 10 m3/s are ignored), for the documents.
+- 2026-09-22 campaign: the 63 pairs (61 without a record + COG006<->COG008 and VNM025<->VNM049, re-adjudicated):
+  GPT-5.6 Sol research 63/63, Sonnet-5 judgment 63 agents; gate A 0 / B 2 / C 16 / D 45; maintainer rulings
+  (`ba1_maintainer_rulings_2026-09-22.txt`): COG006<->COG008 water-only with no fixed crossing, KEN007<->KEN046 mixed,
+  bucket C no disagreement. Section 10 applied (`execute_ba1.py`): JPN038<->JPN040, URY010<->URY016 and VNM026<->VNM049
+  leave the water-only set; COG006<->COG008 returns. Record `ba1_rulings.json`.
+- 2026-09-22 completeness: the completeness check had counted every row of the hybrid auto-reject ledger as closed, because
+  all 288 rows are also listed in the audit queue. A ledger closure is a rule, not an adjudication, and holds only while the
+  edge still satisfies the rule on the current screen record; on this record ten nominated ledger rows no longer did (one
+  layer at 0.20-0.28 each) and none had a two-model record. The check now re-tests the rule (and counts a later research
+  input only once its campaign's rulings are frozen); the ten went through the same two-pass as a second tranche (`ba1r_*`:
+  gate A 0 / B 1 / C 3 / D 6; maintainer ruling "mixed" on LVA070<->LVA113): all ten rejected. Completeness 0 open;
+  attributability 803/803 (779 on the border arc, 24 by the corridor census).
