@@ -1021,7 +1021,7 @@ Both loaders accept two orthogonal toggles (defaults shown):
   `lenient` keeps all.
 
 ```python
-# Romania <-> Moldova share only the Prut (bridges exist):
+# Romania <-> Moldova share only rivers, the Prut and a short Danube reach (bridges exist):
 is_pericoupled("Romania", "Moldova")                                # True  (moderate default)
 is_pericoupled("Romania", "Moldova", coupling_standard="stringent") # False (water-only)
 # DR Congo <-> Central African Republic share only rivers, no bridge:
