@@ -16,9 +16,11 @@ important to know which one you are testing:
 
 1. **Build reproducibility** (fully automatic). The shipped CSVs are a pure
    function of (a) four pinned World Bank GeoPackages, (b) one reviewed
-   bridge-classification CSV, and (c) five reviewed manifest CSVs shipped in
-   the repo (two build-stage inputs plus the three forming the engine's
-   correction layer). Re-running the build replays these inputs deterministically —
+   bridge-classification CSV, and (c) four reviewed manifest CSVs shipped in
+   the repo (the source-relabel manifest, a build-stage input, plus the three
+   forming the engine's correction layer; the de-facto overlay manifest is
+   written by the build from the NDLSA layer and the tract attributions
+   authored in `build_pericoupling_db.py`). Re-running the build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
 2. **Audit traceability** (read, don't re-run). The three overlay manifests were
    *discovered* by deterministic Python screens and *adjudicated* by frozen
@@ -127,9 +129,10 @@ S4):
   sole link is a tract (+3 pairs at ADM0). Geometry-validated: an authored
   tract→unit attribution that does not touch its tract fails loudly.
   → **8,430**; this is the base file the geometry build writes.
-- **S3 — water classification (descriptive).** Natural Earth lakes/rivers +
-  the reviewed bridge CSV label borders `water_type`/`has_bridge` (298 base
-  water-only rows). This stage never adds or drops an edge.
+- **S3 — water classification (descriptive).** The reviewed bridge CSV
+  labels the 298 base water-only rows `water_type`/`has_bridge` (first
+  flagged by the Natural Earth screens; the build reads no Natural Earth
+  layer). This stage never adds or drops an edge.
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the three manifests in registry order (idempotent, one pass; see §5).
   → +4 land-gap, +24 rescreen-gap edges =
@@ -163,7 +166,7 @@ were re-sorted once, verified byte-identical against a clean `--full` rebuild.)
 python -m pytest tests/ -q
 ```
 
-The suite (1,381 tests at the time of writing) includes: the expected-count assertions, the engine
+The suite (1,384 tests at the time of writing) includes: the expected-count assertions, the engine
 byte-stability guard, registry-covers-all-manifests, loader behavior for
 `de_facto_borders` × `coupling_standard`, and **doc-drift guards** that parse
 `docs/METHODS_adjacency.md`, `INTRODUCTION.md`, and `MANUAL.md` and fail if
@@ -171,17 +174,18 @@ any headline count in the prose disagrees with the live data.
 
 ## 5. The reviewed correction layer — what it is and how to change it
 
-Eleven reviewed manifest CSVs in `src/metacouplingllm/data/` govern the
-build: the first two below are build-stage inputs (S1 relabel, S2 disputed)
-and the other **nine** form the engine's correction layer (443 pair-rows:
-29 edge-restoring + 414 water-flag-only). The engine
+Five manifest CSVs in `src/metacouplingllm/data/` govern the build: the
+source-relabel manifest is a build-stage input (S1), the de-facto overlay
+manifest is written by S2 from the NDLSA layer and the tract attributions
+authored in the build script, and the other **three** form the engine's
+correction layer (509 pair-rows: 28 edge-restoring + 481 water-flag-only). The engine
 (`scripts/apply_overlays.py`) holds only behavior; editing a manifest and
 re-running the engine is the supported way to change the correction layer:
 
 | manifest | effect |
 |---|---|
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
-| `disputed_overlay_pairs.csv` | S2 input: 13 ADM1 + 3 ADM0 de-facto pairs |
+| `disputed_overlay_pairs.csv` | S2 output: 13 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
 | `rescreen_gap_overlay_pairs.csv` | +24 edges (2026-07 water-screen rebuild + the rg1/lg1 folds + the 2 nt2 corridor-census recoveries of 2026-09-10; per-row `water_type`) |
 | `rescreen_water_overlay_pairs.csv` | water flags on 481 edges (incl. the 14 domestic large-river rows (15 added 2026-09-01, one removed 2026-09-22), the 50 domestic creek-band rows (54 added 2026-09-14, three removed 2026-09-21, two removed and one returned 2026-09-22), the one pilot re-adjudication row added 2026-09-18 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
@@ -237,10 +241,16 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   Natural Earth lake or 500 m of a HydroLAKES polygon): ≥ 0.40; cross-type union
   (any of the four layers at its operating width): ≥ 0.80. An edge is nominated
   when any screen reaches its bar.
-- **Non-touching recovery census**: for unit pairs whose polygons do not
-  touch, nominate when ≥ 0.80 of the corridor between the facing boundaries
-  lies inside the union water mask (NE lakes ∪ 500 m HydroRIVERS buffer),
-  with a short-corridor proximity amendment for sub-kilometre gaps.
+- **Non-touching corridor census**
+  (`build_data/water_screen_rebuild/corridor_census_v2/recovery_census_v2.py`):
+  for unit pairs within 0.9° whose polygons do not touch, transects every
+  250 m across the facing frontage, sampled every 100 m; a lake share
+  (samples within 125 m of a Natural Earth lake or a HydroLAKES polygon of
+  at least 0.25 km², the larger of the two) plus a river share (samples
+  within 500 m of a HydroRIVERS reach, for gaps up to 5 km) nominates at
+  ≥ 0.80; a wide variant repeats the test with lakes at 1,500 m and reaches
+  of at least 1,000 m³/s at 2,500 m; and a gap of at most 1,000 m nominates
+  whenever a sample lies within 500 m of a reach.
 - **Bridge screen** (OpenStreetMap Overpass): any way tagged as a bridge on a
   road, path or railway (or `man_made=bridge`), not under construction or
   proposed, intersecting both units' polygons buffered ~130 m — layer 1 of the

@@ -118,7 +118,9 @@ _NDLSA_TRACT_ADMIN: dict[str, str | None] = {
     # no new pair — only lengthens an existing border. Left assigned to KEN; the
     # geometric derivation correctly emits no overlay pair for it.
     "Ilemi Triangle": "KEN",
-    # No single de-facto administrator → not folded:
+    # Not folded: no single de-facto administrator (the first three), or an island
+    # territory with no land border, where folding restores no connectivity (the
+    # last three):
     "Abyei": None, "No Man's Land": None, "UN Buffer Zone": None,
     "British Indian Ocean Territory": None,
     "South Georgia and South Sandwich Islands": None, "Falkland Islands": None,
@@ -174,8 +176,9 @@ _ADM1_SAMPLE_DEG = 0.01
 # The snap-bridged class is EMPTY under tolerance-0 topology.  The Malta
 # artifact (MLT002/MLT019, ~31 m apart) only appears when a non-zero snap
 # bridges the gap; at exact contact it never becomes an edge, so no removal is
-# needed.  The five genuine sub-tolerance borders the old snap recovered
-# (Egypt-Libya etc.) now ship as reviewed land-gap manifest rows instead.
+# needed.  The genuine sub-tolerance borders the old snap recovered
+# (Egypt-Libya etc.) now ship as the four reviewed land-gap manifest rows
+# instead (a fifth recovery was reversed 2026-07-18 as a point contact).
 #
 # A SECOND, distinct class can survive at tolerance 0: reviewed exact-contact
 # false positives, where a short WB contact is a construction artifact of the

@@ -282,7 +282,7 @@ Two geographic adjacency databases validate LLM coupling classifications:
 
 | Database | Scope | Coverage |
 |---|---|---|
-| Country-level | Sovereign states | Full global (ISO alpha-3) |
+| Country-level | Countries and territories | Full global (ISO alpha-3) |
 | ADM1 (subnational) | First-level administrative regions | 3,374 regions, 8,458 shared-border pairs (8,061 under the default `moderate` coupling standard), 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
@@ -569,4 +569,4 @@ pip install "metacouplingllm[dev]"
 pytest tests/
 ```
 
-1381 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.
+1384 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard (PR #46) that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.
