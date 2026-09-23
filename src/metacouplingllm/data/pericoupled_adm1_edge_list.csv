@@ -378,7 +378,7 @@ ARG009,Formosa,Argentina,ARG,LCR,PRY004,Boqueron,Paraguay,PRY,LCR,True,314.2222,
 ARG009,Formosa,Argentina,ARG,LCR,PRY008,Central,Paraguay,PRY,LCR,True,100.9904,False,False
 ARG009,Formosa,Argentina,ARG,LCR,PRY014,Neembucu,Paraguay,PRY,LCR,True,203.3098,False,False
 ARG009,Formosa,Argentina,ARG,LCR,PRY016,Presidente Hayes,Paraguay,PRY,LCR,True,456.9864,False,False
-ARG010,Jujuy,Argentina,ARG,LCR,ARG017,Salta,Argentina,ARG,LCR,False,966.2125,False,False
+ARG010,Jujuy,Argentina,ARG,LCR,ARG017,Salta,Argentina,ARG,LCR,False,967.1149,False,False
 ARG010,Jujuy,Argentina,ARG,LCR,CHL002,Antofagasta,Chile,CHL,LCR,True,109.3227,False,False
 ARG011,La Pampa,Argentina,ARG,LCR,ARG013,Mendoza,Argentina,ARG,LCR,False,330.458,False,False
 ARG011,La Pampa,Argentina,ARG,LCR,ARG016,Rio Negro,Argentina,ARG,LCR,False,735.2064,False,False
@@ -1099,7 +1099,7 @@ BOL005,Oruro,Bolivia,BOL,LCR,CHL014,Tarapaca,Chile,CHL,LCR,True,84.632,False,Fal
 BOL006,Pando,Bolivia,BOL,LCR,BRA001,Acre,Brazil,BRA,LCR,True,603.5156,False,False
 BOL006,Pando,Bolivia,BOL,LCR,BRA026,Rondonia,Brazil,BRA,LCR,True,366.2023,False,False
 BOL006,Pando,Bolivia,BOL,LCR,PER017,Madre de Dios,Peru,PER,LCR,True,200.9243,False,False
-BOL007,Potosi,Bolivia,BOL,LCR,ARG010,Jujuy,Argentina,ARG,LCR,True,320.9505,False,False
+BOL007,Potosi,Bolivia,BOL,LCR,ARG010,Jujuy,Argentina,ARG,LCR,True,321.158,False,False
 BOL007,Potosi,Bolivia,BOL,LCR,BOL005,Oruro,Bolivia,BOL,LCR,False,833.082,False,False
 BOL007,Potosi,Bolivia,BOL,LCR,BOL009,Tarija,Bolivia,BOL,LCR,False,105.7536,False,False
 BOL007,Potosi,Bolivia,BOL,LCR,CHL002,Antofagasta,Chile,CHL,LCR,True,349.4801,False,False
@@ -2183,8 +2183,8 @@ DZA006,Batna,Algeria,DZA,MENA,DZA034,Oum El Bouaghi,Algeria,DZA,MENA,False,85.68
 DZA006,Batna,Algeria,DZA,MENA,DZA037,Setif,Algeria,DZA,MENA,False,118.9807,False,False
 DZA007,Bechar,Algeria,DZA,MENA,DZA017,El Bayadh,Algeria,DZA,MENA,False,254.077,False,False
 DZA007,Bechar,Algeria,DZA,MENA,DZA031,Naama,Algeria,DZA,MENA,False,135.4021,False,False
-DZA007,Bechar,Algeria,DZA,MENA,DZA044,Tindouf,Algeria,DZA,MENA,False,399.2471,False,False
-DZA007,Bechar,Algeria,DZA,MENA,MAR003,Drâa-Tafilalet,Morocco,MAR,MENA,True,579.7877,False,False
+DZA007,Bechar,Algeria,DZA,MENA,DZA044,Tindouf,Algeria,DZA,MENA,False,398.5121,False,False
+DZA007,Bechar,Algeria,DZA,MENA,MAR003,Drâa-Tafilalet,Morocco,MAR,MENA,True,579.0527,False,False
 DZA008,Bejaia,Algeria,DZA,MENA,DZA011,Bordj Bou Arrer,Algeria,DZA,MENA,False,62.0118,False,False
 DZA008,Bejaia,Algeria,DZA,MENA,DZA012,Bouira,Algeria,DZA,MENA,False,29.7042,False,False
 DZA008,Bejaia,Algeria,DZA,MENA,DZA023,Jijel,Algeria,DZA,MENA,False,11.9791,False,False
@@ -2292,7 +2292,7 @@ DZA043,Tiaret,Algeria,DZA,MENA,DZA017,El Bayadh,Algeria,DZA,MENA,False,82.3109,F
 DZA043,Tiaret,Algeria,DZA,MENA,DZA025,Laghouat,Algeria,DZA,MENA,False,141.8767,False,False
 DZA043,Tiaret,Algeria,DZA,MENA,DZA036,Saida,Algeria,DZA,MENA,False,131.7041,False,False
 DZA043,Tiaret,Algeria,DZA,MENA,DZA046,Tissemsilt,Algeria,DZA,MENA,False,140.7731,False,False
-DZA044,Tindouf,Algeria,DZA,MENA,MAR003,Drâa-Tafilalet,Morocco,MAR,MENA,True,126.4067,False,False
+DZA044,Tindouf,Algeria,DZA,MENA,MAR003,Drâa-Tafilalet,Morocco,MAR,MENA,True,127.1417,False,False
 DZA044,Tindouf,Algeria,DZA,MENA,MAR005,Guelmim-Oued Noun,Morocco,MAR,MENA,True,68.8926,False,False
 DZA044,Tindouf,Algeria,DZA,MENA,MAR010,Souss-Massa,Morocco,MAR,MENA,True,350.8047,False,False
 DZA044,Tindouf,Algeria,DZA,MENA,MRT012,Tiris-Zemmou,Mauritania,MRT,AFR,True,358.2972,False,False
@@ -2580,10 +2580,10 @@ ETH011,Somali,Ethiopia,ETH,AFR,KEN025,Marsabit,Kenya,KEN,AFR,True,30.5026,False,
 ETH011,Somali,Ethiopia,ETH,AFR,KEN046,Wajir,Kenya,KEN,AFR,True,81.8109,False,False
 ETH011,Somali,Ethiopia,ETH,AFR,SOM001,Awdal,Somalia,SOM,AFR,True,217.0251,False,False
 ETH011,Somali,Ethiopia,ETH,AFR,SOM002,Bakool,Somalia,SOM,AFR,True,229.9976,False,False
-ETH011,Somali,Ethiopia,ETH,AFR,SOM006,Galgaduud,Somalia,SOM,AFR,True,362.9303,False,False
+ETH011,Somali,Ethiopia,ETH,AFR,SOM006,Galgaduud,Somalia,SOM,AFR,True,363.0237,False,False
 ETH011,Somali,Ethiopia,ETH,AFR,SOM007,Gedo,Somalia,SOM,AFR,True,117.9111,False,False
 ETH011,Somali,Ethiopia,ETH,AFR,SOM008,Hiraan,Somalia,SOM,AFR,True,42.7079,False,False
-ETH011,Somali,Ethiopia,ETH,AFR,SOM011,Mudug,Somalia,SOM,AFR,True,44.5337,False,False
+ETH011,Somali,Ethiopia,ETH,AFR,SOM011,Mudug,Somalia,SOM,AFR,True,46.2259,False,False
 ETH011,Somali,Ethiopia,ETH,AFR,SOM012,Nugaal,Somalia,SOM,AFR,True,68.6532,False,False
 ETH011,Somali,Ethiopia,ETH,AFR,SOM016,Sool,Somalia,SOM,AFR,True,108.9548,False,False
 ETH011,Somali,Ethiopia,ETH,AFR,SOM017,Togdheer,Somalia,SOM,AFR,True,269.7109,False,False
@@ -3854,8 +3854,8 @@ KAZ003,Almatinskaya,Kazakhstan,KAZ,ECA,KGZ002,Chuy,Kyrgyz Republic,KGZ,ECA,True,
 KAZ003,Almatinskaya,Kazakhstan,KAZ,ECA,KGZ007,Ysyk-Kol,Kyrgyz Republic,KGZ,ECA,True,353.7829,False,False
 KAZ005,Atyrauskaya,Kazakhstan,KAZ,ECA,KAZ002,Aktyubinskaya,Kazakhstan,KAZ,ECA,False,537.9865,False,False
 KAZ005,Atyrauskaya,Kazakhstan,KAZ,ECA,KAZ010,Mangistauskaya,Kazakhstan,KAZ,ECA,False,345.2765,False,False
-KAZ005,Atyrauskaya,Kazakhstan,KAZ,ECA,KAZ015,Zapadno-kazachstanskaya,Kazakhstan,KAZ,ECA,False,628.2943,False,False
-KAZ005,Atyrauskaya,Kazakhstan,KAZ,ECA,RUS007,Astrakhanskaya Oblast,Russian Federation,RUS,ECA,True,454.0744,False,False
+KAZ005,Atyrauskaya,Kazakhstan,KAZ,ECA,KAZ015,Zapadno-kazachstanskaya,Kazakhstan,KAZ,ECA,False,627.5785,False,False
+KAZ005,Atyrauskaya,Kazakhstan,KAZ,ECA,RUS007,Astrakhanskaya Oblast,Russian Federation,RUS,ECA,True,453.3586,False,False
 KAZ006,Jambylslkaya,Kazakhstan,KAZ,ECA,KAZ014,Yujno-kazachstanskaya,Kazakhstan,KAZ,ECA,False,535.3815,False,False
 KAZ006,Jambylslkaya,Kazakhstan,KAZ,ECA,KGZ002,Chuy,Kyrgyz Republic,KGZ,ECA,True,349.7192,False,False
 KAZ006,Jambylslkaya,Kazakhstan,KAZ,ECA,KGZ006,Talas,Kyrgyz Republic,KGZ,ECA,True,334.1178,False,False
@@ -3890,7 +3890,7 @@ KAZ014,Yujno-kazachstanskaya,Kazakhstan,KAZ,ECA,UZB004,Jizzakh,Uzbekistan,UZB,EC
 KAZ014,Yujno-kazachstanskaya,Kazakhstan,KAZ,ECA,UZB009,Navoiy,Uzbekistan,UZB,ECA,True,191.1451,False,False
 KAZ014,Yujno-kazachstanskaya,Kazakhstan,KAZ,ECA,UZB011,Sirdarya,Uzbekistan,UZB,ECA,True,93.5564,False,False
 KAZ014,Yujno-kazachstanskaya,Kazakhstan,KAZ,ECA,UZB013,Tashkent,Uzbekistan,UZB,ECA,True,405.1749,False,False
-KAZ015,Zapadno-kazachstanskaya,Kazakhstan,KAZ,ECA,RUS007,Astrakhanskaya Oblast,Russian Federation,RUS,ECA,True,87.4546,False,False
+KAZ015,Zapadno-kazachstanskaya,Kazakhstan,KAZ,ECA,RUS007,Astrakhanskaya Oblast,Russian Federation,RUS,ECA,True,88.1704,False,False
 KAZ015,Zapadno-kazachstanskaya,Kazakhstan,KAZ,ECA,RUS056,Orenburgskaya Oblast,Russian Federation,RUS,ECA,True,665.5318,False,False
 KAZ015,Zapadno-kazachstanskaya,Kazakhstan,KAZ,ECA,RUS066,Samarskaya Oblast,Russian Federation,RUS,ECA,True,1.2132,True,False
 KAZ015,Zapadno-kazachstanskaya,Kazakhstan,KAZ,ECA,RUS068,Saratovskaya Oblast,Russian Federation,RUS,ECA,True,576.5103,False,False
@@ -3929,8 +3929,8 @@ KEN006,Embu,Kenya,KEN,AFR,KEN041,Tharaka-Nithi,Kenya,KEN,AFR,False,101.0525,Fals
 KEN007,Garissa,Kenya,KEN,AFR,KEN009,Isiolo,Kenya,KEN,AFR,False,185.9592,False,False
 KEN007,Garissa,Kenya,KEN,AFR,KEN021,Lamu,Kenya,KEN,AFR,False,158.0538,False,False
 KEN007,Garissa,Kenya,KEN,AFR,KEN040,Tana River,Kenya,KEN,AFR,False,332.6879,False,False
-KEN007,Garissa,Kenya,KEN,AFR,KEN046,Wajir,Kenya,KEN,AFR,False,265.0971,False,False
-KEN007,Garissa,Kenya,KEN,AFR,SOM010,Juba Hoose,Somalia,SOM,AFR,True,250.3714,False,False
+KEN007,Garissa,Kenya,KEN,AFR,KEN046,Wajir,Kenya,KEN,AFR,False,229.6982,False,False
+KEN007,Garissa,Kenya,KEN,AFR,SOM010,Juba Hoose,Somalia,SOM,AFR,True,255.5882,False,False
 KEN008,Homa Bay,Kenya,KEN,AFR,KEN012,Kericho,Kenya,KEN,AFR,False,2.7815,True,False
 KEN008,Homa Bay,Kenya,KEN,AFR,KEN016,Kisii,Kenya,KEN,AFR,False,35.1054,False,False
 KEN008,Homa Bay,Kenya,KEN,AFR,KEN017,Kisumu,Kenya,KEN,AFR,False,77.8184,False,False
@@ -3949,8 +3949,8 @@ KEN010,Kajiado,Kenya,KEN,AFR,KEN023,Makueni,Kenya,KEN,AFR,False,190.3018,False,F
 KEN010,Kajiado,Kenya,KEN,AFR,KEN030,Nairobi,Kenya,KEN,AFR,False,34.5952,False,False
 KEN010,Kajiado,Kenya,KEN,AFR,KEN033,Narok,Kenya,KEN,AFR,False,161.5586,False,False
 KEN010,Kajiado,Kenya,KEN,AFR,KEN039,Taita Taveta,Kenya,KEN,AFR,False,68.206,False,False
-KEN010,Kajiado,Kenya,KEN,AFR,TZA001,Arusha,Tanzania,TZA,AFR,True,182.1263,False,False
-KEN010,Kajiado,Kenya,KEN,AFR,TZA011,Kilimanjaro,Tanzania,TZA,AFR,True,44.6734,False,False
+KEN010,Kajiado,Kenya,KEN,AFR,TZA001,Arusha,Tanzania,TZA,AFR,True,178.856,False,False
+KEN010,Kajiado,Kenya,KEN,AFR,TZA011,Kilimanjaro,Tanzania,TZA,AFR,True,47.9437,False,False
 KEN011,Kakamega,Kenya,KEN,AFR,KEN032,Nandi,Kenya,KEN,AFR,False,50.8435,False,False
 KEN011,Kakamega,Kenya,KEN,AFR,KEN038,Siaya,Kenya,KEN,AFR,False,74.8751,False,False
 KEN011,Kakamega,Kenya,KEN,AFR,KEN044,Uasin Gishu,Kenya,KEN,AFR,False,77.136,False,False
@@ -4011,8 +4011,8 @@ KEN031,Nakuru,Kenya,KEN,AFR,KEN033,Narok,Kenya,KEN,AFR,False,200.2542,False,Fals
 KEN031,Nakuru,Kenya,KEN,AFR,KEN035,Nyandarua,Kenya,KEN,AFR,False,153.4936,False,False
 KEN032,Nandi,Kenya,KEN,AFR,KEN044,Uasin Gishu,Kenya,KEN,AFR,False,127.291,False,False
 KEN032,Nandi,Kenya,KEN,AFR,KEN045,Vihiga,Kenya,KEN,AFR,False,41.703,False,False
-KEN033,Narok,Kenya,KEN,AFR,TZA001,Arusha,Tanzania,TZA,AFR,True,99.3055,False,False
-KEN033,Narok,Kenya,KEN,AFR,TZA016,Mara,Tanzania,TZA,AFR,True,62.5831,False,False
+KEN033,Narok,Kenya,KEN,AFR,TZA001,Arusha,Tanzania,TZA,AFR,True,94.4152,False,False
+KEN033,Narok,Kenya,KEN,AFR,TZA016,Mara,Tanzania,TZA,AFR,True,67.4735,False,False
 KEN035,Nyandarua,Kenya,KEN,AFR,KEN013,Kiambu,Kenya,KEN,AFR,False,42.0546,False,False
 KEN035,Nyandarua,Kenya,KEN,AFR,KEN029,Murang'a,Kenya,KEN,AFR,False,23.3541,False,False
 KEN035,Nyandarua,Kenya,KEN,AFR,KEN036,Nyeri,Kenya,KEN,AFR,False,64.9682,False,False
@@ -4033,8 +4033,8 @@ KEN043,Turkana,Kenya,KEN,AFR,KEN047,West Pokot,Kenya,KEN,AFR,False,195.7932,Fals
 KEN043,Turkana,Kenya,KEN,AFR,SSD002,Eastern Equatoria,South Sudan,SSD,AFR,True,80.0256,False,False
 KEN043,Turkana,Kenya,KEN,AFR,UGA036,Kaabong,Uganda,UGA,AFR,True,220.3949,False,False
 KEN043,Turkana,Kenya,KEN,AFR,UGA080,Moroto,Uganda,UGA,AFR,True,104.9759,False,False
-KEN046,Wajir,Kenya,KEN,AFR,SOM007,Gedo,Somalia,SOM,AFR,True,112.8344,False,False
-KEN046,Wajir,Kenya,KEN,AFR,SOM010,Juba Hoose,Somalia,SOM,AFR,True,72.4612,False,False
+KEN046,Wajir,Kenya,KEN,AFR,SOM007,Gedo,Somalia,SOM,AFR,True,104.3612,False,False
+KEN046,Wajir,Kenya,KEN,AFR,SOM010,Juba Hoose,Somalia,SOM,AFR,True,85.0855,False,False
 KEN047,West Pokot,Kenya,KEN,AFR,UGA006,Amudat,Uganda,UGA,AFR,True,121.6947,False,False
 KEN047,West Pokot,Kenya,KEN,AFR,UGA018,Bukwo,Uganda,UGA,AFR,True,12.3565,False,False
 KEN047,West Pokot,Kenya,KEN,AFR,UGA080,Moroto,Uganda,UGA,AFR,True,22.0811,False,False
@@ -6210,7 +6210,7 @@ ROU012,Călăraşi,Romania,ROU,ECA,ROU024,Ialomiţa,Romania,ROU,ECA,False,235.08
 ROU012,Călăraşi,Romania,ROU,ECA,ROU026,Ilfov,Romania,ROU,ECA,False,71.1181,False,False
 ROU013,Caraş-Severin,Romania,ROU,ECA,ROU028,Mehedinţi,Romania,ROU,ECA,False,124.8438,False,False
 ROU013,Caraş-Severin,Romania,ROU,ECA,ROU038,Timiş,Romania,ROU,ECA,False,183.078,False,False
-ROU013,Caraş-Severin,Romania,ROU,ECA,SRB002,Branicevski,Serbia,SRB,ECA,True,68.7658,False,False
+ROU013,Caraş-Severin,Romania,ROU,ECA,SRB002,Branicevski,Serbia,SRB,ECA,True,69.1182,False,False
 ROU013,Caraş-Severin,Romania,ROU,ECA,SRB006,Juzno-banatski,Serbia,SRB,ECA,True,81.8386,False,False
 ROU014,Cluj,Romania,ROU,ECA,ROU005,Bihor,Romania,ROU,ECA,False,75.4887,False,False
 ROU014,Cluj,Romania,ROU,ECA,ROU027,Maramureş,Romania,ROU,ECA,False,22.0055,False,False
@@ -6521,7 +6521,7 @@ SAU001,`Asīr,Saudi Arabia,SAU,MENA,SAU007,Ar Riyāḍ,Saudi Arabia,SAU,MENA,Fal
 SAU001,`Asīr,Saudi Arabia,SAU,MENA,SAU010,Jīzan,Saudi Arabia,SAU,MENA,False,269.4777,False,False
 SAU001,`Asīr,Saudi Arabia,SAU,MENA,SAU011,Makkah,Saudi Arabia,SAU,MENA,False,523.0331,False,False
 SAU001,`Asīr,Saudi Arabia,SAU,MENA,SAU012,Najrān,Saudi Arabia,SAU,MENA,False,390.6023,False,False
-SAU001,`Asīr,Saudi Arabia,SAU,MENA,YEM017,Sa`dah,Republic of Yemen,YEM,MENA,True,52.0982,False,False
+SAU001,`Asīr,Saudi Arabia,SAU,MENA,YEM017,Sa`dah,Republic of Yemen,YEM,MENA,True,52.1771,False,False
 SAU002,Al Bāhah,Saudi Arabia,SAU,MENA,SAU011,Makkah,Saudi Arabia,SAU,MENA,False,502.1822,False,False
 SAU003,Al Ḥudūd ash Shamāliyah,Saudi Arabia,SAU,MENA,SAU004,Al Jawf,Saudi Arabia,SAU,MENA,False,986.5119,False,False
 SAU003,Al Ḥudūd ash Shamāliyah,Saudi Arabia,SAU,MENA,SAU008,Ash Sharqīyah,Saudi Arabia,SAU,MENA,False,240.3323,False,False
@@ -6540,7 +6540,7 @@ SAU009,Ḥā'il,Saudi Arabia,SAU,MENA,SAU005,Al Madīnah,Saudi Arabia,SAU,MENA,F
 SAU009,Ḥā'il,Saudi Arabia,SAU,MENA,SAU006,Al Qaṣīm,Saudi Arabia,SAU,MENA,False,520.7467,False,False
 SAU009,Ḥā'il,Saudi Arabia,SAU,MENA,SAU013,Tabūk,Saudi Arabia,SAU,MENA,False,363.1844,False,False
 SAU010,Jīzan,Saudi Arabia,SAU,MENA,YEM012,Hajjah,Republic of Yemen,YEM,MENA,True,81.6436,False,False
-SAU010,Jīzan,Saudi Arabia,SAU,MENA,YEM017,Sa`dah,Republic of Yemen,YEM,MENA,True,173.0767,False,False
+SAU010,Jīzan,Saudi Arabia,SAU,MENA,YEM017,Sa`dah,Republic of Yemen,YEM,MENA,True,173.5292,False,False
 SAU012,Najrān,Saudi Arabia,SAU,MENA,SAU007,Ar Riyāḍ,Saudi Arabia,SAU,MENA,False,355.371,False,False
 SAU012,Najrān,Saudi Arabia,SAU,MENA,SAU008,Ash Sharqīyah,Saudi Arabia,SAU,MENA,False,507.3031,False,False
 SAU012,Najrān,Saudi Arabia,SAU,MENA,YEM006,Al Jawf,Republic of Yemen,YEM,MENA,True,247.2934,False,False
@@ -6676,11 +6676,11 @@ SOM004,Bari,Somalia,SOM,AFR,SOM013,Sanaag,Somalia,SOM,AFR,False,186.1818,False,F
 SOM004,Bari,Somalia,SOM,AFR,SOM016,Sool,Somalia,SOM,AFR,False,62.7455,False,False
 SOM005,Bay,Somalia,SOM,AFR,SOM009,Juba Dhexe,Somalia,SOM,AFR,False,84.6055,False,False
 SOM006,Galgaduud,Somalia,SOM,AFR,SOM008,Hiraan,Somalia,SOM,AFR,False,341.8757,False,False
-SOM006,Galgaduud,Somalia,SOM,AFR,SOM011,Mudug,Somalia,SOM,AFR,False,517.5751,False,False
+SOM006,Galgaduud,Somalia,SOM,AFR,SOM011,Mudug,Somalia,SOM,AFR,False,487.8546,False,False
 SOM006,Galgaduud,Somalia,SOM,AFR,SOM014,Shabelle Dhexe,Somalia,SOM,AFR,False,85.3891,False,False
 SOM007,Gedo,Somalia,SOM,AFR,SOM005,Bay,Somalia,SOM,AFR,False,249.1747,False,False
 SOM007,Gedo,Somalia,SOM,AFR,SOM009,Juba Dhexe,Somalia,SOM,AFR,False,163.6336,False,False
-SOM007,Gedo,Somalia,SOM,AFR,SOM010,Juba Hoose,Somalia,SOM,AFR,False,56.268,False,False
+SOM007,Gedo,Somalia,SOM,AFR,SOM010,Juba Hoose,Somalia,SOM,AFR,False,47.7949,False,False
 SOM008,Hiraan,Somalia,SOM,AFR,SOM014,Shabelle Dhexe,Somalia,SOM,AFR,False,187.9371,False,False
 SOM008,Hiraan,Somalia,SOM,AFR,SOM015,Shabelle Hoose,Somalia,SOM,AFR,False,32.307,False,False
 SOM009,Juba Dhexe,Somalia,SOM,AFR,SOM010,Juba Hoose,Somalia,SOM,AFR,False,280.4878,False,False
@@ -6694,7 +6694,7 @@ SOM015,Shabelle Hoose,Somalia,SOM,AFR,SOM005,Bay,Somalia,SOM,AFR,False,319.616,F
 SOM015,Shabelle Hoose,Somalia,SOM,AFR,SOM009,Juba Dhexe,Somalia,SOM,AFR,False,105.429,False,False
 SOM016,Sool,Somalia,SOM,AFR,SOM017,Togdheer,Somalia,SOM,AFR,False,315.8298,False,False
 SOM017,Togdheer,Somalia,SOM,AFR,SOM018,Woqooyi Galbeed,Somalia,SOM,AFR,False,267.6744,False,False
-SRB001,Borski,Serbia,SRB,ECA,SRB002,Branicevski,Serbia,SRB,ECA,False,85.5653,False,False
+SRB001,Borski,Serbia,SRB,ECA,SRB002,Branicevski,Serbia,SRB,ECA,False,85.5516,False,False
 SRB001,Borski,Serbia,SRB,ECA,SRB014,Pomoravski,Serbia,SRB,ECA,False,5.8018,False,False
 SRB001,Borski,Serbia,SRB,ECA,SRB023,Zajecarski,Serbia,SRB,ECA,False,107.594,False,False
 SRB002,Branicevski,Serbia,SRB,ECA,SRB006,Juzno-banatski,Serbia,SRB,ECA,False,30.9303,False,False
@@ -6768,8 +6768,8 @@ SSD002,Eastern Equatoria,South Sudan,SSD,AFR,SSD006,Pibor Administrative Area,So
 SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA002,Adjumani,Uganda,UGA,AFR,True,7.2129,False,False
 SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA008,Amuru,Uganda,UGA,AFR,True,23.5675,False,False
 SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA036,Kaabong,Uganda,UGA,AFR,True,73.8323,False,False
-SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA056,Kitgum,Uganda,UGA,AFR,True,12.9172,False,False
-SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA065,Lamwo,Uganda,UGA,AFR,True,158.988,False,False
+SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA056,Kitgum,Uganda,UGA,AFR,True,21.279,False,False
+SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA065,Lamwo,Uganda,UGA,AFR,True,150.6262,False,False
 SSD002,Eastern Equatoria,South Sudan,SSD,AFR,UGA081,Moyo,Uganda,UGA,AFR,True,43.7184,False,False
 SSD003,Jonglei,South Sudan,SSD,AFR,SSD004,Lakes,South Sudan,SSD,AFR,False,231.5647,False,False
 SSD003,Jonglei,South Sudan,SSD,AFR,SSD006,Pibor Administrative Area,South Sudan,SSD,AFR,False,352.9789,False,False
@@ -7525,9 +7525,9 @@ TUR073,Tokat,Türkiye,TUR,ECA,TUR079,Yozgat,Türkiye,TUR,ECA,False,69.485,False,
 TUR079,Yozgat,Türkiye,TUR,ECA,TUR049,Kirikkale,Türkiye,TUR,ECA,False,18.7494,False,False
 TUR080,Zonguldak,Türkiye,TUR,ECA,TUR019,Bolu,Türkiye,TUR,ECA,False,75.2586,False,False
 TUR080,Zonguldak,Türkiye,TUR,ECA,TUR043,Karabuk,Türkiye,TUR,ECA,False,43.9542,False,False
-TZA001,Arusha,Tanzania,TZA,AFR,TZA011,Kilimanjaro,Tanzania,TZA,AFR,False,137.9474,False,False
+TZA001,Arusha,Tanzania,TZA,AFR,TZA011,Kilimanjaro,Tanzania,TZA,AFR,False,134.6771,False,False
 TZA001,Arusha,Tanzania,TZA,AFR,TZA015,Manyara,Tanzania,TZA,AFR,False,439.7638,False,False
-TZA001,Arusha,Tanzania,TZA,AFR,TZA016,Mara,Tanzania,TZA,AFR,False,106.9334,False,False
+TZA001,Arusha,Tanzania,TZA,AFR,TZA016,Mara,Tanzania,TZA,AFR,False,101.7512,False,False
 TZA001,Arusha,Tanzania,TZA,AFR,TZA027,Simiyu,Tanzania,TZA,AFR,False,231.1364,False,False
 TZA001,Arusha,Tanzania,TZA,AFR,TZA028,Singida,Tanzania,TZA,AFR,False,31.1,False,False
 TZA002,Dar-es-salaam,Tanzania,TZA,AFR,TZA023,Pwani,Tanzania,TZA,AFR,False,180.8693,False,False
@@ -7799,7 +7799,7 @@ UGA061,Kween,Uganda,UGA,AFR,UGA105,Sironko,Uganda,UGA,AFR,False,1.1773,True,Fals
 UGA062,Kyankwanzi,Uganda,UGA,AFR,UGA079,Mityana,Uganda,UGA,AFR,False,40.6372,False,False
 UGA063,Kyegegwa,Uganda,UGA,AFR,UGA064,Kyenjojo,Uganda,UGA,AFR,False,53.8562,False,False
 UGA063,Kyegegwa,Uganda,UGA,AFR,UGA107,Ssembabule,Uganda,UGA,AFR,False,0.654,True,True
-UGA065,Lamwo,Uganda,UGA,AFR,UGA056,Kitgum,Uganda,UGA,AFR,False,173.6676,False,False
+UGA065,Lamwo,Uganda,UGA,AFR,UGA056,Kitgum,Uganda,UGA,AFR,False,153.6257,False,False
 UGA065,Lamwo,Uganda,UGA,AFR,UGA098,Pader,Uganda,UGA,AFR,False,31.132,False,False
 UGA066,Lira,Uganda,UGA,AFR,UGA058,Kole,Uganda,UGA,AFR,False,81.6751,False,False
 UGA066,Lira,Uganda,UGA,AFR,UGA096,Otuke,Uganda,UGA,AFR,False,5.7767,False,False

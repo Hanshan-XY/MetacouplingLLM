@@ -116,43 +116,52 @@ border would then be attributable to a recorded whole-graph screen.
 
 ## 4. Known water-only borders below every screen's bar (method-scope omissions)
 
-**Status: recorded 2026-09-21; no action planned.** Three borders were ruled
-water-only on maps by the maintainer on 2026-09-14 (creek-band campaign `dc1`,
-bucket B, `build_data/water_screen_rebuild/domestic_creek/`) and shipped until
-2026-09-21. When the HydroRIVERS screens took the sampling rule of the other screens
-(the number of samples set by the geodesic length of the arc; campaign `gs1`,
-`build_data/geodesic_sampling/`), none of the four edge screens nominates them any
-more, and the maintainer took them out of the water-only set: the database is
-complete relative to its screens, and a row no recorded screen nominates falls
-outside the documented method however it was ruled ("Even we take 100m, we may still
-miss pairs"). **They are not found to be land**; the edges stay in the edge list as
-ordinary land borders.
+**Status: recorded 2026-09-21, updated 2026-09-22; no action planned.** Four borders ruled water-only on maps by the
+maintainer are nominated by none of the edge screens, and the maintainer took them out of the water-only set: the database
+is complete relative to its screens, and a row no recorded screen nominates falls outside the documented method however it
+was ruled ("Even we take 100m, we may still miss pairs"; the removal rule of the border-arc specification,
+`build_data/arc_and_combined_screens/SPEC_ba1_border_arc_and_screens.md` §10). **They are not found to be land**; the
+edges stay in the edge list as ordinary land borders. Kyegegwa↔Ssembabule left when the HydroRIVERS screens took the other
+screens' sampling rule (campaign `gs1`, `build_data/geodesic_sampling/`); the other three when every edge screen moved onto
+one border arc (campaign `ba1`, `build_data/arc_and_combined_screens/`). The shares below are those of the border arc (the
+current screen record, `build_data/water_screen_rebuild/ba1_screens.csv`; the 1,000 m column from `measure_ba1_omissions.csv`).
 
-| pair | units | water body | border | HydroRIVERS coverage within 500 m (old sampling rule → current) |
-|---|---|---|---|---|
-| `COG006`↔`COG008` | Lekoumou ↔ Niari (Republic of the Congo) | Mpoukou, Louessé and Niari rivers | 213.9 km | 0.50 → 0.49 |
-| `UGA063`↔`UGA107` | Kyegegwa ↔ Ssembabule (Uganda) | River Katonga | 0.65 km | 0.50 → 0.33 (three sample points) |
-| `VNM025`↔`VNM049` | Hai Duong ↔ Quang Ninh (Viet Nam) | Sông Kinh Thầy | 25.3 km | 0.51 → 0.49 |
+| pair | units | water body | border arc | HydroRIVERS within 500 m | within 1,000 m | Natural Earth river within 20 km | cross-type union | left the set |
+|---|---|---|---|---|---|---|---|---|
+| `UGA063`↔`UGA107` | Kyegegwa ↔ Ssembabule (Uganda) | River Katonga | 0.7 km, 3 points | 0.00 | 1.00 | 0.00 | 0.00 | 2026-09-21 |
+| `JPN038`↔`JPN040` | Chiba ↔ Tokyo (Japan) | Edo River | 20.5 km, 43 points | 0.44 | 0.77 | 0.28 | 0.44 | 2026-09-22 |
+| `URY010`↔`URY016` | Montevideo ↔ San José (Uruguay) | Santa Lucía River | 3.2 km, 8 points | 0.25 | 0.88 | 0.00 | 0.25 | 2026-09-22 |
+| `VNM026`↔`VNM049` | Haiphong ↔ Quảng Ninh (Viet Nam) | Sông Đá Bạch–Bạch Đằng | 29.9 km, 67 points | 0.40 | 0.67 | 0.00 | 0.48 | 2026-09-22 |
 
-Why the screens miss them: the coverage is a distance to HydroRIVERS' *modelled*
-centerlines, traced on a 15 arc-second elevation grid, and on these borders the
-model runs more than 500 m from the real channel for long stretches (for
-Lekoumou↔Niari 92.5 km of the 213.9 km border lies beyond 500 m of any modelled
-reach, but only 50.8 km beyond 1 km; `domestic_creek/measure_dc1.csv`, 2026-09-14);
-the Natural Earth river layer carries little of them (0.15 of the Lekoumou↔Niari
-border within 20 km of a Natural Earth river, none of the other two), and no lake is
-in play (Natural Earth and HydroLAKES both 0). The 500 m step is itself a
-discretization: measured at 100 m and 25 m (2026-09-21,
-`build_data/geodesic_sampling/converge_removed_rows.csv`) the shares converge to
-0.502–0.503 for Lekoumou↔Niari — just above the bar, so a converged screen would
-nominate it — but to 0.10–0.11 for Kyegegwa↔Ssembabule and 0.45 for Hai Duong↔Quang
-Ninh, well below. A screen measured against a surveyed river network (national
-hydrography, OpenStreetMap waterways) is the other route; either is a new screen
-with its own nominations to adjudicate. A finer step for every screen is not a
-remedy on its own: measured over all four screens at 100 m (2026-09-21,
-`build_data/geodesic_sampling/step_sensitivity_all_screens.py`), it would nominate
-Lekoumou↔Niari again but would leave four other shipped tier-A rows with no
-nominating screen (Kelantan↔Narathiwat on the Golok River, Canelones↔San Jose,
-Montevideo↔San Jose, Ninh Binh↔Nam Dinh) and would open 19 new candidates without an
-adjudication record in the measured near-bar population. The maintainer kept all
-four screens at 500 m and the removal.
+Why the screens miss them: the coverage is a distance to HydroRIVERS' *modelled* centerlines, traced on a 15 arc-second
+elevation grid, and on these borders the model runs between 500 m and 1 km from much of the line: on the three river
+borders the share within 1,000 m (0.67-0.88) is well above the share within 500 m (0.25-0.44), and the whole 0.7 km
+Kyegegwa↔Ssembabule border lies in that band. Those three lie on the lower course of a wide river (the Edo, the Santa Lucía
+and the Bạch Đằng estuaries); Natural Earth carries part of one of them (the Edo, 0.28 within 20 km), and HydroLAKES 0.12 of
+the Haiphong↔Quảng Ninh border, too little to lift the union to its bar. A screen measured against a surveyed river network (national hydrography, OpenStreetMap waterways) is the route to
+them; it is a new screen with its own nominations to adjudicate. A finer step for every screen is not a remedy on its own:
+measured over all four screens at 100 m (2026-09-21, `build_data/geodesic_sampling/step_sensitivity_all_screens.py`) it
+moved nominations in both directions, and the maintainer kept the 500 m step.
+
+Two borders listed here from 2026-09-21 are no longer omissions: the border arc nominates them again, and both were
+re-adjudicated on 2026-09-22 — Lekoumou↔Niari returned to the water-only set by maintainer map ruling, and both passes found
+Hai Duong↔Quang Ninh not water-only.
+
+## 5. Deferred by the border-arc specification (2026-09-21)
+
+**Status: recorded; no action planned.** Three items the specification (`build_data/arc_and_combined_screens/`
+`SPEC_ba1_border_arc_and_screens.md` §11) set aside by maintainer decision:
+
+- **`border_length_km` from the border arc.** The shipped length is the exact shared line (boundary ∩ boundary), so it
+  understates the borders where the polygons overlap or face each other across a channel: Trarza↔Saint Louis ships
+  6.4 km against a border arc of 225.3 km, Brakna↔Saint Louis 7.7 km against 223.5 km, Tamaulipas↔Veracruz 29.8 km against
+  147.7 km. Computed from the arc, the lengths of those edges and some `narrow_border` / `potential_artifact` flags
+  would change; nothing else would.
+- **Water split between a river and a lake.** A border whose water is partly river and partly lake, so that neither the
+  river screens nor the lake screens reach their bars, and whose cross-type union share lies between 0.50 and 0.80, is
+  nominated by no screen (the union's bar is the corridor census's 0.80; a union bar of 0.70
+  or 0.90 changed no nomination in the sensitivity run).
+- **The 500 m step's aliasing at the bars.** A share is a count of sample points, so a border near a bar can cross it when
+  the step changes (measured 2026-09-21 on the 2,456 edges near a bar, `build_data/geodesic_sampling/`
+  `analyze_step_sensitivity.py`: a 100 m step moved 37, 8, 32 and 6 edges across the Natural Earth river, Natural Earth
+  lake, HydroRIVERS and HydroLAKES bars, in both directions); the step stays at 500 m by maintainer decision.
