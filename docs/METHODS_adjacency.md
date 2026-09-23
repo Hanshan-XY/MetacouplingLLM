@@ -610,7 +610,7 @@ provenance ledger above gives the composition), every row nominated by the rebui
 full-ladder screens (river bar 0.50 at geodesic 2.5/5/10/15/20 km rungs; lake
 bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS bar 0.50 at a fixed
 geodesic 500 m sample-to-reach width (one 15 arc-second HydroSHEDS cell), nomination floor
-10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges, set aside on 2026-07-10 as document-only, were adjudicated on 2026-09-14 (54 accepted, 50 of them shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); since 2026-09-22 every edge screen runs on the border arc, with a combined river screen (bar 0.50), a combined lake screen (0.40) and a cross-type union (0.80) added (`ba1` below); the corridor
+10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges (714 set aside on 2026-07-10 as document-only, and one edge no screen population held) were adjudicated on 2026-09-14 (54 accepted, 50 of them shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); since 2026-09-22 every edge screen runs on the border arc, with a combined river screen (bar 0.50), a combined lake screen (0.40) and a cross-type union (0.80) added (`ba1` below); the corridor
 census for non-touching pairs (re-derived 2026-09-10, below); domestic borders in scope for the first time),
 every candidate Tier-2 adjudicated and
 every shipped verdict human- or dual-AI-verified with per-row provenance in
