@@ -6,7 +6,7 @@ adm1,USA044,MEX028,True,river,Rio Grande; San Juan,,cross-vendor,C
 adm1,CAF004,COD012,False,river,Bomu; Chinko; Uele,,cross-vendor,C
 adm1,FIN002,SWE010,True,river,Muonio; Tornelven,,cross-vendor,C
 adm1,ZAF005,BWA001,True,river,Limpopo; Marico; Mogalakwena,,cross-vendor,C
-adm1,ETH006,SSD006,False,river,Akobo,,cross-vendor,C
+adm1,ETH006,SSD006,True,river,Akobo,,cross-vendor,C
 adm1,ZMB104,COD014,True,river,Luapula; Luvua,,cross-vendor,C
 adm1,CHN017,PRK002,True,river,Tumen,,cross-vendor,C
 adm1,BRA012,PRY001,False,river,Paraná,,cross-vendor,C

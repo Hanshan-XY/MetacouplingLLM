@@ -90,8 +90,8 @@ fifth recovered pair, MOZXXX↔MWI003, was reversed 2026-07-18 by maintainer
 map ruling — the true contact is a point) = 8,434, +24 rescreen-gap
 (water-screen rebuild, batch b1, plus the rg1 river-gap fold 2026-07-22 and
 the lg1 lake-gap fold 2026-07-23) = **8,458** shipped
-(lenient); **8,061** moderate; **7,655** stringent; 3,374 regions, 196 countries.
-**ADM0** 326 / 320 / 300. **Water-only 803** (406/397) + 26 ADM0 roll-ups
+(lenient); **8,062** moderate; **7,655** stringent; 3,374 regions, 196 countries.
+**ADM0** 326 / 320 / 300. **Water-only 803** (407/396) + 26 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River and the
 Dead Sea into the hydro row families — the two borders the raw-degree screens
 missed, both in rescreen-water since the 2026-07-28 consolidation — and
@@ -287,8 +287,8 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   further pairs demoted and one orphan row removed) and the ru1 river
   re-adjudication (8 rows demoted to mixed land by maintainer map ruling,
   2026-07-21) and the wu1 water-screen unification (3 mid-lake point contacts
-  removed, 2026-07-25; its 4 lake → river retypes reversed 2026-09-04) and the bu1 crossing unification (2026-09-16: the four-layer bridge pipeline re-run over all 807 rows; 6 base flags changed on maintainer rulings — 5 crossings added (Spiersbachbrücke, Aghband–Kalaleh, Niangoloko, Vonkoro, Kogui), 1 removed (Oti) — and a `bu1` clause appended to every row's `note`) and the wc1 way-class follow-up (2026-09-20: 1 base flag removed on a maintainer ruling — Basel-Landschaft↔Baden-Württemberg, whose only crossing is the foot and cycle way over the Augst–Wyhlen barrage — and the Haag–Bendern road bridge put on record for Sankt Gallen↔Gamprin)) — SHA-256
-  `b95d5f08efac6217bbf2d22865c805ae4964411b6f141af338e69407ac986cff`
+  removed, 2026-07-25; its 4 lake → river retypes reversed 2026-09-04) and the bu1 crossing unification (2026-09-16: the four-layer bridge pipeline re-run over all 807 rows; 6 base flags changed on maintainer rulings — 5 crossings added (Spiersbachbrücke, Aghband–Kalaleh, Niangoloko, Vonkoro, Kogui), 1 removed (Oti) — and a `bu1` clause appended to every row's `note`) and the wc1 way-class follow-up (2026-09-20: 1 base flag removed on a maintainer ruling — Basel-Landschaft↔Baden-Württemberg, whose only crossing is the foot and cycle way over the Augst–Wyhlen barrage — and the Haag–Bendern road bridge put on record for Sankt Gallen↔Gamprin) and the cw1 crossing screen on the ground (2026-09-24: 1 base flag added on a maintainer ruling — Gambela↔Pibor Administrative Area, the Raad Bailey road bridge across the Akobo — and a `cw1` clause on the three rechecked base rows)) — SHA-256
+  `d898f7393694091f28a070f382b393375ca76e361877bb00ad7a929a36f649d5`
   (**LF-normalised**: this is the one *text* input and the repo has no
   `.gitattributes`, so a `core.autocrlf=true` checkout renders it CRLF while git
   stores LF; `build_all.py` normalises before comparing so the pin holds on
@@ -321,7 +321,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 
 > **Note.** The subsections below are the *discovery/validation record* for the
 > four-stage, tolerance-0 pipeline and the manifests listed in the Datasets
-> table above (authoritative counts: 8,458 / 8,061 / 7,655; water-only 803);
+> table above (authoritative counts: 8,458 / 8,062 / 7,655; water-only 803);
 > they document how each reviewed correction input was discovered and audited.
 
 
@@ -398,15 +398,16 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,458 → **8,061** moderate / **7,655** stringent; ADM0 326 →
+  shipped edges 8,458 → **8,062** moderate / **7,655** stringent; ADM0 326 →
   **320** moderate / **300** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
   search, a deterministic geocode + province-polygon check, and manual review;
   since the crossing unification of 2026-09-16 every one of the 803 rows carries
-  the same four-layer record — unified OSM screen (130 m in-both-units test),
-  web verification, adversarial recheck of every unsettled row, location test
-  (≤ 500 m of the shared arc or ≤ 750 m of both units), maintainer rulings.
+  the same four-layer record — unified OSM screen (a way within 100 m of both
+  units, measured on the ground; re-run 2026-09-24, `cw1`), web verification,
+  adversarial recheck of every unsettled row, location test (≤ 500 m of the
+  shared arc or ≤ 750 m of both units, on the ground), maintainer rulings.
   The OSM screen accepts any way tagged as a bridge on a road, path or railway, so
   a way-class follow-up (`wc1`, 2026-09-20) recorded the class of every way behind
   a bridged flag: 340 of the 354 rows with a layer-1 bridge way have a road or rail
@@ -416,8 +417,10 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   maintainer ruling (Basel-Landschaft↔Baden-Württemberg: the Augst–Wyhlen barrage
   carries a foot and cycle way only), one kept (Telšiai↔Vaiņodes novads: a disused
   railway bridge with its track in place counts, as a bridge on a closed border does);
-  on the rows that ship today the counts are 337 of 350, 11 of the other 13, and
-  the 2 rechecked rows kept.
+  on the current record (layer 1 at 100 m on the ground, `cw1`) the counts are 337
+  of 348, 9 of the other 11 on a structure on record, and the other 2 confirmed by a
+  recheck (Telšiai↔Vaiņodes novads; Panamá↔Panamá Oeste, whose trunk-road way lies
+  117 m from one unit).
   It is a **reviewed static artifact** shipped in `water_separated_pairs.csv`,
   NOT regenerated from geometry alone (only the ADM0 roll-up is, by
   `write_water_separated_manifest`). A *completed* bridge on a politically closed
@@ -498,7 +501,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1
   (125/238) + 22 ADM0 roll-ups; the rescreen overlays and the ru1
   re-adjudication below take the shipped
-  totals to **8,458** / **803** (406/397) / **26** roll-ups.
+  totals to **8,458** / **803** (407/396) / **26** roll-ups.
 - **Land-gap overlay (survey-line offset corridors).** Along straight-surveyed
   borders the two countries' polygons can be digitized from different renderings
   of the same line, leaving an offset corridor wider than the ~55 m snap
@@ -628,8 +631,8 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ends land in Bács-Kiskun via the documented Danube side-channel anomaly).
   Everything is **strictly additive** — the pre-rebuild set reproduces
   unchanged, verified against a frozen SHA-256 baseline. Current shipped
-  counts: ADM1 **8,458** edges (**8,061** moderate / **7,655** stringent),
-  ADM0 **326** (320 / 300), water-only **803** ADM1 (406/397) + **26** ADM0
+  counts: ADM1 **8,458** edges (**8,062** moderate / **7,655** stringent),
+  ADM0 **326** (320 / 300), water-only **803** ADM1 (407/396) + **26** ADM0
   roll-ups (the rebuild completed five country borders as all-water: DEU↔LUX
   bridged Our–Sauer–Moselle, BEN↔NER bridged Niger/Mékrou, CMR↔GAB bridged
   Ntem, MWI↔TZA bridged Songwe + Lake Malawi/Nyasa, GUY↔SUR ferry-only

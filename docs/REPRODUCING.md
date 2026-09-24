@@ -52,7 +52,7 @@ refuses to build from a mismatching file):
 | WB Admin 0 GeoPackage (layer `WB_GAD_ADM0`, 264 features) | same distribution | `97f0c8a0…f4b117e` |
 | WB Ocean Mask GeoPackage | same distribution | `c2b074fd…c88d702` |
 | WB NDLSA GeoPackage (24 disputed-area features) | same distribution | `159ef2d1…55d2fa4` |
-| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `b95d5f08…c986cff` |
+| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `d898f739…6f649d5` |
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
 
@@ -91,8 +91,8 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,458 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,061 / 7,655 |
-| water-only ADM1 | 803 = 406 with a fixed crossing / 397 without |
+| ADM1 moderate / stringent | 8,062 / 7,655 |
+| water-only ADM1 | 803 = 407 with a fixed crossing / 396 without |
 | water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 268 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
@@ -264,7 +264,9 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   whenever a sample lies within 500 m of a reach.
 - **Bridge screen** (OpenStreetMap Overpass): any way tagged as a bridge on a
   road, path or railway (or `man_made=bridge`), not under construction or
-  proposed, intersecting both units' polygons buffered ~130 m — layer 1 of the
+  proposed, coming within 100 m of both units' polygons measured on the ground
+  (`build_data/water_screen_rebuild/crossing_width/cw1_screen.py`; an answer
+  that reports an Overpass error counts as a failed query) — layer 1 of the
   four-layer `has_bridge` classification
   (`docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`). The screen does not filter by
   way class: the rule that only a road or rail bridge, causeway, dam-top road
@@ -275,7 +277,10 @@ Thresholds are anchored, not tuned: 2.5 km ≈ ½ × the NMAS horizontal
 accuracy at 1:10M (0.5 mm map distance ≈ 5 km ground); 500 m = the
 HydroSHEDS-derived datasets' stated positional accuracy; the rung ladders
 were extended until the capture pattern was fully characterized; the 1,000 m
-facing reach is the corridor census's short-gap presence rule and 0.80 its bar. Screens
+facing reach is the corridor census's short-gap presence rule and 0.80 its bar. The bridge
+screen's 100 m has no standard to anchor it: it is a round value inside the range over which
+the screen's agreement with the reviewed flags is flat (25–250 m on the ground;
+`crossing_width/SPEC_cw1_crossing_width.md`). Screens
 only ever **nominate** — no threshold ships a row by itself.
 
 ## 7. Loader-level reproduction (how users consume the data)
