@@ -325,10 +325,10 @@ is deliberate:
   than on the border's own water, and the one case a fixed 500 m under-measures
   — a wide channel whose modelled reach lies more than 500 m from a median- or
   bank-line border — is already carried by the Natural Earth rung, wide rivers
-  being named rivers: 34 of the 668 shipped river borders on existing edges
+  being named rivers: 32 of the 668 shipped river borders on existing edges
   fall below the 0.50 bar at 500 m (Orinoco, Paraguay, Elbe estuary,
-  Yellow River, Danube, Rhône, Potomac, Amu Darya), every one nominated by the
-  Natural Earth river ladder on its border arc (`ba1_screens.csv`). Re-running the edge screen
+  Yellow River, Danube, Rhône, Potomac, Uruguay), every one nominated by the
+  Natural Earth river ladder on its border arc (`gd1_screens.csv`). Re-running the edge screen
   with the corridor census's discharge-scaled ladder (1,000 / 2,500 m for
   reaches ≥ 1,000 m³/s) raises the big-river nominations from 176 to 250 and
   adds no unaudited candidate — the 26 added non-water edges were all
@@ -347,7 +347,11 @@ is deliberate:
   raw-degree buffer reaches only `X · cos φ` metres east–west and so
   *under*-measures E–W distance at latitude — the one direction a completeness
   screen must not err (a planar control reproduces the frozen numbers bit-for-bit,
-  proving only the metric changed). Each of these screens samples each continuous piece of the
+  proving only the metric changed). Since 2026-09-23 the nearest point is also *located* on the
+  ground (`gd1`, §8): the earlier helper located it in plain degrees, which weighs an east–west
+  offset 1/cos²φ too heavily and overstated the distance to an oblique feature — the same failure
+  direction, a feature within the width read as outside it — by up to 88–106% at 60–70°
+  (`build_data/geodesic_distances/validate_rule.txt`). Each of these screens samples each continuous piece of the
   border arc (§8, `ba1`) at equal geodesic intervals, n = max(2, ⌊L/500 m⌋ + 1)
   intervals for a piece of geodesic length L, so every interval is shorter than
   500 m. The geodesic buffer feeds both hydro
@@ -610,8 +614,8 @@ provenance ledger above gives the composition), every row nominated by the rebui
 full-ladder screens (river bar 0.50 at geodesic 2.5/5/10/15/20 km rungs; lake
 bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS bar 0.50 at a fixed
 geodesic 500 m sample-to-reach width (one 15 arc-second HydroSHEDS cell), nomination floor
-10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges (714 set aside on 2026-07-10 as document-only, and one edge no screen population held) were adjudicated on 2026-09-14 (54 accepted, 50 of them shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); since 2026-09-22 every edge screen runs on the border arc, with a combined river screen (bar 0.50), a combined lake screen (0.40) and a cross-type union (0.80) added (`ba1` below); the corridor
-census for non-touching pairs (re-derived 2026-09-10, below); domestic borders in scope for the first time),
+10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges (714 set aside on 2026-07-10 as document-only, and one edge no screen population held) were adjudicated on 2026-09-14 (54 accepted, 50 of them shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); since 2026-09-22 every edge screen runs on the border arc, with a combined river screen (bar 0.50), a combined lake screen (0.40) and a cross-type union (0.80) added (`ba1` below), and since 2026-09-23 every distance is located and measured on the ground (`gd1` below); the corridor
+census for non-touching pairs (re-derived 2026-09-10 and measured on the ground since 2026-09-23, below); domestic borders in scope for the first time),
 every candidate Tier-2 adjudicated and
 every shipped verdict human- or dual-AI-verified with per-row provenance in
 the manifest `source` column —
@@ -690,16 +694,20 @@ transect support): two shipped (Équateur↔Cuvette, Entre Ríos↔Artigas), 44 
 nt3 (2026-09-11; the 33 presence-rule nominations a post-hoc 0.25 transect-support
 floor had set aside): all 33 rejected on convergent verdicts (15 sea-separated, 18 dry
 gaps), the floor withdrawn — the presence rule nominates, it does not drop (record:
-`build_data/water_screen_rebuild/corridor_census_v2/`). Its population is every pair
-whose polygons lie within 0.9° (a planar pre-filter, then a geodesic gap of at most
-100.2 km) yet do not touch and are not already edges (a point contact has no corridor:
-Jõgeva↔Pskov and Salta↔Potosí are outside it, as are the 13 de-facto edges); the 100 km reach is checked against the
+`build_data/water_screen_rebuild/corridor_census_v2/`). Its population, since 2026-09-23
+(`gd1` below), is every pair within 100 km of each other on the ground that do not touch and
+are not already edges, 23,410 pairs (a point contact has no corridor:
+Jõgeva↔Pskov and Salta↔Potosí are outside it, as are the 13 de-facto edges; a pair the build's
+polygons join at a single point while the World Bank polygons keep it apart is measured on the
+World Bank polygons); the 100 km reach is checked against the
 lakes — of the 357 Natural Earth lakes ≥ 500 km², five have surfaces the WB layer
 leaves unassigned, none wider than 60 km
 (`corridor_census_v2/lake_surface_coverage_2026-09-10.txt`). The rule as implemented
-(`recovery_census_v2.py`): transects every 250 m along the facing frontage, samples every
-100 m; lake share = share of samples within geodesic 125 m of a lake polygon (the larger of
-NE and HydroLAKES ≥ 0.25 km²); river share = share within geodesic 500 m of a reach (gaps
+(`build_data/geodesic_distances/census_gd1.py`, on the ground: frontage, transects and samples
+in an azimuthal-equidistant frame centred on each pair's nearest approach): transects at most
+250 m apart along the facing frontage, samples at most 100 m apart; lake share = share of
+samples within 125 m of a lake polygon (the larger of
+NE and HydroLAKES ≥ 0.25 km²); river share = share within 500 m of a reach (gaps
 ≤ 5 km only); nominated when lake share + river share ≥ 0.80 (a sum capped at 1 — a
 generous stand-in for the union), or, in the wide variant, with lakes at 1,500 m and
 reaches ≥ 1,000 m³/s at 2,500 m (a 1,000 m rung is recorded alongside), or, for gaps
@@ -708,9 +716,9 @@ reaches ≥ 1,000 m³/s at 2,500 m (a 1,000 m rung is recorded alongside), or, f
 cap (recovered river gaps 0.2–1.7 km) are anchored to measured quantities; the 0.80
 bar and the 125 m lake rung are inherited conventions and the 1,000 m³/s big-reach
 threshold a judgment value introduced with the re-derivation, all reported for
-sensitivity: every bar from 0.60 to 0.85 re-nominates all 24 shipped recoveries; 0.75 →
-0.85 leaves the new share-rule nominations almost unchanged (10 / 8 / 8) and moves the
-share-or-ladder nominations 50 → 32. Recomputed on the full ladder
+sensitivity: every bar from 0.60 to 0.85 re-nominates all 24 shipped recoveries; on the
+2026-09-10 census, 0.75 → 0.85 left the new share-rule nominations almost unchanged (10 / 8 / 8)
+and moved the share-or-ladder nominations 50 → 32. Recomputed on the full ladder
 (`corridor_census_v2/ladder_profile_2026-09-11.csv`), the 42 ladder-only nominations first
 cross the bar at 250 m (1), 500 m (3), 1,000 m (16) and 1,500 m (14) on the lake axis and at
 1,000 m (4) and 2,500 m (3) on the big-reach axis, one only with both wide rungs; the 34
@@ -878,9 +886,9 @@ edge list, 164 of them shipped water-only, and each of the other 127 carries a
 cross-vendor rejection (`build_data/water_screen_rebuild/hydrolakes_band/`); the
 sweep's records hold two more pairs that are not edges and are not counted
 (RUS024↔RUS050, dissolved by the unit merge; Manitoba↔Northwest Territories, a
-corner contact). On the border arc (`ba1` below) the rung nominates 286 edges,
-162 of them shipped and each of the other 124 carrying a cross-vendor rejection;
-the band holds 57, 14 of them shipped, every one also nominated by a river screen.
+corner contact). On the border arc, with distances on the ground (`gd1` below), the rung
+nominates 290 edges, 162 of them shipped and each of the other 128 carrying a cross-vendor
+rejection; the band holds 59, 14 of them shipped, every one also nominated by a river screen.
 
 **Census residue (`nt4`, 2026-09-20).** A code-level audit of the papers found that
 one of the 245 nominations of the 2026-09-10 corridor census, Vorarlberg↔Vaduz
@@ -1022,13 +1030,55 @@ removal rule the maintainer set with the specification (the edges stay; `docs/FU
 lists them with their shares); Hai Duong↔Quang Ninh, re-adjudicated, stays out (both passes not
 water-only). Water-only 805 → **803** (408/397 → **406/397**), moderate unchanged at **8,061**,
 stringent 7,653 → **7,655**, tier A 270 → **268**, ADM0 unchanged (all four rows domestic).
-`ba1_screens.csv` is now the edge screens' record: the completeness check reads its bands (0 open)
-and the attributability check requires every shipped row with a border arc to be nominated by it
+`ba1_screens.csv` became the edge screens' record (until `gd1`, below): the completeness check read its bands (0 open)
+and the attributability check required every shipped row with a border arc to be nominated by it
 (779/779; the 24 non-touching rows by the corridor census; 803/803). Deferred
 (`docs/FUTURE_WORK.md`): `border_length_km` is still the exact shared line; a border whose water is
 split between a river and a lake with a union share between 0.50 and 0.80 is not nominated. Record:
 `build_data/arc_and_combined_screens/` (`SPEC_ba1_*`, `ba1_*`) and `build_data/water_screen_rebuild/`
 (`border_arc.py`, `build_arc_cache.py`, `run_screens_ba1.py`, `ba1_screens.csv`, `ba1_report.txt`).
+
+**Distances on the ground (`gd1`, 2026-09-23).** The screens measured every distance on the
+ellipsoid but located the nearest point of a feature in plain longitude/latitude, where a degree
+east–west counts as much as a degree north–south although it is cos φ times shorter: the located
+point is then not the nearest one when the feature runs obliquely, and the distance reads long —
+by up to 106% (HydroLAKES), 96% (HydroRIVERS) and 88% (Natural Earth rivers) at 60–70° on a
+13,372-pair test (`build_data/geodesic_distances/validate_rule.txt`). The corridor census chose its candidates within 0.9°
+(100.2·cos φ km east–west), measured its gap between the points nearest in degrees and drew its
+facing frontage with a degree buffer. The specification
+(`build_data/geodesic_distances/SPEC_gd1_geodesic_distances.md`, maintainer approval 2026-09-23,
+after the maintainer asked why the census reach is 0.9°) measures every distance on the ground: the
+nearest point is located in a local frame in which a metre east equals a metre north (longitude
+scaled by cos φ·N/M) and, beyond 2.5 km, again in an azimuthal-equidistant frame centred on the
+point; the distance is measured with `GEOD.inv` (`geodist.nearest_on_ground`; within 0.013 m of an
+exact computation on the test pairs, and no cached distance grows over 2,586,484 border samples).
+The border arc's facing test measures its width and reciprocity the same way, and its midpoint
+test no longer depends on rounding: a chord shorter than 1 m is contact and stays in the arc unless
+its point lies within 2×10⁻⁷° of a stretch already in the arc (a repeat of that stretch's end), and a
+longer chord's midpoint counts as on an outline within 10⁻⁸° (maintainer decisions; the exact test
+first adopted had dropped 389 km of outlines that coincide within rounding from 45 arcs); the arcs
+now hold 5,595 km of facing stretches on 630 edges (5,903 km on 954 before, the difference being
+junction points the earlier code counted twice), the other classes unchanged. The
+corridor census (`census_gd1.py`) reads the build's polygons and takes every pair within 100 km of
+each other on the ground (candidates by a query widened by 1/cos φ, with the shorter degree length
+near the equator); per pair it works in an azimuthal-equidistant frame centred on the nearest
+approach (frontage, transects and samples at equal intervals of at most 250 m and 100 m); a pair
+the build's polygons join at a single point while the World Bank polygons keep it apart is measured
+on the World Bank polygons (maintainer decision; two pairs: Caraș-Severin↔Bor, the shipped Danube
+row, nominated, and Tarija↔Jujuy, not nominated). Measured blind, the edge screens nominate 3,285
+edges (3,248 before), 43 of them new (14 with a two-model record, 29 without) and 6 no longer (each
+with a record, none shipped); every shipped row keeps its nomination (779/779); four auto-reject
+ledger rows no longer satisfy the rule (a base share at 0.20 or more). The census holds 23,410 pairs
+(20,653) and nominates 243 (245): 12 new (1 with a record), 14 no longer (four Arusha pairs the
+source-relabel moves apart, ten whose shares fall below the bar when measured on the ground), all 24
+shipped rows again. The maintainer's map check of a 30-map sample found no measurement issue. The
+44 pairs without a record (29 + 4 + 11) went through the standard two-pass, blind: GPT-5.6 Sol
+research (44/44 valid; water-only on none) and Sonnet-5 adversarial judgment (44 agents; water-only
+on none), gate A 0 / B 0 / C 8 / D 36, maintainer: no override. **No shipped row changes.**
+`gd1_screens.csv` and `census_gd1.csv` are now the screens' record: the completeness check reads
+their bands (0 open) and the attributability check holds (803/803: 779 by the edge screens, 24 by
+the census on the ground). Record: `build_data/geodesic_distances/` (`SPEC_gd1_*`, `gd1_*`,
+`census_gd1*`).
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and

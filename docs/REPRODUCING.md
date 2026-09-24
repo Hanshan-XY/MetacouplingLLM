@@ -226,11 +226,18 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   lines), where it runs inside B (overlapping polygons), within 5×10⁻⁴° of B for
   the four land-gap pairs only, and where it faces B across a gap of at most
   1,000 m (not on or across a third unit's outline, reciprocal, the chord's
-  midpoint inside neither unit). Each continuous piece of geodesic length L gets
-  n + 1 points at equal geodesic intervals, n = max(2, ⌊L/500 m⌋ + 1).
-  `build_arc_cache.py` stores, per point, the geodesic distance to each layer
-  (`arc_cache.jsonl`); `run_screens_ba1.py` computes the exact shares and
-  nominations (`ba1_screens.csv`, report `ba1_report.txt`).
+  midpoint inside neither unit; a chord shorter than 1 m is contact and stays
+  in the arc unless it only repeats the end of a stretch already in it). Each
+  continuous piece of geodesic length L gets n + 1 points at equal geodesic
+  intervals, n = max(2, ⌊L/500 m⌋ + 1). Every distance is measured on the
+  ground (`build_data/geodesic_rescreen/geodist.nearest_on_ground`; specification
+  `build_data/geodesic_distances/SPEC_gd1_geodesic_distances.md`): the nearest
+  point is located in a local frame in which a metre east equals a metre north
+  (beyond 2.5 km, in an azimuthal-equidistant frame centred on the point) and
+  measured with `GEOD.inv`. `build_arc_cache.py --out arc_cache_gd1.jsonl`
+  stores, per point, the distance to each layer;
+  `build_data/geodesic_distances/run_screens_gd1.py` computes the exact shares
+  and nominations (`gd1_screens.csv`, report `gd1_report.txt`).
 - **Edge screens on the arc:** Natural Earth river ladder
   (`ne_10m_rivers_lake_centerlines`, 1:10M, named rivers): ≥ 0.50 within 2.5 km,
   rungs 5/10/15/20 km; Natural Earth lake ladder (`ne_10m_lakes`): ≥ 0.40 within
@@ -242,9 +249,13 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   (any of the four layers at its operating width): ≥ 0.80. An edge is nominated
   when any screen reaches its bar.
 - **Non-touching corridor census**
-  (`build_data/water_screen_rebuild/corridor_census_v2/recovery_census_v2.py`):
-  for unit pairs within 0.9° whose polygons do not touch, transects every
-  250 m across the facing frontage, sampled every 100 m; a lake share
+  (`build_data/geodesic_distances/census_gd1.py`, on the build's polygons):
+  for unit pairs within 100 km of each other on the ground whose polygons do
+  not touch (a pair the build's polygons join at a single point while the
+  World Bank polygons keep it apart is measured on the World Bank polygons:
+  `point_contacts_gd1.py` lists them, `census_gd1.py --raw --pairs` measures
+  them), transects at most 250 m apart across the facing frontage, sampled at
+  most 100 m apart, every distance on the ground; a lake share
   (samples within 125 m of a Natural Earth lake or a HydroLAKES polygon of
   at least 0.25 km², the larger of the two) plus a river share (samples
   within 500 m of a HydroRIVERS reach, for gaps up to 5 km) nominates at

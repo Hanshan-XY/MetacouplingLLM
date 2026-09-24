@@ -116,22 +116,23 @@ border would then be attributable to a recorded whole-graph screen.
 
 ## 4. Known water-only borders below every screen's bar (method-scope omissions)
 
-**Status: recorded 2026-09-21, updated 2026-09-22; no action planned.** Four borders ruled water-only on maps by the
+**Status: recorded 2026-09-21, updated 2026-09-22 and 2026-09-23; no action planned.** Four borders ruled water-only on maps by the
 maintainer are nominated by none of the edge screens, and the maintainer took them out of the water-only set: the database
 is complete relative to its screens, and a row no recorded screen nominates falls outside the documented method however it
 was ruled ("Even we take 100m, we may still miss pairs"; the removal rule of the border-arc specification,
 `build_data/arc_and_combined_screens/SPEC_ba1_border_arc_and_screens.md` §10). **They are not found to be land**; the
 edges stay in the edge list as ordinary land borders. Kyegegwa↔Ssembabule left when the HydroRIVERS screens took the other
 screens' sampling rule (campaign `gs1`, `build_data/geodesic_sampling/`); the other three when every edge screen moved onto
-one border arc (campaign `ba1`, `build_data/arc_and_combined_screens/`). The shares below are those of the border arc (the
-current screen record, `build_data/water_screen_rebuild/ba1_screens.csv`; the 1,000 m column from `measure_ba1_omissions.csv`).
+one border arc (campaign `ba1`, `build_data/arc_and_combined_screens/`). Measuring every distance on the ground (campaign `gd1`,
+`build_data/geodesic_distances/`) nominates none of them. The shares below are those of the border arc on the current screen
+record (`build_data/geodesic_distances/gd1_screens.csv`; the 1,000 m column measured the same way, `omissions_gd1.txt`).
 
 | pair | units | water body | border arc | HydroRIVERS within 500 m | within 1,000 m | Natural Earth river within 20 km | cross-type union | left the set |
 |---|---|---|---|---|---|---|---|---|
 | `UGA063`↔`UGA107` | Kyegegwa ↔ Ssembabule (Uganda) | River Katonga | 0.7 km, 3 points | 0.00 | 1.00 | 0.00 | 0.00 | 2026-09-21 |
 | `JPN038`↔`JPN040` | Chiba ↔ Tokyo (Japan) | Edo River | 20.5 km, 43 points | 0.44 | 0.77 | 0.28 | 0.44 | 2026-09-22 |
 | `URY010`↔`URY016` | Montevideo ↔ San José (Uruguay) | Santa Lucía River | 3.2 km, 8 points | 0.25 | 0.88 | 0.00 | 0.25 | 2026-09-22 |
-| `VNM026`↔`VNM049` | Haiphong ↔ Quảng Ninh (Viet Nam) | Sông Đá Bạch–Bạch Đằng | 29.9 km, 67 points | 0.40 | 0.67 | 0.00 | 0.48 | 2026-09-22 |
+| `VNM026`↔`VNM049` | Haiphong ↔ Quảng Ninh (Viet Nam) | Sông Đá Bạch–Bạch Đằng | 30.8 km, 69 points | 0.39 | 0.65 | 0.00 | 0.48 | 2026-09-22 |
 
 Why the screens miss them: the coverage is a distance to HydroRIVERS' *modelled* centerlines, traced on a 15 arc-second
 elevation grid, and on these borders the model runs between 500 m and 1 km from much of the line: on the three river
