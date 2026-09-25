@@ -1,9 +1,11 @@
-"""Tests for the unified overlay engine and the one-command rebuild.
+"""Tests for the Stage 3-4 engine and the one-command regeneration.
 
-The engine (scripts/apply_overlays.py) applies the reviewed correction layer
-(three overlay manifests) on top of the geometry build.  Its contract: running
-on already-overlaid shipped data is a byte-stable no-op, and the registry
-covers exactly the shipped overlay manifests.
+The engine (scripts/apply_overlays.py) applies Stages 3 and 4 on top of the
+geometry build's Stages 1-2: the water-only classification from one file
+(water_classification_pairs.csv), then the edge corrections (the land-gap
+borders added, the denylisted contacts removed).  Its contract: running on
+already-processed shipped data is a byte-stable no-op, a fresh build's output
+reproduces the shipped files, and its inputs are exactly the reviewed files.
 """
 import importlib.util
 import shutil
@@ -34,8 +36,8 @@ def _copy_data(tmp_path: Path) -> Path:
     d.mkdir()
     for f in OUTPUT_FILES:
         shutil.copy(DATA / f, d / f)
-    for f in DATA.glob("*_overlay_pairs.csv"):
-        shutil.copy(f, d / f.name)
+    for f in _load("apply_overlays").INPUT_FILES:
+        shutil.copy(DATA / f, d / f)
     return d
 
 
@@ -66,13 +68,54 @@ class TestApplyOverlays:
         mod = _load("apply_overlays")
         assert mod.main(["--data-dir", str(d), "--check"]) == 0
 
-    def test_registry_covers_all_shipped_manifests(self):
-        """A new *_overlay_pairs.csv without a registry entry must fail here."""
+    def test_inputs_are_exactly_the_reviewed_files(self):
+        """The engine reads the water file (Stage 3), the land-gap file and the
+        denylist (Stage 4); a new *_overlay_pairs.csv it does not read, or a
+        retired store left behind, must fail here."""
         mod = _load("apply_overlays")
-        registry_manifests = {entry[1] for entry in mod.REGISTRY}
-        shipped = {f.name for f in DATA.glob("*_overlay_pairs.csv")}
-        shipped.discard("disputed_overlay_pairs.csv")  # applied by the build script
-        assert registry_manifests == shipped
+        assert set(mod.INPUT_FILES) == {"water_classification_pairs.csv",
+                                        "land_gap_overlay_pairs.csv", "denylist_pairs.csv"}
+        assert all((DATA / f).exists() for f in mod.INPUT_FILES)
+        overlays = {f.name for f in DATA.glob("*_overlay_pairs.csv")}
+        overlays.discard("disputed_overlay_pairs.csv")  # written by the geometry build (Stage 2)
+        assert overlays <= set(mod.INPUT_FILES)
+        for retired in ("rescreen_gap_overlay_pairs.csv", "rescreen_water_overlay_pairs.csv"):
+            assert not (DATA / retired).exists(), retired
+        assert not (REPO / "build_data" / "bridge_classified_authoritative.csv").exists()
+
+    def test_fresh_build_reproduces_the_shipped_files(self, tmp_path):
+        """What a fresh --full build hands the engine: Stages 1-2 only (no water
+        table, the 24 + 4 added edges absent, the five denylisted contacts
+        present).  Stages 3-4 must reproduce the shipped files byte for byte."""
+        d = _copy_data(tmp_path)
+        mod = _load("apply_overlays")
+        added = {frozenset({r["code_a"].strip(), r["code_b"].strip()})
+                 for f in ("water_classification_pairs.csv", "land_gap_overlay_pairs.csv")
+                 for r in _csv.DictReader(open(DATA / f, newline="", encoding="utf-8-sig"))
+                 if f.startswith("land_gap") or r["adds_edge"] == "True"}
+        edge = d / "pericoupled_adm1_edge_list.csv"
+        eol = b"\r\n" if b"\r\n" in edge.read_bytes()[:4096] else b"\n"
+        lines = edge.read_bytes().split(eol)
+        head, body = lines[0], [x for x in lines[1:] if x]
+        keep = [x for x in body
+                if frozenset(x.decode("utf-8").split(",")[i] for i in (0, 5)) not in added]
+        iso_meta = {}  # the engine takes a country's name and region from the edge list
+        for r in _csv.DictReader(open(DATA / "pericoupled_adm1_edge_list.csv", newline="",
+                                      encoding="utf-8-sig")):
+            iso_meta.setdefault(r["ISO_A3_A"], (r["country_A"], r["WB_region_A"]))
+            iso_meta.setdefault(r["ISO_A3_B"], (r["country_B"], r["WB_region_B"]))
+        contacts = []
+        for r in _csv.DictReader(open(DATA / "denylist_pairs.csv", newline="", encoding="utf-8-sig")):
+            (ca, ra), (cb, rb) = iso_meta[r["iso_a"]], iso_meta[r["iso_b"]]
+            contacts.append(",".join([r["code_a"], r["name_a"], ca, r["iso_a"], ra,
+                                      r["code_b"], r["name_b"], cb, r["iso_b"], rb,
+                                      str(r["iso_a"] != r["iso_b"]), "1.0", "True", "False"]).encode("utf-8"))
+        assert len(keep) == 8461 - 28 and len(contacts) == 5
+        edge.write_bytes(eol.join([head, *keep[:100], *contacts, *keep[100:]]) + eol)
+        (d / "water_separated_pairs.csv").unlink()
+        assert mod.main(["--data-dir", str(d)]) == 0
+        for f in OUTPUT_FILES:
+            assert (d / f).read_bytes() == (DATA / f).read_bytes(), f"{f} differs from the shipped file"
 
 
 class TestBuildAll:
@@ -110,9 +153,10 @@ class TestBuildAll:
 
 import csv as _csv
 import re as _re
+from collections import Counter
 
 WATER_CSV = DATA / "water_separated_pairs.csv"
-BRIDGE_CSV = REPO / "build_data" / "bridge_classified_authoritative.csv"
+WATER_FILE = DATA / "water_classification_pairs.csv"
 WATER_HEADER = ["level", "code_a", "code_b", "has_bridge", "water_type",
                 "water_body", "note", "adjudication", "verification_tier"]
 
@@ -122,21 +166,51 @@ def _water_rows():
         return list(_csv.DictReader(fh))
 
 
-def test_water_csv_schema_and_note_position():
-    """Exact 9-column header with `note` at index 6 -- a positional contract.
-
-    ``apply_overlays.py`` decides whether an existing row belongs to the overlay
-    being applied with a bare positional compare, ``adm1_rows[i][5] == note``
-    (index 5 in the tuple; 6 in the CSV, which prepends ``level``).  Inserting a
-    column before ``note`` makes that test never match, so every overlay silently
-    stops claiming its rows -- no error, the manifests just go inert.  Pin it.
-    """
+def test_water_csv_schema_and_notes():
+    """The shipped water table's exact 9-column header, and its `note` column:
+    the engine writes one note per instrument class (779 rows on a shared edge,
+    24 between non-touching units) and `adm1-rollup` for the 26 ADM0 rows."""
+    mod = _load("apply_overlays")
     with open(WATER_CSV, newline="", encoding="utf-8-sig") as fh:
         header = next(_csv.reader(fh))
         widths = {len(r) for r in _csv.reader(fh) if r}
-    assert header == WATER_HEADER, f"water CSV header drifted: {header}"
-    assert header.index("note") == 6, "note must stay at CSV index 6"
+    assert header == WATER_HEADER == mod.WATER_HEADER, f"water CSV header drifted: {header}"
     assert widths == {9}, f"ragged water CSV -- row widths {sorted(widths)}"
+    notes = Counter(r["note"] for r in _water_rows())
+    assert notes == Counter({mod.NOTE_ON_EDGE: 779, mod.NOTE_NON_TOUCHING: 24, "adm1-rollup": 26}), notes
+
+
+def test_water_file_is_the_water_table():
+    """Stage 3's one file carries every ADM1 water row, in the table's order:
+    the same pairs, flags, types, bodies and provenance classes; the 24
+    `adds_edge` rows are the non-touching borders, with a corridor length."""
+    table = [r for r in _water_rows() if r["level"] == "adm1"]
+    rows = list(_csv.DictReader(open(WATER_FILE, newline="", encoding="utf-8-sig")))
+    assert len(rows) == len(table) == 803
+    cols = ("code_a", "code_b", "has_bridge", "water_type", "water_body", "adjudication",
+            "verification_tier")
+    for w, t in zip(rows, table):  # the engine strips each value it writes
+        assert tuple(w[c].strip() for c in cols) == tuple(t[c] for c in cols), (w, t)
+    adds = [w for w in rows if w["adds_edge"] == "True"]
+    assert len(adds) == 24 and all(float(w["border_km"]) > 0 for w in adds)
+    assert all(w["adds_edge"] == "False" and not w["border_km"] for w in rows if w not in adds)
+
+
+def test_denylist_is_exactly_the_reviewed_pairs():
+    """Stage 4 removes exactly the five maintainer-decided non-adjacent contacts
+    (docs/FUTURE_EDGE_AUDITS.md #7, #8, #11-#13); none ships as an edge or as a
+    water row, and each carries its evidence and ruling."""
+    deny = list(_csv.DictReader(open(DATA / "denylist_pairs.csv", newline="", encoding="utf-8-sig")))
+    keys = {frozenset({r["code_a"], r["code_b"]}) for r in deny}
+    assert keys == {frozenset({"LBR006", "LBR014"}), frozenset({"VEN001", "VEN003"}),
+                    frozenset({"CAN003", "CAN006"}), frozenset({"COD009", "UGA102"}),
+                    frozenset({"TZA016", "UGA040"})}
+    assert all(r["evidence"].strip() and r["ruling"].strip() for r in deny)
+    edges = {frozenset({r["ADM1_code_A"], r["ADM1_code_B"]})
+             for r in _csv.DictReader(open(DATA / "pericoupled_adm1_edge_list.csv", newline="",
+                                           encoding="utf-8-sig"))}
+    assert not keys & edges
+    assert not keys & {frozenset({r["code_a"], r["code_b"]}) for r in _water_rows()}
 
 
 def test_every_adm1_row_has_provenance_and_adm0_has_none():
@@ -180,7 +254,7 @@ def test_tier_b_is_exactly_the_validation_study_frame():
     predicate.
 
     The predicate is the hyphenated-or-spaced phrase "dual-AI verified", NOT the
-    bare token "dual-AI": one rescreen-gap row's source reads "overrules dual-AI
+    bare token "dual-AI": one non-touching row's source reads "overrules dual-AI
     corner verdict" -- a dual-AI verdict REJECTED by maintainer map ruling. A
     bare-token match returns 239 and quietly corrupts the frame.
     """
@@ -192,32 +266,19 @@ def test_tier_b_is_exactly_the_validation_study_frame():
         f"tier B has {len(tier_b)} rows, must be exactly the 238-row study frame "
         "(docs/VALIDATION_SAMPLING_PLAN.md); PROVENANCE's 98.7% precision claim "
         "is scoped to it")
-    from_source = set()
-    for name in ("rescreen_water_overlay_pairs.csv", "rescreen_gap_overlay_pairs.csv"):
-        with open(DATA / name, newline="", encoding="utf-8-sig") as fh:
-            for r in _csv.DictReader(fh):
-                if dual.search(r.get("source", "")):
-                    from_source.add(f"{r['code_a']}<->{r['code_b']}")
+    with open(WATER_FILE, newline="", encoding="utf-8-sig") as fh:
+        from_source = {f"{r['code_a']}<->{r['code_b']}" for r in _csv.DictReader(fh)
+                       if dual.search(r.get("source", ""))}
     assert tier_b == from_source, (
-        "tier-B membership does not match the rows whose manifest `source` "
-        "records dual-AI verification")
+        "tier-B membership does not match the rows whose `source` in the water "
+        "file records dual-AI verification")
 
 
-def test_all_provenance_bearing_files_carry_the_columns():
-    """Every registry manifest with water rows, plus the bridge CSV.
-
-    The bridge CSV matters because ``build_pericoupling_db``'s
-    ``write_water_separated_manifest`` regenerates the water CSV *from* it on
-    ``--full``; omitting it there would blank provenance for the 298 base rows on
-    every rebuild and break the byte-identity claim in docs/REPRODUCING.md.
-    """
-    # hydro_water / hydro_lakes retired 2026-07-28 -- their rows (and columns)
-    # now live in rescreen_water
-    targets = ["rescreen_gap_overlay_pairs.csv", "rescreen_water_overlay_pairs.csv"]
-    for name in targets:
-        with open(DATA / name, newline="", encoding="utf-8-sig") as fh:
-            cols = next(_csv.reader(fh))
-        assert "adjudication" in cols and "verification_tier" in cols, name
-    with open(BRIDGE_CSV, newline="", encoding="utf-8-sig") as fh:
-        cols = next(_csv.reader(fh))
-    assert "adjudication" in cols and "verification_tier" in cols, BRIDGE_CSV.name
+def test_water_file_carries_the_provenance_columns():
+    """The engine composes the water table from the water file on every run and
+    on a fresh ``--full`` build; a missing provenance column there would blank
+    provenance for every water row."""
+    with open(WATER_FILE, newline="", encoding="utf-8-sig") as fh:
+        rows = list(_csv.DictReader(fh))
+    assert {"adjudication", "verification_tier", "source", "adds_edge"} <= set(rows[0])
+    assert all(r["adjudication"].strip() and r["verification_tier"].strip() for r in rows)

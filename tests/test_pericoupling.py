@@ -220,9 +220,9 @@ class TestCouplingStandardAdm0:
         # moderate drops the 6 no-bridge water-only country pairs
         # (COD/CAF, MRT/SEN, COD/TZA across Lake Tanganyika, GUF/SUR on the
         # Maroni, the Lake-Chad/Malawi rollups without a fixed crossing, and
-        # GUY/SUR on the ferry-only Corentyne — a water-screen-rebuild b2
-        # roll-up); stringent drops all 26 water-only country pairs (the
-        # rebuild added DEU/LUX via the Our/Sauer, BEN/NER via the
+        # GUY/SUR on the ferry-only Corentyne — a b2 roll-up of the 2026-07
+        # water screens); stringent drops all 26 water-only country pairs (the
+        # 2026-07 screens added DEU/LUX via the Our/Sauer, BEN/NER via the
         # Niger/Mékrou, CMR/GAB via the Ntem, GUY/SUR, MWI/TZA — the
         # bridged Songwe plus the Lake Malawi/Nyasa segments — and, from the
         # b2 re-run, MOZ/TZA; the ru1 river-screen unification (2026-07-21)

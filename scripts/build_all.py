@@ -1,30 +1,33 @@
-r"""Rebuild or verify the pericoupling database with one command.
+r"""Regenerate or verify the pericoupling database with one command.
 
-The shipped database is the output of two stages:
+The shipped database is the output of four stages, run in order:
 
-1. **Deterministic geometry build** (``scripts/build_pericoupling_db.py``)
-   from the pinned World Bank Official Boundaries GeoPackages (2026-05-14
-   release; SHA-256 pins below and in ``data/PROVENANCE.md``) plus the
-   reviewed static bridge classification
-   (``build_data/bridge_classified_authoritative.csv``).
-2. **Reviewed correction layer** (``scripts/apply_overlays.py``): three
-   overlay manifest CSVs of individually audited, human/dual-AI-verified pairs.
+1-2. **Geometry build** (``scripts/build_pericoupling_db.py``) from the pinned
+     World Bank Official Boundaries GeoPackages (2026-05-14 release; SHA-256
+     pins below and in ``data/PROVENANCE.md``): Stage 1, exact-contact
+     contiguity with the source-relabel and the unit merge; Stage 2, the de
+     facto overlay across disputed areas.
+3-4. **Reviewed inputs** (``scripts/apply_overlays.py``): Stage 3, the
+     water-only classification (``data/water_classification_pairs.csv``);
+     Stage 4, the edge corrections (``data/land_gap_overlay_pairs.csv``,
+     ``data/denylist_pairs.csv``).
 
 Step-by-step reproduction manual: ``docs/REPRODUCING.md``.
 
 Modes:
 
 * ``python scripts/build_all.py``
-    Refresh: re-apply the correction layer to the shipped data and verify
-    every headline count.  On an untouched checkout this is a byte-stable
+    Refresh: re-apply Stages 3 and 4 to the shipped data and verify every
+    headline count.  On an untouched checkout this is a byte-stable
     no-op that exits 0 -- the day-to-day reproducibility check.
 
 * ``python scripts/build_all.py --full --adm1-gpkg ... --adm0-gpkg ...
-    --ocean-gpkg ... --ndlsa-gpkg ... [--bridge-csv ...] [--out-dir ...]``
-    Full rebuild: verify the inputs' SHA-256 against the pins (hard error on
-    mismatch -- a changed input is a data-change PR that must update the
-    pins), run the geometry build, apply the correction layer, verify counts,
-    and report whether the rebuilt files match the committed ones.
+    --ocean-gpkg ... --ndlsa-gpkg ... [--out-dir ...]``
+    Full regeneration: verify the GeoPackages' SHA-256 against the pins (hard
+    error on mismatch -- a changed input is a data-change PR that must update
+    the pins), run the geometry build (Stages 1-2), check that every
+    denylisted contact is present in its output, apply Stages 3-4, verify
+    counts, and report whether the regenerated files match the committed ones.
 """
 from __future__ import annotations
 
@@ -43,16 +46,14 @@ REPO = HERE.parent
 DEFAULT_DATA = REPO / "src" / "metacouplingllm" / "data"
 
 # SHA-256 of the pinned inputs (World Bank Official Boundaries, 2026-05-14
-# release; bridge classification snapshot 2026-06).  Also recorded in
-# data/PROVENANCE.md "Sources (pinned)".  The GeoPackage digests are of the raw
-# bytes; `bridge_csv` is the LF-normalised digest (see _sha256) so the pin holds
-# on both CRLF and LF checkouts.
+# release), of the raw bytes.  Also recorded in data/PROVENANCE.md "Sources
+# (pinned)".  The reviewed inputs of Stages 3 and 4 live in the data directory
+# under version control and are checked by the byte-identity report instead.
 PINNED_SHA256 = {
     "adm1_gpkg": "dbac29f4ecaabe6a9b3ecf50780e5e57a725c7f0eab3d2514ce54fb717b64b45",
     "adm0_gpkg": "97f0c8a0fa848b9a8414dbeb2e058fa37d59b13794ec232a87da000bdf4b117e",
     "ocean_gpkg": "c2b074fdd691f6d36ba4a89af2761a11b35dea4d4c8c4f186f6132f43c88d702",
     "ndlsa_gpkg": "159ef2d133d12491eb6ce2f0d0d1032083209b0cf7d28ddda774a503055d2fa4",
-    "bridge_csv": "d898f7393694091f28a070f382b393375ca76e361877bb00ad7a929a36f649d5",
 }
 
 EXPECTED = {
@@ -64,24 +65,9 @@ EXPECTED = {
 }
 
 
-def _sha256(path: Path, *, text: bool = False) -> str:
-    """SHA-256 of a pinned input.
-
-    ``text=True`` normalises CRLF -> LF before hashing, so the digest is a
-    property of the *content* rather than of the checkout's line endings.  The
-    bridge CSV is the one text input, and the repo carries no ``.gitattributes``:
-    with ``core.autocrlf=true`` a Windows checkout renders it CRLF while git
-    stores (and Linux/CI check out) LF, which are two different digests.  Pinning
-    either raw form makes ``--full`` abort on the other platform -- and it did:
-    the pin was the Windows rendering, so ``--full`` was unreproducible on Linux
-    until this normalisation landed.  The pins below are therefore the LF digest.
-
-    The GeoPackages are binary and must never be normalised.
-    """
+def _sha256(path: Path) -> str:
+    """SHA-256 of a pinned input (the GeoPackages are binary: raw bytes)."""
     h = hashlib.sha256()
-    if text:
-        h.update(path.read_bytes().replace(b"\r\n", b"\n"))
-        return h.hexdigest()
     with open(path, "rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
@@ -163,6 +149,15 @@ def verify_counts(data_dir: Path) -> list[str]:
     return fails
 
 
+def _load_engine():
+    """The Stage 3-4 engine as a module (its input-file names are the contract)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("apply_overlays", HERE / "apply_overlays.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--data-dir", type=Path, default=DEFAULT_DATA)
@@ -172,21 +167,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--adm0-gpkg")
     ap.add_argument("--ocean-gpkg")
     ap.add_argument("--ndlsa-gpkg")
-    ap.add_argument("--bridge-csv", default=str(REPO / "build_data" / "bridge_classified_authoritative.csv"))
     ap.add_argument("--out-dir", help="output dir for --full (default: --data-dir)")
     args = ap.parse_args(argv)
     out_dir = Path(args.out_dir) if args.out_dir else args.data_dir
 
     if args.full:
         inputs = {"adm1_gpkg": args.adm1_gpkg, "adm0_gpkg": args.adm0_gpkg,
-                  "ocean_gpkg": args.ocean_gpkg, "ndlsa_gpkg": args.ndlsa_gpkg,
-                  "bridge_csv": args.bridge_csv}
+                  "ocean_gpkg": args.ocean_gpkg, "ndlsa_gpkg": args.ndlsa_gpkg}
         missing = [k for k, v in inputs.items() if not v]
         if missing:
             ap.error(f"--full requires {', '.join('--' + m.replace('_', '-') for m in missing)}")
         print("verifying input checksums against pins...")
         for key, path in inputs.items():
-            digest = _sha256(Path(path), text=(key == "bridge_csv"))
+            digest = _sha256(Path(path))
             pin = PINNED_SHA256[key]
             if pin is None:
                 print(f"  {key}: {digest}  (no pin recorded yet)")
@@ -200,20 +193,31 @@ def main(argv: list[str] | None = None) -> int:
         out_dir.mkdir(parents=True, exist_ok=True)
         cmd = [sys.executable, "-X", "utf8", str(HERE / "build_pericoupling_db.py"),
                "--adm1-gpkg", args.adm1_gpkg, "--adm0-gpkg", args.adm0_gpkg,
-               "--ocean-gpkg", args.ocean_gpkg, "--ndlsa-gpkg", args.ndlsa_gpkg,
-               "--bridge-csv", args.bridge_csv, "--out-dir", str(out_dir),
+               "--ocean-gpkg", args.ocean_gpkg, "--ndlsa-gpkg", args.ndlsa_gpkg, "--out-dir", str(out_dir),
                "--clip-ocean"]
-        print("running geometry build (this is the slow step)...", flush=True)
+        print("running the geometry build, Stages 1-2 (this is the slow step)...", flush=True)
         subprocess.run(cmd, check=True)
-        # the correction-layer manifests are review INPUTS, not build outputs:
+        # the reviewed inputs of Stages 3-4 are INPUTS, not build outputs:
         # stage them into a scratch out-dir so the engine can apply them there
+        overlays = _load_engine()
         if out_dir.resolve() != DEFAULT_DATA.resolve():
             import shutil
-            for mf in DEFAULT_DATA.glob("*_overlay_pairs.csv"):
-                if mf.name != "disputed_overlay_pairs.csv":
-                    shutil.copy(mf, out_dir / mf.name)
+            for name in overlays.INPUT_FILES:
+                shutil.copy(DEFAULT_DATA / name, out_dir / name)
+        # a denylist entry whose contact the geometry no longer produces would
+        # silently remove nothing: every entry must be present before Stage 4
+        with open(out_dir / "pericoupled_adm1_edge_list.csv", newline="", encoding="utf-8-sig") as fh:
+            built = {frozenset({r["ADM1_code_A"].strip(), r["ADM1_code_B"].strip()})
+                     for r in csv.DictReader(fh)}
+        with open(out_dir / overlays.DENYLIST_FILE, newline="", encoding="utf-8-sig") as fh:
+            stale = [f"{r['code_a']}<->{r['code_b']}" for r in csv.DictReader(fh)
+                     if frozenset({r["code_a"].strip(), r["code_b"].strip()}) not in built]
+        if stale:
+            print(f"FATAL denylisted contact(s) absent from the geometry build: {stale}")
+            return 1
+        print(f"  geometry build: {len(built)} ADM1 edges; every denylisted contact present")
 
-    print("applying the reviewed correction layer...", flush=True)
+    print("applying Stages 3-4 (the reviewed inputs)...", flush=True)
     engine = subprocess.run(
         [sys.executable, "-X", "utf8", str(HERE / "apply_overlays.py"),
          "--data-dir", str(out_dir)])
