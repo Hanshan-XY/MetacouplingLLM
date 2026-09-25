@@ -58,7 +58,7 @@ python scripts/build_all.py
    does not override a WB border: removal requires a WB-computable signature
    or the maintainer's official-map check.
 2. **De-facto connectivity** (NDLSA): the geometry-derived disputed overlay
-   (+13 ADM1 / +3 ADM0).
+   (+16 ADM1 / +3 ADM0).
 3. **Water classification** (descriptive only): the reviewed bridge
    classification sets `water_type`/`has_bridge` on the 298 base rows (first
    flagged by the Natural Earth screens; the build reads no Natural Earth
@@ -84,13 +84,13 @@ Rostov/Stavropol frontages into the existing RUS024 rows) = 8,422, −5 denylist
 three mid-lake contacts removed 2026-07-25 by wu1 maintainer map
 ruling — CAN003↔CAN006 Kasba Lake, COD009↔UGA102 Lake Edward,
 TZA016↔UGA040 Lake Victoria) =
-8,417; [S2] +13 disputed = 8,430 (the geometry build writes this file);
+8,417; [S2] +16 disputed = 8,433 (the geometry build writes this file);
 [S4 overlays, in application order] +4 land-gap (tolerance-band recovery; a
 fifth recovered pair, MOZXXX↔MWI003, was reversed 2026-07-18 by maintainer
-map ruling — the true contact is a point) = 8,434, +24 rescreen-gap
+map ruling — the true contact is a point) = 8,437, +24 rescreen-gap
 (water-screen rebuild, batch b1, plus the rg1 river-gap fold 2026-07-22 and
-the lg1 lake-gap fold 2026-07-23) = **8,458** shipped
-(lenient); **8,062** moderate; **7,655** stringent; 3,374 regions, 196 countries.
+the lg1 lake-gap fold 2026-07-23) = **8,461** shipped
+(lenient); **8,065** moderate; **7,658** stringent; 3,374 regions, 196 countries.
 **ADM0** 326 / 320 / 300. **Water-only 803** (407/396) + 26 ADM0 roll-ups
 (the geodesic 500 m water buffers fold the Uruguay River and the
 Dead Sea into the hydro row families — the two borders the raw-degree screens
@@ -253,10 +253,10 @@ municipal consolidation postdates the WB layer's 119-novadi representation).
 
 | File | Shape | Content |
 |---|---|---|
-| `pericoupled_adm1_edge_list.csv` | 8,458 edges · 3,374 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
+| `pericoupled_adm1_edge_list.csv` | 8,461 edges · 3,374 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the water-only overlay edges below) |
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
-| `disputed_overlay_pairs.csv` | 3 ADM0 + 13 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
+| `disputed_overlay_pairs.csv` | 3 ADM0 + 16 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
 | `water_separated_pairs.csv` | 803 ADM1 + 26 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter (298 base + 481 rescreen-water + 24 rescreen-gap; see *Water-separated pairs* below) |
 | `sliver_corridor_relabel.csv` | 10 host polygons | Reviewed source-relabel manifest: WB sliver-corridor artifacts reassigned to their true owner units before contiguity. |
 | `land_gap_overlay_pairs.csv` | 4 ADM1 pairs | Reviewed land-gap manifest: genuine sub-tolerance borders (Egypt–Libya … domestic Anguilla) recovered from the tolerance-0 band audit (ordinary land edges). A fifth recovered pair (MOZXXX↔MWI003) was reversed 2026-07-18: maintainer map ruling, point contact (`docs/FUTURE_EDGE_AUDITS.md`). |
@@ -279,6 +279,15 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
     - Admin 0 `97f0c8a0fa848b9a8414dbeb2e058fa37d59b13794ec232a87da000bdf4b117e`
     - Ocean Mask `c2b074fdd691f6d36ba4a89af2761a11b35dea4d4c8c4f186f6132f43c88d702`
     - NDLSA `159ef2d133d12491eb6ce2f0d0d1032083209b0cf7d28ddda774a503055d2fa4`
+- **Natural Earth v5.1.2** (the latest release, 2022-05-13) — the de-facto
+  administrator of each of the 24 NDLSA tracts (the administrator Natural Earth
+  records for the largest part of the tract; campaign `da1`, 2026-09-25). Applied
+  as the constant table `_NDLSA_TRACT_ADMIN` in `scripts/build_pericoupling_db.py`,
+  not read at build time. https://www.naturalearthdata.com/
+  - `ne_10m_admin_0_disputed_areas.zip` SHA-256
+    `a250c1cf8ab68898399928a1fa1d5c242eb4de6335cb51a7f7a7f12a9f3c8438`
+  - `ne_10m_admin_0_countries.zip` SHA-256
+    `ce1ac7036499a0edd641fbc093cd209a98f96a49d2eca8480aaacad35138a7f6`
 - **Bridge classification** — `build_data/bridge_classified_authoritative.csv`
   (reviewed static artifact, OSM snapshot 2026-06-03/04 + independent
   verification; not regenerable from geometry; 298 rows after the 2026-07-02
@@ -321,7 +330,7 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
 
 > **Note.** The subsections below are the *discovery/validation record* for the
 > four-stage, tolerance-0 pipeline and the manifests listed in the Datasets
-> table above (authoritative counts: 8,458 / 8,062 / 7,655; water-only 803);
+> table above (authoritative counts: 8,461 / 8,065 / 7,658; water-only 803);
 > they document how each reviewed correction input was discovered and audited.
 
 
@@ -362,35 +371,47 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   & **`MAR`/`MRT`**. At **ADM1** the overlay is derived *independently* (country
   adjacency does **not** imply province adjacency — two countries adjacent
   elsewhere can still have their flanking provinces meet only across a disputed
-  tract) via an authored tract→**province** map, yielding **13** subnational
+  tract) via a geometry-validated tract→**province** map, yielding **16** subnational
   pairs — e.g. `IND003` Arunachal Pradesh↔`CHN029` Tibet (~993 km), `ISR004`
   Northern↔`SYR012` Quneitra (Golan), `MAR005`/`MAR007`↔`MRT012`/`MRT004`/`MRT001`
-  (Western Sahara), `BTN005` Haa↔`CHN029` Tibet (Doklam). The runtime loaders
+  (Western Sahara), `BTN005` Haa↔`CHN029` Tibet (Doklam), `ISR003` Jerusalem↔`PSE013`
+  Ramallah (the Latrun no-man's-land), `SDN012` Southern Darfur / `SDN013` Southern
+  Kordofan↔`SSD010` Warrap (Abyei). The runtime loaders
   accept `de_facto_borders` (default `True`); passing `False` gives the
-  **strict** standard-layer view, which omits these pairs (3 ADM0 + 13 ADM1,
+  **strict** standard-layer view, which omits these pairs (3 ADM0 + 16 ADM1,
   listed in `disputed_overlay_pairs.csv`).
 
   **`CHN`/`PAK` is ADM0-only.** Gilgit-Baltistan and Ladakh/Jammu & Kashmir are
   disputed territories EXCLUDED from WB's ADM1 layer — **not** provinces (WB
   lists only 5 Pakistani ADM1 units, none Gilgit-Baltistan) — so there is no WB
   province to attribute their subnational adjacency to, and the China–Pakistan
-  relationship is carried at the country level only. India retains the rest of
+  relationship is carried at the country level only; its restored border (~455 km)
+  is measured between the two de-facto territories, so it includes the Karakoram
+  crest line between Gilgit-Baltistan and the Shaksgam Valley (China's Karakoram
+  Range tract). India retains the rest of
   its Kashmir geometry natively (`IND/PAK`, `IND/CHN` need no ADM0 patch).
   Western Sahara (`ESH`) is a **separate excluded NDLSA tract** — *not* dissolved
   into Morocco in the standard layer; folding it into its de-facto administrator
   (Morocco) adds the otherwise-absent **`MAR`/`MRT`** land border (~1,544 km).
 
-  *Neutral-framing note.* The NDLSA layer carries **no** administering-country
-  field (`SOVEREIGN` is null for all 24 tracts; `WB_STATUS` is uniformly
-  "Non-determined legal status area"), so every tract→administrator (ADM0) and
-  tract→province (ADM1) attribution is **authored** — it records effective/
-  physical coupling across the de-facto line for a connectivity dataset and is
-  **not** a legal or endorsed sovereignty claim. Both are **geometry-validated**
-  at build time (`derive_disputed_overlay` raises if an authored unit does not
-  touch its tract, so a mislabel fails loudly rather than silently dropping a
-  pair); ADM1 borders spanning several administering provinces are split among
-  them by nearest province. The full per-tract candidate audit is shipped at
-  `docs/ndlsa_tract_audit.csv` (see `docs/METHODS_adjacency.md`).
+  *Administrators and neutral framing.* The NDLSA layer carries **no**
+  administering-country field (`SOVEREIGN` is null for all 24 tracts; `WB_STATUS`
+  is uniformly "Non-determined legal status area"), so each tract is assigned,
+  whole, to the administrator that **Natural Earth v5.1.2** records for the largest
+  part of it (a dependency counting for its sovereign; no exceptions; campaign
+  `da1`, 2026-09-25): 23 of the 24 tracts are assigned and the UN Buffer Zone is
+  not; the three island tracts go to the United Kingdom and add no pair. It records
+  effective/physical coupling across the de-facto line for a connectivity dataset
+  and is **not** a legal or endorsed sovereignty claim. The tract→province (ADM1)
+  map is authored (for the tracts whose administrator `da1` changed, the
+  administrator's provinces that touch the tract; none for the three islands). Both are **geometry-validated** at build time
+  (`derive_disputed_overlay` raises if an assigned tract does not touch its
+  administrator's territory, unless it touches no unit at all, or if an authored
+  province does not touch its tract, so a mislabel fails loudly rather than silently
+  dropping a pair); ADM1 borders spanning several administering provinces are split
+  among them by nearest province. The full per-tract audit, with Natural Earth's
+  record and share for each tract, is shipped at `docs/ndlsa_tract_audit.csv` (see
+  `docs/METHODS_adjacency.md`).
 - **Water-separated pairs (`coupling_standard`).** 803 ADM1 pairs (and 26
   rolled-up ADM0 country pairs) share **only** a river/lake border with no land
   segment. The runtime loaders accept `coupling_standard` (default `"moderate"`),
@@ -398,7 +419,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**
   borders, lake-meeting pairs being native edges governed like rivers (ADM1
-  shipped edges 8,458 → **8,062** moderate / **7,655** stringent; ADM0 326 →
+  shipped edges 8,461 → **8,065** moderate / **7,658** stringent; ADM0 326 →
   **320** moderate / **300** stringent). Each pair's `has_bridge` flag was classified
   from OpenStreetMap (a road/rail bridge, causeway, dam-top road or tunnel — not
   a ferry — lying in **both** units) and then **independently verified** via web
@@ -501,7 +522,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   waypoint: ADM1 8,450 edges, ADM0 326 pairs, water-only 363 ADM1
   (125/238) + 22 ADM0 roll-ups; the rescreen overlays and the ru1
   re-adjudication below take the shipped
-  totals to **8,458** / **803** (407/396) / **26** roll-ups.
+  totals to **8,461** / **803** (407/396) / **26** roll-ups.
 - **Land-gap overlay (survey-line offset corridors).** Along straight-surveyed
   borders the two countries' polygons can be digitized from different renderings
   of the same line, leaving an offset corridor wider than the ~55 m snap
@@ -631,7 +652,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   ends land in Bács-Kiskun via the documented Danube side-channel anomaly).
   Everything is **strictly additive** — the pre-rebuild set reproduces
   unchanged, verified against a frozen SHA-256 baseline. Current shipped
-  counts: ADM1 **8,458** edges (**8,062** moderate / **7,655** stringent),
+  counts: ADM1 **8,461** edges (**8,065** moderate / **7,658** stringent),
   ADM0 **326** (320 / 300), water-only **803** ADM1 (407/396) + **26** ADM0
   roll-ups (the rebuild completed five country borders as all-water: DEU↔LUX
   bridged Our–Sauer–Moselle, BEN↔NER bridged Niger/Mékrou, CMR↔GAB bridged

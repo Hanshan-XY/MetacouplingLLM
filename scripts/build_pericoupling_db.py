@@ -95,35 +95,49 @@ _GEOD = Geod(ellps="WGS84")
 # geometry* by ``derive_disputed_overlay`` (not hand-listed), so a mis-labelled
 # tract fails loudly instead of silently dropping a pair.
 #
-# IMPORTANT — these tract→administrator assignments are AUTHORED.  The NDLSA
-# layer carries NO administering-country field (``SOVEREIGN`` is null for all 24
-# tracts; ``WB_STATUS`` is uniformly "Non-determined legal status area"), so each
-# mapping reflects *de-facto control* for a connectivity dataset and is NOT a
-# legal or endorsed sovereignty claim.  ``None`` = no single de-facto
-# administrator (islands, no-man's-lands, UN zones); such tracts are not folded.
-# Keyed by the tract's ``NAM_0`` (note "Kauirik" carries a stray newline in the
-# source, normalised on load).
+# IMPORTANT — the NDLSA layer carries NO administering-country field (``SOVEREIGN``
+# is null for all 24 tracts; ``WB_STATUS`` is uniformly "Non-determined legal status
+# area").  Each tract is therefore assigned, whole, to the administrator that Natural
+# Earth v5.1.2 (the latest release: ne_10m_admin_0_disputed_areas, then
+# ne_10m_admin_0_countries for the rest of the tract) records for the largest part of
+# it, a dependency counting for its sovereign; a tract whose largest part has no
+# administrator the World Bank lists as a country is left unassigned (``None``, not
+# folded).  No exceptions: a smaller area Natural Earth records inside a tract does not
+# override the majority (maintainer rulings 2026-09-25, campaign da1; every share is
+# recorded in build_data/ndlsa_ne/SPEC_da1_defacto_administrators.md).  The mapping
+# describes de-facto administration for a connectivity dataset and is NOT a legal or
+# endorsed sovereignty claim.  Keyed by the tract's ``NAM_0`` (note "Kauirik" carries a
+# stray newline in the source, normalised on load).
 _NDLSA_TRACT_ADMIN: dict[str, str | None] = {
-    # India–China LoAC tracts (already-adjacent ISO pair → produce no new pair):
-    "Aksai Chin": "CHN", "Kauirik": "CHN", "Lapthal": "CHN", "Shipki Pass": "CHN",
+    # India–China tracts (already-adjacent ISO pair → produce no new pair).  Natural
+    # Earth: Aksai Chin CHN 99%; Kauirik CHN 57% (IND 43%); Lapthal IND 83%; Shipki
+    # Pass IND 55% (CHN 45%); Kalapani IND 75%; the others IND or BTN, 95-100%:
+    "Aksai Chin": "CHN", "Kauirik": "CHN", "Lapthal": "IND", "Shipki Pass": "IND",
     "Chumar East": "IND", "Chumar West": "IND", "Demchok": "IND",
     "Jadh Ganga Valley": "IND", "Arunachal Pradesh": "IND",
     "Jammu and Kashmir": "IND", "Kalapani": "IND", "Doklam": "BTN",
     # Pair-producing tracts (sole land link between the two flanking countries):
-    "Gilgit Baltistan": "PAK", "Karakoram Range": "PAK",   # → CHN/PAK
-    "Golan Heights": "ISR", "Shebaa Farms Dispute": "ISR",  # → ISR/SYR
-    "Western Sahara": "MAR",                                # → MAR/MRT
-    # Ilemi Triangle: de-facto Kenya, but Kenya and South Sudan ALREADY share an
-    # ~80 km border in the standard layer (SW of the tract), so folding it adds
-    # no new pair — only lengthens an existing border. Left assigned to KEN; the
-    # geometric derivation correctly emits no overlay pair for it.
-    "Ilemi Triangle": "KEN",
-    # Not folded: no single de-facto administrator (the first three), or an island
-    # territory with no land border, where folding restores no connectivity (the
-    # last three):
-    "Abyei": None, "No Man's Land": None, "UN Buffer Zone": None,
-    "British Indian Ocean Territory": None,
-    "South Georgia and South Sandwich Islands": None, "Falkland Islands": None,
+    "Gilgit Baltistan": "PAK",                              # → CHN/PAK
+    "Golan Heights": "ISR", "Shebaa Farms Dispute": "ISR",  # → ISR/SYR (the Golan;
+                                                            # Shebaa Farms touches
+                                                            # Lebanon and Israel only)
+    "Western Sahara": "MAR",                                # → MAR/MRT (Natural Earth:
+                                                            # MAR 66%, self-admin. 34%)
+    # Karakoram Range is the Shaksgam Valley (Trans-Karakoram Tract): Natural Earth
+    # "Admin. by China; Ceded to China by Pakistan; Claimed by India" (99.9%).  It
+    # meets Gilgit-Baltistan along the Karakoram crest through K2, which the de-facto
+    # China–Pakistan border therefore includes.
+    "Karakoram Range": "CHN",
+    # Already-adjacent ISO pairs (folding adds no country pair):
+    "Ilemi Triangle": "KEN",   # Kenya and South Sudan share ~80 km in the standard layer
+    "Abyei": "SDN",            # Natural Earth "Admin. by Sudan; Claimed by South Sudan"
+    "No Man's Land": "ISR",    # Latrun; Natural Earth "Admin. By Israel; Claimed by Palestine"
+    # Island tracts: they touch no unit, so folding them adds no pair.
+    "British Indian Ocean Territory": "GBR",
+    "South Georgia and South Sandwich Islands": "GBR", "Falkland Islands": "GBR",
+    # Not folded: Natural Earth records no administrator for most of it (the UN buffer
+    # zone and Northern Cyprus, 89%).
+    "UN Buffer Zone": None,
 }
 
 # De-facto administering ADM1 PROVINCE(s) per tract, for the subnational overlay.
@@ -144,20 +158,28 @@ _NDLSA_TRACT_ADMIN: dict[str, str | None] = {
 _NDLSA_TRACT_ADM1: dict[str, list[str]] = {
     # Pair-producing — the tract is the sole subnational land link:
     "Golan Heights": ["ISR004"],          # Northern District administers the Golan
-    "Shebaa Farms Dispute": ["ISR004"],
+    "Shebaa Farms Dispute": ["ISR004"],   # links no pair: its Lebanese flank already
+                                          # borders ISR004
     "Arunachal Pradesh": ["IND003"],      # the state itself — NOT Assam (which is
                                           # merely the nearest non-tract polygon)
     "Doklam": ["BTN005"],                 # Haa Dzongkhag
     "Western Sahara": ["MAR005", "MAR007"],  # Guelmim-Oued Noun + Laâyoune-Sakia
                                           # al Hamra (Moroccan "Southern Provinces")
+    # The administrator's provinces that touch the tract (da1):
+    "Abyei": ["SDN012", "SDN013"],        # Southern Darfur, Southern Kordofan
+    "No Man's Land": ["ISR001", "ISR003"],  # Central District, Jerusalem
     # Already-adjacent flanks (no new overlay row — listed for completeness):
     "Aksai Chin": ["CHN029", "CHN028"], "Kauirik": ["CHN029"],
-    "Lapthal": ["CHN029"], "Shipki Pass": ["CHN029"],
+    "Lapthal": ["IND035"], "Shipki Pass": ["IND014"],  # Uttarakhand; Himachal Pradesh
     "Jadh Ganga Valley": ["IND035", "IND014"], "Kalapani": ["IND035"],
     "Ilemi Triangle": ["KEN043"],
+    "Karakoram Range": ["CHN028"],        # Xinjiang; no other province touches it
     # De-facto admin sub-unit is NOT a WB ADM1 province → ADM0-only (empty):
-    "Gilgit Baltistan": [], "Karakoram Range": [],
+    "Gilgit Baltistan": [],
     "Jammu and Kashmir": [], "Chumar East": [], "Chumar West": [], "Demchok": [],
+    # Island tracts touch no province:
+    "British Indian Ocean Territory": [],
+    "South Georgia and South Sandwich Islands": [], "Falkland Islands": [],
 }
 
 # Frontier-sampling step (~1.1 km at the equator) used to split a tract↔neighbour
@@ -463,11 +485,13 @@ def derive_disputed_overlay(
     ``_ADM1_DISPUTED_OVERLAY`` (full ADM1 edge rows) and
     ``_DISPUTED_OVERLAY_MANIFEST`` (sidecar rows, both levels).
 
-    Validation: every assigned tract must touch (within SNAP_TOL of) at least
-    one polygon of its administrator at the level being processed; a tract that
-    touches NONE of its administrator's geometry raises ``ValueError`` (this is
-    the guard that makes a mis-labelled tract fail loudly instead of silently
-    dropping a pair).
+    Validation (campaign da1): every assigned tract must touch (within SNAP_TOL
+    of) its administrator's territory, the administrator's own polygon or another
+    tract assigned to it, unless the tract touches no unit at all (an island
+    tract, which adds no pair); otherwise it raises ``ValueError`` (the guard
+    that makes a mis-labelled tract fail loudly instead of silently dropping a
+    pair).  A restored country border is measured between the two countries'
+    de-facto territories (each country's polygon with the tracts assigned to it).
     """
     global _ADM0_DISPUTED_ALLOWLIST, _ADM1_DISPUTED_OVERLAY
     global _DISPUTED_OVERLAY_MANIFEST
@@ -500,16 +524,27 @@ def derive_disputed_overlay(
         adm: "; ".join(sorted(names)) for adm, names in admin_tracts.items()
     }
 
+    # each administrator's de-facto territory: its own polygon with its tracts
+    std0 = {adm: _union_iso(a0, adm) for adm in admin_tracts}
+    merged_of = {adm: unary_union([g] + [tracts[n] for n in admin_tracts[adm]])
+                 for adm, g in std0.items() if g is not None}
+    a0tree = STRtree(list(a0.geometry))
     for adm, names in sorted(admin_tracts.items()):
-        adm_geom0 = _union_iso(a0, adm)
+        adm_geom0 = std0[adm]
         if adm_geom0 is None:
             continue
-        merged = unary_union([adm_geom0] + [tracts[n] for n in names])
-        # validation: at least one tract must touch this admin's polygon
-        if not any(adm_geom0.distance(tracts[n]) <= SNAP_TOL_DEG for n in names):
+        merged = merged_of[adm]
+        # validation: each tract touches its administrator's territory (its polygon
+        # or another of its tracts), unless it touches no unit at all (an island)
+        for n in names:
+            own = [adm_geom0] + [tracts[m] for m in names if m != n]
+            if any(g.distance(tracts[n]) <= SNAP_TOL_DEG for g in own):
+                continue
+            if len(a0tree.query(tracts[n], predicate="dwithin", distance=SNAP_TOL_DEG)) == 0:
+                continue  # an island tract: folding it adds no pair
             raise ValueError(
-                f"NDLSA validation: no tract of admin {adm} ({names}) touches "
-                f"its ADM0 polygon — check _NDLSA_TRACT_ADMIN"
+                f"NDLSA validation: tract {n!r} does not touch the territory of its "
+                f"administrator {adm} — check _NDLSA_TRACT_ADMIN"
             )
         # which OTHER ISO becomes newly adjacent?
         for other in sorted(set(a0["ISO_A3"]) - {adm}):
@@ -518,9 +553,10 @@ def derive_disputed_overlay(
                 continue
             if _shared_km(adm_geom0, og) > 0:
                 continue  # already adjacent in strict layer
-            km0 = _shared_km(merged, og)
-            if km0 <= 0:
+            if _shared_km(merged, og) <= 0:
                 continue
+            # the restored border, measured between the two de-facto territories
+            km0 = _shared_km(merged, merged_of.get(other, og))
             adm0_pairs.add(frozenset({adm, other}))
             a_name = a0[a0["ISO_A3"] == adm]["NAM_0"].iloc[0]
             o_name = a0[a0["ISO_A3"] == other]["NAM_0"].iloc[0]

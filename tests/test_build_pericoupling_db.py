@@ -66,3 +66,24 @@ class TestBuildPericouplingDb:
             frozenset({"TZA016", "UGA040"}),
         }
         assert mod._ADM1_UNIT_MERGES == {"RUS050": "RUS024"}
+
+    def test_tract_administrators_follow_natural_earth(self):
+        """Each disputed-area tract is assigned whole to the administrator
+        Natural Earth v5.1.2 records for most of it (campaign da1, maintainer
+        rulings 2026-09-25; build_data/ndlsa_ne/SPEC_da1_defacto_administrators.md):
+        only the UN Buffer Zone stays unassigned, and every assigned tract has a
+        province list (empty = country level only)."""
+        mod = _load("build_pericoupling_db")
+        admin = mod._NDLSA_TRACT_ADMIN
+        assert len(admin) == 24
+        assert [t for t, a in admin.items() if a is None] == ["UN Buffer Zone"]
+        assert admin["Karakoram Range"] == "CHN"          # the Shaksgam Valley
+        assert admin["Kauirik"] == "CHN"                  # majority 57%
+        assert admin["Lapthal"] == "IND" and admin["Shipki Pass"] == "IND"
+        assert admin["No Man's Land"] == "ISR" and admin["Abyei"] == "SDN"
+        assert admin["Western Sahara"] == "MAR"           # whole tract, no exception
+        for island in ("British Indian Ocean Territory",
+                       "South Georgia and South Sandwich Islands", "Falkland Islands"):
+            assert admin[island] == "GBR"
+            assert mod._NDLSA_TRACT_ADM1[island] == []
+        assert {t for t, a in admin.items() if a is not None} == set(mod._NDLSA_TRACT_ADM1)
