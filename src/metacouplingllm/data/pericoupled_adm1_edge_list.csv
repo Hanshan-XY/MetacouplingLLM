@@ -8432,10 +8432,6 @@ ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE007,Masvingo,Zimbabwe,ZWE,AFR,False,385.4528
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,418.5808,False,False
 ZWE010,Midlands,Zimbabwe,ZWE,AFR,ZWE009,Matabeleland South,Zimbabwe,ZWE,AFR,False,291.3107,False,False
 ZWE011,Area under National Administration,Zimbabwe,ZWE,AFR,ZWE008,Matabeleland North,Zimbabwe,ZWE,AFR,False,417.7676,False,False
-EGY016,Matrouh,Arab Republic of Egypt,EGY,MENA,LBY001,Ajdabiya (agedabia),Libya,LBY,MENA,True,49.3833,False,False
-DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republic,DOM,LCR,False,0.0414,True,True
-ETH013,Tigray,Ethiopia,ETH,AFR,SDN004,Kassala,Sudan,SDN,AFR,True,0.1282,True,True
-AIA001,Name Unknown,Anguilla (U.K.),AIA,Other,AIA003,Name Unknown,Anguilla (U.K.),AIA,Other,False,0.1248,True,True
 CHE011,Jura,Switzerland,CHE,Other,CHE013,Neuchatel,Switzerland,CHE,Other,False,0.9,True,True
 DEU004,Brandenburg,Germany,DEU,Other,DEU009,Niedersachsen,Germany,DEU,Other,False,3.7,True,False
 GMB003,Central River South,The Gambia,GMB,AFR,GMB006,North Bank,The Gambia,GMB,AFR,False,3.4,True,False
@@ -8460,3 +8456,7 @@ GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.3
 ALB022,Malesi e Madhe,Albania,ALB,ECA,MNE002,Bar,Montenegro,MNE,ECA,True,22.9,False,False
 COD013,Équateur,Democratic Republic of Congo,COD,AFR,COG003,Cuvette,Congo,COG,AFR,True,2.2,True,False
 ARG008,Entre Rios,Argentina,ARG,LCR,URY001,Artigas,Uruguay,URY,LCR,True,1.2,True,False
+EGY016,Matrouh,Arab Republic of Egypt,EGY,MENA,LBY001,Ajdabiya (agedabia),Libya,LBY,MENA,True,49.3833,False,False
+DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republic,DOM,LCR,False,0.0414,True,True
+ETH013,Tigray,Ethiopia,ETH,AFR,SDN004,Kassala,Sudan,SDN,AFR,True,0.1282,True,True
+AIA001,Name Unknown,Anguilla (U.K.),AIA,Other,AIA003,Name Unknown,Anguilla (U.K.),AIA,Other,False,0.1248,True,True

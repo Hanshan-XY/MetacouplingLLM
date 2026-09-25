@@ -8,22 +8,21 @@ database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 The edge list contains **8,461 border pairs** covering **3,374 unique ADM1
 regions** across **196 countries**.  The graph is built in four stages (full
 provenance in ``data/PROVENANCE.md`` and ``docs/METHODS_adjacency.md``):
-(1) **topology** -- rook contiguity at exact contact (tolerance 0) over the
+(1) **geometry** -- rook contiguity at exact contact (tolerance 0) over the
 World Bank polygons, with **no lake filter** (so lake-meeting pairs are native
-edges), a **source-relabel** step fixing 10 reviewed cross-country
-sliver-corridor artifacts, a reviewed **unit merge** (RUS050 "Name Unknown",
-the GAUL-split western salient of Kalmykia, merged into RUS024), and a
-**denylist** removing 5 reviewed non-adjacent pairs (two fabricated edges,
-Grand Gedeh<->Rivercess and Apure<->Amazonas, and three mid-lake contacts in
-Kasba Lake, Lake Edward and Lake Victoria); (2) the geometry-derived **16-pair
-disputed overlay** (each disputed tract folded into the administrator Natural
-Earth records for most of it); (3) descriptive water classification of the 298
-base water-only borders; and (4) a reviewed correction layer of overlay
-manifests, each a deterministic Python screen + adjudication, frozen: a
-**4-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ... a
-domestic Anguilla pair), a **24-pair rescreen-gap overlay** (non-touching water
-borders found by the corridor census) and a flags-only **481-pair
-rescreen-water overlay** that reclassifies existing edges as water-only.
+edges), after a **source-relabel** step fixing 10 reviewed cross-country
+sliver-corridor artifacts and a reviewed **unit merge** (RUS050 "Name Unknown",
+the GAUL-split western salient of Kalmykia, merged into RUS024); (2) the
+geometry-derived **16-pair disputed overlay** (each disputed tract folded into
+the administrator Natural Earth records for most of it); (3) the reviewed
+**water-only classification** (one file, each row nominated by a deterministic
+Python screen and adjudicated): 779 existing edges flagged water-only and the
+**24** water borders between non-touching units that the corridor census found,
+added as edges; and (4) the reviewed **edge corrections**: a **4-pair land-gap
+overlay** (genuine sub-tolerance borders, Egypt-Libya ... a domestic Anguilla
+pair) and a **denylist** removing 5 contacts found not to be borders (two
+fabricated edges, Grand Gedeh<->Rivercess and Apure<->Amazonas, and three
+mid-lake contacts in Kasba Lake, Lake Edward and Lake Victoria).
 ``coupling_standard`` governs river and lake borders uniformly (``lenient``
 keeps all water borders, ``moderate`` keeps only those with a fixed crossing,
 ``stringent`` keeps none): the 803 water-only pairs give **8,461** lenient /

@@ -806,7 +806,7 @@ class TestCouplingStandardAdm1:
         # unification (2026-07-21): Shirak <-> Kars was demoted to a mixed
         # land border by maintainer map ruling (measured 0.67 water at 500 m),
         # so it is pericoupled under every standard; the other two rows now
-        # ship via the rescreen-water manifest (ru1 fold), still lenient-only.
+        # ship in the water classification file (ru1 fold), still lenient-only.
         from metacouplingllm.knowledge.adm1_pericoupling import (
             is_adm1_pericoupled,
         )
@@ -822,7 +822,7 @@ class TestCouplingStandardAdm1:
     def test_hydro_water_overlay_pairs(self):
         # Hydro-water rows: water-only borders the NE screens missed, found by
         # the HydroRIVERS full-database cross-check and human-verified
-        # (2026-07-02); carried in the rescreen-water manifest since the
+        # (2026-07-02); carried in the water classification file since the
         # 2026-07-28 consolidation. Spot-check one bridged and one unbridged
         # pair, plus the two pairs the same audit REMOVED from the water set.
         from metacouplingllm.knowledge.adm1_pericoupling import (
