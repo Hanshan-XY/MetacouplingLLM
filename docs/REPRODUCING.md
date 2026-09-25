@@ -1,6 +1,6 @@
 # Reproducing the pericoupling database — step-by-step manual
 
-This manual walks through rebuilding and verifying the two bundled adjacency
+This manual walks through regenerating and verifying the two bundled adjacency
 datasets — the ADM1 edge list (8,461 subnational shared-border pairs) and the
 ADM0 country matrix (326 pairs) with their water-only classification (803
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
@@ -15,18 +15,19 @@ The pipeline separates three things a reader might want to check, and it is
 important to know which one you are testing:
 
 1. **Build reproducibility** (fully automatic). The shipped CSVs are a pure
-   function of (a) four pinned World Bank GeoPackages, (b) one reviewed
-   bridge-classification CSV, and (c) four reviewed manifest CSVs shipped in
-   the repo (the source-relabel manifest, a build-stage input, plus the three
-   forming the engine's correction layer; the de-facto overlay manifest is
+   function of (a) four pinned World Bank GeoPackages and (b) four reviewed
+   input files shipped in the repo (the source-relabel manifest, a Stage 1
+   input; the water classification file, Stage 3; the land-gap and denylist
+   files, Stage 4; the de-facto overlay manifest is
    written by the build from the NDLSA layer, the tract administrators
    taken from Natural Earth v5.1.2 and the province attributions authored in
    `build_pericoupling_db.py`). Re-running the build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
-2. **Audit traceability** (read, don't re-run). The three overlay manifests were
-   *discovered* by deterministic Python screens and *adjudicated* by frozen
-   two-pass AI research + human map review. Those verdicts are frozen
-   history: every manifest row carries its provenance in a `source` column,
+2. **Audit traceability** (read, don't re-run). The reviewed inputs of Stages 3
+   and 4 were *discovered* by deterministic Python screens and *adjudicated* by
+   frozen two-pass AI research + human map review. Those verdicts are frozen
+   history: every water row carries its provenance in a `source` column, every
+   denylist row its evidence and ruling,
    and the discovery record lives in PROVENANCE.md / METHODS. Reproducing
    the database does **not** require re-running any audit. Section 5.
 3. **Screen re-derivability** (optional, heavier). The deterministic screens
@@ -40,9 +41,9 @@ important to know which one you are testing:
 - Python ≥ 3.11 with `geopandas`, `shapely`, `pyproj`, `pandas` (the shipped
   lengths were produced with geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 —
   see the byte-identity note in §3).
-- The repository checkout (the five manifest CSVs and the engine ship in it).
-- For the **full** rebuild only: the four pinned GeoPackages (~1 GB) and the
-  bridge CSV below. The quick verification path (§2) needs no downloads.
+- The repository checkout (the reviewed input files and the engine ship in it).
+- For the **full** regeneration only: the four pinned GeoPackages (~1 GB)
+  below. The quick verification path (§2) needs no downloads.
 
 **Pinned inputs** (SHA-256 also hard-coded in `scripts/build_all.py`, which
 refuses to build from a mismatching file):
@@ -53,23 +54,20 @@ refuses to build from a mismatching file):
 | WB Admin 0 GeoPackage (layer `WB_GAD_ADM0`, 264 features) | same distribution | `97f0c8a0…f4b117e` |
 | WB Ocean Mask GeoPackage | same distribution | `c2b074fd…c88d702` |
 | WB NDLSA GeoPackage (24 disputed-area features) | same distribution | `159ef2d1…55d2fa4` |
-| Bridge classification CSV (298 rows, reviewed static artifact) | `build_data/bridge_classified_authoritative.csv` (in-repo) | `d898f739…6f649d5` |
 
 (Full 64-character hashes: `data/PROVENANCE.md` → "Sources (pinned)".)
 
-> The GeoPackage digests are of the raw bytes. The bridge CSV is **text**, and
-> the repo carries no `.gitattributes`, so a `core.autocrlf=true` checkout
-> renders it CRLF while git stores LF — two different raw digests for identical
-> content. Its pin is therefore the **LF-normalised** digest, and `build_all.py`
-> normalises before comparing, so `--full` verifies on either platform.
+> The GeoPackage digests are of the raw bytes. The reviewed input files live in
+> the repository under version control and are not pinned; `build_all.py`
+> reports whether the regenerated files are byte-identical to the committed ones.
 
 **What a clean clone contains.** Everything §2 and §4 need ships in the
-repository, including the bridge classification CSV (tracked at its
-`build_data/` path). The four GeoPackages for §3 must be downloaded from the
+repository, including the reviewed input files (in `src/metacouplingllm/data/`).
+The four GeoPackages for §3 must be downloaded from the
 World Bank (their hashes are verified before any build). The wider
 `build_data/` audit-evidence tree (screen outputs, frozen AI verdicts,
 worksheets) is a local working archive, NOT shipped in the repository — its
-content is summarized in PROVENANCE.md/METHODS and in each manifest row's
+content is summarized in PROVENANCE.md/METHODS and in each water row's
 `source` column, and §6 re-derives the candidate screens from the public
 datasets directly rather than from those local artifacts.
 
@@ -79,11 +77,11 @@ datasets directly rather than from those local artifacts.
 python scripts/build_all.py
 ```
 
-This (a) re-applies the entire reviewed correction layer to the shipped data
+This (a) re-applies Stages 3 and 4 (the reviewed inputs) to the shipped data
 via `scripts/apply_overlays.py`, (b) recomputes every headline count from the
 resulting CSVs, and (c) compares them to the expected values. On an untouched
 checkout it must print `build_all: OK` with all twelve counts `OK` and report
-the engine as a **byte-stable no-op** — i.e. applying the corrections again
+the engine as a **byte-stable no-op** — i.e. applying Stages 3 and 4 again
 changes zero bytes. This is the day-to-day reproducibility check; CI runs the
 same property as a test (`tests/test_apply_overlays.py`).
 
@@ -98,7 +96,7 @@ Expected counts (current):
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
 
-## 3. Full rebuild from the pinned sources (~1–2 h)
+## 3. Full regeneration from the pinned sources (~1–2 h)
 
 ```
 python scripts/build_all.py --full ^
@@ -108,10 +106,10 @@ python scripts/build_all.py --full ^
     --ndlsa-gpkg <path>\WB_NDLSA.gpkg
 ```
 
-What happens, stage by stage (all inside `build_pericoupling_db.py` except
-S4):
+What happens, stage by stage (S1–S2 inside `build_pericoupling_db.py`, S3–S4
+in `scripts/apply_overlays.py`):
 
-- **S1 — topology.** SHA-256 of every input is verified against the pins
+- **S1 — geometry.** SHA-256 of every GeoPackage is verified against the pins
   (hard error on mismatch). A **source-relabel** step first reassigns 10
   reviewed WB sliver-corridor artifacts to their true owner units
   (`scripts/relabel_sliver_corridors.py` + manifest
@@ -123,8 +121,8 @@ S4):
   corner does not count). No lake filter — units meeting across a lake are
   native edges. Border lengths are full geodesic
   shared-boundary lengths (WGS84, `pyproj.Geod`).
-  → 8,427 raw − 2 relabel − 3 unit merge (RUS050 → RUS024) − 5 denylist =
-  **8,417** native pairs.
+  → 8,427 raw − 2 relabel − 3 unit merge (RUS050 → RUS024, the reviewed
+  rejoining of Kalmykia's split salient) = **8,422** native pairs.
 - **S2 — de-facto connectivity.** Each NDLSA disputed tract is folded into
   its de-facto administrator (the administrator Natural Earth v5.1.2 records for
   most of the tract; the table `_NDLSA_TRACT_ADMIN`) and adjacency re-measured;
@@ -132,37 +130,35 @@ S4):
   an assigned tract that does not touch its administrator's territory (unless it
   touches no unit at all) or an authored province that does not touch its tract
   fails loudly.
-  → **8,433**; this is the base file the geometry build writes.
-- **S3 — water classification (descriptive).** The reviewed bridge CSV
-  labels the 298 base water-only rows `water_type`/`has_bridge` (first
-  flagged by the Natural Earth screens; the build reads no Natural Earth
-  layer). This stage never adds or drops an edge.
-- **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
-  the three manifests in registry order (idempotent, one pass; see §5).
-  → +4 land-gap, +24 rescreen-gap edges =
-  **8,461**; water rows 298 → **803**; ADM0 roll-up recomputed once (a
-  country pair is water-only iff *all* its ADM1 crossings are; bridged iff
-  *any* is).
+  → **8,438**; this is the base file the geometry build writes (the five
+  denylisted contacts still in it; `build_all.py` checks that each is present).
+- **S3 — water-only classification.** `scripts/apply_overlays.py` reads
+  `water_classification_pairs.csv` (803 rows; the build reads no Natural Earth
+  layer): it flags 779 existing edges water-only (`water_type`, `water_body`,
+  `has_bridge`) and adds the 24 water borders between non-touching units, each
+  with its water row → **8,462**; water rows **803**.
+- **S4 — edge corrections.** +4 land-gap edges (`land_gap_overlay_pairs.csv`)
+  and −5 denylisted contacts (`denylist_pairs.csv`) → **8,461**; the ADM0
+  roll-up is then recomputed once (a country pair is water-only iff *all* its
+  ADM1 crossings are; bridged iff *any* is). Stages 3–4 are idempotent, one pass
+  (§5).
 
 The command then verifies all twelve headline counts and reports whether the
-rebuilt files are byte-identical to the committed ones.
+regenerated files are byte-identical to the committed ones.
 
 **Byte-identity scope (important, honest caveat).** The adjacency *pair set*
-reproduces exactly on any toolchain (verified by a clean-room rebuild
-2026-07-02). The advisory `border_length_km` column can differ in low-order
+reproduces exactly on any toolchain (verified by clean-room regenerations,
+the last on 2026-09-25). The advisory `border_length_km` column can differ in low-order
 digits under a different GEOS/Shapely version, because the geometry-cleaning
 and ocean-clip operations preceding the length measurement are sensitive to
 the buffer implementation — lengths never add or drop an edge, so this does
 not affect the pair set or any count. Exact byte-identity of lengths
 additionally requires the original toolchain (geopandas 1.1.2 / shapely 2.1.2
-/ pyproj 3.7.2). The correction layer is toolchain-independent, and its row
-order is canonical: the native rows keep the geometry-build order (the edge
-list's 8,433 native edges, the water table's 298 base rows), and the overlay rows
-follow in registry order and manifest row order, which is exactly what a fresh
-`--full` run produces. (Until 2026-09-16 the engine appended new rows at the end,
-so the committed order drifted with the append history while the row sets stayed
-identical; the engine now enforces the canonical order and the committed files
-were re-sorted once, verified byte-identical against a clean `--full` rebuild.)
+/ pyproj 3.7.2). Stages 3–4 are toolchain-independent, and their row order is
+canonical: the native rows keep the geometry-build order (the denylisted
+contacts removed), then the Stage 3 edges in water-file order and the Stage 4
+edges in manifest order; the water table follows the water file's order —
+exactly what a fresh `--full` run produces.
 
 ## 4. Run the test suite
 
@@ -170,49 +166,52 @@ were re-sorted once, verified byte-identical against a clean `--full` rebuild.)
 python -m pytest tests/ -q
 ```
 
-The suite (1,384 tests at the time of writing) includes: the expected-count assertions, the engine
-byte-stability guard, registry-covers-all-manifests, loader behavior for
+The suite (1,388 tests at the time of writing) includes: the expected-count assertions, the engine
+byte-stability guard, a fresh-build check that Stages 3–4 reproduce the
+shipped files, the check that the engine's inputs are exactly the reviewed
+files, loader behavior for
 `de_facto_borders` × `coupling_standard`, and **doc-drift guards** that parse
 `docs/METHODS_adjacency.md`, `INTRODUCTION.md`, and `MANUAL.md` and fail if
 any headline count in the prose disagrees with the live data.
 
-## 5. The reviewed correction layer — what it is and how to change it
+## 5. The reviewed inputs — what they are and how to change them
 
-Five manifest CSVs in `src/metacouplingllm/data/` govern the build: the
-source-relabel manifest is a build-stage input (S1), the de-facto overlay
+Five reviewed files in `src/metacouplingllm/data/` govern the build: the
+source-relabel manifest is a Stage 1 input, the de-facto overlay
 manifest is written by S2 from the NDLSA layer, the tract administrators taken
 from Natural Earth v5.1.2 and the province attributions authored in the build
-script, and the other **three** form the engine's
-correction layer (509 pair-rows: 28 edge-restoring + 481 water-flag-only). The engine
-(`scripts/apply_overlays.py`) holds only behavior; editing a manifest and
-re-running the engine is the supported way to change the correction layer:
+script, and the other **three** are the inputs of Stages 3 and 4 (812 rows:
+803 water rows, 24 of them adding an edge, 4 land edges and 5 removals). The
+engine (`scripts/apply_overlays.py`) holds only behavior; editing a file and
+re-running the engine is the supported way to change Stages 3 and 4:
 
-| manifest | effect |
+| file | effect |
 |---|---|
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
 | `disputed_overlay_pairs.csv` | S2 output: 16 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
-| `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
-| `rescreen_gap_overlay_pairs.csv` | +24 edges (2026-07 water-screen rebuild + the rg1/lg1 folds + the 2 nt2 corridor-census recoveries of 2026-09-10; per-row `water_type`) |
-| `rescreen_water_overlay_pairs.csv` | water flags on 481 edges (incl. the 14 domestic large-river rows (15 added 2026-09-01, one removed 2026-09-22), the 50 domestic creek-band rows (54 added 2026-09-14, three removed 2026-09-21, two removed and one returned 2026-09-22), the one pilot re-adjudication row added 2026-09-18 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
+| `water_classification_pairs.csv` | S3: water flags on 779 existing edges and 24 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
+| `land_gap_overlay_pairs.csv` | S4: +4 land edges (sub-tolerance survey lines) |
+| `denylist_pairs.csv` | S4: −5 contacts found not to be borders, each with its evidence and ruling; checked present in the geometry build's output before removal |
 
 Engine semantics worth knowing:
 
 - **Idempotent and byte-stable**: outputs are composed in memory and written
   only if bytes differ; `--check` exits 2 instead of writing. Running on
   already-corrected data is a no-op.
-- **`note` strings are frozen identifiers**: each water row's `note` column
-  ties it to its overlay; the engine syncs rows to their manifest by that
-  string. Never edit the note constants in the registry.
-- **Editing propagates**: change `has_bridge` in a manifest row, re-run the
+- **The water table is composed from the water file**: every run writes it
+  from `water_classification_pairs.csv` (its `note` column names the
+  instrument class, the edge screens or the corridor census), so the water
+  file is the one place to edit a water row.
+- **Editing propagates**: change `has_bridge` in a water-file row, re-run the
   engine, and the water CSV row plus the ADM0 roll-up update on the next
   pass.
-- **Every manifest row carries provenance**: the `source` column states how
-  the row was discovered, adjudicated, verified, and (for water rows) how
-  its bridge flag was classified.
+- **Every row carries provenance**: the water file's `source` column states
+  how the row was discovered, adjudicated, verified, and how its bridge flag
+  was classified; each denylist row carries its evidence and ruling.
 
 **What is deliberately NOT re-run.** The AI adjudication (two-pass research +
 adversarial judgment) and the human map reviews that *validated* each
-manifest row are frozen history — re-running a live model would make the
+row are frozen history — re-running a live model would make the
 build non-deterministic. The design principle throughout: *deterministic
 screens nominate, frozen audits decide, the build replays manifests.* If you
 distrust a row, its `source` string plus PROVENANCE.md tell you exactly which

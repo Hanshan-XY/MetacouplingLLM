@@ -4,7 +4,8 @@
 Fully deterministic: fixed seed 20260713, strata sorted by pair id before
 drawing. Re-running reproduces the identical sample byte-for-byte.
 
-Inputs: the shipped rescreen manifests (population P) and the untracked
+Inputs: the water classification file (population P: the rows whose source
+records a dual-AI verdict, the rows of the former rescreen manifests) and the untracked
 audit-evidence tree `build_data/water_screen_rebuild/` (populations N1/N2 —
 frozen verdict JSONs and the mechanism ledger). Outputs (untracked, for the
 rater): validation worksheets + a drawn-ids manifest under
@@ -27,11 +28,10 @@ W5 = REPO / "build_data" / "water_screen_rebuild"
 OUT = W5 / "validation"
 SEED = 20260713
 
-# ---------------- population P: shipped dual-AI rescreen rows ----------------
+# ---------------- population P: shipped dual-AI rows ------------------------
 P = []
 for fname, batch_of in [
-    ("rescreen_water_overlay_pairs.csv", None),
-    ("rescreen_gap_overlay_pairs.csv", None),
+    ("water_classification_pairs.csv", None),
 ]:
     for r in csv.DictReader(open(DATA / fname, newline="", encoding="utf-8-sig")):
         if "dual-AI" not in r["source"]:

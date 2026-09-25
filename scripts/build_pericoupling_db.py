@@ -1,41 +1,42 @@
 #!/usr/bin/env python
 """Build pericoupling adjacency databases from World Bank Official Boundaries.
 
-Regenerates the bundled adjacency datasets used by ``metacouplingllm``:
+Runs Stages 1 and 2 of the four-stage build and writes:
 
   * ``pericoupled_adm1_edge_list.csv`` — ADM1 (subnational) border edges
   * ``PeriTelecoupling_clean.csv``     — ADM0 (country) border matrix
-  * ``water_separated_pairs.csv``      — water-only flags (with ``--bridge-csv``)
   * ``disputed_overlay_pairs.csv``     — de-facto overlay manifest (with
     ``--ndlsa-gpkg``)
 
 Method (full detail: ``docs/METHODS_adjacency.md``)
 ---------------------------------------------------
+Stage 1 — geometry:
+
 1. Load the WB admin layer + the WB ocean mask (same vintage, so the clip
    aligns with the boundaries — no cross-dataset mismatch); clip each polygon
    to land by subtracting the ocean mask (``--clip-ocean``).
-2. **Source-relabel** — reassign the reviewed WB sliver-corridor artifacts to
-   their true owner units before contiguity
-   (``scripts/relabel_sliver_corridors.py`` + the reviewed manifest
-   ``data/sliver_corridor_relabel.csv``).
+2. The two reviewed corrections that change polygons act before contiguity:
+   the **source-relabel** reassigns the WB sliver-corridor artifacts to their
+   true owner units (``scripts/relabel_sliver_corridors.py`` + the reviewed
+   manifest ``data/sliver_corridor_relabel.csv``), and the **unit merge**
+   rejoins a unit the source split (``_ADM1_UNIT_MERGES``).
 3. **Exact-contact rook contiguity** (``TOPOLOGY_TOL_DEG = 0``): two units are
    adjacent iff their boundaries share a segment of non-zero geodesic length.
    No snapping tolerance, no lake filter (pairs meeting across a lake are
-   native edges; ``coupling_standard`` governs them downstream).  The reviewed
-   ``_ADM1_FALSE_POSITIVE_DENYLIST`` drops confirmed fake-touch edges.
-4. **De-facto disputed overlay** — each WB NDLSA disputed-area tract folded
-   into the administrator Natural Earth records for most of it
-   (``_NDLSA_TRACT_ADMIN``); the overlay pairs are derived from the geometry
-   and validated against it at build time.
-5. ``border_length_km`` is the **full** shared-boundary length in kilometres
-   (geodesic, ``pyproj.Geod``) — no river/lake subtraction; water status is a
-   separate descriptive layer (``water_separated_pairs.csv``) that never adds
-   or drops an edge.
+   native edges; ``coupling_standard`` governs them downstream).
+4. ``border_length_km`` is the **full** shared-boundary length in kilometres
+   (geodesic, ``pyproj.Geod``) — no river/lake subtraction.
 
-The reviewed correction overlays (land-gap, rescreen-gap, and the flags-only
-rescreen-water overlay) are applied afterwards by
-``scripts/apply_overlays.py``; ``scripts/build_all.py`` orchestrates both
-steps and verifies every headline count.
+Stage 2 — **de-facto disputed overlay**: each WB NDLSA disputed-area tract is
+folded into the administrator Natural Earth records for most of it
+(``_NDLSA_TRACT_ADMIN``); the overlay pairs are derived from the geometry and
+validated against it at build time.
+
+Stages 3 (the water-only classification) and 4 (the reviewed edge
+corrections: the land-gap borders and the denylist of non-adjacent contacts)
+are applied afterwards by ``scripts/apply_overlays.py``;
+``scripts/build_all.py`` runs all four stages in order and verifies every
+headline count.
 
 Flags (advisory only — never remove a pair):
   ``narrow_border``       : shared border < 5 km
@@ -53,7 +54,6 @@ Usage
         --adm0-gpkg "<...>/World Bank Official Boundaries - Admin 0 (1).gpkg" \
         --ocean-gpkg "<...>/World Bank Official Boundaries - Ocean Mask.gpkg" \
         --ndlsa-gpkg "<...>/World Bank Official Boundaries - NDLSA (1).gpkg" \
-        --bridge-csv build_data/bridge_classified_authoritative.csv \
         --out-dir src/metacouplingllm/data --clip-ocean
 """
 from __future__ import annotations
@@ -190,66 +190,11 @@ _NDLSA_TRACT_ADM1: dict[str, list[str]] = {
 # border among the authored admin provinces by nearest province (ADM1 overlay).
 _ADM1_SAMPLE_DEG = 0.01
 
-# ADM1 false-positive denylist.  The snapping tolerance (SNAP_TOL_DEG) bridges
-# sub-tolerance gaps between independently-digitised polygons, which is correct
-# for genuine borders drawn with a small cross-source offset but occasionally
-# fabricates an edge between two units that do not actually share a frontier.
-# These pairs were manually verified (against imagery) to be NON-adjacent — the
-# polygons are separated by a gap the tolerance spuriously closes — and are
-# removed from the ADM1 edge list.  Each entry is a frozenset of ADM1CD_c codes.
-# Verified not-adjacent:
-#   MLT002/MLT019 — Balzan / Iklin (Malta): ~31 m apart, no shared frontier.
-# The snap-bridged class is EMPTY under tolerance-0 topology.  The Malta
-# artifact (MLT002/MLT019, ~31 m apart) only appears when a non-zero snap
-# bridges the gap; at exact contact it never becomes an edge, so no removal is
-# needed.  The genuine sub-tolerance borders the old snap recovered
-# (Egypt-Libya etc.) now ship as the four reviewed land-gap manifest rows
-# instead (a fifth recovery was reversed 2026-07-18 as a point contact).
-#
-# A SECOND, distinct class can survive at tolerance 0: reviewed exact-contact
-# false positives, where a short WB contact is a construction artifact of the
-# source polygons rather than a real frontier.  An edge is removed here ONLY on
-# a WB-computable shape signature or the maintainer's official-map check — a
-# geometry/OSM adjacency verdict alone is NOT sufficient to drop a WB edge,
-# because an OSM or gazetteer neighbour list describes a different boundary
-# dataset than the WB polygons.
-#
-# Verified not-adjacent (denylisted):
-#   LBR006/LBR014 — Grand Gedeh/Rivercess (Liberia): the four-county corner at
-#     the Cestos–Gwen Creek confluence is an exact quadripoint (OSM: one shared
-#     node; GADM 4.1: point intersection); the WB's 1.12 km contact is two
-#     straight cardinal construction legs bridging offset river-boundary
-#     termini — a sliver wedge, not a border (docs/FUTURE_EDGE_AUDITS.md #7;
-#     maintainer removal decision 2026-07-18).
-#   VEN001/VEN003 — Apure/Amazonas (Venezuela): Amazonas' territorial-division
-#     law (Art. 59 constitution, 1994 DPT law) enumerates its perimeter with no
-#     Apure segment — Bolívar's east-bank Orinoco frontage plus Colombia
-#     separate the states; the WB's 2.35 km contact is a mid-river seam where
-#     Bolívar's sliver frontage was dropped (docs/FUTURE_EDGE_AUDITS.md #8;
-#     maintainer removal decision 2026-07-18).
-#
-#   The next three are mid-lake contacts denylisted by the wu1 water-unification
-#   campaign (maintainer map rulings 2026-07-25).  Note these differ from every
-#   prior denylist entry: the WB arc is STABLE across the tolerance ladder
-#   (0.563 / 1.081 / 14.019 km at 1e-3, single component), so there is no
-#   WB-computable artifact signature — each rests on the maintainer's
-#   official-map check, which the evidence hierarchy places above a dataset
-#   signature.  Recorded individually in docs/FUTURE_EDGE_AUDITS.md.
-#   CAN003/CAN006 — Manitoba/Northwest Territories: the contact sits at the
-#     Manitoba–NWT–Nunavut–Saskatchewan FOUR-CORNERS point in Kasba Lake; a
-#     quadripoint is not a shared border.
-#   COD009/UGA102 — Nord-Kivu/Rukungiri: a point on the Lake Edward boundary;
-#     Rukungiri lies inland, and Rubirizi/Kanungu hold the Ugandan shore.
-#   TZA016/UGA040 — Mara/Kalangala: diagonal non-adjacency in Lake Victoria —
-#     the Kagera–Mara transition reaches the international line east of
-#     Kalangala's limit, so Kagera faces Kalangala and Mara faces Buvuma.
-_ADM1_FALSE_POSITIVE_DENYLIST: set[frozenset[str]] = {
-    frozenset({"LBR006", "LBR014"}),
-    frozenset({"VEN001", "VEN003"}),
-    frozenset({"CAN003", "CAN006"}),
-    frozenset({"COD009", "UGA102"}),
-    frozenset({"TZA016", "UGA040"}),
-}
+# The reviewed non-adjacent contacts (the denylist) are removed in Stage 4 by
+# scripts/apply_overlays.py from data/denylist_pairs.csv, each row with its
+# evidence and ruling.  The geometry build keeps every exact contact; a
+# denylist entry whose contact the geometry no longer produces is caught by
+# scripts/build_all.py --full.
 
 # Reviewed ADM1 unit merges, applied before contiguity (source-data artifacts
 # where the WB/GAUL lineage splits one real unit into two). RUS050 ("Name
@@ -356,9 +301,9 @@ def build_edges(gdf: gpd.GeoDataFrame, code_col: str) -> list[dict]:
     (``TOPOLOGY_TOL_DEG = 0``) -- two units are adjacent iff their boundaries
     share a segment of non-zero geodesic length.  ``border_length_km`` is the
     **full** shared-boundary length (no Natural Earth lake/river subtraction);
-    the water classification of a border is a separate, purely descriptive
-    layer (Stage 3, ``water_separated_pairs.csv``) that never adds or drops an
-    edge.  Because WB admin polygons include lake water, pairs that meet across
+    the water-only classification is applied in Stage 3
+    (``scripts/apply_overlays.py``), which never changes an edge's length.
+    Because WB admin polygons include lake water, pairs that meet across
     a lake are native edges here (e.g. the Great Lakes and Lake-Tanganyika
     pairs) -- no lake filter removes them, so ``coupling_standard`` governs
     lakes and rivers uniformly with no restoration overlay.
@@ -435,13 +380,7 @@ def write_adm1_csv(edges: list[dict], out_path: Path,
             "potential_artifact": km < ARTIFACT_KM,
         }
 
-    rows = []
-    dropped = 0
-    for e in edges:
-        if frozenset({e["code_a"], e["code_b"]}) in _ADM1_FALSE_POSITIVE_DENYLIST:
-            dropped += 1
-            continue
-        rows.append(_row_from_edge(e))
+    rows = [_row_from_edge(e) for e in edges]
 
     # De-facto disputed-territory overlay (default).  Re-adds the ADM1 borders
     # that the NDLSA-exclusion opened a gap across; omitted for the strict
@@ -462,7 +401,6 @@ def write_adm1_csv(edges: list[dict], out_path: Path,
         w.writeheader()
         w.writerows(rows)
     log(f"  wrote {out_path} ({len(rows)} edges; "
-        f"{dropped} false-positive edge(s) dropped; "
         f"{overlay_added} de-facto overlay edge(s) added)")
 
 
@@ -713,73 +651,6 @@ def write_adm0_matrix(
         f"{len(adj)} adjacent pairs)")
 
 
-def write_water_separated_manifest(
-    bridge_csv: Path, edge_list_path: Path, out_path: Path
-) -> None:
-    """Write the water-separated manifest (``coupling_standard`` filter source).
-
-    ``bridge_csv`` is the curated, web+geometry-verified ADM1 bridge
-    classification (water-only pairs with ``has_bridge``) — a *reviewed static
-    artifact* produced by the bridge-classification pipeline and NOT regenerated
-    here (it embeds web + manual verification; see
-    ``docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md``).  Only the ADM0 roll-up is
-    computed: a country pair is water-only iff *all* its ADM1 crossings (from
-    ``edge_list_path``) are water-only, and has a bridge iff *any* does.
-    """
-    import collections
-
-    water_all: set[frozenset[str]] = set()
-    has_b: dict[frozenset[str], bool] = {}
-    adm1_rows: list[tuple[str, str, str, str, str, str, str]] = []
-    with open(bridge_csv, newline="", encoding="utf-8-sig") as fh:
-        for r in csv.DictReader(fh):
-            ca, cb = r["code_a"].strip(), r["code_b"].strip()
-            br = "True" if str(r["has_bridge"]).strip() == "True" else "False"
-            pair = frozenset({ca, cb})
-            water_all.add(pair)
-            has_b[pair] = br == "True"
-            # the two provenance columns ride along from the reviewed bridge CSV;
-            # dropping them here would silently blank provenance for the base
-            # rows on every --full rebuild and break the byte-identity claim.
-            adm1_rows.append(
-                (ca, cb, br, r.get("water_type", ""), r.get("water_body", ""),
-                 r.get("adjudication", ""), r.get("verification_tier", ""))
-            )
-
-    edges: set[frozenset[str]] = set()
-    iso: dict[str, str] = {}
-    with open(edge_list_path, newline="", encoding="utf-8-sig") as fh:
-        for r in csv.DictReader(fh):
-            a, b = r["ADM1_code_A"].strip(), r["ADM1_code_B"].strip()
-            edges.add(frozenset({a, b}))
-            iso[a] = r["ISO_A3_A"].strip()
-            iso[b] = r["ISO_A3_B"].strip()
-    by_country: dict[frozenset[str], list] = collections.defaultdict(list)
-    for e in edges:
-        a, b = tuple(e)
-        ia, ib = iso.get(a), iso.get(b)
-        if ia and ib and ia != ib:
-            by_country[frozenset({ia, ib})].append(e)
-    adm0_rows: list[tuple[str, str, str]] = []
-    for ctypair, crossings in by_country.items():
-        if all(c in water_all for c in crossings):
-            ia, ib = sorted(ctypair)
-            anyb = "True" if any(has_b.get(c, False) for c in crossings) else "False"
-            adm0_rows.append((ia, ib, anyb))
-
-    cols = ["level", "code_a", "code_b", "has_bridge",
-            "water_type", "water_body", "note", "adjudication", "verification_tier"]
-    with open(out_path, "w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh)
-        w.writerow(cols)
-        for ca, cb, br, wt, wb, adj, tier in adm1_rows:
-            w.writerow(["adm1", ca, cb, br, wt, wb, "", adj, tier])
-        for ia, ib, br in sorted(adm0_rows):
-            w.writerow(["adm0", ia, ib, br, "", "", "adm1-rollup", "", ""])
-    log(f"  wrote {out_path} ({len(adm1_rows)} adm1 + "
-        f"{len(adm0_rows)} adm0 water-separated pairs)")
-
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -809,7 +680,7 @@ def load_adm1_build_geometry(adm1_gpkg: str, adm1_layer: str = "WB_GAD_ADM1", oc
         _si = a1.index[a1["ADM1CD_c"] == _src]
         _di = a1.index[a1["ADM1CD_c"] == _dst]
         if len(_si) and len(_di):
-            log(f"  unit merge: {_src} -> {_dst} (reviewed; see denylist block)")
+            log(f"  unit merge: {_src} -> {_dst} (reviewed; see _ADM1_UNIT_MERGES)")
             a1.loc[_di[0], a1.geometry.name] = unary_union(
                 [a1.loc[_di[0]].geometry, a1.loc[_si[0]].geometry])
             a1 = a1.drop(index=_si)
@@ -842,10 +713,6 @@ def main() -> int:
                          "contiguity; on by default). See "
                          "scripts/relabel_sliver_corridors.py.")
     ap.add_argument("--levels", default="adm0,adm1")
-    ap.add_argument("--bridge-csv", default=None,
-                    help="curated ADM1 bridge classification CSV; if given, "
-                         "writes water_separated_pairs.csv (coupling_standard "
-                         "source). See docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -858,9 +725,9 @@ def main() -> int:
         ocean = load_ocean_mask(args.ocean_gpkg, args.ocean_layer)
 
     # Stage 1 is pure World Bank geometry -- Natural Earth is NOT used in
-    # the topology build (no lake filter, no river-buffer length).  Water
-    # classification is a separate descriptive layer (Stage 3,
-    # water_separated_pairs.csv) that never adds or drops an edge.
+    # the topology build (no lake filter, no river-buffer length).  The water
+    # classification (Stage 3) and the edge corrections (Stage 4) are applied
+    # afterwards by scripts/apply_overlays.py.
 
     def _prep(path: str, layer: str) -> gpd.GeoDataFrame:
         g = _make_valid(gpd.read_file(path, layer=layer).to_crs(4326))
@@ -903,17 +770,6 @@ def main() -> int:
     # Shipped manifest of the de-facto disputed-territory overlay pairs
     # (verification artifact + runtime strict-mode subtraction source).
     write_disputed_overlay_manifest(out_dir / "disputed_overlay_pairs.csv")
-
-    # Shipped water-separated manifest (coupling_standard filter source).  The
-    # ADM1 bridge data is a reviewed static artifact (web+geometry verified);
-    # only the ADM0 roll-up is computed here.  See
-    # docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md.
-    if args.bridge_csv:
-        write_water_separated_manifest(
-            Path(args.bridge_csv),
-            out_dir / "pericoupled_adm1_edge_list.csv",
-            out_dir / "water_separated_pairs.csv",
-        )
 
     log("done")
     return 0

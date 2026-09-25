@@ -7,9 +7,11 @@
 > **Status note (2026-09-20).** The OSM query of §3 accepts any way tagged as a bridge on a road, path or railway, so a footpath bridge passes layer 1; the road-or-rail rule is applied by the later layers. A way-class follow-up (campaign `wc1`) recorded the class of every way behind a bridged flag (354 rows; 340 with a road or rail way in both units), reconciled the other 14 against their records, and sent the 3 with no road or rail structure on record to the GPT-5.6 Sol adversarial recheck. One base flag changed on a maintainer ruling — Basel-Landschaft↔Baden-Württemberg, whose only crossing is the foot and cycle way over the Augst–Wyhlen barrage — and the Haag–Bendern road bridge is now on record for Sankt Gallen↔Gamprin; the base file carries 104 with a crossing / 194 without; SHA re-pinned. Maintainer convention of the same date: a structurally complete railway bridge on a disused line with its track in place counts (the line can reopen). Record: `build_data/water_screen_rebuild/bridge_unification/` (`bridge_way_class_*`, `wc1_*`).
 >
 > **Status note (2026-09-24).** Layer 1 now counts a way that comes within **100 m of both units' polygons, measured on the ground** (campaign `cw1`); the `UNIT_BUF = 0.0012°` of the June run described below was 133 m north–south but 133·cos φ m east–west. The screen was re-run over all 803 rows with an Overpass client that treats an answer reporting an error as a failed query, and the location test now measures on the ground; 7 rows went to the adversarial recheck and one flag was added on a maintainer ruling (Gambela↔Pibor Administrative Area, the Raad Bailey road bridge across the Akobo); the base file now carries 105 with a crossing / 193 without; SHA re-pinned. Record: `build_data/water_screen_rebuild/crossing_width/`. The June description below is unchanged as history.
+>
+> **Status note (2026-09-25).** The base file this document describes, `build_data/bridge_classified_authoritative.csv`, is retired: its 298 rows are the first-round rows of `data/water_classification_pairs.csv`, the one file from which Stage 3 of the build applies every water-only row (git history keeps the file; its last SHA-256 is in `data/PROVENANCE.md`). The references to it below are history.
 
 **Status:** verification complete & human-validated · **Date:** 2026-06-03/04
-**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(The current base `bridge_classified_authoritative.csv` carries **298 rows**, every row re-adjudicated under the standard cross-vendor process and, since 2026-09-16, carrying the unified four-layer crossing record; its correction history is in `CHANGELOG.md`, and the current shipped counts and the row-by-row composition of `water_separated_pairs.csv` live in `docs/METHODS_adjacency.md` and `data/PROVENANCE.md` — this document does not restate them. There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers. The 315 figures below describe the original OSM classification run.)*
+**Original run (historical base):** `bridge_classified_authoritative.csv` — **315 water-only ADM1 pairs: 108 with an open fixed crossing, 207 without.** *(The 298 rows of this classification that ship today — the first-round rows of `data/water_classification_pairs.csv` — are every one re-adjudicated under the standard cross-vendor process and, since 2026-09-16, carrying the unified four-layer crossing record; its correction history is in `CHANGELOG.md`, and the current shipped counts and the row-by-row composition of `water_separated_pairs.csv` live in `docs/METHODS_adjacency.md` and `data/PROVENANCE.md` — this document does not restate them. There is no lake *filter* — lakes are native exact-contact edges, so `coupling_standard` governs them natively like rivers. The 315 figures below describe the original OSM classification run.)*
 
 This document records, in detail, how the bridge-classification database was built: why it
 exists, the inputs, the OpenStreetMap (OSM) detection method and its evolution, the
@@ -258,8 +260,9 @@ direction for a connectivity dataset; the verification removed those.
 ---
 
 ## 8. File inventory (under `build_data/`; untracked by git except
-`bridge_classified_authoritative.csv`, tracked since PR #89 as the pinned
-`--full`-rebuild input for validation-study reproducibility)
+`bridge_classified_authoritative.csv`, tracked from PR #89 as the pinned
+`--full` input until its rows moved into `data/water_classification_pairs.csv`
+on 2026-09-25)
 
 **Inputs / pipeline**
 - `colab_candidates.gpkg` — 315 pairs + 387 units (OSM-pipeline input)
@@ -329,9 +332,8 @@ direction for a connectivity dataset; the verification removed those.
 > screen → independent web verification → adversarial recheck of
 > disagreements → geocode + province-polygon cross-check — was later
 > formalized as the **four-layer bridge pipeline**
-> (`docs/METHODS_adjacency.md` §8) and reused for every rescreen-water /
-> rescreen-gap addition, which now supply the majority of the shipped
-> water-only pairs (current counts: `data/PROVENANCE.md`).
+> (`docs/METHODS_adjacency.md` §8) and reused for every later water-only
+> row, which now make up the majority of the shipped water-only pairs (current counts: `data/PROVENANCE.md`).
 
 `bridge_classified_authoritative.csv` → frozen as a dated **`water_separated_pairs.csv`**
 (`has_bridge` per pair). Applied to the 315 water-only ADM1 pairs of this run:
@@ -347,7 +349,7 @@ are water-only; it "has a bridge" if *any* does. Most country pairs have some la
 are unaffected.
 
 *(Current shipped state after the reviewed overlays: see `data/PROVENANCE.md` and
-`docs/METHODS_adjacency.md`; the base `bridge_classified_authoritative.csv` is **298 rows**.
+`docs/METHODS_adjacency.md`; its 298 shipped rows are the first-round rows of `data/water_classification_pairs.csv`.
 This document does not restate the shipped counts.)*
 
 ---
