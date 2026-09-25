@@ -2,44 +2,36 @@ r"""Apply the reviewed overlay correction layer to the shipped adjacency data.
 
 The pericoupling database is constructed in two stages: a deterministic
 geometry build (``scripts/build_pericoupling_db.py``) and a **reviewed
-correction layer** -- nine manifest CSVs in ``src/metacouplingllm/data/``
-holding 445 pair-rows (28 edge-restoring + 417 water-flag-only), each pair
-individually audited and human-verified (provenance: ``data/PROVENANCE.md``).
+correction layer** -- three manifest CSVs in ``src/metacouplingllm/data/``
+holding 509 pair-rows (28 edge-restoring + 481 water-flag-only), each pair
+individually audited and adjudicated (provenance: ``data/PROVENANCE.md``).
 This engine applies the whole layer in one pass:
 
   ==================== ====================================== ========================
   registry             manifest                               effect
   ==================== ====================================== ========================
-                                                              +2 water rows
   land_gap             land_gap_overlay_pairs.csv             +4 land edges
-  hydro_water          hydro_water_overlay_pairs.csv          water flags on 18 edges
-                                                              (incl. the Uruguay River,
-                                                              geodesic 500 m)
-  hydro_lakes          hydro_lakes_overlay_pairs.csv          water flags on 12 edges
-                                                              (incl. the Dead Sea,
-                                                              geodesic 500 m)
-  rescreen_gap         rescreen_gap_overlay_pairs.csv         +16 edges, +16 water rows
-                                                              (water-screen rebuild,
-                                                              per-row water_type)
-  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 481 edges
-                                                              (water-screen rebuild
-                                                              b1-b6 + 20km holds +
-                                                              identity-audit shore
-                                                              flags + the ru1-folded
-                                                              river rows, per-row
+  rescreen_gap         rescreen_gap_overlay_pairs.csv         +24 edges, +24 water rows
+                                                              (non-touching water
+                                                              borders, per-row
                                                               water_type)
+  rescreen_water       rescreen_water_overlay_pairs.csv       water flags on 481 edges
+                                                              (per-row water_type; the
+                                                              rows folded in from
+                                                              retired manifests keep
+                                                              their discovery
+                                                              provenance in ``source``)
   ==================== ====================================== ========================
 
 The manifests are the single source of truth for the correction data; this
 file holds only behavior.  Water rows are matched to their overlay by the
 ``note`` constant in the registry (do not edit those strings -- they identify
 the shipped rows); rows are updated in place, so a ``has_bridge`` edit in a
-hydro_water/rescreen_water manifest propagates on the next run.  Overlay pairs
-whose water row comes from the base bridge classification (empty note -- the
-63 pre-classified lake pairs) are left untouched: the bridge CSV stays
-authoritative for them.  The ADM0 roll-up is recomputed once, at the end
-(a country pair is water-only iff *all* its ADM1 crossings are, with a
-bridge iff any).
+manifest propagates on the next run.  A manifest pair whose water row already
+comes from the base bridge classification (empty note) or from another overlay
+is left untouched -- that row wins (no current manifest pair has one).  The
+ADM0 roll-up is recomputed once, at the end (a country pair is water-only iff
+*all* its ADM1 crossings are, with a bridge iff any).
 
 Idempotent and byte-stable: running on already-overlaid data changes no
 file (each output is composed in memory and written only if its bytes

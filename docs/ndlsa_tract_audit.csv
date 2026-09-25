@@ -1,25 +1,25 @@
-tract,defacto_admin_iso,adm0_overlay_pair,adm0_status,adm1_admin_provinces,adm1_overlay_pairs,adm1_status
-Abyei,,,excluded: no single de-facto administrator,,,excluded: no single de-facto administrator
-Aksai Chin,CHN,,no new ADM0 pair (claimants already share a border),CHN029; CHN028,,no new ADM1 pair (flanking provinces already adjacent)
-Arunachal Pradesh,IND,,no new ADM0 pair (claimants already share a border),IND003,IND003/BTN011; IND003/BTN015; IND003/BTN016; IND003/CHN029,contributes ADM1 overlay pair(s)
-British Indian Ocean Territory,,,excluded: island territory with no land border (an assignment would restore no connectivity),,,excluded: island territory with no land border (an assignment would restore no connectivity)
-Chumar East,IND,,no new ADM0 pair (claimants already share a border),,,ADM0-only: de-facto sub-unit is not a WB ADM1 province
-Chumar West,IND,,no new ADM0 pair (claimants already share a border),,,ADM0-only: de-facto sub-unit is not a WB ADM1 province
-Demchok,IND,,no new ADM0 pair (claimants already share a border),,,ADM0-only: de-facto sub-unit is not a WB ADM1 province
-Doklam,BTN,,no new ADM0 pair (claimants already share a border),BTN005,BTN005/CHN029; BTN005/IND030,contributes ADM1 overlay pair(s)
-Falkland Islands,,,excluded: island territory with no land border (an assignment would restore no connectivity),,,excluded: island territory with no land border (an assignment would restore no connectivity)
-Gilgit Baltistan,PAK,PAK/CHN,contributes ADM0 overlay pair,,,ADM0-only: de-facto sub-unit is not a WB ADM1 province
-Golan Heights,ISR,ISR/SYR,contributes ADM0 overlay pair,ISR004,ISR004/LBN004; ISR004/SYR006; ISR004/SYR012,contributes ADM1 overlay pair(s)
-Ilemi Triangle,KEN,,no new ADM0 pair (claimants already share a border),KEN043,,no new ADM1 pair (flanking provinces already adjacent)
-Jadh Ganga Valley,IND,,no new ADM0 pair (claimants already share a border),IND035; IND014,,no new ADM1 pair (flanking provinces already adjacent)
-Jammu and Kashmir,IND,,no new ADM0 pair (claimants already share a border),,,ADM0-only: de-facto sub-unit is not a WB ADM1 province
-Kalapani,IND,,no new ADM0 pair (claimants already share a border),IND035,,no new ADM1 pair (flanking provinces already adjacent)
-Karakoram Range,PAK,PAK/CHN,contributes ADM0 overlay pair,,,ADM0-only: de-facto sub-unit is not a WB ADM1 province
-Kauirik,CHN,,no new ADM0 pair (claimants already share a border),CHN029,,no new ADM1 pair (flanking provinces already adjacent)
-Lapthal,CHN,,no new ADM0 pair (claimants already share a border),CHN029,,no new ADM1 pair (flanking provinces already adjacent)
-No Man's Land,,,excluded: no single de-facto administrator,,,excluded: no single de-facto administrator
-Shebaa Farms Dispute,ISR,ISR/SYR,contributes ADM0 overlay pair,ISR004,,no new ADM1 pair (flanking provinces already adjacent)
-Shipki Pass,CHN,,no new ADM0 pair (claimants already share a border),CHN029,,no new ADM1 pair (flanking provinces already adjacent)
-South Georgia and South Sandwich Islands,,,excluded: island territory with no land border (an assignment would restore no connectivity),,,excluded: island territory with no land border (an assignment would restore no connectivity)
-UN Buffer Zone,,,excluded: no single de-facto administrator,,,excluded: no single de-facto administrator
-Western Sahara,MAR,MAR/MRT,contributes ADM0 overlay pair,MAR005; MAR007,MAR005/MRT012; MAR007/MRT001; MAR007/MRT004; MAR007/MRT012,contributes ADM1 overlay pair(s)
+tract,defacto_admin_iso,natural_earth_administrator_share,natural_earth_record,natural_earth_outside_share,adm0_overlay_pair,adm0_status,adm1_admin_provinces,adm1_overlay_pairs,adm1_status
+Abyei,SDN,1.000,disputed-areas layer: Abyei (Admin. by Sudan; Claimed by South Sudan),0.000,,no new country pair (its administrator already borders every country it touches),SDN012; SDN013,SDN012/SSD010; SDN013/SSD010,links province pair(s)
+Aksai Chin,CHN,0.990,disputed-areas layer: Aksai Chin (Admin. by China; Claimed by India),0.000,,no new country pair (its administrator already borders every country it touches),CHN029; CHN028,,no new province pair (no other country's province touches it)
+Arunachal Pradesh,IND,0.965,disputed-areas layer: Arunachal Pradesh (Admin. by India; Claimed by China),0.000,,no new country pair (its administrator already borders every country it touches),IND003,IND003/BTN011; IND003/BTN015; IND003/BTN016; IND003/CHN029,links province pair(s)
+British Indian Ocean Territory,GBR,0.502,disputed-areas layer: Diego Garcia NSF (Leased to U.S.A by U.K.; Claimed by Mauritius and Seychelles),0.498,,touches no unit (island): no pair,,,touches no unit (island): no pair
+Chumar East,IND,1.000,disputed-areas layer: Jammu and Kashmir (Admin. by India; Claimed by Pakistan),0.000,,no new country pair (its administrator already borders every country it touches),,,country level only: its administering territory is not a World Bank ADM1 province
+Chumar West,IND,1.000,disputed-areas layer: Jammu and Kashmir (Admin. by India; Claimed by Pakistan),0.000,,no new country pair (its administrator already borders every country it touches),,,country level only: its administering territory is not a World Bank ADM1 province
+Demchok,IND,0.972,disputed-areas layer: Demchok (Admin. by India; Claimed by China),0.000,,no new country pair (its administrator already borders every country it touches),,,country level only: its administering territory is not a World Bank ADM1 province
+Doklam,BTN,0.998,countries layer: Bhutan [BTN],0.000,,no new country pair (its administrator already borders every country it touches),BTN005,BTN005/CHN029; BTN005/IND030,links province pair(s)
+Falkland Islands,GBR,0.892,disputed-areas layer: Falkland Is. (Admin. by U.K.; Claimed by Argentina),0.108,,touches no unit (island): no pair,,,touches no unit (island): no pair
+Gilgit Baltistan,PAK,0.976,disputed-areas layer: Gilgit-Baltistan (Admin. by Pakistan; Claimed by India),0.000,PAK/CHN,restores the country pair,,,country level only: its administering territory is not a World Bank ADM1 province
+Golan Heights,ISR,0.961,disputed-areas layer: Golan Heights (Admin. By Israel; Claimed by Syria),0.000,ISR/SYR,restores the country pair,ISR004,ISR004/LBN004; ISR004/SYR006; ISR004/SYR012,links province pair(s)
+Ilemi Triangle,KEN,0.989,disputed-areas layer: Ilemi Triangle (Admin. by Kenya; Claimed by South Sudan),0.000,,no new country pair (its administrator already borders every country it touches),KEN043,,no new province pair (the provinces flanking it already share a border)
+Jadh Ganga Valley,IND,0.950,disputed-areas layer: Tirpani Valleys (Admin. by India; Claimed by China),0.000,,no new country pair (its administrator already borders every country it touches),IND035; IND014,,no new province pair (the provinces flanking it already share a border)
+Jammu and Kashmir,IND,0.971,disputed-areas layer: Jammu and Kashmir (Admin. by India; Claimed by Pakistan),0.000,,no new country pair (its administrator already borders every country it touches),,,country level only: its administering territory is not a World Bank ADM1 province
+Kalapani,IND,0.747,countries layer: India [IND],0.000,,no new country pair (its administrator already borders every country it touches),IND035,,no new province pair (the provinces flanking it already share a border)
+Karakoram Range,CHN,0.999,disputed-areas layer: Shaksam Valley (Admin. by China; Ceded to China by Pakistan; Claimed by India),0.000,PAK/CHN,no pair of its own; lies on a restored country border (measured between de-facto territories),CHN028,,no new province pair (no other country's province touches it)
+Kauirik,CHN,0.570,countries layer: China [CHN],0.000,,no new country pair (its administrator already borders every country it touches),CHN029,,no new province pair (the provinces flanking it already share a border)
+Lapthal,IND,0.835,countries layer: India [IND],0.000,,no new country pair (its administrator already borders every country it touches),IND035,,no new province pair (the provinces flanking it already share a border)
+No Man's Land,ISR,0.942,disputed-areas layer: No Man's Land (Fort Latrun) (Admin. By Israel; Claimed by Palestine),0.000,,no new country pair (its administrator already borders every country it touches),ISR001; ISR003,ISR003/PSE013,links province pair(s)
+Shebaa Farms Dispute,ISR,0.955,disputed-areas layer: Golan Heights (Admin. By Israel; Claimed by Syria),0.000,,no new country pair (its administrator already borders every country it touches),ISR004,,no new province pair (the provinces flanking it already share a border)
+Shipki Pass,IND,0.545,countries layer: India [IND],0.000,,no new country pair (its administrator already borders every country it touches),IND014,,no new province pair (the provinces flanking it already share a border)
+South Georgia and South Sandwich Islands,GBR,0.921,disputed-areas layer: S. Georgia (Admin. by U.K.; Claimed by Argentina),0.079,,touches no unit (island): no pair,,,touches no unit (island): no pair
+UN Buffer Zone,,0.893,disputed-areas layer: Cyprus U.N. Buffer Zone (Cyprus No Mans Area),0.002,,unassigned (Natural Earth records no World Bank country for its largest part),,,unassigned
+Western Sahara,MAR,0.659,disputed-areas layer: W. Sahara (Admin. by Morocco; Claimed by Western Sahara),0.000,MAR/MRT,restores the country pair,MAR005; MAR007,MAR005/MRT012; MAR007/MRT001; MAR007/MRT004; MAR007/MRT012,links province pair(s)

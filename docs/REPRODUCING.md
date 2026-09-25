@@ -1,7 +1,7 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through rebuilding and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,458 subnational shared-border pairs) and the
+datasets — the ADM1 edge list (8,461 subnational shared-border pairs) and the
 ADM0 country matrix (326 pairs) with their water-only classification (803
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
@@ -19,8 +19,9 @@ important to know which one you are testing:
    bridge-classification CSV, and (c) four reviewed manifest CSVs shipped in
    the repo (the source-relabel manifest, a build-stage input, plus the three
    forming the engine's correction layer; the de-facto overlay manifest is
-   written by the build from the NDLSA layer and the tract attributions
-   authored in `build_pericoupling_db.py`). Re-running the build replays these inputs deterministically —
+   written by the build from the NDLSA layer, the tract administrators
+   taken from Natural Earth v5.1.2 and the province attributions authored in
+   `build_pericoupling_db.py`). Re-running the build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
 2. **Audit traceability** (read, don't re-run). The three overlay manifests were
    *discovered* by deterministic Python screens and *adjudicated* by frozen
@@ -90,8 +91,8 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,458 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,062 / 7,655 |
+| ADM1 edges (lenient) | 8,461 (3,374 regions, 196 countries) |
+| ADM1 moderate / stringent | 8,065 / 7,658 |
 | water-only ADM1 | 803 = 407 with a fixed crossing / 396 without |
 | water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 268 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
@@ -125,10 +126,13 @@ S4):
   → 8,427 raw − 2 relabel − 3 unit merge (RUS050 → RUS024) − 5 denylist =
   **8,417** native pairs.
 - **S2 — de-facto connectivity.** Each NDLSA disputed tract is folded into
-  its de-facto administrator and adjacency re-measured; +13 ADM1 pairs whose
-  sole link is a tract (+3 pairs at ADM0). Geometry-validated: an authored
-  tract→unit attribution that does not touch its tract fails loudly.
-  → **8,430**; this is the base file the geometry build writes.
+  its de-facto administrator (the administrator Natural Earth v5.1.2 records for
+  most of the tract; the table `_NDLSA_TRACT_ADMIN`) and adjacency re-measured;
+  +16 ADM1 pairs whose sole link is a tract (+3 pairs at ADM0). Geometry-validated:
+  an assigned tract that does not touch its administrator's territory (unless it
+  touches no unit at all) or an authored province that does not touch its tract
+  fails loudly.
+  → **8,433**; this is the base file the geometry build writes.
 - **S3 — water classification (descriptive).** The reviewed bridge CSV
   labels the 298 base water-only rows `water_type`/`has_bridge` (first
   flagged by the Natural Earth screens; the build reads no Natural Earth
@@ -136,7 +140,7 @@ S4):
 - **S4 — reviewed correction layer.** `scripts/apply_overlays.py` applies
   the three manifests in registry order (idempotent, one pass; see §5).
   → +4 land-gap, +24 rescreen-gap edges =
-  **8,458**; water rows 298 → **803**; ADM0 roll-up recomputed once (a
+  **8,461**; water rows 298 → **803**; ADM0 roll-up recomputed once (a
   country pair is water-only iff *all* its ADM1 crossings are; bridged iff
   *any* is).
 
@@ -153,7 +157,7 @@ not affect the pair set or any count. Exact byte-identity of lengths
 additionally requires the original toolchain (geopandas 1.1.2 / shapely 2.1.2
 / pyproj 3.7.2). The correction layer is toolchain-independent, and its row
 order is canonical: the native rows keep the geometry-build order (the edge
-list's 8,430 native edges, the water table's 298 base rows), and the overlay rows
+list's 8,433 native edges, the water table's 298 base rows), and the overlay rows
 follow in registry order and manifest row order, which is exactly what a fresh
 `--full` run produces. (Until 2026-09-16 the engine appended new rows at the end,
 so the committed order drifted with the append history while the row sets stayed
@@ -176,8 +180,9 @@ any headline count in the prose disagrees with the live data.
 
 Five manifest CSVs in `src/metacouplingllm/data/` govern the build: the
 source-relabel manifest is a build-stage input (S1), the de-facto overlay
-manifest is written by S2 from the NDLSA layer and the tract attributions
-authored in the build script, and the other **three** form the engine's
+manifest is written by S2 from the NDLSA layer, the tract administrators taken
+from Natural Earth v5.1.2 and the province attributions authored in the build
+script, and the other **three** form the engine's
 correction layer (509 pair-rows: 28 edge-restoring + 481 water-flag-only). The engine
 (`scripts/apply_overlays.py`) holds only behavior; editing a manifest and
 re-running the engine is the supported way to change the correction layer:
@@ -185,7 +190,7 @@ re-running the engine is the supported way to change the correction layer:
 | manifest | effect |
 |---|---|
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
-| `disputed_overlay_pairs.csv` | S2 output: 13 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
+| `disputed_overlay_pairs.csv` | S2 output: 16 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
 | `land_gap_overlay_pairs.csv` | +4 land edges (sub-tolerance survey lines) |
 | `rescreen_gap_overlay_pairs.csv` | +24 edges (2026-07 water-screen rebuild + the rg1/lg1 folds + the 2 nt2 corridor-census recoveries of 2026-09-10; per-row `water_type`) |
 | `rescreen_water_overlay_pairs.csv` | water flags on 481 edges (incl. the 14 domestic large-river rows (15 added 2026-09-01, one removed 2026-09-22), the 50 domestic creek-band rows (54 added 2026-09-14, three removed 2026-09-21, two removed and one returned 2026-09-22), the one pilot re-adjudication row added 2026-09-18 and the 30 folded hydro rows, 2026-07-28; crossing flags unified under the four-layer pipeline 2026-09-16) (rebuild batches b1–b6 + holds + the 2026-07-18 identity audit + the ru1-folded river rows; per-row `water_type`) |
@@ -293,7 +298,7 @@ is_adm1_pericoupled("ROU008", "ROU039",
 ```
 
 Two orthogonal toggles select the view: `de_facto_borders` (default `True`;
-`False` removes the 13 ADM1 / 3 ADM0 disputed-overlay pairs) and
+`False` removes the 16 ADM1 / 3 ADM0 disputed-overlay pairs) and
 `coupling_standard` (`"lenient"` keeps every water border; `"moderate"`,
 the default, keeps water-only pairs only when a fixed crossing open to
 traffic links the two units; `"stringent"` drops all water-only pairs).

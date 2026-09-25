@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8458, (
-            f"Expected 8458 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8461, (
+            f"Expected 8461 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -639,6 +639,18 @@ class TestDeFactoBordersAdm1:
         )
         for a, b in [("IND003", "CHN029"), ("ISR004", "SYR012"),
                      ("MAR005", "MRT012"), ("BTN005", "CHN029")]:
+            assert is_adm1_pericoupled(a, b) is True
+            assert is_adm1_pericoupled(a, b, de_facto_borders=False) is False
+
+    def test_overlay_pairs_across_abyei_and_latrun(self):
+        # Campaign da1: Abyei (Natural Earth "Admin. by Sudan") and the Latrun
+        # no-man's-land ("Admin. By Israel") are folded into their administrators,
+        # which restores three province pairs in the de-facto view only.
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            is_adm1_pericoupled,
+        )
+        for a, b in [("ISR003", "PSE013"), ("SDN012", "SSD010"),
+                     ("SDN013", "SSD010")]:
             assert is_adm1_pericoupled(a, b) is True
             assert is_adm1_pericoupled(a, b, de_facto_borders=False) is False
 

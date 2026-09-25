@@ -3603,6 +3603,7 @@ ISR002,Haifa,Israel,ISR,Other,PSE016,Tulkarm,West Bank and Gaza,PSE,MENA,True,10
 ISR003,Jerusalem,Israel,ISR,Other,PSE001,Al Khalil (Hebron),West Bank and Gaza,PSE,MENA,True,13.9219,False,False
 ISR003,Jerusalem,Israel,ISR,Other,PSE002,Al Quds (Jerusalem),West Bank and Gaza,PSE,MENA,True,29.9953,False,False
 ISR003,Jerusalem,Israel,ISR,Other,PSE004,Bethlehem,West Bank and Gaza,PSE,MENA,True,10.7125,False,False
+ISR003,Jerusalem,Israel,ISR,Other,PSE013,Ramallah,West Bank and Gaza,PSE,MENA,True,12.4,False,False
 ISR004,Northern,Israel,ISR,Other,JOR005,Irbid,Jordan,JOR,MENA,True,68.0751,False,False
 ISR004,Northern,Israel,ISR,Other,LBN004,Bekaa,Lebanon,LBN,MENA,True,0.4,True,True
 ISR004,Northern,Israel,ISR,Other,LBN006,Nabatiye,Lebanon,LBN,MENA,True,60.1099,False,False
@@ -6582,11 +6583,13 @@ SDN011,Sennar,Sudan,SDN,AFR,SDN015,White Nile,Sudan,SDN,AFR,False,185.4769,False
 SDN011,Sennar,Sudan,SDN,AFR,SSD009,Upper Nile,South Sudan,SSD,AFR,True,61.0198,False,False
 SDN012,Southern Darfur,Sudan,SDN,AFR,SDN014,Western Darfur,Sudan,SDN,AFR,False,404.7552,False,False
 SDN012,Southern Darfur,Sudan,SDN,AFR,SSD005,Northern Bahr el Ghazal,South Sudan,SSD,AFR,True,212.888,False,False
+SDN012,Southern Darfur,Sudan,SDN,AFR,SSD010,Warrap,South Sudan,SSD,AFR,True,47.8,False,False
 SDN012,Southern Darfur,Sudan,SDN,AFR,SSD011,Western Bahr el Ghazal,South Sudan,SSD,AFR,True,551.9014,False,False
 SDN013,Southern Kordofan,Sudan,SDN,AFR,SDN012,Southern Darfur,Sudan,SDN,AFR,False,189.2069,False,False
 SDN013,Southern Kordofan,Sudan,SDN,AFR,SDN015,White Nile,Sudan,SDN,AFR,False,78.6857,False,False
 SDN013,Southern Kordofan,Sudan,SDN,AFR,SSD007,Ruweng Administrative Area,South Sudan,SSD,AFR,True,273.2226,False,False
 SDN013,Southern Kordofan,Sudan,SDN,AFR,SSD009,Upper Nile,South Sudan,SSD,AFR,True,367.4681,False,False
+SDN013,Southern Kordofan,Sudan,SDN,AFR,SSD010,Warrap,South Sudan,SSD,AFR,True,34.2,False,False
 SDN014,Western Darfur,Sudan,SDN,AFR,TCD017,Ouaddaï,Chad,TCD,AFR,True,175.3104,False,False
 SDN014,Western Darfur,Sudan,SDN,AFR,TCD019,Sila,Chad,TCD,AFR,True,377.6423,False,False
 SDN014,Western Darfur,Sudan,SDN,AFR,TCD023,Wadi Fira,Chad,TCD,AFR,True,201.6236,False,False
