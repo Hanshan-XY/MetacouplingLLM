@@ -5,46 +5,37 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,456 border pairs** covering **3,374 unique ADM1
-regions** across **196 countries** (four-stage build).  The graph is built in four
-stages (full provenance in ``data/PROVENANCE.md`` and
-``docs/METHODS_adjacency.md``): (1) **topology** -- rook contiguity at exact
-contact (tolerance 0) over the World Bank polygons, with **no lake filter**
-(so lake-meeting pairs are native edges), a **source-relabel** step fixing
-10 reviewed cross-country sliver-corridor artifacts, a reviewed **unit merge**
-(RUS050 "Name Unknown", the GAUL-split western salient of Kalmykia, merged
-into RUS024), and a **denylist** removing 2 reviewed false-positive pairs
-(Grand Gedeh<->Rivercess, a stretched quadripoint; Apure<->Amazonas, a
-mid-river seam contradicted by Amazonas' territorial law);
-(2) the geometry-derived **13-pair
-disputed overlay**; (3) descriptive water classification; and (4) a reviewed
-correction layer of overlay manifests, each a deterministic Python screen +
-human/AI adjudication, frozen: a **4-pair land-gap overlay** (genuine sub-tolerance borders,
-Egypt-Libya ... a domestic Anguilla pair), a **22-pair rescreen-gap overlay**
-(non-touching water borders recovered by the rebuilt water screens, incl. the
-5 river rows the rg1 retirement folded in from the retired river-gap overlay
-(2026-07-22) and the Skadar lake row the lg1 retirement folded in from the
-retired lake-gap overlay (2026-07-23)),
-and one flags-only overlay
-that reclassifies existing edges as water-only: **416 rescreen-water** (the
-2026-07 water-screen rebuild's audit batches b1-b6 + the 20 km-hold tranche +
-3 shore contacts from the placeholder-identity audit + the 15 river rows
-folded in by the ru1 river-screen unification (2026-07-21) + the 18
-hydro-water and 12 hydro-lakes rows folded in by the 2026-07-28 consolidation
--- HydroRIVERS/HydroLAKES geodesic 500 m full-database cross-checks, incl.
-the Uruguay River and the Dead Sea).
-``coupling_standard`` governs river and
-lake borders uniformly (``lenient`` keeps all water borders, ``moderate`` keeps
-only those with a fixed crossing, ``stringent`` keeps none): the 736 water-only
-pairs give **8,456** lenient / **8,065** moderate / **7,720** stringent.
+The edge list contains **8,461 border pairs** covering **3,374 unique ADM1
+regions** across **196 countries**.  The graph is built in four stages (full
+provenance in ``data/PROVENANCE.md`` and ``docs/METHODS_adjacency.md``):
+(1) **topology** -- rook contiguity at exact contact (tolerance 0) over the
+World Bank polygons, with **no lake filter** (so lake-meeting pairs are native
+edges), a **source-relabel** step fixing 10 reviewed cross-country
+sliver-corridor artifacts, a reviewed **unit merge** (RUS050 "Name Unknown",
+the GAUL-split western salient of Kalmykia, merged into RUS024), and a
+**denylist** removing 5 reviewed non-adjacent pairs (two fabricated edges,
+Grand Gedeh<->Rivercess and Apure<->Amazonas, and three mid-lake contacts in
+Kasba Lake, Lake Edward and Lake Victoria); (2) the geometry-derived **16-pair
+disputed overlay** (each disputed tract folded into the administrator Natural
+Earth records for most of it); (3) descriptive water classification of the 298
+base water-only borders; and (4) a reviewed correction layer of overlay
+manifests, each a deterministic Python screen + adjudication, frozen: a
+**4-pair land-gap overlay** (genuine sub-tolerance borders, Egypt-Libya ... a
+domestic Anguilla pair), a **24-pair rescreen-gap overlay** (non-touching water
+borders found by the corridor census) and a flags-only **481-pair
+rescreen-water overlay** that reclassifies existing edges as water-only.
+``coupling_standard`` governs river and lake borders uniformly (``lenient``
+keeps all water borders, ``moderate`` keeps only those with a fixed crossing,
+``stringent`` keeps none): the 803 water-only pairs give **8,461** lenient /
+**8,065** moderate / **7,658** stringent.
 
 Source
 ------
-``pericoupled_adm1_edge_list.csv``, regenerated in PR #50 from the World Bank
-Official Boundaries dataset (GeoPackage, 2026-05-14 release) using World Bank
-ADM1 codes and current ISO 3166-1 alpha-3 country codes.  Adjacency is the
-shared land border between region polygons (geodesic ``border_length_km``);
-see ``data/PROVENANCE.md`` for the full method.
+``pericoupled_adm1_edge_list.csv``, built from the World Bank Official
+Boundaries dataset (GeoPackage, 2026-05-14 release) using World Bank ADM1
+codes and current ISO 3166-1 alpha-3 country codes.  Adjacency is the shared
+border between region polygons (geodesic ``border_length_km``); see
+``data/PROVENANCE.md`` for the full method.
 """
 
 from __future__ import annotations

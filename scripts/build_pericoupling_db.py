@@ -23,15 +23,17 @@ Method (full detail: ``docs/METHODS_adjacency.md``)
    No snapping tolerance, no lake filter (pairs meeting across a lake are
    native edges; ``coupling_standard`` governs them downstream).  The reviewed
    ``_ADM1_FALSE_POSITIVE_DENYLIST`` drops confirmed fake-touch edges.
-4. **De-facto disputed overlay** — derived from the WB NDLSA disputed-areas
-   layer and validated against its geometry at build time.
+4. **De-facto disputed overlay** — each WB NDLSA disputed-area tract folded
+   into the administrator Natural Earth records for most of it
+   (``_NDLSA_TRACT_ADMIN``); the overlay pairs are derived from the geometry
+   and validated against it at build time.
 5. ``border_length_km`` is the **full** shared-boundary length in kilometres
    (geodesic, ``pyproj.Geod``) — no river/lake subtraction; water status is a
    separate descriptive layer (``water_separated_pairs.csv``) that never adds
    or drops an edge.
 
-The reviewed correction overlays (river-gap, lake-gap, land-gap, and the
-flags-only water overlays) are applied afterwards by
+The reviewed correction overlays (land-gap, rescreen-gap, and the flags-only
+rescreen-water overlay) are applied afterwards by
 ``scripts/apply_overlays.py``; ``scripts/build_all.py`` orchestrates both
 steps and verifies every headline count.
 
@@ -41,6 +43,8 @@ Flags (advisory only — never remove a pair):
 
 Sources (recorded in data/PROVENANCE.md with checksums):
   * World Bank Official Boundaries (GeoPackage, 2026-05-14)
+  * Natural Earth v5.1.2 disputed areas + countries — the tract administrators,
+    applied as the constant ``_NDLSA_TRACT_ADMIN`` (not read at build time)
 
 Usage
 -----
