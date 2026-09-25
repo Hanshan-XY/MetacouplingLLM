@@ -235,8 +235,8 @@ had retyped four reservoir-on-river arcs (Itaipu `BRA020↔PRY007`, Kossou
 `river` under a per-arc "drowned channel" rule; the maintainer **reversed that
 on 2026-09-04 and withdrew the rule** (no code reads `water_type`, and the
 retype forced a screened-vs-shipped reconciliation in every ledger table). The
-four rows are `lake` again with their original body names, the base
-classification reads 238 river / 60 lake, and the shipped split is 689 river /
+four rows are `lake` again with their original body names, the 298
+first-round rows read 238 river / 60 lake, and the shipped split is 689 river /
 114 lake. A reservoir can therefore carry `river` on one arc and `lake` on
 another according to which screen nominated each row (Kariba: `ZMB109↔ZWE011`
 river-screen nominated; the `ZWE006↔ZWE011` and `ZWE008↔ZWE011` shore contacts
