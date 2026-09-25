@@ -166,7 +166,7 @@ exactly what a fresh `--full` run produces.
 python -m pytest tests/ -q
 ```
 
-The suite (1,388 tests at the time of writing) includes: the expected-count assertions, the engine
+The suite (1,389 tests at the time of writing) includes: the expected-count assertions, the engine
 byte-stability guard, a fresh-build check that Stages 3–4 reproduce the
 shipped files, the check that the engine's inputs are exactly the reviewed
 files, loader behavior for
