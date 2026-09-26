@@ -149,7 +149,8 @@ which is convergent model evidence, not independent ground truth. A
 dual-AI precision **98.7%** (75/76; exact 95% CI [92.9%, 99.97%]; four of
 the 80 sampled rows were NA placeholder units), weighted false-omission
 **1.07%** within the sampled candidate-negative frame (conservative combined
-95% bound [0.03%, 10.9%]; not an overall-recall claim), mechanism auto-reject 0/20,
+95% bound [0.03%, 10.9%]; not an overall-recall claim), mechanism auto-reject 0/20 (a rule since dropped: the 269
+edges it still closed were adjudicated on 2026-09-26, none water-only),
 inter-rater κ = 0.867 (95% CI [0.69, 1.00]) on a 30-row blind subsample; both discovered errors were corrected through the
 manifest path (`docs/VALIDATION_STUDY.md`). The river / HydroRIVERS candidates were **two-stage
 ground-truthed** — a research pass feeding an adversarial verify pass
@@ -244,7 +245,8 @@ river-screen nominated; the `ZWE006↔ZWE011` and `ZWE008↔ZWE011` shore contac
 
 The negatives carry measured uncertainty too: weighted false-omission
 1.07% within the audited candidate-negative frame (conservative combined
-95% bound [0.03%, 10.9%]), 0/20 among mechanism auto-rejects
+95% bound [0.03%, 10.9%]), 0/20 among mechanism auto-rejects (the rule has since
+been dropped and its remaining rejections adjudicated)
 (`docs/VALIDATION_STUDY.md`). The dataset is **versioned with the package**:
 every change is a reviewed, CHANGELOG-documented manifest edit replayed by
 the idempotent engine, so any prior state is recoverable from git history.

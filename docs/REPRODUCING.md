@@ -241,7 +241,9 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   measured with `GEOD.inv`. `build_arc_cache.py --out arc_cache_gd1.jsonl`
   stores, per point, the distance to each layer;
   `build_data/geodesic_distances/run_screens_gd1.py` computes the exact shares
-  and nominations (`gd1_screens.csv`, report `gd1_report.txt`).
+  and nominations (`gd1_screens.csv`, report `gd1_report.txt`), and
+  `build_data/water_screen_rebuild/rule_rejections/run_screens_mr1.py` the current record,
+  with the cross-type union at every ladder width (`mr1_screens.csv`).
 - **Edge screens on the arc:** Natural Earth river ladder
   (`ne_10m_rivers_lake_centerlines`, 1:10M, named rivers): ≥ 0.50 within 2.5 km,
   rungs 5/10/15/20 km; Natural Earth lake ladder (`ne_10m_lakes`): ≥ 0.40 within
@@ -250,7 +252,8 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   ≥ 0.40 within 500 m; combined river (a point within 2.5 km of a Natural Earth
   river or 500 m of a HydroRIVERS reach): ≥ 0.50; combined lake (125 m of a
   Natural Earth lake or 500 m of a HydroLAKES polygon): ≥ 0.40; cross-type union
-  (any of the four layers at its operating width): ≥ 0.80. An edge is nominated
+  (any of the four layers at its widest width: Natural Earth rivers 20 km, lakes 1,500 m,
+  HydroRIVERS and HydroLAKES 500 m): ≥ 0.80. An edge is nominated
   when any screen reaches its bar.
 - **Non-touching corridor census**
   (`build_data/geodesic_distances/census_gd1.py`, on the build's polygons):

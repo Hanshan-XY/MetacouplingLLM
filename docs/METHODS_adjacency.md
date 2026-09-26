@@ -642,7 +642,7 @@ it (composition: `data/PROVENANCE.md`), every row nominated by the
 full-ladder screens (river bar 0.50 at geodesic 2.5/5/10/15/20 km rungs; lake
 bar 0.40 at geodesic 125/250/500/1,000/1,500 m; HydroRIVERS bar 0.50 at a fixed
 geodesic 500 m sample-to-reach width (one 15 arc-second HydroSHEDS cell), nomination floor
-10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges (714 set aside on 2026-07-10 as document-only, and one edge no screen population held) were adjudicated on 2026-09-14 (54 accepted, 50 of them shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); since 2026-09-22 every edge screen runs on the border arc, with a combined river screen (bar 0.50), a combined lake screen (0.40) and a cross-type union (0.80) added (`ba1` below), and since 2026-09-23 every distance is located and measured on the ground (`gd1` below); the corridor
+10 m³/s plus the creek band — ≥ 0.5 of the border within 500 m of any reach — whose 715 domestic creek-only edges (714 set aside on 2026-07-10 as document-only, and one edge no screen population held) were adjudicated on 2026-09-14 (54 accepted, 50 of them shipped); HydroLAKES at geodesic 500 m with the same 0.40 lake bar (0.5 until 2026-09-19; the 21 borders the lower bar newly nominated were adjudicated, none water-only); since 2026-09-22 every edge screen runs on the border arc, with a combined river screen (bar 0.50), a combined lake screen (0.40) and a cross-type union (0.80) added (`ba1` below; the union since 2026-09-26 at each layer's widest width, `mr1` below), and since 2026-09-23 every distance is located and measured on the ground (`gd1` below); the corridor
 census for non-touching pairs (re-derived 2026-09-10 and measured on the ground since 2026-09-23, below); domestic borders in scope for the first time),
 every candidate Tier-2 adjudicated and
 every shipped verdict human- or dual-AI-verified with per-row provenance in
@@ -1154,6 +1154,20 @@ three pairs leave its population (23,410 → 23,407), and Jerusalem↔Ramallah, 
 short-gap presence rule (a 422 m gap) and rejected in the nt2 two-pass as a dry gap, leaves its
 nominations (243 → 242). The census computes each pair on its own, so dropping the three pairs from
 its record gives what a re-run on the new edge list gives. Record: `build_data/ndlsa_ne/`.
+
+**The rule rejections adjudicated; the union at every ladder width (`mr1`, 2026-09-26).** The July hybrid auto-reject
+rule closed, without any model looking, an edge nominated only by a wider Natural Earth river rung (5 to 20 km) whose
+share at every layer's base width is below 0.20; it held for 269 edges on the current record (207 domestic, 62
+cross-border). It could miss a border that only the wider rungs see: the Orinoco border Anzoátegui↔Bolívar, a shipped
+water-only row first nominated at 10 km, reaches 0.24 at best at a base width (HydroRIVERS). The rule is dropped, and the
+269 were adjudicated by the standing two-pass (blind GPT-5.6 Sol research, Sonnet-5 adversarial judgment): water-only on
+none (gate A 0 / B 0 / C 22 / D 247; maintainer: no override). The cross-type union now takes the widest rung of each
+Natural Earth ladder (rivers 20 km, lakes 1,500 m; HydroRIVERS and HydroLAKES 500 m; bar 0.80), so it combines the
+layers at every width the ladders measure: 1,144 → 2,045 nominations (723 → 744 of them accepted), one new candidate
+(Plužine↔Šavnik, already adjudicated, not water-only); edges nominated by any screen 3,285 → 3,286. Every nominated
+candidate now carries a two-model verdict (the completeness check no longer lets the rule's ledger, or the July audit
+queue that lists its rows, close a nomination); attributability 803/803. No shipped row changes. `mr1_screens.csv` is now
+the edge screens' record (the census's stays `census_gd1.csv`). Record: `build_data/water_screen_rebuild/rule_rejections/`.
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and

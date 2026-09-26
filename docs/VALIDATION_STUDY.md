@@ -1,5 +1,11 @@
 # Validation study — water-only classification (results)
 
+> **Status note (2026-09-26).** Stratum N2 sampled the deterministic mechanism auto-reject: the rule that closed,
+> without adjudication, an edge nominated only by a wider Natural Earth river rung with every layer below 0.20 at its
+> base width. The rule has since been dropped: the 269 edges it still closed on the current screen record were
+> adjudicated by the two-model design, and none is water-only (campaign `mr1`,
+> `build_data/water_screen_rebuild/rule_rejections/`). The N2 result below stands as the study measured it.
+
 Preregistered design: `docs/VALIDATION_SAMPLING_PLAN.md` (committed 2026-07-13,
 before the sample was drawn; seed 20260713; sampler
 `scripts/draw_validation_sample.py`, byte-identical across reruns). Rating:
