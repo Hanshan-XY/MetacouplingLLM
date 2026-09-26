@@ -196,3 +196,22 @@ the judgment workflow and its output, the gate, the maintainer's rulings, `mr1_r
   and Chinese checklist item 70; the process notes (§4.7, §5, §9.21); the reproduction ledger; the fact sheet; METHODS
   (§8's current description and an `mr1` record), PROVENANCE, REPRODUCING (the union's widths), a status note in
   `docs/VALIDATION_STUDY.md`, CHANGELOG. DOCX rebuilt, QA pass; documentation tests pass.
+- 2026-09-26 stale check after the pull request (maintainer: "Can you check if there is any stale or wrong information in
+  the docs?"): four statements the widened union had made stale, corrected. `docs/FUTURE_WORK.md` §4 named
+  `gd1_screens.csv` as the current record and gave Chiba↔Tokyo a union share of 0.44 (0.53 on the mr1 record; still below
+  the bar, none of the four omissions is nominated); §5 said a union bar of 0.70 or 0.90 changes no nomination, measured
+  on the base-width union (on the widened union 0.70 adds 19 candidates and 0.90 drops Plužine↔Šavnik); REPRODUCING §6
+  gave only `run_screens_gd1.py` for the current record; METHODS' mr1 record now names `mr1_screens.csv` as the edge
+  screens' record. The supplement gains a status note.
+- 2026-09-26 the limitation recorded above, fixed (maintainer: "Fix the "few kilometres" prompt wording"): the standing
+  nomination sentence moves to `build_data/water_screen_rebuild/standing_prompts.py`, whose Natural Earth river clause states
+  the width at which the edge reached the bar (over the 3,286 nominated edges: 2.5 km 688, 5 km 188, 10 km 337, 15 km 373,
+  20 km 384; every other clause unchanged). The ba1 original stays in `build_queue_ba1.py` as the record of the ba1, ba1r,
+  gd1 and mr1 prompts.
+- 2026-09-26 the lake clause likewise (maintainer: "Yes, fix the lake clause too"): it states the Natural Earth lake width
+  at which the edge reached the bar instead of "within a short distance" (over the 3,286 nominated edges: 125 m 137,
+  250 m 4, 500 m 7, 1,000 m 11, 1,500 m 8 = the 167 lake nominations; nothing else changes).
+- 2026-09-26 the union clause likewise (maintainer: "Yes, fix the union clause too"): it states the union's widths,
+  20 km of a Natural Earth river, 1,500 m of a Natural Earth lake, 500 m of a HydroRIVERS reach or a HydroLAKES polygon
+  (taken from the ladders' widest rungs and the hydrography width, not written in), instead of "within reach of some
+  river or lake feature"; it applies to the one edge the union alone nominates, Plužine↔Šavnik.
