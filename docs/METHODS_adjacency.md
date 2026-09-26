@@ -1166,8 +1166,8 @@ Natural Earth ladder (rivers 20 km, lakes 1,500 m; HydroRIVERS and HydroLAKES 50
 layers at every width the ladders measure: 1,144 → 2,045 nominations (723 → 744 of them accepted), one new candidate
 (Plužine↔Šavnik, already adjudicated, not water-only); edges nominated by any screen 3,285 → 3,286. Every nominated
 candidate now carries a two-model verdict (the completeness check no longer lets the rule's ledger, or the July audit
-queue that lists its rows, close a nomination); attributability 803/803. No shipped row changes. Record:
-`build_data/water_screen_rebuild/rule_rejections/`.
+queue that lists its rows, close a nomination); attributability 803/803. No shipped row changes. `mr1_screens.csv` is now
+the edge screens' record (the census's stays `census_gd1.csv`). Record: `build_data/water_screen_rebuild/rule_rejections/`.
 
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and

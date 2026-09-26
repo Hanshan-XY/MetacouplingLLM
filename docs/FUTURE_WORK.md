@@ -124,13 +124,15 @@ was ruled ("Even we take 100m, we may still miss pairs"; the removal rule of the
 edges stay in the edge list as ordinary land borders. Kyegegwa↔Ssembabule left when the HydroRIVERS screens took the other
 screens' sampling rule (campaign `gs1`, `build_data/geodesic_sampling/`); the other three when every edge screen moved onto
 one border arc (campaign `ba1`, `build_data/arc_and_combined_screens/`). Measuring every distance on the ground (campaign `gd1`,
-`build_data/geodesic_distances/`) nominates none of them. The shares below are those of the border arc on the current screen
-record (`build_data/geodesic_distances/gd1_screens.csv`; the 1,000 m column measured the same way, `omissions_gd1.txt`).
+`build_data/geodesic_distances/`) nominates none of them, nor does the cross-type union at every ladder width (campaign
+`mr1`, 2026-09-26). The shares below are those of the border arc on the current screen record
+(`build_data/water_screen_rebuild/rule_rejections/mr1_screens.csv`; the 1,000 m column measured the same way,
+`build_data/geodesic_distances/omissions_gd1.txt`).
 
 | pair | units | water body | border arc | HydroRIVERS within 500 m | within 1,000 m | Natural Earth river within 20 km | cross-type union | left the set |
 |---|---|---|---|---|---|---|---|---|
 | `UGA063`↔`UGA107` | Kyegegwa ↔ Ssembabule (Uganda) | River Katonga | 0.7 km, 3 points | 0.00 | 1.00 | 0.00 | 0.00 | 2026-09-21 |
-| `JPN038`↔`JPN040` | Chiba ↔ Tokyo (Japan) | Edo River | 20.5 km, 43 points | 0.44 | 0.77 | 0.28 | 0.44 | 2026-09-22 |
+| `JPN038`↔`JPN040` | Chiba ↔ Tokyo (Japan) | Edo River | 20.5 km, 43 points | 0.44 | 0.77 | 0.28 | 0.53 | 2026-09-22 |
 | `URY010`↔`URY016` | Montevideo ↔ San José (Uruguay) | Santa Lucía River | 3.2 km, 8 points | 0.25 | 0.88 | 0.00 | 0.25 | 2026-09-22 |
 | `VNM026`↔`VNM049` | Haiphong ↔ Quảng Ninh (Viet Nam) | Sông Đá Bạch–Bạch Đằng | 30.8 km, 69 points | 0.39 | 0.65 | 0.00 | 0.48 | 2026-09-22 |
 
@@ -160,8 +162,9 @@ Hai Duong↔Quang Ninh not water-only.
   would change; nothing else would.
 - **Water split between a river and a lake.** A border whose water is partly river and partly lake, so that neither the
   river screens nor the lake screens reach their bars, and whose cross-type union share lies between 0.50 and 0.80, is
-  nominated by no screen (the union's bar is the corridor census's 0.80; a union bar of 0.70
-  or 0.90 changed no nomination in the sensitivity run).
+  nominated by no screen (the union's bar is the corridor census's 0.80). On the union at base widths, a bar of 0.70 or
+  0.90 changed no nomination in the 2026-09-21 sensitivity run; on the union at every ladder width (since 2026-09-26) a
+  bar of 0.70 would add 19 candidates and 0.90 would drop one, Plužine↔Šavnik, the only edge the union alone nominates.
 - **The 500 m step's aliasing at the bars.** A share is a count of sample points, so a border near a bar can cross it when
   the step changes (measured 2026-09-21 on the 2,456 edges near a bar, `build_data/geodesic_sampling/`
   `analyze_step_sensitivity.py`: a 100 m step moved 37, 8, 32 and 6 edges across the Natural Earth river, Natural Earth

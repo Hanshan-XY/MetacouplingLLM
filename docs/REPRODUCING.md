@@ -241,7 +241,9 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   measured with `GEOD.inv`. `build_arc_cache.py --out arc_cache_gd1.jsonl`
   stores, per point, the distance to each layer;
   `build_data/geodesic_distances/run_screens_gd1.py` computes the exact shares
-  and nominations (`gd1_screens.csv`, report `gd1_report.txt`).
+  and nominations (`gd1_screens.csv`, report `gd1_report.txt`), and
+  `build_data/water_screen_rebuild/rule_rejections/run_screens_mr1.py` the current record,
+  with the cross-type union at every ladder width (`mr1_screens.csv`).
 - **Edge screens on the arc:** Natural Earth river ladder
   (`ne_10m_rivers_lake_centerlines`, 1:10M, named rivers): ≥ 0.50 within 2.5 km,
   rungs 5/10/15/20 km; Natural Earth lake ladder (`ne_10m_lakes`): ≥ 0.40 within
