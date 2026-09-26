@@ -250,7 +250,8 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   ≥ 0.40 within 500 m; combined river (a point within 2.5 km of a Natural Earth
   river or 500 m of a HydroRIVERS reach): ≥ 0.50; combined lake (125 m of a
   Natural Earth lake or 500 m of a HydroLAKES polygon): ≥ 0.40; cross-type union
-  (any of the four layers at its operating width): ≥ 0.80. An edge is nominated
+  (any of the four layers at its widest width: Natural Earth rivers 20 km, lakes 1,500 m,
+  HydroRIVERS and HydroLAKES 500 m): ≥ 0.80. An edge is nominated
   when any screen reaches its bar.
 - **Non-touching corridor census**
   (`build_data/geodesic_distances/census_gd1.py`, on the build's polygons):
