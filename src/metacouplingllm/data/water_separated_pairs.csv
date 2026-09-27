@@ -802,6 +802,8 @@ adm1,VNM004,VNM006,True,river,Sông Cầu,water-only border on a shared edge (ed
 adm1,VNM025,VNM026,True,river,Sông Mía-Sông Cầu Xe-Sông Thái Bình canal chain,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
 adm1,VNM026,VNM054,True,river,Sông Hóa,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
 adm1,AFG016,AFG028,True,river,Panjshir River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,URY006,URY012,False,river,Río Negro; Palmar Reservoir,water-only border between non-touching units (corridor census; two-model adjudication),cross-vendor,A
+adm1,VNM007,VNM059,True,river,Cổ Chiên River,water-only border between non-touching units (corridor census; two-model adjudication),cross-vendor,A
 adm0,AFG,UZB,True,,,adm1-rollup,,
 adm0,ARM,IRN,True,,,adm1-rollup,,
 adm0,AZE,TUR,True,,,adm1-rollup,,

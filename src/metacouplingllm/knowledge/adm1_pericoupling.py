@@ -5,7 +5,7 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,461 border pairs** covering **3,374 unique ADM1
+The edge list contains **8,464 border pairs** covering **3,374 unique ADM1
 regions** across **196 countries**.  The graph is built in four stages (full
 provenance in ``data/PROVENANCE.md`` and ``docs/METHODS_adjacency.md``):
 (1) **geometry** -- rook contiguity at exact contact (tolerance 0) over the
@@ -17,16 +17,17 @@ geometry-derived **16-pair disputed overlay** (each disputed tract folded into
 the administrator Natural Earth records for most of it); (3) the reviewed
 **water-only classification** (one file, each row nominated by a deterministic
 Python screen and adjudicated): 779 existing edges flagged water-only and the
-**24** water borders between non-touching units that the corridor census found,
-added as edges; and (4) the reviewed **edge corrections**: a **4-pair land-gap
-overlay** (genuine sub-tolerance borders, Egypt-Libya ... a domestic Anguilla
-pair) and a **denylist** removing 5 contacts found not to be borders (two
+**26** water borders between non-touching units that the corridor census found,
+added as edges; and (4) the reviewed **edge corrections**: a **5-pair land-gap
+overlay** (four genuine sub-tolerance borders, Egypt-Libya ... a domestic
+Anguilla pair, and Samukh-Yevlakh, whose polygons meet only at a point) and a
+**denylist** removing 5 contacts found not to be borders (two
 fabricated edges, Grand Gedeh<->Rivercess and Apure<->Amazonas, and three
 mid-lake contacts in Kasba Lake, Lake Edward and Lake Victoria).
 ``coupling_standard`` governs river and lake borders uniformly (``lenient``
 keeps all water borders, ``moderate`` keeps only those with a fixed crossing,
-``stringent`` keeps none): the 803 water-only pairs give **8,461** lenient /
-**8,065** moderate / **7,658** stringent.
+``stringent`` keeps none): the 805 water-only pairs give **8,464** lenient /
+**8,067** moderate / **7,659** stringent.
 
 Source
 ------
