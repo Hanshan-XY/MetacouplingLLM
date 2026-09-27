@@ -1,8 +1,8 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through regenerating and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,461 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (803
+datasets — the ADM1 edge list (8,464 subnational shared-border pairs) and the
+ADM0 country matrix (326 pairs) with their water-only classification (805
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -89,10 +89,10 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,461 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,065 / 7,658 |
-| water-only ADM1 | 803 = 407 with a fixed crossing / 396 without |
-| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 268 / B 238 / C 297 |
+| ADM1 edges (lenient) | 8,464 (3,374 regions, 196 countries) |
+| ADM1 moderate / stringent | 8,067 / 7,659 |
+| water-only ADM1 | 805 = 408 with a fixed crossing / 397 without |
+| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 270 / B 238 / C 297 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
 
@@ -133,12 +133,12 @@ in `scripts/apply_overlays.py`):
   → **8,438**; this is the base file the geometry build writes (the five
   denylisted contacts still in it; `build_all.py` checks that each is present).
 - **S3 — water-only classification.** `scripts/apply_overlays.py` reads
-  `water_classification_pairs.csv` (803 rows; the build reads no Natural Earth
+  `water_classification_pairs.csv` (805 rows; the build reads no Natural Earth
   layer): it flags 779 existing edges water-only (`water_type`, `water_body`,
-  `has_bridge`) and adds the 24 water borders between non-touching units, each
-  with its water row → **8,462**; water rows **803**.
-- **S4 — edge corrections.** +4 land-gap edges (`land_gap_overlay_pairs.csv`)
-  and −5 denylisted contacts (`denylist_pairs.csv`) → **8,461**; the ADM0
+  `has_bridge`) and adds the 26 water borders between non-touching units, each
+  with its water row → **8,464**; water rows **805**.
+- **S4 — edge corrections.** +5 land-gap edges (`land_gap_overlay_pairs.csv`)
+  and −5 denylisted contacts (`denylist_pairs.csv`) → **8,464**; the ADM0
   roll-up is then recomputed once (a country pair is water-only iff *all* its
   ADM1 crossings are; bridged iff *any* is). Stages 3–4 are idempotent, one pass
   (§5).
@@ -180,8 +180,8 @@ Five reviewed files in `src/metacouplingllm/data/` govern the build: the
 source-relabel manifest is a Stage 1 input, the de-facto overlay
 manifest is written by S2 from the NDLSA layer, the tract administrators taken
 from Natural Earth v5.1.2 and the province attributions authored in the build
-script, and the other **three** are the inputs of Stages 3 and 4 (812 rows:
-803 water rows, 24 of them adding an edge, 4 land edges and 5 removals). The
+script, and the other **three** are the inputs of Stages 3 and 4 (815 rows:
+805 water rows, 26 of them adding an edge, 5 land edges and 5 removals). The
 engine (`scripts/apply_overlays.py`) holds only behavior; editing a file and
 re-running the engine is the supported way to change Stages 3 and 4:
 
@@ -189,8 +189,8 @@ re-running the engine is the supported way to change Stages 3 and 4:
 |---|---|
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
 | `disputed_overlay_pairs.csv` | S2 output: 16 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
-| `water_classification_pairs.csv` | S3: water flags on 779 existing edges and 24 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
-| `land_gap_overlay_pairs.csv` | S4: +4 land edges (sub-tolerance survey lines) |
+| `water_classification_pairs.csv` | S3: water flags on 779 existing edges and 26 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
+| `land_gap_overlay_pairs.csv` | S4: +5 land edges (four sub-tolerance borders, and Samukh↔Yevlakh, whose polygons meet only at a point) |
 | `denylist_pairs.csv` | S4: −5 contacts found not to be borders, each with its evidence and ruling; checked present in the geometry build's output before removal |
 
 Engine semantics worth knowing:
@@ -228,7 +228,7 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   own polygons (`load_adm1_build_geometry` in `scripts/build_pericoupling_db.py`),
   the arc is A's outline where it coincides with B's (merged into continuous
   lines), where it runs inside B (overlapping polygons), within 5×10⁻⁴° of B for
-  the four land-gap pairs only, and where it faces B across a gap of at most
+  the four sub-tolerance land-gap pairs only, and where it faces B across a gap of at most
   1,000 m (not on or across a third unit's outline, reciprocal, the chord's
   midpoint inside neither unit; a chord shorter than 1 m is contact and stays
   in the arc unless it only repeats the end of a stretch already in it). Each
@@ -256,19 +256,20 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   HydroRIVERS and HydroLAKES 500 m): ≥ 0.80. An edge is nominated
   when any screen reaches its bar.
 - **Non-touching corridor census**
-  (`build_data/geodesic_distances/census_gd1.py`, on the build's polygons):
-  for unit pairs within 100 km of each other on the ground whose polygons do
-  not touch (a pair the build's polygons join at a single point while the
-  World Bank polygons keep it apart is measured on the World Bank polygons:
-  `point_contacts_gd1.py` lists them, `census_gd1.py --raw --pairs` measures
-  them), transects at most 250 m apart across the facing frontage, sampled at
-  most 100 m apart, every distance on the ground; a lake share
-  (samples within 125 m of a Natural Earth lake or a HydroLAKES polygon of
-  at least 0.25 km², the larger of the two) plus a river share (samples
-  within 500 m of a HydroRIVERS reach, for gaps up to 5 km) nominates at
-  ≥ 0.80; a wide variant repeats the test with lakes at 1,500 m and reaches
-  of at least 1,000 m³/s at 2,500 m; and a gap of at most 1,000 m nominates
-  whenever a sample lies within 500 m of a reach.
+  (`build_data/water_screen_rebuild/corridor_census_exact/census_cc1.py`, on
+  the build's polygons): for unit pairs within 100 km of each other on the
+  ground that are neither edges nor denylisted contacts, those whose polygons
+  meet only at a point included, every distance on the ground in an azimuthal-equidistant frame
+  centred on each pair's nearest approach. Transects start at most 250 m apart
+  along each unit's outline where it lies within the facing band of the other
+  unit (max(2 × gap, gap + 1 km), at most 100 km) and run to the nearest point
+  of the other outline. The share of their length inside the union of the edge
+  screens' four layers at their base widths (named Natural Earth rivers 2.5 km,
+  Natural Earth lakes 125 m, HydroRIVERS and HydroLAKES 500 m; the river layers
+  for gaps up to 5 km) nominates at ≥ 0.80; a gap of at most 1 km nominates when
+  a transect meets the HydroRIVERS buffer; and a gap of at most 5 km nominates
+  when crossings at most 5 km long that each lie at least 80% inside the layers
+  follow one another along an outline for more than 1 km.
 - **Bridge screen** (OpenStreetMap Overpass): any way tagged as a bridge on a
   road, path or railway (or `man_made=bridge`), not under construction or
   proposed, coming within 100 m of both units' polygons measured on the ground
@@ -280,11 +281,17 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   or tunnel counts (ferries, fords and footbridges never do) is applied by the
   later layers — web verification, adversarial recheck, maintainer rulings.
 
-Thresholds are anchored, not tuned: 2.5 km ≈ ½ × the NMAS horizontal
-accuracy at 1:10M (0.5 mm map distance ≈ 5 km ground); 500 m = the
-HydroSHEDS-derived datasets' stated positional accuracy; the rung ladders
-were extended until the capture pattern was fully characterized; the 1,000 m
-facing reach is the corridor census's short-gap presence rule and 0.80 its bar. The bridge
+Thresholds are anchored, not tuned, and they are screening tolerances, not
+positional accuracies: 2.5 km ≈ ½ × the NMAS tolerance at 1:10M (0.5 mm of map
+distance ≈ 5 km on the ground), a width that follows from the map scale;
+500 m ≈ one 15 arc-second HydroSHEDS cell at the equator, the grid of
+HydroRIVERS (whose technical documentation states no positional accuracy),
+and HydroLAKES takes the same width; the rung ladders
+were extended until the capture pattern was fully characterized; the border
+arc's 1,000 m facing reach is the corridor census's presence gap, and the census's three 1 km
+constants (the presence gap, the facing band's margin and the covered stretch, each twice the
+HydroRIVERS width) are a convention; 0.80 is the union bar the census shares with the edge
+screens. The bridge
 screen's 100 m has no standard to anchor it: it is a round value inside the range over which
 the screen's agreement with the reviewed flags is flat (25–250 m on the ground;
 `crossing_width/SPEC_cw1_crossing_width.md`). Screens

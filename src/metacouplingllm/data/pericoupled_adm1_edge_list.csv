@@ -8456,7 +8456,10 @@ GUF001,French Guiana,France,GUF,Other,SUR004,Marowijne,Suriname,SUR,LCR,True,3.3
 ALB022,Malesi e Madhe,Albania,ALB,ECA,MNE002,Bar,Montenegro,MNE,ECA,True,22.9,False,False
 COD013,Équateur,Democratic Republic of Congo,COD,AFR,COG003,Cuvette,Congo,COG,AFR,True,2.2,True,False
 ARG008,Entre Rios,Argentina,ARG,LCR,URY001,Artigas,Uruguay,URY,LCR,True,1.2,True,False
+URY006,Flores,Uruguay,URY,LCR,URY012,Rio Negro,Uruguay,URY,LCR,False,2.7,True,False
+VNM007,Ben Tre,Viet Nam,VNM,EAP,VNM059,Tra Vinh,Viet Nam,VNM,EAP,False,16.6,False,False
 EGY016,Matrouh,Arab Republic of Egypt,EGY,MENA,LBY001,Ajdabiya (agedabia),Libya,LBY,MENA,True,49.3833,False,False
 DOM011,Independencia,Dominican Republic,DOM,LCR,DOM026,San Juan,Dominican Republic,DOM,LCR,False,0.0414,True,True
 ETH013,Tigray,Ethiopia,ETH,AFR,SDN004,Kassala,Sudan,SDN,AFR,True,0.1282,True,True
 AIA001,Name Unknown,Anguilla (U.K.),AIA,Other,AIA003,Name Unknown,Anguilla (U.K.),AIA,Other,False,0.1248,True,True
+AZE056,Samukh,Azerbaijan,AZE,ECA,AZE071,Yevlakh,Azerbaijan,AZE,ECA,False,15.0,False,False

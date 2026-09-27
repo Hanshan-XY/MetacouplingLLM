@@ -10,12 +10,13 @@ reviewed files in ``src/metacouplingllm/data/`` (provenance:
   ===== ================================== =========================================
   stage file                               effect
   ===== ================================== =========================================
-  3     water_classification_pairs.csv     the water-only classification, 803 rows:
+  3     water_classification_pairs.csv     the water-only classification, 805 rows:
                                            779 existing edges flagged water-only and
-                                           24 water borders between non-touching
+                                           26 water borders between non-touching
                                            units added (``adds_edge``), each with its
                                            water row
-  4     land_gap_overlay_pairs.csv         +4 sub-tolerance land borders
+  4     land_gap_overlay_pairs.csv         +5 land borders the geometry does not
+                                           join (4 sub-tolerance, 1 point contact)
   4     denylist_pairs.csv                 -5 contacts found not to be borders
   ===== ================================== =========================================
 
