@@ -12,7 +12,8 @@ and stay shipped until the maintainer decides.
 Items 1-10 were audited **2026-07-18** (deterministic geometry passes + five
 web-research adjudications); items 11-14 were raised **2026-07-25** by the wu1
 water-screen unification; item 15 was raised **2026-09-01** by the maintainer's
-map review at the rj2 gate. Status codes: CLOSED (no action needed), RETAINED
+map review at the rj2 gate; item 16 was raised **2026-09-29** by the maintainer's
+map review at the gate of the fixed-crossing adjudication (ca1). Status codes: CLOSED (no action needed), RETAINED
 (edge confirmed genuine), DECISION (maintainer call pending).
 
 | # | pair | question [raised] | outcome | status |
@@ -32,6 +33,7 @@ map review at the rj2 gate. Status codes: CLOSED (no action needed), RETAINED
 | 13 | TZA016<->UGA040 | mid-lake pair challenged by the wu1 re-adjudication [2026-07-25] | **Maintainer map ruling: NOT ADJACENT — diagonal non-adjacency on Lake Victoria** (Mara / Kalangala): the mid-lake median segment WB assigns to this pair belongs to a different unit pair. Not a thin arc — 14.019 / 14.906 / 18.235 km, one component (ratio 0.769) — so the instrument gave no signal at all; the ruling is purely the map check. The maintainer separately **upheld** the neighbouring TZA016<->UGA088 (Mara / Namayingo, arc 30.8 km) as a genuine water-only border, which is what distinguishes the two. | RESOLVED 2026-07-25: **removed** (denylisted) |
 | 14 | BOL004<->PER007 | WB source artifact surfaced while measuring wu1 [2026-07-25] | **OPEN — edge existence questioned, no action taken.** WB's `PER007` polygon is named *Callao* — Lima's Pacific port — but is 4-part with centre at lat -15.25 / lon -71.02, i.e. in the Puno altiplano ~800 km from Callao, and its contact with La Paz (`BOL004`) falls at lat -16.198 **inside Lake Titicaca**. La Paz already borders the real Puno (`PER021`) natively over 761.7 km. The polygon is 4-part and the parts are ~900 km apart: the LARGEST (by area) sits at Lake Titicaca (centre lon -68.97 / lat -16.36), while the other three are on the Pacific coast at the genuine Callao (lon -77.1 to -77.2, lat -11.9 to -12.1), so this looks like an upstream mislabel of a Puno fragment rather than a genuine La Paz-Callao border. Recorded, not removed: the failure mode is *unit identity* (a source-relabel-class question), not a water verdict, so it is outside wu1's scope and needs its own identity-fingerprinting pass against the pinned GeoPackage. The pair ships unchanged. | DECISION pending |
 | 15 | SUR008<->SUR009 | maintainer map review at the rj2 gate: "point-touch only / no real shared border" [2026-09-01] | **OPEN — edge existence questioned, no action taken.** Saramacca / Sipaliwini on the Saramacca River. The water question is settled (not water-only; rj2 rulings). The maintainer's official-map reading is a point contact, but the WB geometry shows a **stable** shared segment — 2.678 / 4.459 / 11.346 km at 1e-3 / 5e-3 / 2e-2 (ratio 0.236; edge-list length 2.44 km), one component — so, as with items 11-13, there is no WB-internal collapse signature and any removal would rest on the map check alone. The maintainer chose not to remove it yet ("too early to remove it now"). The pair ships unchanged. | DECISION pending |
+| 16 | FRA011<->CHE006 | maintainer map review at the ca1 gate (crossing adjudication): "They are not adjacent as it's kind of point corner (almost intersect at a point but actually not)." [2026-09-29] | **Maintainer map ruling: NOT ADJACENT — a corner at Biaufond on the Doubs** (Franche-Comté / Bern): official maps show Bern's limit coming close to the France–Switzerland border without meeting it (the Doubs there borders Neuchâtel and Jura). The WB contact is 0.82 km — two straight 0.41 km segments meeting at the Pont de Biaufond, at the layer's ordinary 400–500 m vertex spacing along this border, so no WB shape signature — and the arc is stable: 0.989 / 1.667 / 7.869 km at 1e-3 / 5e-3 / 2e-2 (ratio 0.126), one component. As with items 11-13, the removal rests on the maintainer's official-map check alone. | RESOLVED 2026-09-29: **removed** (denylisted) |
 
 ## Method notes
 
@@ -95,6 +97,18 @@ Count effects: denylist 2 -> 5 pairs; edges 8,459 -> 8,456; water-only
 Unchanged: moderate 8,065, stringent 7,720, regions 3,374, ADM0 326/320/300
 and its 26 roll-ups (none of the three removals was a country pair's only
 crossing).
+
+## Decisions (maintainer, 2026-09-29) — ca1 crossing adjudication
+
+1. **FRA011<->CHE006** — REMOVED (added to the denylist, `data/denylist_pairs.csv`, Stage 4); the
+   maintainer's answer to "What should happen to the edge?": "Remove it via the denylist (Recommended)".
+
+Count effects of this removal: denylist 5 -> 6 pairs; edges 8,464 -> 8,463; its water row, which had no
+fixed crossing, leaves with it (water-only 805 -> 804 by this removal; the campaign's other out-of-scope
+ruling, Cuscatlán↔San Vicente leaving the water-only set, takes it to 803). Unchanged by it: moderate and
+stringent (the edge and its no-crossing row leave together), regions 3,374, ADM0 326/320/300 (France and
+Switzerland share many other borders), and the corridor census, which leaves out denylisted contacts. The
+edge screens' population drops by the one contact, 8,421 -> 8,420.
 
 ## Placeholder-unit identities (complete enumeration, 2026-07-18)
 

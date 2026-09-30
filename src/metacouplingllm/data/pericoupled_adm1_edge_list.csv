@@ -2628,7 +2628,6 @@ FRA009,Champagne-Ardenne,France,FRA,Other,FRA011,Franche-Comte,France,FRA,Other,
 FRA009,Champagne-Ardenne,France,FRA,Other,FRA013,Ile-de-France,France,FRA,Other,False,96.8456,False,False
 FRA009,Champagne-Ardenne,France,FRA,Other,FRA016,Lorraine,France,FRA,Other,False,356.1608,False,False
 FRA009,Champagne-Ardenne,France,FRA,Other,FRA020,Picardie,France,FRA,Other,False,225.8213,False,False
-FRA011,Franche-Comte,France,FRA,Other,CHE006,Bern,Switzerland,CHE,Other,True,0.8232,True,True
 FRA011,Franche-Comte,France,FRA,Other,CHE011,Jura,Switzerland,CHE,Other,True,90.4398,False,False
 FRA011,Franche-Comte,France,FRA,Other,CHE013,Neuchatel,Switzerland,CHE,Other,True,61.6072,False,False
 FRA011,Franche-Comte,France,FRA,Other,CHE024,Vaud,Switzerland,CHE,Other,True,69.2182,False,False

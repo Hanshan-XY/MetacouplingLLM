@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8464, (
-            f"Expected 8464 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8463, (
+            f"Expected 8463 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -775,8 +775,8 @@ class TestCouplingStandardAdm1:
     def test_lake_overlay_pairs(self):
         # 63-pair lake overlay: audited lake-only pairs restored as edges so
         # coupling_standard governs lakes exactly like rivers.  Bridged lake
-        # pairs are kept under moderate (Houtribdijk, Hjulstabron); unbridged
-        # ones are lenient-only (mid-lake meetings).
+        # pairs are kept under moderate (Houtribdijk); unbridged ones are
+        # lenient-only (mid-lake meetings).
         from metacouplingllm.knowledge.adm1_pericoupling import (
             is_adm1_pericoupled,
         )
@@ -784,8 +784,11 @@ class TestCouplingStandardAdm1:
         assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="moderate") is True
         assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="stringent") is False
-        # Sodermanland <-> Uppsala: Hjulstabron across Malaren -> moderate
-        assert is_adm1_pericoupled("SWE014", "SWE016", coupling_standard="moderate") is True
+        # Sodermanland <-> Uppsala across Malaren: the Hjulsta Bridge lands inside
+        # the World Bank's Uppsala polygon, 2.9 km from Sodermanland (maintainer
+        # map ruling 2026-09-29) -> lenient only
+        assert is_adm1_pericoupled("SWE014", "SWE016", coupling_standard="lenient") is True
+        assert is_adm1_pericoupled("SWE014", "SWE016", coupling_standard="moderate") is False
         # Flevoland <-> Utrecht: no direct fixed link -> lenient only
         assert is_adm1_pericoupled("NLD002", "NLD010", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("NLD002", "NLD010", coupling_standard="moderate") is False

@@ -283,11 +283,11 @@ Two geographic adjacency databases validate LLM coupling classifications:
 | Database | Scope | Coverage |
 |---|---|---|
 | Country-level | Countries and territories | Full global (ISO alpha-3) |
-| ADM1 (subnational) | First-level administrative regions | 3,374 regions, 8,464 shared-border pairs (8,067 under the default `moderate` coupling standard), 196 countries |
+| ADM1 (subnational) | First-level administrative regions | 3,374 regions, 8,463 shared-border pairs (8,046 under the default `moderate` coupling standard), 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
 
-Both levels accept two orthogonal toggles: **`de_facto_borders`** (default `True`; fold disputed land into its de-facto administrator, vs the strict WB standard layer) and **`coupling_standard`** (`stringent` / `moderate` / `lenient`, default `moderate`) — for pairs sharing **only** a river/lake border, `moderate` requires a fixed crossing open to traffic, `stringent` drops all water-only pairs, and `lenient` keeps them.  Bridge presence was OSM-classified and then independently verified (web search + geometric province check + manual review); see `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
+Both levels accept two orthogonal toggles: **`de_facto_borders`** (default `True`; fold disputed land into its de-facto administrator, vs the strict WB standard layer) and **`coupling_standard`** (`stringent` / `moderate` / `lenient`, default `moderate`) — for pairs sharing **only** a river/lake border, `moderate` requires a fixed crossing open to traffic, `stringent` drops all water-only pairs, and `lenient` keeps them.  Each fixed-crossing flag was adjudicated by the same two-model design as the water-only status (an OpenStreetMap screen, GPT-5.6 Sol research, Sonnet-5 adversarial judgment, a location test and maintainer map rulings); see `docs/METHODS_adjacency.md` §8.
 
 Region names are resolved to ADM1 codes by `resolve_adm1_code`, which—beyond unaccented forms and hyphenated compounds—consults a bundled, deterministically-validated **English-exonym alias table** (1,145 aliases; e.g. Bavaria→Bayern, Tuscany→Toscana) and returns `None` rather than guessing on an ambiguous or padded name.  (The prompt-hint scanner additionally strips possessive suffixes, e.g. "Michigan's"→"Michigan", from free text before calling it; `resolve_adm1_code` itself does not — `resolve_adm1_code("Michigan's")` returns `None` even though `resolve_adm1_code("Michigan")` returns `"USA023"`.)
 
@@ -540,7 +540,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | 420 papers (Papers.zip) | Markdown for RAG — 192 indexed as full text, 228 as structured paraphrased summaries (papers that cannot be redistributed in full: paywalled, or open-to-read but restrictively licensed) |
 | BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2026) with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
-| ADM1 edge list (CSV) | 8,464 subnational shared-border pairs across 3,374 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
+| ADM1 edge list (CSV) | 8,463 subnational shared-border pairs across 3,374 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |
 | ADM1 alias table (CSV) | 1,145 English exonyms / alternative spellings for 863 ADM1 regions in 136 countries (e.g. Bavaria→Bayern, Tuscany→Toscana), so `resolve_adm1_code` matches common English names; deterministically validated (see `data/PROVENANCE.md`) |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 

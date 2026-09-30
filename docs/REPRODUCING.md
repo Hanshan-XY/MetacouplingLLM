@@ -1,8 +1,8 @@
 # Reproducing the pericoupling database — step-by-step manual
 
 This manual walks through regenerating and verifying the two bundled adjacency
-datasets — the ADM1 edge list (8,464 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (805
+datasets — the ADM1 edge list (8,463 subnational shared-border pairs) and the
+ADM0 country matrix (326 pairs) with their water-only classification (803
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -89,10 +89,10 @@ Expected counts (current):
 
 | count | value |
 |---|---|
-| ADM1 edges (lenient) | 8,464 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,067 / 7,659 |
-| water-only ADM1 | 805 = 408 with a fixed crossing / 397 without |
-| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 270 / B 238 / C 297 |
+| ADM1 edges (lenient) | 8,463 (3,374 regions, 196 countries) |
+| ADM1 moderate / stringent | 8,046 / 7,660 |
+| water-only ADM1 | 803 = 386 with a fixed crossing / 417 without |
+| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 269 / B 238 / C 296 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
 
@@ -130,15 +130,15 @@ in `scripts/apply_overlays.py`):
   an assigned tract that does not touch its administrator's territory (unless it
   touches no unit at all) or an authored province that does not touch its tract
   fails loudly.
-  → **8,438**; this is the base file the geometry build writes (the five
+  → **8,438**; this is the base file the geometry build writes (the six
   denylisted contacts still in it; `build_all.py` checks that each is present).
 - **S3 — water-only classification.** `scripts/apply_overlays.py` reads
-  `water_classification_pairs.csv` (805 rows; the build reads no Natural Earth
-  layer): it flags 779 existing edges water-only (`water_type`, `water_body`,
+  `water_classification_pairs.csv` (803 rows; the build reads no Natural Earth
+  layer): it flags 777 existing edges water-only (`water_type`, `water_body`,
   `has_bridge`) and adds the 26 water borders between non-touching units, each
-  with its water row → **8,464**; water rows **805**.
+  with its water row → **8,464**; water rows **803**.
 - **S4 — edge corrections.** +5 land-gap edges (`land_gap_overlay_pairs.csv`)
-  and −5 denylisted contacts (`denylist_pairs.csv`) → **8,464**; the ADM0
+  and −6 denylisted contacts (`denylist_pairs.csv`) → **8,463**; the ADM0
   roll-up is then recomputed once (a country pair is water-only iff *all* its
   ADM1 crossings are; bridged iff *any* is). Stages 3–4 are idempotent, one pass
   (§5).
@@ -180,8 +180,8 @@ Five reviewed files in `src/metacouplingllm/data/` govern the build: the
 source-relabel manifest is a Stage 1 input, the de-facto overlay
 manifest is written by S2 from the NDLSA layer, the tract administrators taken
 from Natural Earth v5.1.2 and the province attributions authored in the build
-script, and the other **three** are the inputs of Stages 3 and 4 (815 rows:
-805 water rows, 26 of them adding an edge, 5 land edges and 5 removals). The
+script, and the other **three** are the inputs of Stages 3 and 4 (814 rows:
+803 water rows, 26 of them adding an edge, 5 land edges and 6 removals). The
 engine (`scripts/apply_overlays.py`) holds only behavior; editing a file and
 re-running the engine is the supported way to change Stages 3 and 4:
 
@@ -189,9 +189,9 @@ re-running the engine is the supported way to change Stages 3 and 4:
 |---|---|
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
 | `disputed_overlay_pairs.csv` | S2 output: 16 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
-| `water_classification_pairs.csv` | S3: water flags on 779 existing edges and 26 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
+| `water_classification_pairs.csv` | S3: water flags on 777 existing edges and 26 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
 | `land_gap_overlay_pairs.csv` | S4: +5 land edges (four sub-tolerance borders, and Samukh↔Yevlakh, whose polygons meet only at a point) |
-| `denylist_pairs.csv` | S4: −5 contacts found not to be borders, each with its evidence and ruling; checked present in the geometry build's output before removal |
+| `denylist_pairs.csv` | S4: −6 contacts found not to be borders, each with its evidence and ruling; checked present in the geometry build's output before removal |
 
 Engine semantics worth knowing:
 
@@ -279,7 +279,9 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   (`docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`). The screen does not filter by
   way class: the rule that only a road or rail bridge, causeway, dam-top road
   or tunnel counts (ferries, fords and footbridges never do) is applied by the
-  later layers — web verification, adversarial recheck, maintainer rulings.
+  later layers — GPT-5.6 Sol research, Sonnet-5 adversarial judgment, the location
+  test and maintainer rulings, the two-model design of the water-only judgment
+  (`build_data/water_screen_rebuild/crossing_adjudication/`).
 
 Thresholds are anchored, not tuned, and they are screening tolerances, not
 positional accuracies: 2.5 km ≈ ½ × the NMAS tolerance at 1:10M (0.5 mm of map
@@ -293,7 +295,8 @@ constants (the presence gap, the facing band's margin and the covered stretch, e
 HydroRIVERS width) are a convention; 0.80 is the union bar the census shares with the edge
 screens. The bridge
 screen's 100 m has no standard to anchor it: it is a round value inside the range over which
-the screen's agreement with the reviewed flags is flat (25–250 m on the ground;
+the screen's agreement with the reviewed flags is highest and flat (25–100 m on the ground,
+with the flags as the two-model adjudication set them; the width's own record:
 `crossing_width/SPEC_cw1_crossing_width.md`). Screens
 only ever **nominate** — no threshold ships a row by itself.
 
