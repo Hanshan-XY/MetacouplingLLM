@@ -85,7 +85,7 @@ class TestApplyOverlays:
 
     def test_fresh_build_reproduces_the_shipped_files(self, tmp_path):
         """What a fresh --full build hands the engine: Stages 1-2 only (no water
-        table, the 26 + 5 added edges absent, the five denylisted contacts
+        table, the 26 + 5 added edges absent, the six denylisted contacts
         present).  Stages 3-4 must reproduce the shipped files byte for byte."""
         d = _copy_data(tmp_path)
         mod = _load("apply_overlays")
@@ -110,7 +110,7 @@ class TestApplyOverlays:
             contacts.append(",".join([r["code_a"], r["name_a"], ca, r["iso_a"], ra,
                                       r["code_b"], r["name_b"], cb, r["iso_b"], rb,
                                       str(r["iso_a"] != r["iso_b"]), "1.0", "True", "False"]).encode("utf-8"))
-        assert len(keep) == 8464 - 31 and len(contacts) == 5
+        assert len(keep) == 8463 - 31 and len(contacts) == 6
         edge.write_bytes(eol.join([head, *keep[:100], *contacts, *keep[100:]]) + eol)
         (d / "water_separated_pairs.csv").unlink()
         assert mod.main(["--data-dir", str(d)]) == 0
@@ -168,7 +168,7 @@ def _water_rows():
 
 def test_water_csv_schema_and_notes():
     """The shipped water table's exact 9-column header, and its `note` column:
-    the engine writes one note per instrument class (779 rows on a shared edge,
+    the engine writes one note per instrument class (777 rows on a shared edge,
     26 between non-touching units) and `adm1-rollup` for the 26 ADM0 rows."""
     mod = _load("apply_overlays")
     with open(WATER_CSV, newline="", encoding="utf-8-sig") as fh:
@@ -177,7 +177,7 @@ def test_water_csv_schema_and_notes():
     assert header == WATER_HEADER == mod.WATER_HEADER, f"water CSV header drifted: {header}"
     assert widths == {9}, f"ragged water CSV -- row widths {sorted(widths)}"
     notes = Counter(r["note"] for r in _water_rows())
-    assert notes == Counter({mod.NOTE_ON_EDGE: 779, mod.NOTE_NON_TOUCHING: 26, "adm1-rollup": 26}), notes
+    assert notes == Counter({mod.NOTE_ON_EDGE: 777, mod.NOTE_NON_TOUCHING: 26, "adm1-rollup": 26}), notes
 
 
 def test_water_file_is_the_water_table():
@@ -186,7 +186,7 @@ def test_water_file_is_the_water_table():
     `adds_edge` rows are the non-touching borders, with a corridor length."""
     table = [r for r in _water_rows() if r["level"] == "adm1"]
     rows = list(_csv.DictReader(open(WATER_FILE, newline="", encoding="utf-8-sig")))
-    assert len(rows) == len(table) == 805
+    assert len(rows) == len(table) == 803
     cols = ("code_a", "code_b", "has_bridge", "water_type", "water_body", "adjudication",
             "verification_tier")
     for w, t in zip(rows, table):  # the engine strips each value it writes
@@ -197,14 +197,14 @@ def test_water_file_is_the_water_table():
 
 
 def test_denylist_is_exactly_the_reviewed_pairs():
-    """Stage 4 removes exactly the five maintainer-decided non-adjacent contacts
-    (docs/FUTURE_EDGE_AUDITS.md #7, #8, #11-#13); none ships as an edge or as a
+    """Stage 4 removes exactly the six maintainer-decided non-adjacent contacts
+    (docs/FUTURE_EDGE_AUDITS.md #7, #8, #11-#13, #16); none ships as an edge or as a
     water row, and each carries its evidence and ruling."""
     deny = list(_csv.DictReader(open(DATA / "denylist_pairs.csv", newline="", encoding="utf-8-sig")))
     keys = {frozenset({r["code_a"], r["code_b"]}) for r in deny}
     assert keys == {frozenset({"LBR006", "LBR014"}), frozenset({"VEN001", "VEN003"}),
                     frozenset({"CAN003", "CAN006"}), frozenset({"COD009", "UGA102"}),
-                    frozenset({"TZA016", "UGA040"})}
+                    frozenset({"TZA016", "UGA040"}), frozenset({"FRA011", "CHE006"})}
     assert all(r["evidence"].strip() and r["ruling"].strip() for r in deny)
     edges = {frozenset({r["ADM1_code_A"], r["ADM1_code_B"]})
              for r in _csv.DictReader(open(DATA / "pericoupled_adm1_edge_list.csv", newline="",
@@ -242,7 +242,7 @@ def test_adjudication_is_uniformly_cross_vendor():
     adm1 = [r for r in _water_rows() if r["level"] == "adm1"]
     values = {r["adjudication"].strip() for r in adm1}
     assert values == {"cross-vendor"}, f"adjudication is not uniform: {sorted(values)}"
-    assert len(adm1) == 805, len(adm1)
+    assert len(adm1) == 803, len(adm1)
 
 
 def test_tier_b_is_exactly_the_validation_study_frame():
