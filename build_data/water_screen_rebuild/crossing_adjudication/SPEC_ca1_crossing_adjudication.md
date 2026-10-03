@@ -394,3 +394,23 @@ The four choices, as approved:
     METHODS' rj2 record gives the large-river split since this campaign (12 / 2); the bridge methodology's closing note
     (297 rows); a test docstring (six denylisted contacts); the fact sheet's adjudication-models bullet points here.
   Guard 73/73; `build_all.py` 12/12; DOCX rebuilt, QA pass.
+
+- 2026-09-30 the edge screens' figures counted over every pair with a border arc (maintainer: "I don't think 'counted on
+  the database as it stands now' is reasonable"; of the three ways to count the six false contacts, "Recount Table 2"):
+  - This campaign had taken Franche-Comté↔Bern out of the edge screens' population when it was denylisted (8,421 → 8,420,
+    above), as the five contacts denylisted earlier were outside it. All six are contacts the screens nominated and the
+    adjudication removed, so the screens' figures are now stated as run, over 8,426 pairs: the 8,420 edges and the six.
+  - Five of the six are not in `mr1_screens.csv`. `false_contacts/screens_false_contacts.py` measures all six by the
+    record's method (arc and per-point distances of `build_arc_cache.py`, shares and nominations of `run_screens_gd1.py`,
+    the union at the widest rungs) and stops unless Franche-Comté↔Bern reproduces its row of the record. All six are
+    nominated, each the same from either unit's outline.
+  - Over the 8,426: any screen 3,291 nominated (3,285) = 777 water-only + 6 false contacts + 2,508 rejected; Natural
+    Earth rivers 1,974 (1,969), lakes 170 (167), HydroRIVERS 2,048 (2,044), HydroLAKES 293 (289), combined rivers 2,269
+    (2,265), combined lakes 299 (295), union 2,050 (2,044); accepted counts unchanged. Natural Earth lake distribution over
+    cross-border pairs: 1,663 of 1,776 at zero, 40 at 0.8 or more, 13 between 0.2 and 0.6. Ladder first nominations
+    690 / 188 / 338 / 374 / 384; yields unchanged. Coincident line 1,227,396 km.
+  - The corridor census's counts were restated the same day (`SPEC_cc1_corridor_census.md`, section 15).
+  - Guard 76/76 (new claims: Table 2's population, the six nominated, the nominations' outcomes). Documents: METHODS
+    (the population sentence and a record), CHANGELOG, the edge-audit register's 2026-09-29 note. Papers: V3 (DOCX
+    rebuilt), the drafts EN/ZH (Table 3), the process notes EN/ZH (§2, §9.24, §12), the condensed Section 3, a status note
+    in the supplement, the fact sheet, the Chinese checklist (item 74). No data change.
