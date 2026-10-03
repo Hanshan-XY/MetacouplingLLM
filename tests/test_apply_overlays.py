@@ -168,7 +168,7 @@ def _water_rows():
 
 def test_water_csv_schema_and_notes():
     """The shipped water table's exact 9-column header, and its `note` column:
-    the engine writes one note per instrument class (777 rows on a shared edge,
+    the engine writes one note per instrument class (840 rows on a shared edge,
     26 between non-touching units) and `adm1-rollup` for the 26 ADM0 rows."""
     mod = _load("apply_overlays")
     with open(WATER_CSV, newline="", encoding="utf-8-sig") as fh:
@@ -177,7 +177,7 @@ def test_water_csv_schema_and_notes():
     assert header == WATER_HEADER == mod.WATER_HEADER, f"water CSV header drifted: {header}"
     assert widths == {9}, f"ragged water CSV -- row widths {sorted(widths)}"
     notes = Counter(r["note"] for r in _water_rows())
-    assert notes == Counter({mod.NOTE_ON_EDGE: 777, mod.NOTE_NON_TOUCHING: 26, "adm1-rollup": 26}), notes
+    assert notes == Counter({mod.NOTE_ON_EDGE: 840, mod.NOTE_NON_TOUCHING: 26, "adm1-rollup": 26}), notes
 
 
 def test_water_file_is_the_water_table():
@@ -186,7 +186,7 @@ def test_water_file_is_the_water_table():
     `adds_edge` rows are the non-touching borders, with a corridor length."""
     table = [r for r in _water_rows() if r["level"] == "adm1"]
     rows = list(_csv.DictReader(open(WATER_FILE, newline="", encoding="utf-8-sig")))
-    assert len(rows) == len(table) == 803
+    assert len(rows) == len(table) == 866
     cols = ("code_a", "code_b", "has_bridge", "water_type", "water_body", "adjudication",
             "verification_tier")
     for w, t in zip(rows, table):  # the engine strips each value it writes
@@ -242,7 +242,7 @@ def test_adjudication_is_uniformly_cross_vendor():
     adm1 = [r for r in _water_rows() if r["level"] == "adm1"]
     values = {r["adjudication"].strip() for r in adm1}
     assert values == {"cross-vendor"}, f"adjudication is not uniform: {sorted(values)}"
-    assert len(adm1) == 803, len(adm1)
+    assert len(adm1) == 866, len(adm1)
 
 
 def test_tier_b_is_exactly_the_validation_study_frame():

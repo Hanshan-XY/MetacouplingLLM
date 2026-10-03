@@ -46,8 +46,9 @@ Clopper–Pearson limits — it is *not* an exact interval; only the individual
 per-stratum bounds are exact.
 
 **Inter-rater agreement** (30 blind double-rated rows): 28/30 = 93.3%,
-**Cohen's κ = 0.867**. The two disagreements, resolved by the preregistered
-primary-rater rule and recorded:
+**Cohen's κ = 0.867**. The two disagreements change no estimate: the plan defines an
+error on the rater's (the maintainer's) rating and uses the second rating for
+agreement only. They are recorded:
 
 - `IRN013<->IRN020` (Ilam–Lorestan, Seymareh): primary Yes (ships), second
   rater No — flagged for future re-audit.

@@ -651,3 +651,36 @@ This folder (`build_data/water_screen_rebuild/corridor_census_exact/`) holds:
     rows: 72/72.
   - `paper/SECTION3_REVISED_EMS.md` and the submission checklist state the current counts; the drafts' Stage 3 and 4
     sentences and tier A (270) are brought up to date.
+
+- 2026-09-30 the census's counts stated as run (maintainer: "I don't think 'counted on the database as it stands now'
+  is reasonable"):
+  - The documents had stated the census less Samukh↔Yevlakh (the entry above). That pair is one of the census's own
+    nominations, and the 26 water borders the census led to were never taken out of its counts in the same way. The
+    documents now state `census_cc1.csv` as written: 23,485 pairs (80 point contacts) and 368 nominations (share rule
+    161, presence 174, stretch 237), of which 26 are water-only borders, one is the land border Samukh↔Yevlakh and 341
+    were rejected; bar sensitivity 467–357.
+  - `census_cc1.py` is unchanged: a re-run on the present edge list still skips Samukh↔Yevlakh (it skips the shipped
+    edges except the rows that add one), so the record of the run, not a re-run, is the census's result.
+  - The guard reads the record whole and checks that the census pairs that are edges now are the 26 water borders and
+    the land border, all of them nominated.
+  - Documents: METHODS (section 8 and the `cc1` record), CHANGELOG. Papers: V3 (DOCX rebuilt), the drafts EN/ZH, the
+    process notes EN/ZH (§4.6, §9.22, a new §9.24), the condensed Section 3, the supplement's status note, the fact
+    sheet, the Chinese checklist (item 74). No data change.
+
+- 2026-09-30 the bar's sensitivity, both uses (maintainer, reading the manuscript: "What's the real threshold used in the
+  corridor census?"; then "You can state both results, but can you also add the numbers of nominated pairs from 0.55 to
+  0.90?"):
+  - The threshold is 0.80, `border_arc.UNION_BAR`. `census_cc1.py` uses it twice: the share rule's bar, and the share of a
+    crossing's length that must lie inside the layers for the crossing to count as covered (the stretch rule,
+    `longest_stretch`). Section 6's bar sensitivity moves the first alone.
+  - `bar_sensitivity_cc1.py` (new; deterministic) re-measures, for the 1,622 pairs of the record within the stretch rule's
+    reach (gap of 5 km or less), the longest covered stretch at each bar from 0.55 to 0.90, with `census_cc1.py`'s own
+    measurement (`rules` wrapped, nothing else changed). At 0.80 every pair reproduces its row of the record (share,
+    presence, longest stretch).
+  - Nominations at 0.55, 0.60, ..., 0.90: share bar alone 467, 439, 411, 393, 379, 368, 362 and 357; both together 593, 535, 481, 440, 396, 368, 346 and 321.
+    Accepted pairs nominated: 26 of 26 at every bar in the first case; 26 of 26 up to 0.85 and 25 of 26 at 0.90 in the
+    second. The pair lost is Bến Tre↔Trà Vinh (share 0.4859; gap 1,151 m, so the presence rule does not apply; covered
+    stretch 3,741 m at 0.80, 1,997 m at 0.85, 750 m at 0.90).
+  - The manuscript's "membership does not depend on it" is replaced by both results with the nomination counts; METHODS
+    section 8, the drafts, the process notes (§4.6, §9.24), the condensed Section 3, the supplement's note, the fact sheet
+    and the Chinese checklist say the same. Guard claims: the range, the share rule alone, both uses.

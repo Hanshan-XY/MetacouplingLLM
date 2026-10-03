@@ -16,7 +16,7 @@ the GAUL-split western salient of Kalmykia, merged into RUS024); (2) the
 geometry-derived **16-pair disputed overlay** (each disputed tract folded into
 the administrator Natural Earth records for most of it); (3) the reviewed
 **water-only classification** (one file, each row nominated by a deterministic
-Python screen and adjudicated): 777 existing edges flagged water-only and the
+Python screen and adjudicated): 840 existing edges flagged water-only and the
 **26** water borders between non-touching units that the corridor census found,
 added as edges; and (4) the reviewed **edge corrections**: a **5-pair land-gap
 overlay** (four genuine sub-tolerance borders, Egypt-Libya ... a domestic
@@ -27,8 +27,8 @@ mid-lake contacts in Kasba Lake, Lake Edward and Lake Victoria, and a corner
 of Franche-Comte and Bern on the Doubs).
 ``coupling_standard`` governs river and lake borders uniformly (``lenient``
 keeps all water borders, ``moderate`` keeps only those with a fixed crossing,
-``stringent`` keeps none): the 803 water-only pairs give **8,463** lenient /
-**8,046** moderate / **7,660** stringent.
+``stringent`` keeps none): the 866 water-only pairs give **8,463** lenient /
+**8,015** moderate / **7,597** stringent.
 
 Source
 ------

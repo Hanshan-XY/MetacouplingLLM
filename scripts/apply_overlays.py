@@ -10,8 +10,8 @@ reviewed files in ``src/metacouplingllm/data/`` (provenance:
   ===== ================================== =========================================
   stage file                               effect
   ===== ================================== =========================================
-  3     water_classification_pairs.csv     the water-only classification, 803 rows:
-                                           777 existing edges flagged water-only and
+  3     water_classification_pairs.csv     the water-only classification, 866 rows:
+                                           840 existing edges flagged water-only and
                                            26 water borders between non-touching
                                            units added (``adds_edge``), each with its
                                            water row

@@ -802,6 +802,69 @@ adm1,VNM026,VNM054,True,river,Sông Hóa,water-only border on a shared edge (edg
 adm1,AFG016,AFG028,True,river,Panjshir River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
 adm1,URY006,URY012,False,river,Río Negro; Palmar Reservoir,water-only border between non-touching units (corridor census; two-model adjudication),cross-vendor,A
 adm1,VNM007,VNM059,True,river,Cổ Chiên River,water-only border between non-touching units (corridor census; two-model adjudication),cross-vendor,A
+adm1,AGO007,AGO014,False,river,Cuanza River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,ALB006,ALB018,False,river,Ishëm River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,ALB029,ALB035,True,river,Drin River (Koman and Fierza reservoirs),water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,AZE011,AZE074,False,river,Kura River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,AZE012,AZE074,False,river,Kura River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,AZE029,AZE041,False,river,Kura River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,AZE029,AZE074,False,river,Kura River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,BDI008,BDI017,False,river,Ruvubu River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,BDI016,TZA010,False,river,Malagarasi River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,BOL004,PER017,False,river,Heath River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,BTN007,BTN015,True,river,Drangme Chhu,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,CIV032,CIV036,True,river,Bandama River-Lake Kossou,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,CIV034,CIV035,True,river,Bandama River-Lake Kossou,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,CMR002,CMR008,True,river,Mbam River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,COG004,COG009,False,river,Alima River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,COL008,VEN003,False,river,Arauca River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,COL018,COL033,False,river,Guaviare River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,COL020,COL021,True,river,Palomino River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,CRI004,CRI005,True,river,Colorado–Chirripó Norte–Sucio river system,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,DZA004,DZA045,True,river,Oued Mazafran,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,ECU004,ECU008,False,river,Mira River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,ECU011,PER024,False,river,Puyango–Tumbes River; Quebrada Cazaderos,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,EGY011,EGY014,True,river,Nile at the Delta apex,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,GHA007,GHA008,True,river,Sissili River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,GIN001,SEN022,False,river,Mitji River; Koulountou River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,GIN008,SLE003,False,river,Meli River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,GMB002,GMB007,True,river,Sandugu (Sami) Bolong,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,GTM003,GTM014,True,river,Motagua River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,GUY008,GUY009,False,river,Essequibo River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,JPN034,JPN038,True,river,Edo River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,KEN004,UGA108,True,river,Malaba River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,KHM001,KHM020,True,river,Sreng River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,LVA001,LVA096,True,lake,Lake Lilaste,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,LVA043,LVA061,False,river,Daugava River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,MDA009,MDA035,True,river,Dniester (Nistru) River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,MOZ010,MOZ011,False,river,Shire River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,NIC007,NIC009,False,river,Yalí River; Coco River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,NIC007,NIC013,True,river,Coco (Segovia) River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,PAN002,PAN013,True,river,Viguí River; Tabasará River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,PRK006,PRK007,False,river,Imjin (Rimjin) River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,PRY006,PRY013,False,river,Tebicuary River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,PRY006,PRY015,False,river,Tebicuarymí River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,SRB003,SRB006,True,river,Tamiš River; Danube River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,SUR002,SUR007,True,river,Suriname River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,TUR023,TUR049,False,river,Kızılırmak River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,TZA017,TZA029,False,river,Rungwa River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,TZA020,TZA025,True,river,Lumesule River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,UGA050,UGA084,True,river,Sezibwa River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,UGA066,UGA098,False,river,Aswa (Achwa) River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,URY003,URY013,False,river,Río Negro,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,URY003,URY018,True,river,Río Negro,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,URY012,URY017,True,river,Río Negro,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,URY012,URY018,True,river,Arroyo Salsipuedes Grande,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,VEN003,VEN013,True,river,Apure River (Ruende and Apurito channels),water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,VEN006,VEN017,False,river,Orinoco River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,VNM016,VNM036,True,river,Krông Nô River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,ZAF002,ZAF006,True,river,Gansvlei Spruit; Klip River; Vaal River (Vaal Dam),water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,ZMB103,ZMB105,True,river,Luangwa River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,ZWE003,ZWE007,True,river,Nyazvidzi-Dewure-Save river system,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,CHL008,CHL015,True,river,Rapel River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,COD018,COD021,False,river,Lushiko River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,PNG007,PNG011,False,river,Yuat River,water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
+adm1,SSD002,UGA002,False,river,Unyama River; Albert Nile (Bahr el Jebel),water-only border on a shared edge (edge screens; two-model adjudication),cross-vendor,A
 adm0,AFG,UZB,True,,,adm1-rollup,,
 adm0,ARM,IRN,True,,,adm1-rollup,,
 adm0,AZE,TUR,True,,,adm1-rollup,,

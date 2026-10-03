@@ -2,7 +2,7 @@
 
 This manual walks through regenerating and verifying the two bundled adjacency
 datasets — the ADM1 edge list (8,463 subnational shared-border pairs) and the
-ADM0 country matrix (326 pairs) with their water-only classification (803
+ADM0 country matrix (326 pairs) with their water-only classification (866
 ADM1 pairs / 26 ADM0 roll-ups) — from scratch. It is written for a reader who
 has never touched the pipeline. Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
@@ -90,9 +90,9 @@ Expected counts (current):
 | count | value |
 |---|---|
 | ADM1 edges (lenient) | 8,463 (3,374 regions, 196 countries) |
-| ADM1 moderate / stringent | 8,046 / 7,660 |
-| water-only ADM1 | 803 = 386 with a fixed crossing / 417 without |
-| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 269 / B 238 / C 296 |
+| ADM1 moderate / stringent | 8,015 / 7,597 |
+| water-only ADM1 | 866 = 418 with a fixed crossing / 448 without |
+| water-only provenance | `adjudication` all `cross-vendor`; `verification_tier` A 332 / B 238 / C 296 |
 | ADM0 pairs (lenient / moderate / stringent) | 326 / 320 / 300 |
 | ADM0 water roll-ups | 26 |
 
@@ -133,10 +133,10 @@ in `scripts/apply_overlays.py`):
   → **8,438**; this is the base file the geometry build writes (the six
   denylisted contacts still in it; `build_all.py` checks that each is present).
 - **S3 — water-only classification.** `scripts/apply_overlays.py` reads
-  `water_classification_pairs.csv` (803 rows; the build reads no Natural Earth
-  layer): it flags 777 existing edges water-only (`water_type`, `water_body`,
+  `water_classification_pairs.csv` (866 rows; the build reads no Natural Earth
+  layer): it flags 840 existing edges water-only (`water_type`, `water_body`,
   `has_bridge`) and adds the 26 water borders between non-touching units, each
-  with its water row → **8,464**; water rows **803**.
+  with its water row → **8,464**; water rows **866**.
 - **S4 — edge corrections.** +5 land-gap edges (`land_gap_overlay_pairs.csv`)
   and −6 denylisted contacts (`denylist_pairs.csv`) → **8,463**; the ADM0
   roll-up is then recomputed once (a country pair is water-only iff *all* its
@@ -180,8 +180,8 @@ Five reviewed files in `src/metacouplingllm/data/` govern the build: the
 source-relabel manifest is a Stage 1 input, the de-facto overlay
 manifest is written by S2 from the NDLSA layer, the tract administrators taken
 from Natural Earth v5.1.2 and the province attributions authored in the build
-script, and the other **three** are the inputs of Stages 3 and 4 (814 rows:
-803 water rows, 26 of them adding an edge, 5 land edges and 6 removals). The
+script, and the other **three** are the inputs of Stages 3 and 4 (877 rows:
+866 water rows, 26 of them adding an edge, 5 land edges and 6 removals). The
 engine (`scripts/apply_overlays.py`) holds only behavior; editing a file and
 re-running the engine is the supported way to change Stages 3 and 4:
 
@@ -189,7 +189,7 @@ re-running the engine is the supported way to change Stages 3 and 4:
 |---|---|
 | `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
 | `disputed_overlay_pairs.csv` | S2 output: 16 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
-| `water_classification_pairs.csv` | S3: water flags on 777 existing edges and 26 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
+| `water_classification_pairs.csv` | S3: water flags on 840 existing edges and 26 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
 | `land_gap_overlay_pairs.csv` | S4: +5 land edges (four sub-tolerance borders, and Samukh↔Yevlakh, whose polygons meet only at a point) |
 | `denylist_pairs.csv` | S4: −6 contacts found not to be borders, each with its evidence and ruling; checked present in the geometry build's output before removal |
 
@@ -243,7 +243,13 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   `build_data/geodesic_distances/run_screens_gd1.py` computes the exact shares
   and nominations (`gd1_screens.csv`, report `gd1_report.txt`), and
   `build_data/water_screen_rebuild/rule_rejections/run_screens_mr1.py` the current record,
-  with the cross-type union at every ladder width (`mr1_screens.csv`).
+  with the cross-type union at every ladder width (`mr1_screens.csv`). The six
+  denylisted contacts, which the screens nominated before they were removed, are
+  measured the same way by
+  `build_data/water_screen_rebuild/false_contacts/screens_false_contacts.py`
+  (`false_contacts_screens.csv`; it stops unless the one contact that is in the
+  record reproduces its row there), so the screens' figures cover every pair with a
+  border arc, the 8,420 edges and the six false contacts.
 - **Edge screens on the arc:** Natural Earth river ladder
   (`ne_10m_rivers_lake_centerlines`, 1:10M, named rivers): ≥ 0.50 within 2.5 km,
   rungs 5/10/15/20 km; Natural Earth lake ladder (`ne_10m_lakes`): ≥ 0.40 within
