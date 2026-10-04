@@ -36,8 +36,8 @@ class TestAdm1DataLoading:
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_pairs
         assert _adm1_pairs is not None
-        assert len(_adm1_pairs) == 8463, (
-            f"Expected 8463 pairs, got {len(_adm1_pairs)}"
+        assert len(_adm1_pairs) == 8462, (
+            f"Expected 8462 pairs, got {len(_adm1_pairs)}"
         )
 
     def test_expected_code_count(self):
@@ -734,24 +734,30 @@ class TestCouplingStandardAdm1:
         assert is_adm1_pericoupled("COD007", "COG002") is False
 
     def test_bridge_pair_kept_under_moderate_dropped_under_stringent(self):
-        # CHN019 <-> RUS014 across the Argun: a fixed crossing exists.
+        # CHN011 <-> RUS005 across the Amur: a fixed crossing exists.  (The
+        # earlier example, CHN019 <-> RUS014 on the Argun, was ruled not
+        # water-only on 2026-10-04 and is an ordinary edge.)
         from metacouplingllm.knowledge.adm1_pericoupling import (
             is_adm1_pericoupled,
         )
         assert is_adm1_pericoupled(
-            "CHN019", "RUS014", coupling_standard="lenient"
+            "CHN011", "RUS005", coupling_standard="lenient"
         ) is True
         assert is_adm1_pericoupled(
-            "CHN019", "RUS014", coupling_standard="moderate"
+            "CHN011", "RUS005", coupling_standard="moderate"
         ) is True
         assert is_adm1_pericoupled(
-            "CHN019", "RUS014", coupling_standard="stringent"
+            "CHN011", "RUS005", coupling_standard="stringent"
         ) is False
+        for s in ("lenient", "moderate", "stringent"):
+            assert is_adm1_pericoupled("CHN019", "RUS014", coupling_standard=s) is True
 
     def test_wide_river_overlay_pairs(self):
-        # 13-pair wide-river overlay (5 km re-screen + ground-truth): existing
-        # edges reclassified as water-only.  Ruse<->Giurgiu has the Friendship
-        # Bridge (kept under moderate); Silistra<->Calarasi is ferry-only.
+        # The 13-pair wide-river overlay (5 km re-screen + ground-truth): existing
+        # edges reclassified as water-only; 11 still are (Niassa<->Ruvuma and
+        # Shkoder<->Ulcinj were ruled not water-only on 2026-10-04 and are
+        # ordinary edges).  Ruse<->Giurgiu has the Friendship Bridge (kept under
+        # moderate); Silistra<->Calarasi is ferry-only.
         from metacouplingllm.knowledge import adm1_pericoupling as A
         from metacouplingllm.knowledge.adm1_pericoupling import (
             is_adm1_pericoupled,
@@ -759,11 +765,13 @@ class TestCouplingStandardAdm1:
         is_adm1_pericoupled("USA044", "MEX028")   # warm the loaders
         wide = [("BGR018", "ROU012"), ("BGR016", "ROU020"), ("BGR013", "ROU037"),
                 ("BGR010", "ROU018"), ("BGR028", "ROU018"), ("BGR013", "ROU031"),
-                ("BGR026", "ROU037"), ("BGR016", "ROU037"), ("MOZ008", "TZA025"),
-                ("ALB031", "MNE020"), ("DEU011", "LUX002"), ("PRK002", "RUS060"),
-                ("BWA002", "ZMB109")]
+                ("BGR026", "ROU037"), ("BGR016", "ROU037"), ("DEU011", "LUX002"),
+                ("PRK002", "RUS060"), ("BWA002", "ZMB109")]
         for a, b in wide:                          # all are water-only + edges
             assert frozenset({a, b}) in A._adm1_water_all
+            assert frozenset({a, b}) in A._adm1_pairs
+        for a, b in (("MOZ008", "TZA025"), ("ALB031", "MNE020")):   # ordinary edges now
+            assert frozenset({a, b}) not in A._adm1_water_all
             assert frozenset({a, b}) in A._adm1_pairs
         # bridged Danube span (Ruse<->Giurgiu): kept moderate, dropped stringent
         assert is_adm1_pericoupled("BGR016", "ROU020", coupling_standard="moderate") is True
@@ -784,11 +792,11 @@ class TestCouplingStandardAdm1:
         assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="moderate") is True
         assert is_adm1_pericoupled("NLD002", "NLD008", coupling_standard="stringent") is False
-        # Sodermanland <-> Uppsala across Malaren: the Hjulsta Bridge lands inside
-        # the World Bank's Uppsala polygon, 2.9 km from Sodermanland (maintainer
-        # map ruling 2026-09-29) -> lenient only
-        assert is_adm1_pericoupled("SWE014", "SWE016", coupling_standard="lenient") is True
-        assert is_adm1_pericoupled("SWE014", "SWE016", coupling_standard="moderate") is False
+        # Sodermanland <-> Uppsala across Malaren: ruled not water-only on
+        # 2026-10-04 (the county line crosses Marson island) -> an ordinary
+        # edge, pericoupled under every standard
+        for s in ("lenient", "moderate", "stringent"):
+            assert is_adm1_pericoupled("SWE014", "SWE016", coupling_standard=s) is True
         # Flevoland <-> Utrecht: no direct fixed link -> lenient only
         assert is_adm1_pericoupled("NLD002", "NLD010", coupling_standard="lenient") is True
         assert is_adm1_pericoupled("NLD002", "NLD010", coupling_standard="moderate") is False

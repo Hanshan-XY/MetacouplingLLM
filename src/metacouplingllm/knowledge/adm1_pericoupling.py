@@ -5,7 +5,7 @@ Loads a curated CSV edge list of first-level administrative divisions (ADM1)
 to determine which subnational regions share a border (pericoupled).  The
 database uses World Bank ADM1 codes (e.g., ``"MEX001"``, ``"USA035"``).
 
-The edge list contains **8,463 border pairs** covering **3,374 unique ADM1
+The edge list contains **8,462 border pairs** covering **3,374 unique ADM1
 regions** across **196 countries**.  The graph is built in four stages (full
 provenance in ``data/PROVENANCE.md`` and ``docs/METHODS_adjacency.md``):
 (1) **geometry** -- rook contiguity at exact contact (tolerance 0) over the
@@ -16,19 +16,20 @@ the GAUL-split western salient of Kalmykia, merged into RUS024); (2) the
 geometry-derived **16-pair disputed overlay** (each disputed tract folded into
 the administrator Natural Earth records for most of it); (3) the reviewed
 **water-only classification** (one file, each row nominated by a deterministic
-Python screen and adjudicated): 840 existing edges flagged water-only and the
+Python screen and adjudicated): 798 existing edges flagged water-only and the
 **26** water borders between non-touching units that the corridor census found,
 added as edges; and (4) the reviewed **edge corrections**: a **5-pair land-gap
 overlay** (four genuine sub-tolerance borders, Egypt-Libya ... a domestic
 Anguilla pair, and Samukh-Yevlakh, whose polygons meet only at a point) and a
-**denylist** removing 6 contacts found not to be borders (two
+**denylist** removing 7 contacts found not to be borders (two
 fabricated edges, Grand Gedeh<->Rivercess and Apure<->Amazonas, three
-mid-lake contacts in Kasba Lake, Lake Edward and Lake Victoria, and a corner
-of Franche-Comte and Bern on the Doubs).
+mid-lake contacts in Kasba Lake, Lake Edward and Lake Victoria, a corner
+of Franche-Comte and Bern on the Doubs, and La Paz<->Callao, whose
+"Callao" polygon is a mislabelled Puno fragment in Lake Titicaca).
 ``coupling_standard`` governs river and lake borders uniformly (``lenient``
 keeps all water borders, ``moderate`` keeps only those with a fixed crossing,
-``stringent`` keeps none): the 866 water-only pairs give **8,463** lenient /
-**8,015** moderate / **7,597** stringent.
+``stringent`` keeps none): the 824 water-only pairs give **8,462** lenient /
+**8,026** moderate / **7,638** stringent.
 
 Source
 ------
