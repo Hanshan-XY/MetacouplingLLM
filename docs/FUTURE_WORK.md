@@ -10,8 +10,10 @@ Deferred **2026-07-26** by maintainer decision, to finish the manuscript first.
 
 ## 1. `BOL004`↔`PER007` — a probable unit-identity artifact
 
-**Status: recorded, no action. The pair ships unchanged.**
-Full evidence lives in `docs/FUTURE_EDGE_AUDITS.md` **#14** — not duplicated here.
+**Status: resolved 2026-10-04 — the contact is removed.** The maintainer ruled on the `ua1`
+sheet (U99) that the two units share no genuine boundary, and the contact is in
+`data/denylist_pairs.csv` (Stage 4). Full evidence lives in `docs/FUTURE_EDGE_AUDITS.md` **#14** —
+not duplicated here.
 
 One-line summary: World Bank's `PER007` polygon is named *Callao* (Peru's Pacific
 port province, next to Lima) but is 4-part with its parts ~900 km apart — the
@@ -26,7 +28,9 @@ identity-fingerprinting method used for `RUS050` (the Kalmykia salient) and the
 four water-surface placeholders — geodesic area, representative point,
 point-in-polygon probes for known settlements, and the WB adjacency signature —
 run against the pinned GeoPackage. Whatever it concludes is a source-relabel-class
-or denylist-class change, i.e. a Stage-1 edit, not a manifest edit.
+or denylist-class change, i.e. a Stage-1 edit, not a manifest edit. It was resolved on the
+maintainer's ruling with the World Bank evidence above; no fingerprinting pass was needed, and the
+detector of §2 is still unbuilt.
 
 ## 2. No detector exists for this failure class
 

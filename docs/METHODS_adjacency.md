@@ -35,30 +35,30 @@ validation record* of those reviews, not steps a reader re-runs.
    validated per tract. The geometry build (`scripts/build_pericoupling_db.py`)
    ends here and writes the base edge list.
 3. **Water-only classification.** One reviewed file,
-   `data/water_classification_pairs.csv` (866 rows), flags **840** existing edges
+   `data/water_classification_pairs.csv` (824 rows), flags **798** existing edges
    water-only — each with its water type, water body and crossing flag — and
    adds the **26** water borders between units whose banks the source digitizes
    apart, each with its water row; `coupling_standard` reads the result. Every row
    was nominated by a **deterministic Python screen** before any human or AI
-   adjudication — the 840 by the edge screens, which run on one definition of the
+   adjudication — the 798 by the edge screens, which run on one definition of the
    shared border, the border arc of §8 (the Natural Earth river and lake ladders,
    HydroRIVERS, HydroLAKES, a combined river and a combined lake screen, and a
    cross-type union), the 26 by the corridor census of non-touching pairs (§8) — so
    the discovery is auditable and the verdicts are frozen (whole-graph
-   attributability 866/866).
+   attributability 824/824).
 4. **Edge corrections.** Reviewed corrections that add or remove non-water edges:
    **+5** land borders the geometry does not join (`data/land_gap_overlay_pairs.csv`):
    four genuine sub-tolerance borders the exact-contact rule misses (found by the
    tolerance-band audit, §2.4/§4) and Samukh↔Yevlakh, whose World Bank polygons meet
    only at a point (a land and reservoir border of about 15 km, maintainer map ruling
-   after the corridor census, §8); and **−6** contacts found in the water adjudication not to be borders
+   after the corridor census, §8); and **−7** contacts found in the water adjudication not to be borders
    (`data/denylist_pairs.csv`; each checked present in the geometry before it is
    removed). The ADM0 water roll-up is then computed once. Stages 3 and 4 are
    applied by `scripts/apply_overlays.py`.
 
 **ADM1 provenance chain (every number reproducible from the shipped CSVs):**
 
-Every pipeline step appears in **execution order**, and each row shows the edge count *before → after*; the *water-only* column is the running count that drives the three views (866 = 418 with a fixed crossing / 448 without). S1–S2 = the geometry build (`scripts/build_pericoupling_db.py`, which writes the 8,438-row base file, the six denylisted contacts still in it); S3–S4 = the reviewed inputs applied by `scripts/apply_overlays.py`.
+Every pipeline step appears in **execution order**, and each row shows the edge count *before → after*; the *water-only* column is the running count that drives the three views (824 = 388 with a fixed crossing / 436 without). S1–S2 = the geometry build (`scripts/build_pericoupling_db.py`, which writes the 8,438-row base file, the seven denylisted contacts still in it); S3–S4 = the reviewed inputs applied by `scripts/apply_overlays.py`.
 
 | step (execution order) | ADM1 edges | water-only | source / reason |
 |---|---|---|---|
@@ -66,13 +66,13 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S1** − source-relabel of cross-country sliver corridors | 8,427 → 8,425 | — | §10: removes 4 fabricated cross-country edges (Migori↔Arusha, Taita-Taveta↔Arusha, Salta↔Potosí, Braničevo↔Mehedinți), makes 2 Kenya survey-line pairs native (Kajiado↔Kilimanjaro, Narok↔Mara) |
 | **S1** − unit merge (reviewed source-data artifact) | 8,425 → 8,422 | — | §10 / `docs/FUTURE_EDGE_AUDITS.md` #10: RUS050 ("Name Unknown", GAUL-split western salient of Kalmykia — Gorodovikovsky + Yashaltinsky raions) merged into RUS024 — a net −3 edge rows: the internal 19.8 km raion-line edge dissolves, and the salient's Rostov (187.3 km) and Stavropol (143.6 km) frontage rows fold into the existing RUS024 edges (388.7 → 576.0 km; 282.9 → 426.6 km) instead of remaining separate (maintainer decision 2026-07-18) |
 | **S2** + de-facto disputed overlay (NDLSA) | 8,422 → 8,438 | — | +16 province pairs whose sole link is a disputed tract; **the geometry build writes this base file** |
-| **S3** water-only classification of existing edges | 8,438 → 8,438 | — → 840 | 840 rows of `data/water_classification_pairs.csv` on a shared edge (728 river / 112 lake; 411 with a fixed crossing; tiers A 306 / B 238 / C 296), each nominated by the edge screens on its border arc (§8) and adjudicated by the two-model design; discovery provenance per row in `source`, composition in `data/PROVENANCE.md` |
-| **S3** + water borders between non-touching units | 8,438 → 8,464 | 840 → 866 | +26 edges with their water rows (`adds_edge`; 23 river / 3 lake; 7 with a fixed crossing; tier A), nominated by the corridor census (§8) and adjudicated |
-| **S4** + land-gap borders (four *discovered* by the S1 tolerance-band audit, §2.4/§4; one after the corridor census, §8) | 8,464 → 8,469 | 866 → 866 | +4 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … a domestic Anguilla pair) and Samukh↔Yevlakh, whose World Bank polygons meet only at a point (a land and reservoir border of about 15 km; maintainer map ruling 2026-09-27); no water rows |
-| **S4** − denylist of reviewed non-adjacent contacts | 8,469 → 8,463 | 866 → 866 | `data/denylist_pairs.csv`, 6 contacts found in the water adjudication not to be borders (register `docs/FUTURE_EDGE_AUDITS.md` #7, #8, #11–#13, #16): Grand Gedeh↔Rivercess (a quadripoint stretched into a 1.12 km cardinal-leg connector, a World Bank shape signature) and Apure↔Amazonas (a 2.35 km mid-river seam contradicted by Amazonas' territorial-division law), maintainer decisions 2026-07-18; the Kasba Lake four-corners point CAN003↔CAN006, a point contact on the Lake Edward boundary COD009↔UGA102 and a diagonal non-adjacency in Lake Victoria TZA016↔UGA040, whose World Bank arcs are stable across tolerances and which rest on the maintainer's official-map check (2026-07-25); and, on the same basis, Franche-Comté↔Bern FRA011↔CHE006, a 0.82 km contact on the Doubs at Biaufond that official maps show as a corner where the two units come close without meeting (2026-09-29) |
-| **shipped (lenient)** | **8,463** | 866 | 3,374 regions, 196 countries — every edge kept |
-| moderate (default) | **8,015** | −448 | 8,463 − 448 water-only pairs with no fixed crossing |
-| stringent | **7,597** | −866 | 8,463 − all 866 water-only pairs |
+| **S3** water-only classification of existing edges | 8,438 → 8,438 | — → 798 | 798 rows of `data/water_classification_pairs.csv` on a shared edge (689 river / 109 lake; 381 with a fixed crossing; tiers A 535 / B 119 / C 144), each nominated by the edge screens on its border arc (§8) and adjudicated by the two-model design; discovery provenance per row in `source`, composition in `data/PROVENANCE.md` |
+| **S3** + water borders between non-touching units | 8,438 → 8,464 | 798 → 824 | +26 edges with their water rows (`adds_edge`; 23 river / 3 lake; 7 with a fixed crossing; tier A), nominated by the corridor census (§8) and adjudicated |
+| **S4** + land-gap borders (four *discovered* by the S1 tolerance-band audit, §2.4/§4; one after the corridor census, §8) | 8,464 → 8,469 | 824 → 824 | +4 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … a domestic Anguilla pair) and Samukh↔Yevlakh, whose World Bank polygons meet only at a point (a land and reservoir border of about 15 km; maintainer map ruling 2026-09-27); no water rows |
+| **S4** − denylist of reviewed non-adjacent contacts | 8,469 → 8,462 | 824 → 824 | `data/denylist_pairs.csv`, 7 contacts found in the water adjudication not to be borders (register `docs/FUTURE_EDGE_AUDITS.md` #7, #8, #11–#14, #16): Grand Gedeh↔Rivercess (a quadripoint stretched into a 1.12 km cardinal-leg connector, a World Bank shape signature) and Apure↔Amazonas (a 2.35 km mid-river seam contradicted by Amazonas' territorial-division law), maintainer decisions 2026-07-18; the Kasba Lake four-corners point CAN003↔CAN006, a point contact on the Lake Edward boundary COD009↔UGA102 and a diagonal non-adjacency in Lake Victoria TZA016↔UGA040, whose World Bank arcs are stable across tolerances and which rest on the maintainer's official-map check (2026-07-25); and, on the same basis, Franche-Comté↔Bern FRA011↔CHE006, a 0.82 km contact on the Doubs at Biaufond that official maps show as a corner where the two units come close without meeting (2026-09-29); and La Paz↔Callao BOL004↔PER007, a 62 km contact inside Lake Titicaca with a World Bank polygon named Callao whose largest part is a mislabelled fragment of the Puno region, ruled not adjacent by the maintainer (2026-10-04, `ua1`) |
+| **shipped (lenient)** | **8,462** | 824 | 3,374 regions, 196 countries — every edge kept |
+| moderate (default) | **8,026** | −436 | 8,462 − 436 water-only pairs with no fixed crossing |
+| stringent | **7,638** | −824 | 8,462 − all 824 water-only pairs |
 
 **What Stage 1 changed vs a naïve build (add/remove reasons):** removed 4
 fabricated cross-border edges (Salta↔Potosí, Braničevo↔Mehedinți, and the two
@@ -83,48 +83,46 @@ their border territory back to Mara/Kilimanjaro); the Malta false edge
 (Balzan↔Iklin, ~31 m apart) never appears at tolerance 0, so it needs no
 denylist entry.
 
-**Water-only set = 866 ADM1** (418 with a fixed crossing / 448 without) + **26
-ADM0** roll-ups, from one file (`data/water_classification_pairs.csv`): 840 on a
-shared edge and 26 between non-touching units. Every one of the 866 is nominated
-by the screens run over every edge: the 840 by the edge screens on their border
-arc (§8), the 26 by the corridor census (whole-graph attributability 866/866).
-("Every edge" means every edge with a shared border arc to sample: 8,420 of the
-8,463. The 16 de-facto overlay edges meet only across a disputed tract, so they
+**Water-only set = 824 ADM1** (388 with a fixed crossing / 436 without) + **19
+ADM0** roll-ups, from one file (`data/water_classification_pairs.csv`): 798 on a
+shared edge and 26 between non-touching units. Every one of the 824 is nominated
+by the screens run over every edge: the 798 by the edge screens on their border
+arc (§8), the 26 by the corridor census (whole-graph attributability 824/824).
+("Every edge" means every edge with a shared border arc to sample: 8,419 of the
+8,462. The 16 de-facto overlay edges meet only across a disputed tract, so they
 have no arc in the standard layer, and none is water-only; the 26 non-touching
 pairs are the corridor census's domain; and the land edge Samukh↔Yevlakh, added by
 maintainer ruling, meets only at a point in the source. The screens' own counts are stated as run,
-over every pair with a border arc: those 8,420 edges and the six false contacts of the denylist,
+over every pair with a border arc: those 8,419 edges and the seven false contacts of the denylist,
 which the screens nominated before adjudication found them not to be borders, 8,426 pairs; 3,291
-of them are nominated, of which 840 are water-only, six are the false contacts and 2,445 were
+of them are nominated, of which 798 are water-only, seven are the false contacts and 2,486 were
 rejected.) Earlier discovery campaigns — the ~1 km
 near-miss net and the 1–100 km lake band (6 of the 26 non-touching rows), the
-5 km/10 km widening re-screens (15 rows on existing edges), and the 2026-07-02/04
-HydroRIVERS/HydroLAKES geodesic 500 m cross-checks (18 + 12 rows on existing
+5 km/10 km widening re-screens (13 rows on existing edges), and the 2026-07-02/04
+HydroRIVERS/HydroLAKES geodesic 500 m cross-checks (17 + 10 rows on existing
 edges, incl. the Uruguay River ARG008↔URY012 with the San Martín bridge and the
 Dead Sea ISR005↔JOR007, no crossing) — are retired as nomination steps
 (2026-09-09): their rows are independently re-nominated by the current screens,
-and each keeps its discovery provenance in `source`. The 297 rows of the first
-classification round (237 river / 60 lake) each carry a cross-vendor
+and each keeps its discovery provenance in `source`. The 277 shipped rows of the first
+classification round (218 river / 59 lake) each carry a cross-vendor
 re-adjudication — the river rows from ru1 (2026-07-21), the lake-class rows from
 wu1 (2026-07-25) — and the correction history is in `CHANGELOG.md`. Twelve
 borders were **reclassified land→water** by the HydroLAKES sweep (e.g. the Great
-Lakes, Lake Malawi median, Lake Chad).
+Lakes, Lake Malawi median, Lake Chad); ten of them ship today.
 
 **ADM0 = 326** shipped (323 native + 3 disputed; COD↔TZA and other lake-only
-country pairs are now native, no matrix patch), **320** moderate, **300**
-stringent. Five country borders are all-water because every ADM1 crossing
-between the two countries is water-only: DEU↔LUX (the Our–Sauer–Moselle chain,
-every crossing bridged), BEN↔NER (the Niger + Mékrou, Malanville bridge), CMR↔GAB
-(the Ntem, bridged), MWI↔TZA (the bridged Songwe plus the Lake Malawi/Nyasa
-segments) — these four stay in the moderate view — and GUY↔SUR (the Corentyne,
-ferry-only, no fixed crossing), which drops from moderate; a sixth, MOZ↔TZA, is
-all-water through the three Rovuma pairs plus the Lake Nyasa corner
-MOZXXX↔TZA025 (the Unity Bridge pairs keep it in moderate); stringent drops all
-26 roll-ups.
+country pairs are now native, no matrix patch), **321** moderate, **307**
+stringent. A country border is all-water when every ADM1 crossing between the two
+countries is water-only; 19 are, among them BEN↔NER (the Niger + Mékrou, Malanville
+bridge) and MWI↔TZA (the bridged Songwe plus the Lake Malawi/Nyasa segments), which
+stay in the moderate view with the other bridged roll-ups (14 in all), and GUY↔SUR (the
+Corentyne, ferry-only), which drops from it with CAF↔COD, COD↔TZA, GUF↔SUR and NGA↔TCD;
+stringent drops all 19 roll-ups. DEU↔LUX, CMR↔GAB and MOZ↔TZA, all-water until
+2026-10-04, each have an ADM1 border the maintainer then ruled not water-only (`ua1`, §8).
 
 ---
 
-> **Note.** Sections 2–4 below are the *validation record* for the shipped parameter-free design: why **exact contact (tolerance 0)** is safe (the tolerance sensitivity sweep and the sub-55 m band audit), and why `border_length_km` is the full geodesic shared-boundary length. The audits described here produced the reviewed correction manifests the build replays; the authoritative counts are the provenance ledger above (shipped 8,463 / moderate 8,015 / water-only 866).
+> **Note.** Sections 2–4 below are the *validation record* for the shipped parameter-free design: why **exact contact (tolerance 0)** is safe (the tolerance sensitivity sweep and the sub-55 m band audit), and why `border_length_km` is the full geodesic shared-boundary length. The audits described here produced the reviewed correction manifests the build replays; the authoritative counts are the provenance ledger above (shipped 8,462 / moderate 8,026 / water-only 824).
 
 ## 1. Contiguity rule: rook, not queen
 
@@ -629,21 +627,21 @@ orthogonal to `de_facto_borders`:
 
 **Data.** Since 2026-07-25 each row also carries two **structured provenance**
 columns appended after `note` — `adjudication` (the process class; uniformly
-`cross-vendor` across all 866 rows after ru1/wu1/wu2/rj2/nt2/dc1/pr1/cc1/jr1) and `verification_tier`
-(the evidence strength: **A 332 / B 238 / C 296**, tier B pinned to the
-preregistered validation study's measured frame). ADM0 roll-up rows carry both
+`cross-vendor` across all 824 rows after ru1/wu1/wu2/rj2/nt2/dc1/pr1/cc1/jr1/ua1) and `verification_tier`
+(the evidence strength: **A 561 / B 119 / C 144**; tier A every row with a maintainer ruling on record,
+tier B inside the preregistered validation study's measured frame). ADM0 roll-up rows carry both
 blank, being derived arithmetic rather than adjudicated verdicts. Full
 semantics: `data/PROVENANCE.md`.
 
-`data/water_separated_pairs.csv` lists the **866 ADM1** water-only
-pairs with a `has_bridge` flag (840 on a shared edge + 26 between non-touching units,
-all from `data/water_classification_pairs.csv`, Stage 3), plus **26 ADM0** country
+`data/water_separated_pairs.csv` lists the **824 ADM1** water-only
+pairs with a `has_bridge` flag (798 on a shared edge + 26 between non-touching units,
+all from `data/water_classification_pairs.csv`, Stage 3), plus **19 ADM0** country
 pairs rolled up from them (a
 country pair is water-only iff *all* its ADM1 crossings are, and has a bridge
-iff *any* does). 297 rows come from the first classification round (237 river / 60 lake), every row
+iff *any* does). 277 rows come from the first classification round (218 river / 59 lake), every row
 carrying a cross-vendor re-adjudication — river rows from ru1 (2026-07-21),
 lake-class rows from wu1 (2026-07-25) — correction history in `CHANGELOG.md`.
-The other 569 — 543 existing edges classified water-only and 26 non-touching
+The other 547 — 521 existing edges classified water-only and 26 non-touching
 water borders added as edges — come from the 2026-07 run of the water screens over
 every edge (audit batches b1–b6 and the 20 km-hold tranche) and the campaigns after
 it (composition: `data/PROVENANCE.md`), every row nominated by the
@@ -657,49 +655,54 @@ every shipped verdict human- or dual-AI-verified with per-row provenance in
 the water file's `source` column —
 all of it applied in one pass by the idempotent engine
 `scripts/apply_overlays.py` (Stage 3; full provenance in
-`data/PROVENANCE.md`). Fifty-one of these 569 rows were first found by
+`data/PROVENANCE.md`). Forty-six of these 547 rows were first found by
 earlier campaigns now retired as nomination steps (2026-09-09) and folded
-in with their discovery provenance retained in `source`: the 18 hydro-water and
-12 hydro-lakes rows (the 2026-07-02/04 HydroRIVERS/HydroLAKES geodesic 500 m
+in with their discovery provenance retained in `source`: the 17 hydro-water and
+10 hydro-lakes rows (the 2026-07-02/04 HydroRIVERS/HydroLAKES geodesic 500 m
 cross-checks — every one of the then-1,800 cross-border edges sampled at three
 discharge tiers, the 34 un-adjudicated flags two-stage ground-truthed and every
 confirmation human map-verified; incl. the Oder/Neisse, Rio Hondo, Cavally,
 Mano, Kagera, Alazani, the Uruguay River and the Dead Sea; 2026-07-28 fold),
-the 15 river rows of the 5 km/10 km widening re-screens (ru1 fold,
+the 13 river rows of the 5 km/10 km widening re-screens (ru1 fold,
 2026-07-21), the 5 river rows of the ~1 km near-miss net (rg1 fold,
 2026-07-22) and the Skadar lake row of the 1–100 km lake band (lg1 fold,
 2026-07-23) — all independently re-nominated by the current screens
-(whole-graph attributability 866/866). Under
-the default, ADM1 pericoupled edges fall 8,463 → **8,015** and ADM0 country
-pairs 326 → **320** (the hydro-water rows' GUF↔SUR roll-up — the Maroni
-system, ferry only — joins COD↔TZA, MRT↔SEN, CAF↔COD, NGA↔TCD across
-Lake Chad, and the roll-up GUY↔SUR — the ferry-only Corentyne — as
-default-view subtractions; the roll-ups DEU↔LUX, BEN↔NER,
-CMR↔GAB, MWI↔TZA, and MOZ↔TZA (completed by the Lake Nyasa corner
-MOZXXX↔TZA025) are bridged, so they move only stringent; the stringent view ships at
-**300**).
+(whole-graph attributability 824/824). Under
+the default, ADM1 pericoupled edges fall 8,462 → **8,026** and ADM0 country
+pairs 326 → **321** (the hydro-water rows' GUF↔SUR roll-up — the Maroni
+system, ferry only — joins COD↔TZA, CAF↔COD, NGA↔TCD across Lake Chad,
+and the roll-up GUY↔SUR — the ferry-only Corentyne — as default-view
+subtractions; the 14 bridged roll-ups, BEN↔NER and MWI↔TZA among them, move only
+stringent; the stringent view ships at **307**).
 
-**Adjudication design.** Every water-only verdict on record — the 866 shipped
+**Adjudication design.** Every water-only verdict on record — the 824 shipped
 rows and every rejected candidate in the audit record — was set by one design
 run *downstream* of the deterministic screens: a **cross-vendor two-pass** in
 which the research pass ran on OpenAI's GPT-5.6 Sol, as a web-enabled agent in
 the Codex app, and the adversarial judgment pass on Anthropic's Claude Sonnet 5,
 blind to the repository's prior verdicts, so no single model family sets a
-verdict alone. Both passes are labelled by their model throughout — `GPT-5.6 Sol
+verdict alone. (The judges of the 2026-07 run were not barred from the repository, and
+from 2026-09-10 the judges' context held the assistant's project memory index, which at
+times described the campaign in progress; no row stands without a ruling on such a judgment:
+every such row rests on a judgment of 2026-10-03 made blind to earlier verdicts, with a
+neutral index and the web allowed for checking the research's sources, `ua1` below.) The
+exception is two placeholder-unit rows settled by the identity audit (2026-07-18),
+MOZXXX↔MWI002 and MOZXXX↔MWI004: the first never had the two passes, and a blind agent
+cannot adjudicate the second; both carry the maintainer's ruling. Both passes are labelled by their model throughout — `GPT-5.6 Sol
 research`, `Sonnet-5 adversarial judgment` — in the per-row `source` strings and in
-the campaign paragraphs below. Medium-
-confidence acceptances were human map-verified, high-confidence ones dual-AI
-cross-checked, and every row's fixed-crossing flag was decided by the same
+the campaign paragraphs below. Every shipped row stands on both passes at high
+confidence with nothing flagged (263, the web judgment of 2026-10-03) or on a
+maintainer ruling (561), and every row's fixed-crossing flag was decided by the same
 two-model design in the four-layer procedure below (OSM Overpass screen,
 GPT-5.6 Sol research, Sonnet-5 adversarial judgment, location test; maintainer
 rulings on every challenge).
 One rule closes every rejection: a candidate that both passes reject at high
 confidence with nothing flagged is rejected; a rejection below high confidence, or
 flagged by the judge or for a marine water body, is listed for the maintainer, who
-may override it; a disagreement goes to a maintainer ruling. Of the 2,786 rejected
-nominations (2,445 of the edge screens, 341 of the corridor census), 1,864 were
-closed by the two passes alone, 674 were listed and not overridden, and 248 rest
-on a maintainer ruling (`jr1` below).
+may override it; a disagreement goes to a maintainer ruling. Of the 2,827 rejected
+nominations (2,486 of the edge screens, 341 of the corridor census), 1,864 were
+closed by the two passes alone, 674 were listed and not overridden, and 289 rest
+on a maintainer ruling (`jr1` and `ua1` below).
 Candidate coverage is fixed by the buffer-independent full-database
 HydroRIVERS/HydroLAKES sweeps and the whole-graph screens — complete
 relative to those datasets' documented floors, a coverage claim rather than a
@@ -722,9 +725,9 @@ widening re-screens, the 2026-07-02/04 HydroRIVERS/HydroLAKES cross-checks and,
 for the first-round classification, the original ~60%-within-2.5 km river screen.
 Re-running the whole-graph attributability check on the shipped data
 (`build_data/water_screen_rebuild/hydro_fold/attributability_check.py`) shows
-every shipped water row nominated by the current screens alone — all 840 rows on
-a shared border by the edge screens on their border arc (the 297 first-round rows
-and the 543 later ones alike, none by a combined screen or the union alone) and
+every shipped water row nominated by the current screens alone — all 798 rows on
+a shared border by the edge screens on their border arc (the 277 first-round rows
+and the 521 later ones alike, none by a combined screen or the union alone) and
 the 26 non-touching rows by the corridor census — so no shipped row depends on a retired net. The corridor census was itself
 re-derived on 2026-09-10 (v2: HydroLAKES joins NE lakes; the HydroRIVERS buffer is
 geodesic and discharge-laddered, where the 2026-07 run buffered in planar degrees;
@@ -740,7 +743,7 @@ floor had set aside): all 33 rejected on convergent verdicts (15 sea-separated, 
 gaps), the floor withdrawn — the presence rule nominates, it does not drop (record:
 `build_data/water_screen_rebuild/corridor_census_v2/`). Its population, since 2026-09-27
 (`cc1` below), is every pair within 100 km of each other on the ground that was not already an edge, 23,485
-pairs on the build's polygons, the 80 that meet only at a point included (the 6 that meet along a
+pairs on the build's polygons, the 80 that meet only at a point included (the 7 that meet along a
 line are the denylisted contacts, which it leaves out; the pairs the census itself led to stay in its counts,
 the 26 non-touching water rows and Samukh↔Yevlakh, a point contact added as a land edge); the 100 km reach is
 checked against the
@@ -807,8 +810,11 @@ the arc, and the "~20% dry" figure in the adjudication prompts is an AI-pass
 screening tolerance, never an acceptance license. Every maintainer ruling had
 already applied this standard (the register precedent `BRA025`↔`URY014` was
 ruled not water-only at 10.2% dry, over a judge verdict that applied the
-numeric bar), and no shipped water-only row carries an accepted verdict with a
-quantified 4–25% dry share (checked live 2026-09-01). The ruling closed the
+numeric bar). A check of 2026-09-01 found no shipped row accepted on a quantified
+4–25% dry share; it was incomplete: reading both passes' reasons on every row that stood
+on two models in 2026-10 (`ua1`) found 19 that fail the standard (15 accept a named
+dry piece, 4 a stated non-water share of 8 to 13 percent), and the maintainer ruled all
+19 (12 not water-only, 7 water-only). The ruling closed the
 `rj1` campaign, which re-adjudicated the 48 rejected candidates in the
 cross-border hydrography screen record that rested solely on the earlier
 designs — **all 48 upheld, zero data change** — and the `rj2` campaign the same
@@ -1300,8 +1306,9 @@ answer (167 of them on the creek band's list of 2026-09-14). The maintainer rule
 not; two census pairs with water between the units but no edge, Northern Region↔Ruvuma across Malawi's lake unit and
 Faranah↔Eastern at a four-unit corner; East↔Isingiro not adjacent) and did not override the 238. The 63 accepted
 borders are existing edges, and their fixed-crossing flags were set by the four-layer procedure below on rows that had
-none (the screen run on 2026-10-02; blind GPT-5.6 Sol research, yes 31 / no 32; the location test; Sonnet-5 adversarial
-judgment, 63 agents, yes 32 / no 31): the maintainer adopted the passes' common answer on 62 and ruled the one split,
+none (the screen run on 2026-10-02; blind GPT-5.6 Sol research, yes 31 / no 32; the location test; adversarial judgment
+served Claude Sonnet 5.5 for the alias 'sonnet', 63 agents, yes 32 / no 31, run again on
+Sonnet 5 in `ua1` below): the maintainer adopted the passes' common answer on 62 and ruled the one split,
 Căușeni↔Transnistria, bridged, giving 32 with a fixed crossing and 31 without. In the second tranche three water names were corrected on a
 check against OpenStreetMap's named waterways (`water_names_t2_jr1.py`): Kasaï↔Kwango follows the Lushiko, as DRC Organic
 Law 15/006 defines it, not the Loange that both passes of 2026-09-01 had named. Water-only 803 → **866** (386/417 →
@@ -1314,11 +1321,44 @@ water-only + 6 false contacts + 2,445 rejected; accepted by screen: Natural Eart
 HydroRIVERS 719, HydroLAKES 164, combined rivers 772, combined lakes 167, union 798. Completeness 0 open; attributability
 866/866. Record: `build_data/water_screen_rebuild/july_rejections/` (`SPEC_jr1_*`, `jr1_*`).
 
+**One rule for every shipped water-only row (`ua1`, 2026-10-02 to 2026-10-04).** The adjudication rule (a row stands on
+its latest two-model record only if both passes said water-only at high confidence with nothing flagged; otherwise it
+needs a maintainer ruling made no earlier than the latest challenge) had been applied to each campaign's new rows, not
+to the rows already shipped. Campaign `ua1` applied it to all 866 shipped rows and their fixed-crossing flags
+(`SPEC_ua1_uniform_acceptance.md`, approved 2026-10-02). Two gaps in the 438 rows that stood on both passes at high
+confidence were closed first. Standard M had never been applied to them: reading both passes' reasons found 19 that
+fail it (15 accept a named dry piece, 4 a stated non-water share of 8 to 13 percent). And their judges had not been
+blind: the July judges were not barred from the repository, and the `ru1` and `wu1` judges were told the shipped
+verdict. All 438 were judged again by Claude Sonnet 5, blind to every earlier verdict, on the same research verdicts
+(two first runs, served Claude Sonnet 5.5 because the workflow asked for the alias 'sonnet', were discarded, and the
+model is pinned since). The judges' context also held the assistant's project memory index, which then described the
+cohort as shipped water-only rows accepted automatically; so the 381 rows on which both passes then said water-only
+(the Standard M rows aside) were judged a third time, with the index made neutral and the web allowed for checking
+the research's sources. A first launch with the judges' default tools was stopped when judges drove the app's shared
+browser at once and one used the shell; the rest ran with web search and fetch only, enforced by the judge's
+definition, and the 39 verdicts of the first launch whose judges had used only those tools were kept. The 63 crossing
+judgments of 2026-10-02 (`jr1`), likewise served Claude Sonnet 5.5, were run again on Claude Sonnet 5: 58 gave the
+same answer, and the 5 that changed went to the maintainer. The sheet held 286 rows in two parts, 112 to decide row
+by row (a pass not water-only, or Standard M) and 174 to confirm by exception (both passes water-only, flagged by a
+confidence below high or a request for a human check, or tier A with no human map check on record), and the five
+crossing flags. The maintainer ruled on 2026-10-04: water-only 244 (70 row by row, 174 by exception), not water-only
+41, not adjacent 1 (La Paz↔Callao, `docs/FUTURE_EDGE_AUDITS.md` #14); a fixed crossing on four of the five flags and
+none on Kayunga↔Mukono. Tier A is now every row with a maintainer ruling on record, which also moves to it the 17
+first-round rows ruled earlier in `ru1` and `wu1`. Water-only 866 → **824** (418/448 → **388/436**; river 712, lake
+112); edges 8,463 → **8,462**; moderate 8,015 → **8,026**; stringent 7,597 → **7,638**; ADM0 326/320/300 →
+326/**321**/**307** (roll-ups 26 → **19**: CHN↔PRK, CMR↔GAB, DEU↔LUX, FIN↔SWE, GRC↔TUR, MOZ↔TZA and MRT↔SEN now
+have a border that is not water-only); tiers 332/238/296 → **561/119/144**; the denylist 6 → **7**. Every shipped row
+now meets the rule: 263 stand on both passes at high confidence with nothing flagged (the web judgment of
+2026-10-03) and 561 on a maintainer ruling, and every flag meets the crossing rule. Over the 8,426 pairs with a
+border arc the screens' 3,291 nominations are now 798 water-only + 7 false contacts + 2,486 rejected. Attributability
+824/824. Record: `build_data/water_screen_rebuild/uniform_acceptance/` (`SPEC_ua1_*`, `ua1_*`).
+
 **`has_bridge` classification.** A pair is `True` iff a road/rail **bridge,
 causeway, dam-top road, or tunnel** (not a ferry — ferries are OSM relations and
-are excluded) lies in **both** units. Every one of the 866 flags was adjudicated
+are excluded) lies in **both** units. Every one of the 824 flags was adjudicated
 by the **two-model design** of the water-only judgment (campaign `ca1`, above; the 63
-rows classified water-only on 2026-10-02 when they were classified, `jr1` above), in
+rows classified water-only on 2026-10-02 when they were classified, `jr1` above, their
+judgment run again on Sonnet 5 and five of them ruled again in `ua1`, above), in
 **four layers**:
 (1) a deterministic **OSM Overpass screen** — a bridge/tunnel/causeway way counts
 only if it comes within **100 m of both units' polygons, measured on the ground**
@@ -1341,17 +1381,19 @@ units, both distances located and measured on the ground (a mid-span pin over a
 water strip the source assigns to neither unit),
 750 m–3 km flagged as a bank-line gap for maintainer judgment, farther treated
 as a wrong-unit citation. The water-only re-adjudication's gate sorts the rows: a clean
-high-confidence confirmation by both passes closes a flag (422 rows); the maintainer checks every
-other confirmation (285) and gives a **map ruling** wherever the passes challenge the flag or
-disagree (96 shipped rows); a row that has no flag yet takes the flag the maintainer sets, the
-passes' common answer on 62 rows and a ruling on the one where they disagreed; a flag changes only
-on a ruling, and each row's `source` ends with its two-model verdict and outcome. The flag is therefore a **reviewed static artifact**, shipped directly;
+high-confidence confirmation by both passes closes a flag (401 rows); the maintainer checks every
+other confirmation (270) and gives a **map ruling** wherever the passes challenge the flag or
+disagree (90 shipped rows); a row that has no flag yet takes the flag the maintainer sets, the
+passes' common answer on 57 rows and a ruling on the six where they disagree (one on 2026-10-02,
+five on 2026-10-04); a flag changes only
+on a ruling, and each row's `source` carries its two-model verdict and outcome. The flag is therefore a **reviewed static artifact**, shipped directly;
 the Stage 3–4 engine (`scripts/apply_overlays.py`) copies it from the reviewed
 water file and computes only the deterministic ADM0 roll-up. Method, error taxonomy
 and per-pair sources of the June run: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`; the screen's record:
 `build_data/water_screen_rebuild/crossing_width/`; the adjudication's:
 `build_data/water_screen_rebuild/crossing_adjudication/` and, for the rows of 2026-10-02,
-`build_data/water_screen_rebuild/july_rejections/`.
+`build_data/water_screen_rebuild/july_rejections/` and the Sonnet 5 re-run in
+`build_data/water_screen_rebuild/uniform_acceptance/`.
 
 **Two boundary conventions worth stating.**
 
@@ -1369,19 +1411,19 @@ and per-pair sources of the June run: `BRIDGE_CLASSIFICATION_METHODOLOGY.md`; th
 - *Mid-lake "median-line" meetings* (two units meeting in open water — e.g. Lake
   Victoria, the Great Lakes, Lake Constance) are **native edges** in the
   build — no lake filter removes them — so `coupling_standard` governs them
-  directly, exactly like river borders (the water file classifies 51 existing edges as
-  lake borders beyond the first round, twelve of them first found by the HydroLAKES
+  directly, exactly like river borders (the water file classifies 50 existing edges as
+  lake borders beyond the first round, ten of them first found by the HydroLAKES
   cross-check, and adds the three non-touching lake
   borders — Malësi e Madhe↔Bar across Lake Skadar, the one cross-border
   case, Kampong Thom↔Pursat across Tonlé Sap and Jura↔Neuchâtel across the Lac de
   Biaufond; the former Peipus restoration was removed 2026-07-22): `lenient` keeps every audited water contact, `moderate`
   keeps only the ten lake pairs with a fixed crossing (Flevoland↔Noord-Holland
   via the Hollandse Brug, Flevoland↔Gelderland via the Nijkerkerbrug,
-  Sud-Kivu↔Rwanda's Western Province via the Ruzizi bridge, three Ontario↔USA
-  Great Lakes crossings — Michigan, Minnesota, New York — and the four later
-  additions ALB011↔ALB017, IRL002↔IRL024, NLD011↔NLD012, SLV003↔SLV004), and
+  Sud-Kivu↔Rwanda's Western Province via the Ruzizi bridge, two Ontario↔USA
+  Great Lakes crossings — Michigan and New York — and the five later
+  additions ALB011↔ALB017, IRL002↔IRL024, LVA001↔LVA096, NLD011↔NLD012, SLV003↔SLV004), and
   `stringent` keeps none.
-  `lenient` therefore equals the shipped base adjacency (8,463 edges).
+  `lenient` therefore equals the shipped base adjacency (8,462 edges).
 
 ## 9. Name resolution (lookup layer)
 
