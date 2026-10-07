@@ -404,14 +404,14 @@ semantics.
 ### Run tracing (`trace`, `trace_dir`)
 
 Tracing is **on by default**. Each `analyze()` / `refine()` captures every
-model call (prompts, response, token usage, duration) plus the pipeline
-intermediates (raw web results, RAG chunks, parsed analysis, map data,
-formatted output) and run metadata (model, git SHA, environment), then writes
-a folder of human-readable artifacts:
+chat call made through the assistant's client (prompts, response, token usage,
+duration) plus the pipeline intermediates (raw web results, RAG chunks, parsed
+analysis, map data, formatted output) and run metadata (model, git SHA,
+environment), then writes a folder of human-readable artifacts:
 
 ```text
 runs/<utc-timestamp>_<query-slug>/turn1/
-    00_run_config.md … 10_pipeline_metadata.md
+    00_run_config.md … 11_llm_call_abstract.md
     README.md
     map.png            # when a map was rendered
 ```
@@ -424,7 +424,7 @@ list of captured `CallRecord`s.
 ```python
 result = advisor.analyze("…")
 print(result.trace.out_dir)          # runs/2026…_…/turn1
-print(result.trace.total_tokens)     # input + output across all calls
+print(result.trace.total_tokens)     # input + output across all captured calls
 ```
 
 - **Disable it** with `trace=False`, or globally with the
@@ -436,9 +436,10 @@ print(result.trace.total_tokens)     # input + output across all calls
 - Tracing never breaks an analysis: if writing fails, the result is returned
   normally with `result.trace.out_dir = None`.
 
-> **Note.** The web-search extraction call is issued by the provider's native
-> web-search backend (not the assistant's traced client), so it is summarised
-> from the intermediates in `01`/`03` rather than captured as a model call.
+> **Note.** Two web-stage model calls bypass the traced client: the provider's
+> native web search (when used) and the structured web extraction, which is
+> sent to the unwrapped adapter so that it can use the provider's
+> schema-constrained output mode. Only their results are kept, in `01` and `03`.
 
 ### What's in the RAG corpus
 

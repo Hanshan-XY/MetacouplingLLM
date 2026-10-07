@@ -3,7 +3,7 @@
 When tracing is enabled (the default), the assistant wraps its LLM client in a
 :class:`_RecordingClient` proxy that captures every ``chat()`` call, and after
 each ``analyze()`` / ``refine()`` run it writes a folder of human-readable
-artifacts (``00_run_config.md`` … ``10_pipeline_metadata.md`` + ``README.md`` +
+artifacts (``00_run_config.md`` … ``11_llm_call_abstract.md`` + ``README.md`` +
 ``map.png``) plus attaches a :class:`RunTrace` to the result.
 
 This is the package-internal version of what ``scripts/trace_pipeline.py`` used
@@ -339,7 +339,7 @@ def write_run_artifacts(
     assistant: Any,
     result: Any,
 ) -> list[Path]:
-    """Write the 00–10 + README + map artifacts. Never raises; returns the
+    """Write the 00–11 + README + map artifacts. Never raises; returns the
     list of files written (empty on failure)."""
     written: list[Path] = []
 
@@ -397,8 +397,9 @@ def write_run_artifacts(
                 web_md += f"\n**Model summary:**\n\n> {summary}\n\n"
         _write("01_web_results_raw.md", web_md)
 
-        # --- 02 web extraction call (NOT captured by the proxy: the web
-        # backend calls the raw client directly — render from intermediates).
+        # --- 02 web extraction call (NOT captured by the proxy: core passes the
+        # unwrapped adapter so the strict-output dispatch sees its concrete
+        # type — point to the intermediates instead).
         web_call = _call_by_label(trace, "web_extraction")
         if web_call is not None:
             _write("02_llm_call_web_extraction.md", _llm_call_md(
@@ -409,9 +410,10 @@ def write_run_artifacts(
                 "02_llm_call_web_extraction.md",
                 "# 02 — LLM call: structured web extraction\n\n"
                 "_Not captured by the in-process trace: the web-extraction call "
-                "is issued by the native web-search backend via the provider's "
-                "raw client, not through the assistant's `chat()` proxy. The "
-                "raw inputs/outputs are in files 01 and 03._\n",
+                "is sent to the unwrapped adapter, not through the assistant's "
+                "`chat()` proxy, so that it can use the provider's "
+                "schema-constrained output mode. Its input, the web results, is "
+                "in file 01 and its output, the structured signals, in file 03._\n",
             )
 
         # --- 03 web structured signals ------------------------------------
@@ -523,10 +525,19 @@ def write_run_artifacts(
         meta += "\n" + _h2("Wall-clock breakdown") + _kv_table({
             "total_wall_clock_s": trace.wall_clock_s,
             "sum_of_llm_call_s": llm_total,
-            "non_llm_s (retrieval + render + parsing)":
+            "other_s (uncaptured web calls, retrieval, render, parsing)":
                 round(trace.wall_clock_s - llm_total, 2),
         })
         _write("10_pipeline_metadata.md", meta)
+
+        # --- 11 abstract call (runs right after 09 is assembled; numbered
+        # after 10 so the earlier file numbers stay as they were) ---------
+        abstract_call = _call_by_label(trace, "abstract")
+        if abstract_call is not None:
+            _write("11_llm_call_abstract.md", _llm_call_md(
+                abstract_call, "11 — LLM call: abstract generation",
+                "Writes a 150-250-word abstract from the formatted output "
+                "(09); the call runs after 09 is assembled."))
 
         # --- map.png -------------------------------------------------------
         fig = getattr(result, "map", None)
@@ -549,14 +560,18 @@ def write_run_artifacts(
             "- Files are numbered by **pipeline stage** (the order steps "
             "run), not by model-call order. For example, the structured "
             "web-extraction call appears early, at `02`, because it runs "
-            "during the web-search stage, before the main analysis.\n"
+            "during the web-search stage, before the main analysis. The one "
+            "exception is the abstract call (`11`): it runs right after the "
+            "formatted output (`09`) but is numbered after the metadata "
+            "(`10`).\n"
             "- The **LLM calls** count above, and the token table in "
             "`10_pipeline_metadata.md`, include only calls captured through "
-            "the assistant's `chat()` proxy. The structured web-extraction "
-            "call (`02`, when present) is *summarized rather than "
-            "chat-captured*, because it is issued by the provider's native "
-            "web-search client rather than that proxy; its raw inputs and "
-            "outputs are in `01` and `03`.\n"
+            "the assistant's `chat()` proxy. Two web-stage model calls "
+            "bypass that proxy: the provider's native web search (when "
+            "used) and the structured web extraction (`02`), which is sent "
+            "to the unwrapped adapter so that it can use the provider's "
+            "schema-constrained output mode. Only their results are kept: "
+            "the web results in `01` and the structured signals in `03`.\n"
             "- Not every file appears in every run: the web, RAG, map, and "
             "supplementary stages are written only when the corresponding "
             "feature is enabled.\n\n"
@@ -564,15 +579,16 @@ def write_run_artifacts(
         descriptions = {
             "00_run_config.md": "Query, model, parameters, git SHA, and environment.",
             "01_web_results_raw.md": "Raw results returned by the web search.",
-            "02_llm_call_web_extraction.md": "Structured web-extraction model call (summarized; see above).",
+            "02_llm_call_web_extraction.md": "Structured web-extraction model call (not captured; see above).",
             "03_web_structured_signals.md": "Structured signals and evidence cards from the web results.",
             "04_rag_chunks.md": "Literature passages retrieved from the RAG corpus.",
-            "05_llm_call_main_analysis.md": "Main framework-analysis model call, with the full seven-layer system prompt.",
+            "05_llm_call_main_analysis.md": "Main framework-analysis model call, with the full six-layer system prompt.",
             "06_parsed_analysis.md": "Parsed ParsedAnalysis structure (parser output of the main response).",
             "07_llm_call_map_extraction.md": "Map-signal extraction model call.",
             "08_map_data.md": "Structured map data used to render the figure.",
             "09_formatted_output.md": "Final formatted report.",
             "10_pipeline_metadata.md": "Per-call token usage, wall-clock breakdown, and map metadata.",
+            "11_llm_call_abstract.md": "Abstract-generation model call.",
             "map.png": "Rendered metacoupling map.",
             "README.md": "This file.",
         }
