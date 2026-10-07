@@ -5,7 +5,7 @@ intermediate artifact to disk for study.
 As of the built-in run-tracing feature, the artifact-dumping logic lives in the
 package (``metacouplingllm.tracing``); this script is now a thin driver that
 loads an API key, constructs a ``MetacouplingAssistant`` with ``trace=True`` and
-a fixed ``trace_dir``, and runs one query.  The artifacts (``00_run_config.md``
+a new dated ``trace_dir``, and runs one query.  The artifacts (``00_run_config.md``
 … ``11_llm_call_abstract.md`` + ``README.md`` + ``map.png``) are written under
 ``OUT_DIR/turn1/``.
 
@@ -20,6 +20,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -27,8 +28,10 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-OUT_DIR = Path("runs/avocado_2026-06-16_gpt-5.5_builtin-trace")
 MODEL = "gpt-5.5"
+# A new dated folder for every run, so a run never overwrites a committed one
+# (runs/avocado_2026-06-16_gpt-5.5_builtin-trace/ is the run the paper describes).
+OUT_DIR = Path("runs") / f"avocado_{datetime.now(timezone.utc):%Y-%m-%d_%H%M%S}_{MODEL}"
 API_KEY_PATH = Path(
     r"D:\Onedrive\OneDrive - Michigan State University\Desktop\api.env"
 )
