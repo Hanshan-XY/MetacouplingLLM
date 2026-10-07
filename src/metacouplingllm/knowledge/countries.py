@@ -7,8 +7,6 @@ names produced by LLMs can be matched against the pericoupling database.
 
 from __future__ import annotations
 
-import re
-
 # ---------------------------------------------------------------------------
 # ISO alpha-3 code → canonical English name (covers all 244 ISO codes in the
 # pericoupling databases — current ISO 3166-1 alpha-3, modernized in PR #50
@@ -627,15 +625,34 @@ def _get_sorted_all_names() -> list[tuple[str, str]]:
     return _sorted_all_names
 
 
+# Characters a standalone term may not touch on either side.
+_TERM_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789")
+
+
 def _contains_standalone_country_term(text: str, term: str) -> bool:
     """Return True when *term* appears as a standalone token/phrase.
 
     This avoids false positives from naive substring matching such as:
     - ``"Indiana"`` matching ``"ind"`` (India)
     - ``"used"`` matching ``"us"`` (United States)
+
+    Standalone means no ASCII lowercase letter or digit directly before or
+    after the occurrence: the meaning of
+    ``re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", text)``,
+    checked with ``str.find`` so that no pattern is built per term (a
+    lookup that reaches the substring step tests every country name and
+    alias in turn).
     """
-    pattern = rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])"
-    return re.search(pattern, text) is not None
+    end = len(term)
+    i = text.find(term)
+    while i != -1:
+        j = i + end
+        if (i == 0 or text[i - 1] not in _TERM_CHARS) and (
+            j == len(text) or text[j] not in _TERM_CHARS
+        ):
+            return True
+        i = text.find(term, i + 1)
+    return False
 
 
 # ---------------------------------------------------------------------------

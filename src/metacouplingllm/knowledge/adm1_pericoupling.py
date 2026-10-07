@@ -709,10 +709,30 @@ _IGNORABLE_SUBSTRING_WORDS: frozenset[str] = (
 )
 
 
+# Characters a whole-word phrase may not touch on either side.
+_WORD_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz")
+
+
 def _contains_phrase(haystack: str, needle: str) -> bool:
-    """Whole-word (word-boundary) containment of ``needle`` in ``haystack``."""
-    pattern = rf"(?<![a-z]){re.escape(needle)}(?![a-z])"
-    return re.search(pattern, haystack) is not None
+    """Whole-word (word-boundary) containment of ``needle`` in ``haystack``.
+
+    True when some occurrence of ``needle`` has no ASCII lowercase letter
+    directly before or after it: the meaning of
+    ``re.search(rf"(?<![a-z]){re.escape(needle)}(?![a-z])", haystack)``,
+    checked with ``str.find`` so that no pattern is compiled per needle (the
+    substring strategies pass every index key they test, and the keys far
+    outnumber the patterns the ``re`` module caches).
+    """
+    end = len(needle)
+    i = haystack.find(needle)
+    while i != -1:
+        j = i + end
+        if (i == 0 or haystack[i - 1] not in _WORD_CHARS) and (
+            j == len(haystack) or haystack[j] not in _WORD_CHARS
+        ):
+            return True
+        i = haystack.find(needle, i + 1)
+    return False
 
 
 # Split a name into words on whitespace AND hyphens, so a hyphen-joined
@@ -881,6 +901,64 @@ def _get_adm1_folded_name_index() -> dict[str, list[tuple[str, str]]]:
                 bucket.append(entry)
     _adm1_folded_index = folded
     return _adm1_folded_index
+
+
+# Letter runs: maximal runs of ASCII lowercase letters.  A whole-word match
+# (``_contains_phrase``) never begins or ends inside a letter run, so every
+# letter run of the needle is also a letter run of the haystack.
+_LETTER_RUN_RE = re.compile(r"[a-z]+")
+
+_adm1_letter_run_index: dict[
+    bool, tuple[dict[str, frozenset[str]], dict[str, list[str]]]
+] = {}
+
+
+def _get_letter_run_index(
+    folded: bool,
+) -> tuple[dict[str, frozenset[str]], dict[str, list[str]]]:
+    """Lazily build and cache, for the accented or the folded name index,
+    each key's letter runs and the keys holding each run (keys without a
+    letter run are filed under ``""``).
+    """
+    if folded not in _adm1_letter_run_index:
+        index = (
+            _get_adm1_folded_name_index() if folded else _get_adm1_name_index()
+        )
+        runs_of: dict[str, frozenset[str]] = {}
+        keys_with: dict[str, list[str]] = {}
+        for db_name in index:
+            runs = frozenset(_LETTER_RUN_RE.findall(db_name))
+            runs_of[db_name] = runs
+            for run in runs or {""}:
+                keys_with.setdefault(run, []).append(db_name)
+        _adm1_letter_run_index[folded] = (runs_of, keys_with)
+    return _adm1_letter_run_index[folded]
+
+
+def _substring_candidates(
+    query: str, folded: bool,
+) -> list[tuple[str, list[tuple[str, str]]]]:
+    """The ``(key, entries)`` items of the accented or the folded name index
+    that ``_substring_match(query, key)`` can accept.
+
+    A match needs ``query`` as a whole-word part of the key (so the query's
+    letter runs are a subset of the key's) or the key as a whole-word part
+    of ``query`` (the key's runs a subset of the query's).  Keys meeting
+    neither condition cannot match, so the substring strategies skip them
+    instead of testing every key of the index.
+    """
+    index = _get_adm1_folded_name_index() if folded else _get_adm1_name_index()
+    runs_of, keys_with = _get_letter_run_index(folded)
+    query_runs = frozenset(_LETTER_RUN_RE.findall(query))
+    if not query_runs:
+        return list(index.items())
+    pool = set(keys_with.get("", ()))
+    for run in query_runs:
+        pool.update(keys_with.get(run, ()))
+    return [
+        (key, index[key]) for key in pool
+        if query_runs <= runs_of[key] or runs_of[key] <= query_runs
+    ]
 
 
 def _resolve_country_filter(country: str) -> str | None:
@@ -1070,9 +1148,11 @@ def resolve_adm1_code(
     # only when exactly one region matches -- refuse to guess on ambiguity, and
     # never let the first matching name win over a conflicting second.  On 0 or
     # >1 matches, fall through so the folded strategies still get a chance.
+    # Only keys whose letter runs contain the query's, or are contained in
+    # them, can match, so only those are tested (``_substring_candidates``).
     if len(name_lower) >= 4:
         matches: set[str] = set()
-        for db_name, entries in index.items():
+        for db_name, entries in _substring_candidates(name_lower, folded=False):
             if len(db_name) < 4:
                 continue
             if _substring_match(name_lower, db_name):
@@ -1105,7 +1185,9 @@ def resolve_adm1_code(
         # guard, same as Strategy 2).
         if len(folded_query) >= 4:
             matches = set()
-            for db_name, entries in folded_index.items():
+            for db_name, entries in _substring_candidates(
+                folded_query, folded=True,
+            ):
                 if len(db_name) < 4:
                     continue
                 if _substring_match(folded_query, db_name):
