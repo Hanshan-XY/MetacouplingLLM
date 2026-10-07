@@ -23,4 +23,4 @@
 |---|---|
 | `total_wall_clock_s` | 5263.93 |
 | `sum_of_llm_call_s` | 311.79 |
-| `non_llm_s (retrieval + render + parsing)` | 4952.14 |
+| `other_s (uncaptured web calls, retrieval, render, parsing)` | 4952.14 |

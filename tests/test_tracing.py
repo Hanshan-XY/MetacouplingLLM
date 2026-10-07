@@ -58,10 +58,30 @@ def test_analyze_writes_turn1_and_attaches_runtrace(tmp_path):
     assert any(c.label == "main_analysis" for c in result.trace.calls)
 
     # README documents the numbering convention so a first-time reader is
-    # not tripped up (pipeline-stage order; web-extraction summarized).
+    # not tripped up (pipeline-stage order; the two web calls that bypass
+    # the proxy), and calls the prompt builder six-layer.
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert "Reading this trace" in readme
-    assert "summarized rather than chat-captured" in readme
+    assert "Two web-stage model calls bypass that proxy" in readme
+    assert "six-layer" in readme and "seven-layer" not in readme
+    assert "11_llm_call_abstract.md" not in names  # generate_abstract=False
+
+
+# ---------------------------------------------------------------------------
+# 1b. the abstract call is written to disk as 11 and listed in the README
+# ---------------------------------------------------------------------------
+def test_abstract_call_written_as_11(tmp_path):
+    adv = _assistant(trace=True, trace_dir=tmp_path, generate_abstract=True)
+    result = adv.analyze("Brazil China soybean telecoupling")
+
+    assert any(c.label == "abstract" for c in result.trace.calls)
+    out = result.trace.out_dir
+    text = (out / "11_llm_call_abstract.md").read_text(encoding="utf-8")
+    assert text.startswith("# 11 — LLM call: abstract generation")
+    assert "| `label` | abstract |" in text
+    assert "## Response" in text
+    readme = (out / "README.md").read_text(encoding="utf-8")
+    assert "| [`11_llm_call_abstract.md`](./11_llm_call_abstract.md) | Abstract-generation model call. |" in readme
 
 
 # ---------------------------------------------------------------------------

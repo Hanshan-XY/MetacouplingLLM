@@ -6,7 +6,7 @@ As of the built-in run-tracing feature, the artifact-dumping logic lives in the
 package (``metacouplingllm.tracing``); this script is now a thin driver that
 loads an API key, constructs a ``MetacouplingAssistant`` with ``trace=True`` and
 a fixed ``trace_dir``, and runs one query.  The artifacts (``00_run_config.md``
-… ``10_pipeline_metadata.md`` + ``README.md`` + ``map.png``) are written under
+… ``11_llm_call_abstract.md`` + ``README.md`` + ``map.png``) are written under
 ``OUT_DIR/turn1/``.
 
 Usage::
