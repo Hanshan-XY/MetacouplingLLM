@@ -751,11 +751,14 @@ class MetacouplingAssistant:
         ``False`` because this adds one extra LLM call per
         ``analyze()`` / ``refine()`` turn.
     web_structured_extraction:
-        If ``True`` and ``web_search=True``, runs a second LLM pass over the
-        web results to extract validated map-ready countries and flows.
-        These signals are used as conservative hints for map generation and
-        are exposed on ``AnalysisResult.web_map_signals``. Recommended when
-        ``web_search=True`` and ``auto_map=True`` are both enabled.
+        If ``True`` (the default) and ``web_search=True``, runs a second LLM
+        pass over the web results to extract validated map-ready countries
+        and flows, plus evidence cards that are added to the analysis
+        prompt. The countries and flows are used as conservative hints for
+        map generation and are exposed on ``AnalysisResult.web_map_signals``.
+        Set ``False`` to skip this extra call; the map then uses only the
+        map data extracted from the analysis. No effect without
+        ``web_search``.
 
     Example
     -------
@@ -798,7 +801,7 @@ class MetacouplingAssistant:
         rag_structured_extraction: bool = False,
         web_search: bool = False,
         web_search_max_results: int = 10,
-        web_structured_extraction: bool = False,
+        web_structured_extraction: bool = True,
         web_structured_min_confidence: float = 0.7,
         web_structured_max_targets: int = 6,
         rag_min_score: float | None = None,
@@ -817,7 +820,7 @@ class MetacouplingAssistant:
         # exactly or skip the small extra LLM cost.
         generate_abstract: bool = True,
         # Built-in run tracing.  When on, every analyze()/refine() writes a
-        # folder of artifacts (00–10 + README + map.png) to ``trace_dir`` and
+        # folder of artifacts (00–11 + README + map.png) to ``trace_dir`` and
         # attaches a ``RunTrace`` to the result.  ``trace=None`` uses the
         # package default (ON); set ``trace=False`` to disable.  ``trace_dir``
         # defaults to ``runs/<utc>_<slug>/`` (gitignored) when unset.
@@ -856,10 +859,6 @@ class MetacouplingAssistant:
         self._rag_structured_extraction = rag_structured_extraction
         self._web_search = web_search
         self._web_search_max_results = web_search_max_results
-        # Auto-enable structured web extraction when both web_search and
-        # auto_map are on — the map needs structured data to work well.
-        if web_structured_extraction is False and web_search and auto_map:
-            web_structured_extraction = True
         self._web_structured_extraction = web_structured_extraction
         self._web_structured_min_confidence = web_structured_min_confidence
         self._web_structured_max_targets = web_structured_max_targets
@@ -957,7 +956,8 @@ class MetacouplingAssistant:
                 auto_map=auto_map,
                 recommend_papers=recommend_papers,
                 rag_structured_extraction=rag_structured_extraction,
-                web_structured_extraction=web_structured_extraction,
+                # On by default, so only worth a notice when web search is on.
+                web_structured_extraction=web_structured_extraction and web_search,
             )
 
     @staticmethod

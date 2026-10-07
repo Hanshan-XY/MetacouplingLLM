@@ -1999,24 +1999,8 @@ class TestStructuredMapData:
         parsed = ParsedAnalysis()
         assert parsed.map_data is None
 
-    def test_web_structured_extraction_auto_enabled(self):
-        """web_structured_extraction auto-enables when web_search + auto_map."""
-        from metacouplingllm.llm.client import LLMResponse
-
-        class MockClient:
-            def chat(self, messages, temperature=0.7, max_tokens=None):
-                return LLMResponse(content="Test response.")
-
-        advisor = MetacouplingAssistant(
-            llm_client=MockClient(),
-            web_search=True,
-            auto_map=True,
-            # web_structured_extraction not set explicitly
-        )
-        assert advisor._web_structured_extraction is True
-
-    def test_web_structured_extraction_stays_false_without_map(self):
-        """Without auto_map, web_structured_extraction stays False."""
+    def test_web_structured_extraction_on_by_default(self):
+        """web_structured_extraction is on by default with web_search, map or not."""
         from metacouplingllm.llm.client import LLMResponse
 
         class MockClient:
@@ -2027,6 +2011,23 @@ class TestStructuredMapData:
             llm_client=MockClient(),
             web_search=True,
             auto_map=False,
+            # web_structured_extraction not set explicitly
+        )
+        assert advisor._web_structured_extraction is True
+
+    def test_web_structured_extraction_explicit_false_is_respected(self):
+        """An explicit False holds even with web_search + auto_map."""
+        from metacouplingllm.llm.client import LLMResponse
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content="Test response.")
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            web_search=True,
+            auto_map=True,
+            web_structured_extraction=False,
         )
         assert advisor._web_structured_extraction is False
 

@@ -135,7 +135,7 @@ advisor = MetacouplingAssistant(
     adapter,
     web_search=True,
     web_search_max_results=10,
-    web_structured_extraction=True,  # Recommended with web_search + auto_map
+    web_structured_extraction=True,  # the default; validated countries + flows
     auto_map=True,
     rag_corpus="journal_articles_2025",
     rag_top_k=8,
@@ -155,11 +155,12 @@ if result.map:
     result.map.savefig("map.png", dpi=150, bbox_inches="tight")
 ```
 
-Recommended default: use `web_structured_extraction=True` whenever you enable
-both `web_search=True` and `auto_map=True`. The advisor then performs an extra
-LLM pass over the web snippets to extract validated receiving countries,
-spillover countries, and map-ready flows. The validated payload is also stored
-on `result.web_map_signals`.
+`web_structured_extraction=True` is the default: whenever `web_search=True`, the
+advisor performs an extra LLM pass over the web snippets to extract validated
+receiving countries, spillover countries, and map-ready flows, plus evidence
+cards that are added to the analysis prompt. The validated payload is also
+stored on `result.web_map_signals`. Pass `web_structured_extraction=False` to
+skip the extra call.
 
 ---
 
@@ -650,7 +651,8 @@ by the sanitizer.
 **Framework-only options are silently disabled** when
 `coupling_analysis=False`: `auto_map`, `recommend_papers`,
 `rag_structured_extraction`, `web_structured_extraction`. A notice is
-printed if any of those are set. All other options
+printed if any of those are set (`web_structured_extraction`, which is on
+by default, only when `web_search=True`). All other options
 (`web_search`, `rag_top_k`, `rag_backend`, `rag_min_score`,
 `rag_max_chunks_per_paper`, `temperature`, `max_tokens`, `verbose`)
 work in both modes.
@@ -1711,7 +1713,7 @@ a backend directly.
 |---|---|---|
 | `web_search` | `False` | Master switch (constructor kwarg). |
 | `web_search_max_results` | `10` | Number of hits requested per query. Scales `max_output_tokens` automatically (PR #24). |
-| `web_structured_extraction` | `False` | Runs a second, strict-JSON LLM pass over the snippets to extract validated receiving countries, spillover countries, and map-ready flows. **Auto-enabled** when `web_search=True` and `auto_map=True` (the map needs structured data). |
+| `web_structured_extraction` | `True` | Runs a second, strict-JSON LLM pass over the snippets to extract validated receiving countries, spillover countries, and map-ready flows, plus evidence cards for the analysis prompt. Runs only when `web_search=True`; pass `False` to skip it. |
 | `web_structured_min_confidence` | `0.7` | Minimum confidence for a Stage-3 country/flow to be kept in the validated payload. |
 | `web_structured_max_targets` | `6` | Cap on validated receiving/spillover targets kept per analysis. |
 | `blocked_domains` | `["reddit.com", "quora.com", "pinterest.com"]` | Field of the backend dataclasses (not an adapter kwarg): low-authority domains are excluded **out of the box**; override it by instantiating the backend yourself. |

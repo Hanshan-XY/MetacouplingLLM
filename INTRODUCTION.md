@@ -186,7 +186,7 @@ advisor = MetacouplingAssistant(
     rag_corpus=JOURNAL_ARTICLES_2025,  # Use bundled 2025 journal corpus
     web_search=True,            # Ground analysis in web search results
     web_search_max_results=10,  # Number of web results (default)
-    web_structured_extraction=True,  # Recommended with web_search + auto_map
+    web_structured_extraction=True,  # the default; validated countries + flows
     rag_top_k=8,                # Number of RAG evidence passages (default)
     rag_min_score=0.60,         # Min embeddings cosine sim (BGE-base scale)
     max_examples=2,             # Framework examples in prompt
@@ -251,7 +251,7 @@ only fires if its precondition is met):
   kept only if it resolves to a real country/union and cites a real
   retrieved snippet (confidence ≥ 0.7).  This grounds the *evidence*,
   not the spillover *role* (which classification the LLM still
-  decides).  Only when `web_structured_extraction=True`.
+  decides).  Only when `web_structured_extraction=True` (the default).
 
 ### 4.3 Retrieval-Augmented Generation (RAG)
 
@@ -272,7 +272,7 @@ Web search injects current, real-world context (trade data, policies, recent eve
 - **Native auto-wiring** when `web_search=True`: each adapter routes to its own backend — `OpenAIWebSearchBackend` (PR #17), `AnthropicWebSearchBackend` (PR #28), `GeminiWebSearchBackend` (Google Search grounding, PR #29), `GrokWebSearchBackend` (xAI Live Search incl. X/Twitter, PR #29). Custom clients fall back to the built-in DuckDuckGo search cascade.
 - DuckDuckGo backend has three fallback layers: `ddgs` -> `duckduckgo_search` -> stdlib (`urllib` + `html.parser`); works on Google Colab without any extra packages.
 - Results cited as `[Tk:W1]`, `[Tk:W2]`, ... -- the `W` prefix distinguishes web sources from literature `[Tk:1]`, `[Tk:2]`. `k` is the turn index, so prior-turn web references stay stable across `refine()` calls.
-- Recommended default for web-grounded maps: `web_structured_extraction=True` runs a second LLM pass (strict JSON / tool-output across all four providers, PR #28-#30) over the web snippets and validates map-ready countries and flows before using them in auto-maps.
+- On by default (`web_structured_extraction=True`): a second LLM pass (strict JSON / tool-output across all four providers, PR #28-#30) over the web snippets and validates map-ready countries and flows before using them in auto-maps.
 - `evidence_coverage_note` (PR #20) is a one-paragraph LLM self-assessment that summarises what kinds of web sources were available, what coverage gaps remain, and whether the analysis fell back to training memory — surfaced on `result.parsed.evidence_coverage_note`.
 - Supranational unions (EU / ASEAN / USMCA / NAFTA) are handled end-to-end: prompt teaches the LLM to keep the union label + list members (PR #22), Stage-3 web-summary buffer is bumped to 2500 chars (PR #26), and the map renderer dissolves union borders and colours member states by their relationship to the focal country (PR #23, #25).
 
