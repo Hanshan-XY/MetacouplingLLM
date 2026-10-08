@@ -1,7 +1,10 @@
 """Tests for knowledge/literature.py — literature recommendation engine."""
 
+import pytest
+
 from metacouplingllm.knowledge.literature import (
     Paper,
+    _build_fulltext_scores,
     _extract_search_terms_from_text,
     _is_relevant,
     _parse_bibtex,
@@ -10,6 +13,7 @@ from metacouplingllm.knowledge.literature import (
     get_database_info,
     recommend_papers,
 )
+from metacouplingllm.knowledge.rag import RAGEngine, RetrievalResult, TextChunk
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +159,103 @@ class TestScoring:
         s1 = _score_paper(paper1, {"trade"})
         s2 = _score_paper(paper2, {"trade"})
         assert s2 > s1
+
+
+class TestBuildFulltextScores:
+    """A paper's full-text score is the best score among its chunks.
+
+    ``RAGEngine.retrieve`` can return several chunks of one paper (up to
+    ``max_chunks_per_paper``, default 3). It lists a paper's best chunk
+    first and appends chunks of sections already taken after the first
+    pass, so the last chunk listed for a paper is not its best.
+    """
+
+    @pytest.fixture
+    def papers_dir(self, monkeypatch, tmp_path):
+        """Point the engine at tmp_path instead of the bundled papers."""
+        monkeypatch.setattr(
+            "metacouplingllm.knowledge.rag._extract_bundled_papers",
+            lambda verbose=False: tmp_path,
+        )
+        return tmp_path
+
+    def test_keeps_best_chunk_score_per_paper(self, monkeypatch, papers_dir):
+        def hit(key, section, score):
+            return RetrievalResult(
+                chunk=TextChunk(paper_key=key, section=section), score=score,
+            )
+
+        # The order the two-pass selection yields: paper A's Introduction
+        # (0.9) and Discussion (0.3) in the first pass, then its second
+        # Introduction chunk (0.7) in the second.
+        hits = [
+            hit("A", "Introduction", 0.9),
+            hit("B", "Introduction", 0.5),
+            hit("A", "Discussion", 0.3),
+            hit("A", "Introduction", 0.7),
+        ]
+        monkeypatch.setattr(RAGEngine, "load", lambda self: None)
+        monkeypatch.setattr(
+            RAGEngine, "retrieve", lambda self, *args, **kwargs: hits,
+        )
+
+        assert _build_fulltext_scores({"avocado", "trade"}) == {
+            "A": 0.9,
+            "B": 0.5,
+        }
+
+    def test_tfidf_paper_scored_by_its_best_chunk(
+        self, monkeypatch, papers_dir,
+    ):
+        filler = (
+            "Land systems respond to distant demand through flows of "
+            "goods, capital and information that cross administrative "
+            "borders. "
+        )
+        # Three sections that match the query less and less, and a
+        # second paper that matches it weakly. Dated 2099 so neither
+        # file matches a bundled BibTeX entry: their keys come from
+        # the filenames.
+        (papers_dir / "Synthetic - 2099 - Avocado trade paper.md").write_text(
+            "## Introduction\n\n"
+            + "Avocado trade from Mexico grew fast. " * 6 + filler * 2
+            + "\n\n## Results\n\n"
+            + "Avocado exports rose. " * 2 + filler * 4
+            + "\n\n## Discussion\n\n"
+            + "Trade matters. " + filler * 5,
+            encoding="utf-8",
+        )
+        (papers_dir / "Synthetic - 2099 - Land systems paper.md").write_text(
+            "## Introduction\n\n" + "Mexico " * 3 + filler * 4,
+            encoding="utf-8",
+        )
+        retrieved: list[RetrievalResult] = []
+        original_retrieve = RAGEngine.retrieve
+
+        def spy(self, *args, **kwargs):
+            hits = original_retrieve(self, *args, **kwargs)
+            retrieved.extend(hits)
+            return hits
+
+        monkeypatch.setattr(RAGEngine, "retrieve", spy)
+
+        scores = _build_fulltext_scores(
+            {"avocado", "trade", "mexico"}, backend="tfidf",
+        )
+
+        avocado = "synthetic_2099_avocado_trade_paper"
+        land = "synthetic_2099_land_systems_paper"
+        chunk_scores = [
+            r.score for r in retrieved if r.chunk.paper_key == avocado
+        ]
+        # All three sections are retrieved and the last one listed is
+        # not the best, so keeping the last chunk would under-score it.
+        assert len(chunk_scores) == 3
+        assert chunk_scores[-1] < max(chunk_scores)
+        assert scores[avocado] == max(chunk_scores)
+        # Scored by its best chunk, the avocado paper ranks above the
+        # paper that barely mentions the query terms.
+        assert scores[avocado] > scores[land]
 
 
 class TestRecommendPapers:
