@@ -336,7 +336,8 @@ def _build_fulltext_scores(
 ) -> dict[str, float]:
     """Query the RAG index and return per-paper relevance scores.
 
-    Returns a ``{paper_key: similarity_score}`` dict.  If the RAG
+    Returns a ``{paper_key: similarity_score}`` dict holding each
+    paper's best score over its retrieved chunks.  If the RAG
     engine cannot be loaded, prints a warning and returns an empty dict.
 
     Parameters
@@ -384,7 +385,14 @@ def _build_fulltext_scores(
     # use a very low threshold to keep almost all matches.
     min_score = 0.001 if engine.backend == "tfidf" else 0.0
     results = engine.retrieve(query_text, top_k=top_k, min_score=min_score)
-    return {r.chunk.paper_key: r.score for r in results}
+    # A paper can contribute several chunks (``max_chunks_per_paper``,
+    # default 3): keep each paper's best score, not the last one listed.
+    scores: dict[str, float] = {}
+    for r in results:
+        key = r.chunk.paper_key
+        if key not in scores or r.score > scores[key]:
+            scores[key] = r.score
+    return scores
 
 
 def recommend_papers(
