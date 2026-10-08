@@ -1,11 +1,14 @@
 """Tests for knowledge/literature.py — literature recommendation engine."""
 
+import re
+
 import pytest
 
 from metacouplingllm.knowledge.literature import (
     Paper,
     _build_fulltext_scores,
     _extract_search_terms_from_text,
+    _get_database,
     _is_relevant,
     _parse_bibtex,
     _score_paper,
@@ -329,3 +332,121 @@ class TestGetDatabaseInfo:
     def test_has_papers(self):
         info = get_database_info()
         assert info["total_papers"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Bundled bibliography text
+# ---------------------------------------------------------------------------
+
+# Publisher markup that metadata exports such as Crossref's leave in
+# titles (<i>, <scp>, <sup>), and HTML entities (&amp;, &#8211;, &#x2013;).
+_MARKUP_RE = re.compile(r"</?[A-Za-z][\w:.-]*(?:\s[^<>]*)?/?>")
+_ENTITY_RE = re.compile(r"&(?:[A-Za-z][A-Za-z0-9]*|#[0-9]+|#[xX][0-9A-Fa-f]+);")
+
+# UTF-8 read as Windows-1252: a character whose byte starts a two-, three-
+# or four-byte UTF-8 sequence (0xC2-0xDF, 0xE0-0xEF, 0xF0-0xF4), followed
+# by as many characters whose bytes are continuation bytes (0x80-0xBF), as
+# in "CÃ“RDOBA" for "CÓRDOBA" and "â€¦" for "…".  The five bytes
+# Windows-1252 leaves undefined are read as the C1 controls of the same
+# number.
+_CP1252_CHAR = {
+    b: bytes([b]).decode("cp1252", errors="ignore") or chr(b)
+    for b in range(0x80, 0x100)
+}
+_CP1252_BYTE = {ch: b for b, ch in _CP1252_CHAR.items()}
+_CONTINUATION = "".join(_CP1252_CHAR[b] for b in range(0x80, 0xC0))
+_MOJIBAKE_RE = re.compile(
+    f"[\u00c2-\u00df][{_CONTINUATION}]"
+    f"|[\u00e0-\u00ef][{_CONTINUATION}]{{2}}"
+    f"|[\u00f0-\u00f4][{_CONTINUATION}]{{3}}"
+)
+
+
+def _as_cp1252(text: str) -> str:
+    """Return *text*'s UTF-8 bytes read as Windows-1252."""
+    return "".join(
+        _CP1252_CHAR[b] if b >= 0x80 else chr(b) for b in text.encode("utf-8")
+    )
+
+
+def _mojibake(text: str) -> list[str]:
+    """Return the runs of *text* that are UTF-8 read as Windows-1252."""
+    runs = []
+    for match in _MOJIBAKE_RE.finditer(text):
+        try:
+            bytes(_CP1252_BYTE[ch] for ch in match.group()).decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        runs.append(match.group())
+    return runs
+
+
+def _artifacts(text: str) -> list[str]:
+    """Return the markup tags, HTML entities and mojibake runs in *text*."""
+    return _MARKUP_RE.findall(text) + _ENTITY_RE.findall(text) + _mojibake(text)
+
+
+class TestBundledBibliographyText:
+    """The bundled bibliography holds plain text: RAG citations and
+    ``recommend_papers()`` show its titles, authors and journals as they
+    are.  Ten titles had markup, entities or mojibake (``<scp>C</scp>hina``,
+    ``social&amp;#8211;ecological``, ``CÃ“RDOBA``), fifteen journals had
+    ``&amp;``, eleven titles copied from file names had ``_`` for an
+    apostrophe or a colon (``China_s``, ``Organic Foods_ Impactos Amb``),
+    and five entries had no journal.
+    """
+
+    @pytest.mark.parametrize("field", ["title", "authors", "journal"])
+    def test_field_is_plain_text(self, field):
+        found = {
+            paper.key: _artifacts(getattr(paper, field))
+            for paper in _get_database()
+            if _artifacts(getattr(paper, field))
+        }
+        assert found == {}
+
+    def test_titles_have_no_file_name_underscores(self):
+        assert [p.key for p in _get_database() if "_" in p.title] == []
+
+    def test_every_entry_names_its_journal(self):
+        assert [p.key for p in _get_database() if not p.journal] == []
+
+    def test_flags_the_forms_the_fixed_entries_had(self):
+        assert _artifacts("dolphinfish (<i>Coryphaena hippurus</i>)") == [
+            "<i>", "</i>",
+        ]
+        assert _artifacts("of the <scp>C</scp>entral") == ["<scp>", "</scp>"]
+        assert _artifacts("Globalization<sup>☆</sup>") == ["<sup>", "</sup>"]
+        assert _artifacts("social&amp;#8211;ecological") == ["&amp;"]
+        assert _artifacts("Ocean &amp; Coastal Management") == ["&amp;"]
+        assert _artifacts("(CÃ“RDOBA, ARGENTINA)") == ["Ã“"]
+        assert _artifacts("loveâ€¦ agents, 1920â€“2020") == ["â€¦", "â€“"]
+        assert _artifacts(_as_cp1252("全程耦合")) == [
+            _as_cp1252(ch) for ch in "全程耦合"
+        ]
+        # Every non-ASCII character in the bibliography, read that way.
+        chars = {
+            ch
+            for paper in _get_database()
+            for ch in paper.title + paper.authors + paper.journal
+            if ord(ch) > 127
+        }
+        assert len(chars) > 10
+        assert [
+            ch for ch in sorted(chars)
+            if _mojibake(_as_cp1252(ch)) != [_as_cp1252(ch)]
+        ] == []
+
+    def test_spares_accented_and_typographic_characters(self):
+        for text in (
+            "SÃO PAULO",
+            "Ny-Ålesund at 79° North",
+            "rice in Bagré",
+            "human–nature, 1920–2020",
+            "From Kenya with Love… Agents",
+            "“Resource-carbon” redistribution",
+            "China’s and Austria's",
+            "Agriculture Ecosystems & Environment",
+            "pH < 7 and > 5",
+        ):
+            assert _artifacts(text) == []
