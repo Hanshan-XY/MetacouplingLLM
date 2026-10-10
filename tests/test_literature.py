@@ -393,8 +393,9 @@ class TestBundledBibliographyText:
     ``social&amp;#8211;ecological``, ``CÃ“RDOBA``), fifteen journals had
     ``&amp;``, eleven titles copied from file names had ``_`` for an
     apostrophe or a colon (``China_s``, ``Organic Foods_ Impactos Amb``),
-    five entries had no journal, and three titles stopped where their
-    files' names were cut.
+    five entries had no journal, three titles stopped where their files'
+    names were cut, and nine author fields were an abbreviated list
+    (``Wu et al.``).
     """
 
     @pytest.mark.parametrize("field", ["title", "authors", "journal"])
@@ -434,6 +435,13 @@ class TestBundledBibliographyText:
         }
         titles = {p.key: p.title for p in _get_database() if p.key in published}
         assert titles == published
+
+    def test_author_fields_list_every_author(self):
+        # "Wu et al." as a whole author field also gave every "X et al."
+        # file a match bonus against the entry in RAG matching.
+        assert [
+            p.key for p in _get_database() if re.search(r"\bet al\b", p.authors)
+        ] == []
 
     def test_flags_the_forms_the_fixed_entries_had(self):
         assert _artifacts("dolphinfish (<i>Coryphaena hippurus</i>)") == [
