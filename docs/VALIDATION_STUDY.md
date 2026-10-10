@@ -5,10 +5,21 @@
 > base width. The rule has since been dropped: the 269 edges it still closed on the current screen record were
 > adjudicated by the two-model design, and none is water-only (campaign `mr1`,
 > `build_data/water_screen_rebuild/rule_rejections/`). The N2 result below stands as the study measured it.
+>
+> **Later rulings.** The P and N1 results stand as measured on 2026-07-14, under the rubric of that date. Later rulings
+> changed the status of seven rated rows: `DEU001<->DEU011`, `DEU011<->LUX001`, `USA003<->USA029`, `AZE053<->AZE063`
+> and `FRA014<->FRA022` (rated genuine) were ruled not water-only by the maintainer on 2026-10-04 (campaign `ua1`) and
+> are ordinary land edges; `ESP018<->FRA003` and `KEN001<->KEN047` (rated not water-only) ship as water-only since the
+> 2026-07-17 b2 re-run.
 
 Preregistered design: `docs/VALIDATION_SAMPLING_PLAN.md` (committed 2026-07-13,
 before the sample was drawn; seed 20260713; sampler
-`scripts/draw_validation_sample.py`, byte-identical across reruns). Rating:
+`scripts/draw_validation_sample.py`, deterministic for fixed inputs: the script
+as committed at the preregistration commit `5c6609d` reproduces the drawn sample
+from that commit's inputs (population P: 240 dual-AI rows); the script now reads
+`water_classification_pairs.csv`, where 222 rows carry "dual-AI" in `source`, so
+a rerun on today's data draws a different sample; the drawn ids are fixed in
+`build_data/water_screen_rebuild/validation/drawn_ids.json`). Rating:
 primary rater (maintainer) over all 180 sampled rows, 2026-07-14; independent
 second rater over the 30-row blind subsample (verdict-direction cues removed).
 An error is a shipped positive rated *not* water-only, or a sampled negative
@@ -22,8 +33,9 @@ to the non-placeholder population only; inference excludes placeholder-unit
 pairs. **All six NAs are itemized:** the positive sample's
 n = 80 reduces to the analyzed n = 76 because four sampled rows involve World
 Bank placeholder units the rater cannot locate on authoritative maps
-(`KHM000<->KHM018`, `MWI002<->MWI004`, `MWI003<->MWI004`, `MWI004<->TZA022` —
-all "Area under National Administration"); the negative sample loses
+(`KHM000<->KHM018` "Under National Administration"; `MWI002<->MWI004`,
+`MWI003<->MWI004`, `MWI004<->TZA022` "Area under National Administration");
+the negative sample loses
 `RUS024<->RUS050` ("Name Unknown" placeholder) and `MLT009<->MLT055`
 (rater-identified non-adjacency, recorded to the future-edge-audit list —
 see `docs/FUTURE_EDGE_AUDITS.md`; the 2026-07-18 audit found the pair was
@@ -34,7 +46,7 @@ never an edge: a correctly rejected non-touching recovery candidate).
 | population | n rated | NA | errors | estimate | 95% interval¹ |
 |---|---|---|---|---|---|
 | **P** — shipped dual-AI rows (of 240) | 76 | 4 | 1 | false-positive rate **1.3%** → precision **98.7%** | error [0.03%, 7.1%]; precision **[92.9%, 99.97%]** |
-| **N1-high** — both-false negatives, max screen fraction ≥ 0.50 (of 566) | 39 | 1 | 1 | missed-border rate **2.6%** | [0.07%, 13.5%] |
+| **N1-high** — both-false negatives, max screen fraction ≥ 0.50 (of 566) | 39 | 1 | 1 | missed-border rate **2.6%** | [0.06%, 13.5%] |
 | **N1-rest** — both-false negatives, fraction < 0.50 (of 788) | 39 | 1 | 0 | **0%** | ≤ 7.4% (one-sided) |
 | **N2** — deterministic mechanism auto-reject (of 288) | 20 | 0 | 0 | **0%** | ≤ 13.9% (one-sided) |
 | N1 combined (population-weighted) | 78 | 2 | 1 | false-omission **1.07%** | conservative combined [0.03%, 10.9%] |
@@ -51,7 +63,9 @@ error on the rater's (the maintainer's) rating and uses the second rating for
 agreement only. They are recorded:
 
 - `IRN013<->IRN020` (Ilam–Lorestan, Seymareh): primary Yes (ships), second
-  rater No — flagged for future re-audit.
+  rater No — re-audited (`docs/FUTURE_EDGE_AUDITS.md` #9: flag upheld, 88.4% of
+  the 311.14 km border within 500 m of the Seymareh/Karkheh) and confirmed
+  water-only by the maintainer's ruling of 2026-10-04.
 - `LVA024<->LVA053` (Dagdas–Krāslavas): primary No (stays unshipped), second
   rater Yes — attributed to the Latvia subdivision-vintage issue below.
 
@@ -63,21 +77,29 @@ estimates above are computed on the *pre-fix* verdicts, as preregistered):
 1. **False positive — `NIC016<->NIC017`** (Río San Juan–Rivas, "Lake
    Nicaragua"): the two departments share a land border south of Lago
    Cocibolca, so the border is mixed, not water-only. Row **demoted** —
-   removed from `rescreen_water_overlay_pairs.csv` and
+   removed from the water rows (then `rescreen_water_overlay_pairs.csv`, since
+   merged into `water_classification_pairs.csv`) and from
    `water_separated_pairs.csv`; the pair remains an ordinary land edge,
    pericoupled under every `coupling_standard`.
 2. **False negative — `ITA005<->ITA020`** (Emilia-Romagna–Veneto): the border
    follows the **Po River** almost in its entirety; both AI passes had called
-   it not water-only. Row **added** to `rescreen_water_overlay_pairs.csv`
-   (human-map-verified), with the four-layer bridge protocol: OSM screen and
+   it not water-only. Row **added** to the water rows (then
+   `rescreen_water_overlay_pairs.csv`, now `water_classification_pairs.csv`),
+   human-map-verified, with the four-layer bridge protocol: OSM screen and
    agent verification agree `has_bridge = True` (SS16 Pontelagoscuro and A13
    Occhiobello crossings, both landing in the two regions).
 
-Net count effect: water-only total unchanged at **698**; bridge split
-319/379 → **320/378**; ADM1 moderate 8,087 → **8,088**; everything else
-unchanged. After the corrections the shipped rescreen rows verified by
-dual-AI agreement only number **238** (of 387); the study population was the
-240 at draw time.
+Net count effect at the time of the corrections (2026-07-14; the shipped
+database now has 8,462 ADM1 edges and 824 water-only ADM1 pairs, 388 with a
+fixed crossing and 436 without, and 8,026 ADM1 pairs under the default moderate
+standard): water-only total unchanged at **698**; bridge split
+319/379 → **320/378**; ADM1 moderate 8,087 → **8,088** (`CHANGELOG.md` re-bases
+this to 8,088 → 8,089 after the 2026-07-19 Balzers–Planken restore);
+everything else unchanged. After the corrections the shipped rescreen rows
+verified by dual-AI agreement only numbered **238** (of 387, as of 2026-07-18);
+the study population was the 240 at draw time. Since the maintainer rulings of
+2026-10-04 (campaign `ua1`), 119 of the study's 238-row frame still ship on
+dual-AI agreement alone (verification tier B).
 
 ## Estimators and intervals (as computed)
 
@@ -125,22 +147,26 @@ dual-AI agreement only number **238** (of 387); the study population was the
 
 - The dual-AI auto-accept tier's measured precision (**98.7%**, 95% CI lower
   bound ≈ 92.9%) is consistent with the human-review outcomes on the
-  disagreement/medium tier during the audit itself, and the single confirmed
-  false positive was found and removed.
+  disagreement/medium tier during the audit itself, and the one false positive
+  found in the sample (`NIC016<->NIC017`, 2026-07-14) was removed; later rulings
+  are listed in the status note.
 - The false-omission estimate (**1.07%** weighted, conservative 95% bound
   [0.03%, 10.9%]; concentrated in the high-signal stratum, as designed)
   quantifies what the candidate-coverage framing predicts: within the
   audited candidate frame, misses are rare and cluster where screen signal
   was high but both AI passes read the border as mixed.
 - The mechanism auto-reject (sub-0.20 on all four datasets) showed **no
-  error** in its sample, supporting its use as a deterministic disposal rule.
-- **NA concentration:** 5 of 6 NAs are World Bank placeholder units ("Area
-  under National Administration", "Name Unknown") — a documented naming
+  error** in its sample (0/20, one-sided upper bound 13.9%); the rule has since
+  been dropped, and the 269 edges it still closed were adjudicated by the
+  two-model design, none water-only (status note above).
+- **NA concentration:** 5 of 6 NAs are World Bank placeholder units ("Under
+  National Administration", "Area under National Administration", "Name
+  Unknown") — a documented naming
   artifact of the source, not a classification failure; one NA is a
   rater-identified non-adjacency (Malta, `MLT009<->MLT055`) recorded to the
   future-edge-audit list.
 - **Subdivision vintage (Latvia):** the WB 2026-05-14 release carries
-  Latvia's pre-2021 subdivisions (119 novadi); Latvia's 2021 reform
+  Latvia's pre-2021 subdivisions (119 units: 110 novadi and 9 republic cities); Latvia's 2021 reform
   consolidated these to 43 (e.g. Dagdas novads was merged into Krāslavas
   novads). Ratings were made in the dataset's frame. This is a general
   caveat: ADM1 vintages follow the pinned WB release, not later national

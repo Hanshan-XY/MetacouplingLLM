@@ -14,18 +14,25 @@ is defensible).
 The pipeline separates three things a reader might want to check, and it is
 important to know which one you are testing:
 
-1. **Build reproducibility** (fully automatic). The shipped CSVs are a pure
-   function of (a) four pinned World Bank GeoPackages and (b) four reviewed
-   input files shipped in the repo (the source-relabel manifest, a Stage 1
-   input; the water classification file, Stage 3; the land-gap and denylist
-   files, Stage 4; the de-facto overlay manifest is
-   written by the build from the NDLSA layer, the tract administrators
-   taken from Natural Earth v5.1.2 and the province attributions authored in
-   `build_pericoupling_db.py`). Re-running the build replays these inputs deterministically —
+1. **Build reproducibility** (fully automatic). The shipped CSVs are a function
+   of (a) four pinned World Bank GeoPackages, (b) four reviewed input files
+   shipped in the repo (the source-relabel manifest, a Stage 1 input; the
+   water classification file, Stage 3; the land-gap and denylist files,
+   Stage 4), (c) the reviewed tables authored in `build_pericoupling_db.py`
+   (the unit merge `_ADM1_UNIT_MERGES`, the tract administrators taken from
+   Natural Earth v5.1.2 `_NDLSA_TRACT_ADMIN` and the province attributions
+   `_NDLSA_TRACT_ADM1`, from which, with the NDLSA layer, the build writes the
+   de-facto overlay manifest) and (d) the geometry toolchain (§3: the pair set
+   was reproduced on the original toolchain only; on another the advisory
+   `border_length_km` column can differ in low-order digits). Re-running the
+   build replays these inputs deterministically —
    **no AI, no network, no judgment calls at build time**. Sections 2–4.
 2. **Audit traceability** (read, don't re-run). The reviewed inputs of Stages 3
    and 4 were *discovered* by deterministic Python screens and *adjudicated* by
-   frozen two-pass AI research + human map review. Those verdicts are frozen
+   a frozen two-pass AI design (blind GPT-5.6 Sol research, then Sonnet-5
+   adversarial judgment) and the maintainer's map rulings (on record for 561 of
+   the 824 water rows; each land-gap and denylist row carries its own source or
+   ruling). Those verdicts are frozen
    history: every water row carries its provenance in a `source` column, every
    denylist row its evidence and ruling,
    and the discovery record lives in PROVENANCE.md / METHODS. Reproducing
@@ -33,8 +40,10 @@ important to know which one you are testing:
 3. **Screen re-derivability** (optional, heavier). The deterministic screens
    that *nominate* the audit candidates (the edge screens on one border arc —
    Natural Earth ladders, HydroRIVERS, HydroLAKES, the combined river and lake
-   screens and the cross-type union — and the non-touching corridor census) can
-   be re-run from public data to confirm the candidate lists. Section 6.
+   screens and the cross-type union — and the non-touching corridor census) are
+   described in Section 6 and specified by the `SPEC_*.md` files under
+   `build_data/`, which ship in the repository; their inputs are public
+   datasets, but the scripts that run them do not ship (§1).
 
 ## 1. Prerequisites
 
@@ -42,8 +51,16 @@ important to know which one you are testing:
   lengths were produced with geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2 —
   see the byte-identity note in §3).
 - The repository checkout (the reviewed input files and the engine ship in it).
-- For the **full** regeneration only: the four pinned GeoPackages (~1 GB)
-  below. The quick verification path (§2) needs no downloads.
+- For §4 and §7: the package installed from the checkout with
+  `pip install -e ".[all,dev]"` (the command CI uses; it brings pytest, numpy,
+  fastembed, geopandas, pandas and python-docx, among others). On a cold cache
+  the paper-recommender tests make fastembed download the
+  `BAAI/bge-base-en-v1.5` ONNX embedding model from Hugging Face, so the first
+  run needs network access; tests that need a live API key or the World Bank
+  GeoPackage skip when either is absent.
+- For the **full** regeneration only: the four pinned GeoPackages (about
+  0.2 GB: 97 + 63 + 52 + 0.7 MB) below. The quick verification path (§2) needs
+  no downloads.
 
 **Pinned inputs** (SHA-256 also hard-coded in `scripts/build_all.py`, which
 refuses to build from a mismatching file):
@@ -66,10 +83,19 @@ repository, including the reviewed input files (in `src/metacouplingllm/data/`).
 The four GeoPackages for §3 must be downloaded from the
 World Bank (their hashes are verified before any build). The wider
 `build_data/` audit-evidence tree (screen outputs, frozen AI verdicts,
-worksheets) is a local working archive, NOT shipped in the repository — its
-content is summarized in PROVENANCE.md/METHODS and in each water row's
-`source` column, and §6 re-derives the candidate screens from the public
-datasets directly rather than from those local artifacts.
+worksheets, the screen scripts) is a local working archive, NOT shipped in the
+repository (which holds only its ten `SPEC_*.md` specifications and
+`build_record/relabel_RESULTS.md`) — its content is summarized in
+PROVENANCE.md/METHODS and in each water row's `source` column. §6 describes the
+screens and their specifications; the screen scripts it names (those under
+`build_data/`) are not shipped (they live in the maintainer's local archive).
+The screens' inputs are
+public datasets (the pinned World Bank GeoPackages, HydroRIVERS and HydroLAKES
+v10, Natural Earth), but the scripts read them from fixed local paths
+(`~/Downloads` for the GeoPackages; `build_data/hydro`, `hydrolakes`,
+`naturalearth`) and also read the outputs of earlier campaigns (`ba1`, `gd1`,
+`mr1` and the July audit queue); the census's `hydrolakes_all.gpkg` is built by
+`build_data/water_screen_rebuild/corridor_census_exact/make_hydrolakes_gpkg.py`.
 
 ## 2. Quick path — verify the shipped data (minutes, no downloads)
 
@@ -85,7 +111,7 @@ the engine as a **byte-stable no-op** — i.e. applying Stages 3 and 4 again
 changes zero bytes. This is the day-to-day reproducibility check; CI runs the
 same property as a test (`tests/test_apply_overlays.py`).
 
-Expected counts (current):
+Expected counts (current; `de_facto_borders=True`, the default):
 
 | count | value |
 |---|---|
@@ -99,19 +125,18 @@ Expected counts (current):
 ## 3. Full regeneration from the pinned sources (~1–2 h)
 
 ```
-python scripts/build_all.py --full ^
-    --adm1-gpkg  <path>\WB_ADM1.gpkg ^
-    --adm0-gpkg  <path>\WB_ADM0.gpkg ^
-    --ocean-gpkg <path>\WB_ocean_mask.gpkg ^
-    --ndlsa-gpkg <path>\WB_NDLSA.gpkg
+python scripts/build_all.py --full --adm1-gpkg <path>/WB_ADM1.gpkg --adm0-gpkg <path>/WB_ADM0.gpkg --ocean-gpkg <path>/WB_ocean_mask.gpkg --ndlsa-gpkg <path>/WB_NDLSA.gpkg
 ```
+
+(One line as shown; to split it, continue lines with `^` in cmd.exe, a backtick
+in PowerShell, `\` in bash.)
 
 What happens, stage by stage (S1–S2 inside `build_pericoupling_db.py`, S3–S4
 in `scripts/apply_overlays.py`):
 
 - **S1 — geometry.** SHA-256 of every GeoPackage is verified against the pins
-  (hard error on mismatch). A **source-relabel** step first reassigns 10
-  reviewed WB sliver-corridor artifacts to their true owner units
+  (hard error on mismatch). A **source-relabel** step first reassigns the
+  reviewed sliver corridors of 10 WB host polygons to their true owner units
   (`scripts/relabel_sliver_corridors.py` + manifest
   `sliver_corridor_relabel.csv`; each corridor's cut points become vertices
   of every outline through them, so an owner takes exactly the frontage its
@@ -122,14 +147,18 @@ in `scripts/apply_overlays.py`):
   native edges. Border lengths are full geodesic
   shared-boundary lengths (WGS84, `pyproj.Geod`).
   → 8,427 raw − 2 relabel − 3 unit merge (RUS050 → RUS024, the reviewed
-  rejoining of Kalmykia's split salient) = **8,422** native pairs.
-- **S2 — de-facto connectivity.** Each NDLSA disputed tract is folded into
-  its de-facto administrator (the administrator Natural Earth v5.1.2 records for
-  most of the tract; the table `_NDLSA_TRACT_ADMIN`) and adjacency re-measured;
-  +16 ADM1 pairs whose sole link is a tract (+3 pairs at ADM0). Geometry-validated:
-  an assigned tract that does not touch its administrator's territory (unless it
-  touches no unit at all) or an authored province that does not touch its tract
-  fails loudly.
+  rejoining of Kalmykia's split salient) = **8,422** native pairs. The ADM0
+  matrix is built in the same run directly from the 264 ADM0 polygons by the
+  same exact-contact rule: **323** country pairs.
+- **S2 — de-facto connectivity.** Each of the 23 NDLSA disputed tracts for
+  which Natural Earth v5.1.2 records an administrator is folded into it (the
+  administrator it records for most of the tract; the table
+  `_NDLSA_TRACT_ADMIN`), and adjacency is re-measured; the UN Buffer Zone, for
+  which it records none for most of the tract, stays unassigned. The result is
+  +16 ADM1 pairs whose sole link is a tract (+3 pairs at ADM0, giving **326**).
+  Geometry-validated: an assigned tract that does not touch its administrator's
+  territory (unless it touches no unit at all) or an authored province that does
+  not touch its tract fails loudly.
   → **8,438**; this is the base file the geometry build writes (the seven
   denylisted contacts still in it; `build_all.py` checks that each is present).
 - **S3 — water-only classification.** `scripts/apply_overlays.py` reads
@@ -140,25 +169,27 @@ in `scripts/apply_overlays.py`):
 - **S4 — edge corrections.** +5 land-gap edges (`land_gap_overlay_pairs.csv`)
   and −7 denylisted contacts (`denylist_pairs.csv`) → **8,462**; the ADM0
   roll-up is then recomputed once (a country pair is water-only iff *all* its
-  ADM1 crossings are; bridged iff *any* is). Stages 3–4 are idempotent, one pass
-  (§5).
+  ADM1 crossings are; bridged iff *any* is). S3–S4 leave the ADM0 pair set as it
+  is (the engine would mark a country pair adjacent if an added cross-country
+  edge implied it; none does). Stages 3–4 are idempotent, one pass (§5).
 
 The command then verifies all twelve headline counts and reports whether the
 regenerated files are byte-identical to the committed ones.
 
 **Byte-identity scope (important, honest caveat).** The adjacency *pair set*
-reproduces exactly on any toolchain (verified by clean-room regenerations,
-the last on 2026-09-25). The advisory `border_length_km` column can differ in low-order
-digits under a different GEOS/Shapely version, because the geometry-cleaning
-and ocean-clip operations preceding the length measurement are sensitive to
-the buffer implementation — lengths never add or drop an edge, so this does
-not affect the pair set or any count. Exact byte-identity of lengths
-additionally requires the original toolchain (geopandas 1.1.2 / shapely 2.1.2
-/ pyproj 3.7.2). Stages 3–4 are toolchain-independent, and their row order is
-canonical: the native rows keep the geometry-build order (the denylisted
-contacts removed), then the Stage 3 edges in water-file order and the Stage 4
-edges in manifest order; the water table follows the water file's order —
-exactly what a fresh `--full` run produces.
+reproduced exactly in the clean-room regenerations on record, all on the
+original toolchain (geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2; the last on
+2026-09-25); it has not been regenerated on another toolchain. The advisory
+`border_length_km` column can differ in low-order digits under a different
+GEOS/Shapely version, because the geometry-cleaning and ocean-clip operations
+preceding the length measurement are sensitive to the buffer implementation
+(the same cleaned polygons decide which units are adjacent). Exact
+byte-identity of the lengths requires the original toolchain. Stages 3–4 are
+toolchain-independent, and their row order is canonical: the native rows keep
+the geometry-build order (the denylisted contacts removed), then the Stage 3
+edges in water-file order and the Stage 4 edges in manifest order; the water
+table follows the water file's order — exactly what a fresh `--full` run
+produces.
 
 ## 4. Run the test suite
 
@@ -170,9 +201,16 @@ The suite (1,422 tests at the time of writing) includes: the expected-count asse
 byte-stability guard, a fresh-build check that Stages 3–4 reproduce the
 shipped files, the check that the engine's inputs are exactly the reviewed
 files, loader behavior for
-`de_facto_borders` × `coupling_standard`, and **doc-drift guards** that parse
-`docs/METHODS_adjacency.md`, `INTRODUCTION.md`, and `MANUAL.md` and fail if
-any headline count in the prose disagrees with the live data.
+`de_facto_borders` × `coupling_standard`, and **doc-drift guards**:
+`tests/test_docs_capabilities.py` requires `docs/METHODS_adjacency.md` to
+contain the five current headline counts as tokens (`8,462`, `8,026`,
+`824 ADM1`, `326`, `19 ADM0`), requires `data/PROVENANCE.md` to carry each
+SHA-256 pin in full and this file the first 8 characters of each pin, and
+checks that `INTRODUCTION.md` §1, `README.md` "Core Capabilities" and
+`MANUAL.md` §12 name the features of the test's registry that exist in the
+code; `tests/test_docs_examples.py` syntax-checks every Python block of
+`MANUAL.md` and executes its deterministic sections. No test compares the
+database counts quoted in `INTRODUCTION.md` or `MANUAL.md` with the data.
 
 ## 5. The reviewed inputs — what they are and how to change them
 
@@ -180,14 +218,15 @@ Five reviewed files in `src/metacouplingllm/data/` govern the build: the
 source-relabel manifest is a Stage 1 input, the de-facto overlay
 manifest is written by S2 from the NDLSA layer, the tract administrators taken
 from Natural Earth v5.1.2 and the province attributions authored in the build
-script, and the other **three** are the inputs of Stages 3 and 4 (836 rows:
+script (which also holds the S1 unit merge, `_ADM1_UNIT_MERGES`), and the other
+**three** are the inputs of Stages 3 and 4 (836 rows:
 824 water rows, 26 of them adding an edge, 5 land edges and 7 removals). The
 engine (`scripts/apply_overlays.py`) holds only behavior; editing a file and
 re-running the engine is the supported way to change Stages 3 and 4:
 
 | file | effect |
 |---|---|
-| `sliver_corridor_relabel.csv` | S1 input: 10 polygon relabels before contiguity |
+| `sliver_corridor_relabel.csv` | S1 input: 10 host polygons (11 rows; the build moves 12 corridors) reassigned before contiguity |
 | `disputed_overlay_pairs.csv` | S2 output: 16 ADM1 + 3 ADM0 de-facto pairs (the loaders drop them when `de_facto_borders=False`) |
 | `water_classification_pairs.csv` | S3: water flags on 798 existing edges and 26 water borders between non-touching units added as edges (`adds_edge`); per-row `water_type`, `water_body`, `has_bridge`, `adjudication`, `verification_tier` and discovery provenance in `source` (composition by origin: `data/PROVENANCE.md`) |
 | `land_gap_overlay_pairs.csv` | S4: +5 land edges (four sub-tolerance borders, and Samukh↔Yevlakh, whose polygons meet only at a point) |
@@ -209,9 +248,15 @@ Engine semantics worth knowing:
   how the row was discovered, adjudicated, verified, and how its bridge flag
   was classified; each denylist row carries its evidence and ruling.
 
-**What is deliberately NOT re-run.** The AI adjudication (two-pass research +
-adversarial judgment) and the human map reviews that *validated* each
-row are frozen history — re-running a live model would make the
+**What is deliberately NOT re-run.** The AI adjudication (blind GPT-5.6 Sol
+research, then Sonnet-5 adversarial judgment) and the maintainer's map rulings
+are frozen history. Of the 824 water rows, 561 (tier A) carry a maintainer
+ruling on record; the other 263 (tier B 119, tier C 144) are accepted because
+both passes agreed at high confidence with nothing flagged. The preregistered
+validation study measured the precision of that route (98.7%, 75 of the 76
+rated sampled rows; `docs/VALIDATION_STUDY.md`) on the July run's frame, of
+which tier B is the part still resting on two-model agreement alone; the tier C
+rows were not in that frame. Re-running a live model would make the
 build non-deterministic. The design principle throughout: *deterministic
 screens nominate, frozen audits decide, the build replays manifests.* If you
 distrust a row, its `source` string plus PROVENANCE.md tell you exactly which
@@ -220,7 +265,9 @@ screen found it, which audit design judged it, and who verified it.
 ## 6. Optional: re-derive the candidate screens (public data)
 
 The audits' *candidate lists* came from deterministic screens over public
-datasets; each can be re-run to confirm no candidate was hand-picked:
+datasets; each is described below with the script and specification that record
+it (the scripts are not shipped, §1), so that a reader can check that no
+candidate was hand-picked:
 
 - **The border arc** (`build_data/water_screen_rebuild/border_arc.py`; specification
   `build_data/arc_and_combined_screens/SPEC_ba1_border_arc_and_screens.md`): every
@@ -238,7 +285,8 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   `build_data/geodesic_distances/SPEC_gd1_geodesic_distances.md`): the nearest
   point is located in a local frame in which a metre east equals a metre north
   (beyond 2.5 km, in an azimuthal-equidistant frame centred on the point) and
-  measured with `GEOD.inv`. `build_arc_cache.py --out arc_cache_gd1.jsonl`
+  measured with `GEOD.inv`.
+  `build_data/water_screen_rebuild/build_arc_cache.py --out arc_cache_gd1.jsonl`
   stores, per point, the distance to each layer;
   `build_data/geodesic_distances/run_screens_gd1.py` computes the exact shares
   and nominations (`gd1_screens.csv`, report `gd1_report.txt`), and
@@ -287,7 +335,11 @@ datasets; each can be re-run to confirm no candidate was hand-picked:
   or tunnel counts (ferries, fords and footbridges never do) is applied by the
   later layers — GPT-5.6 Sol research, Sonnet-5 adversarial judgment, the location
   test and maintainer rulings, the two-model design of the water-only judgment
-  (`build_data/water_screen_rebuild/crossing_adjudication/`).
+  (`build_data/water_screen_rebuild/crossing_adjudication/`). `cw1_screen.py` is
+  the frozen implementation of the 2026-09-24 campaign (803 ADM1 water rows; it
+  reads two input files that are not in the data directory), and OpenStreetMap
+  is a live service, so a re-run measures today's map, not the one its recorded
+  answers came from.
 
 Thresholds are anchored, not tuned, and they are screening tolerances, not
 positional accuracies: 2.5 km ≈ ½ × the NMAS tolerance at 1:10M (0.5 mm of map
@@ -318,6 +370,13 @@ is_adm1_pericoupled("ROU008", "ROU039",
 Two orthogonal toggles select the view: `de_facto_borders` (default `True`;
 `False` removes the 16 ADM1 / 3 ADM0 disputed-overlay pairs) and
 `coupling_standard` (`"lenient"` keeps every water border; `"moderate"`,
-the default, keeps water-only pairs only when a fixed crossing open to
-traffic links the two units; `"stringent"` drops all water-only pairs).
-All counts in §2 derive from these two toggles and nothing else.
+the default, keeps water-only pairs only when a completed fixed crossing (road
+or rail bridge, causeway, dam-top road or tunnel) links the two units — a
+crossing on a closed border or a disused line with its track in place counts,
+one under construction does not; `"stringent"` drops all water-only pairs).
+The edge counts in §2 are the loaders' views under these two toggles and
+nothing else; with `de_facto_borders=False` they are 8,446 / 8,010 / 7,622 at
+ADM1 and 323 / 318 / 304 at ADM0 (lenient / moderate / stringent). The
+water-only rows count the rows of the water table, and the provenance row the
+`adjudication` and `verification_tier` columns of the water file; neither
+toggle changes them, and `build_all.py` does not check the provenance row.
