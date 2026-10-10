@@ -1,6 +1,7 @@
 """Tests for knowledge/literature.py — literature recommendation engine."""
 
 import re
+import unicodedata
 
 import pytest
 
@@ -395,8 +396,9 @@ class TestBundledBibliographyText:
     apostrophe or a colon (``China_s``, ``Organic Foods_ Impactos Amb``),
     five entries had no journal, three titles stopped where their files'
     names were cut, nine author fields were an abbreviated list
-    (``Wu et al.``) and five gave surnames only, and eight DOIs were
-    missing, cut short or ended in a stray character.
+    (``Wu et al.``) and five gave surnames only, eight DOIs were missing,
+    cut short or ended in a stray character, and nineteen keys took "al"
+    from "et al." or lost a letter (``lpezhoffman``).
     """
 
     @pytest.mark.parametrize("field", ["title", "authors", "journal"])
@@ -418,12 +420,12 @@ class TestBundledBibliographyText:
         # These three repeated their bundled files' names, which are cut
         # at about 100 characters ("... A case study of", "... Global So").
         published = {
-            "al_analysis_2023": (
+            "wu_analysis_2023": (
                 "Analysis of the proximity and telecoupling mechanism of "
                 "cultivated land use change: A case study of Yangtze River "
                 "Economic Belt"
             ),
-            "al_drivers_2023": (
+            "bruck_drivers_2023": (
                 "Drivers of ecosystem service specialization in a smallholder "
                 "agricultural landscape of the Global South: a case study in "
                 "Ethiopia"
@@ -461,6 +463,24 @@ class TestBundledBibliographyText:
         # Every entry has one but Strecker and Veraart 2023 (ICON), for
         # which Crossref has none.
         assert [p.key for p in db if not p.doi] == ["strecker_kenya_2023"]
+
+    def test_keys_start_with_the_first_authors_surname(self):
+        # Keys are "surname_word_year": nine took "al" from "et al." and
+        # ten lost a letter ("lpezhoffman", "sndergaard").
+        letters = {"ø": "o", "æ": "ae", "ß": "ss", "ł": "l", "đ": "d", "œ": "oe"}
+
+        def surname(paper):
+            name = paper.authors.split(" and ")[0].split(",")[0].lower()
+            name = "".join(letters.get(ch, ch) for ch in name)
+            name = unicodedata.normalize("NFKD", name)
+            return re.sub(r"[^a-z]", "", name.encode("ascii", "ignore").decode())
+
+        db = _get_database()
+        assert [
+            p.key for p in db
+            if not re.fullmatch(r"[a-z]+_[a-z0-9]+_\d{4}(_[a-z])?", p.key)
+        ] == []
+        assert [p.key for p in db if not p.key.startswith(surname(p) + "_")] == []
 
     def test_flags_the_forms_the_fixed_entries_had(self):
         assert _artifacts("dolphinfish (<i>Coryphaena hippurus</i>)") == [
