@@ -1450,13 +1450,13 @@ class TestBundledCorpusPaperKeys:
             (
                 "Coenen et al. - 2023 - Toward spatial fit in the "
                 "governance of global commodity flows.md",
-                "al_drivers_2023",
+                "bruck_drivers_2023",
             ),
             (
                 "Buerkert et al. - 2021 - WATER USE IN HUMAN CIVILIZATIONS "
                 "AN INTERDISCIPLINARY ANALYSIS OF A PERPETUAL "
                 "SOCIAL-ECOLOGICAL CHA.md",
-                "al_human_2021",
+                "burra_human_2021",
             ),
             (
                 "Carlson et al. - 2022 - More than ponds amid skyscrapers "

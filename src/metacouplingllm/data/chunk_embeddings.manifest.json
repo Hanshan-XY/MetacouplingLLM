@@ -4,7 +4,7 @@
   "embedding_dtype": "float16",
   "paper_count": 420,
   "embedding_model": "BAAI/bge-base-en-v1.5",
-  "paper_key_order_sha256": "20e02d3cc2245295cdf2a15bdf07e09fb4933f386072616bb4455c7dcfd0e348",
+  "paper_key_order_sha256": "a695a3f9891453d0b07428c78a9eca801225b7bbf649b32c681e2842231d47e9",
   "built_at": "2026-10-10T03:42:59.999620+00:00",
   "built_on": "Windows-11-10.0.26300-SP0",
   "python_version": "3.13.2"

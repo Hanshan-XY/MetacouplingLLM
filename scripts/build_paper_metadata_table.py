@@ -29,17 +29,17 @@ OUT_PATH = Path("tmp/paper_metadata.xlsx")
 # first-name filenames, etc.). Copied verbatim from
 # scripts/verify_papers_vs_bib.py where it was curated.
 MANUAL_OVERRIDES = {
-    "Javier Alcantara-Plazola and de la Barrera - 2021 - Quantification of embedded phosphorus in Mexican agriculture.md": "alcntaraplazola_quantification_2021",
+    "Javier Alcantara-Plazola and de la Barrera - 2021 - Quantification of embedded phosphorus in Mexican agriculture.md": "alcantaraplazola_quantification_2021",
     "Bicudo da Silva et al. - 2019 - Eco-certification protocols as mechanisms to foster sustainable environmental practices in telecoupl.md": "dasilva_eco_2019",
     "Yue et al. - 2018 - Spillover effect offsets the conservation effort in the Amazon.md": "dou_spillover_2018",
     "Du et al. - 2022 - How far are we from possible ideal virtual water transfer Evidence from assessing vulnerability of.md": "du_how_2022_a",
     "ChuangLin and Yufei - 2017 - Analysis of emergy-based metabolic efficiency and environmental pressure on the local coupling and t.md": "fang_analysis_2017",
     "Friis and Nielsen - 2017 - On the System. Boundary Choices, Implications, and Solutions in Telecoupling Land Use Change Researc.md": "friis_system_2017",
-    "Lopez-Hoffman et al. - 2017 - Operationalizing the telecoupling framework for migratory species using the spatial subsidies approa.md": "lpezhoffman_operationalizing_2017",
-    "de Lucio et al. - 2021 - Resilience as a Moving Target An Evaluation of Last Century Management Strategies in a Dry-Edge Mar.md": "morenofernndez_resilience_2021",
+    "Lopez-Hoffman et al. - 2017 - Operationalizing the telecoupling framework for migratory species using the spatial subsidies approa.md": "lopezhoffman_operationalizing_2017",
+    "de Lucio et al. - 2021 - Resilience as a Moving Target An Evaluation of Last Century Management Strategies in a Dry-Edge Mar.md": "morenofernandez_resilience_2021",
     "Rey and Huettmann - 2020 - Telecoupling analysis of the Patagonian Shelf A new approach to study global seabird-fisheries inte.md": "rayarey_telecoupling_2020",
-    "Sondergaard et al. - 2024 - Fragmented sustainability governance of telecoupled flows Brazilian beef exports to China.md": "sndergaard_fragmented_2024",
-    "Vila and Arzamendia - 2022 - South American Camelids their values and contributions to people.md": "vil_south_2022",
+    "Sondergaard et al. - 2024 - Fragmented sustainability governance of telecoupled flows Brazilian beef exports to China.md": "sondergaard_fragmented_2024",
+    "Vila and Arzamendia - 2022 - South American Camelids their values and contributions to people.md": "vila_south_2022",
     "Drakou et al. - 2017 - Drought impacts to water footprints and virtual water transfers of the Central Valley of California.md": "marston_drought_2017",
     "Liu and Pan - 2025 - Unraveling the quantity and sustainability of cross-scale ecosystem service flows A meta-coupling f.md": "liu_unraveling_2025_a",
     "Liu et al. - 2025 - From Plate to Plow How Dietary Shifts Drive Telecoupled Cropland Erosion in China.md": "liu_plate_2025",
