@@ -394,8 +394,9 @@ class TestBundledBibliographyText:
     ``&amp;``, eleven titles copied from file names had ``_`` for an
     apostrophe or a colon (``China_s``, ``Organic Foods_ Impactos Amb``),
     five entries had no journal, three titles stopped where their files'
-    names were cut, and nine author fields were an abbreviated list
-    (``Wu et al.``).
+    names were cut, nine author fields were an abbreviated list
+    (``Wu et al.``) and five gave surnames only, and eight DOIs were
+    missing, cut short or ended in a stray character.
     """
 
     @pytest.mark.parametrize("field", ["title", "authors", "journal"])
@@ -442,6 +443,24 @@ class TestBundledBibliographyText:
         assert [
             p.key for p in _get_database() if re.search(r"\bet al\b", p.authors)
         ] == []
+        # Every name has its given name or initials ("Surname, Given").
+        assert [
+            p.key for p in _get_database()
+            if any("," not in name for name in p.authors.split(" and "))
+        ] == []
+
+    def test_dois_are_complete(self):
+        # Printable ASCII ending in a letter or digit: one DOI was cut at
+        # "10.1007/s13280-" and one ended in U+FFFF.
+        db = _get_database()
+        assert [
+            p.key for p in db
+            if p.doi
+            and not re.fullmatch(r"10\.\d{4,9}/[\x21-\x7e]*[0-9A-Za-z]", p.doi)
+        ] == []
+        # Every entry has one but Strecker and Veraart 2023 (ICON), for
+        # which Crossref has none.
+        assert [p.key for p in db if not p.doi] == ["strecker_kenya_2023"]
 
     def test_flags_the_forms_the_fixed_entries_had(self):
         assert _artifacts("dolphinfish (<i>Coryphaena hippurus</i>)") == [
