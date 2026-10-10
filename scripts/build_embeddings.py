@@ -12,6 +12,9 @@ the corpus. The build script should be re-run whenever:
 - The bundled papers change (new papers added / chunking parameters
   tweaked).
 - The chunker output order changes.
+- The paper key of any chunk changes (the bibliography or the
+  filename-to-entry matching changes); the manifest's fingerprint
+  covers each chunk's paper key.
 - The embedding model changes (e.g., BGE-small → BGE-base).
 
 Usage::

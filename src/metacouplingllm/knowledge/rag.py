@@ -189,7 +189,23 @@ def _match_paper_to_db(
     1. Extract year from filename and filter candidates.
     2. Fuzzy-match the title from the filename against candidate titles.
 
-    Returns the best matching Paper, or None if no match found.
+    Returns the best matching Paper, or None if no match found.  Each
+    file is matched on its own, so several files can match the same
+    entry; :func:`_assign_db_matches` gives each entry to one file.
+    """
+    match = _best_db_match(filename, db_papers)
+    return match[0] if match else None
+
+
+def _best_db_match(
+    filename: str, db_papers: list[Paper],
+) -> tuple[Paper, float] | None:
+    """Return the BibTeX entry that best matches *filename*, with its score.
+
+    The score is the Jaccard overlap of title words plus an author bonus
+    of 0.05 per shared author word (at most 0.2).  Candidates are the
+    entries within one year of the filename's year; the best one must
+    score at least 0.3.  Returns ``None`` when no candidate does.
     """
     m = _FILENAME_RE.match(filename)
     if not m:
@@ -236,10 +252,41 @@ def _match_paper_to_db(
             best_paper = paper
 
     # Require at least 30% title overlap
-    if best_score < 0.3:
+    if best_paper is None or best_score < 0.3:
         return None
 
-    return best_paper
+    return best_paper, best_score
+
+
+def _assign_db_matches(
+    filenames: list[str], db_papers: list[Paper],
+) -> dict[str, Paper]:
+    """Match markdown filenames to BibTeX entries, one file per entry.
+
+    Each file is matched with :func:`_best_db_match`.  When several
+    files match the same entry, only the best-scoring file keeps it
+    (on a tie, the one that comes first in *filenames*); the others
+    get no entry, and the caller gives them metadata from their
+    filenames.  Their chunks would otherwise carry another paper's key,
+    title, authors and year.
+
+    A file that loses its entry is not matched to its next-best entry:
+    its best match was already another paper, so the file is most
+    likely missing from the bibliography, and its next-best entry is a
+    weaker match still.
+
+    Returns a mapping of filename to entry for the files that keep one.
+    """
+    best: dict[str, tuple[float, str, Paper]] = {}
+    for name in filenames:
+        match = _best_db_match(name, db_papers)
+        if match is None:
+            continue
+        paper, score = match
+        held = best.get(paper.key)
+        if held is None or score > held[0]:
+            best[paper.key] = (score, name, paper)
+    return {name: paper for _, name, paper in best.values()}
 
 
 def _paper_from_filename(filename: str) -> Paper | None:
@@ -1338,9 +1385,14 @@ class RAGEngine:
         matched = 0
         fallback_metadata = 0
 
+        # Match every file before chunking any: a BibTeX entry goes to
+        # the file that matches it best, wherever that file sorts.
+        db_matches = _assign_db_matches(
+            [md_path.name for md_path in md_files], db_papers,
+        )
+
         for md_path in md_files:
-            # Match to database
-            paper = _match_paper_to_db(md_path.name, db_papers)
+            paper = db_matches.get(md_path.name)
             if paper is None:
                 paper = _paper_from_filename(md_path.name)
                 if paper is None:
