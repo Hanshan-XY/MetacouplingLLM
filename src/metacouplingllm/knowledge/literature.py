@@ -282,8 +282,9 @@ def _score_paper(
 
     - Keyword match: each matching keyword adds 3.0 points
     - Title match: each matching word in title adds 2.0 points
-    - Full-text match: cosine similarity × 3.0 (up to 3.0 points),
-      sourced from the RAG TF-IDF index over bundled MD files
+    - Full-text match: the best retrieved chunk's similarity × 3.0 (up
+      to 3.0 points), from the RAG index over the bundled papers
+      (embeddings by default, TF-IDF as the fallback)
     - Citation bonus: log-scaled citation count adds up to 2.0 points
 
     Parameters
@@ -313,7 +314,7 @@ def _score_paper(
         if term in title_lower:
             score += 2.0
 
-    # Full-text relevance from RAG TF-IDF index (replaces abstract scoring)
+    # Full-text relevance from the RAG index (replaces abstract scoring)
     if fulltext_scores and paper.key in fulltext_scores:
         score += min(3.0, fulltext_scores[paper.key] * 3.0)
 
@@ -379,10 +380,9 @@ def _build_fulltext_scores(
         return {}
 
     query_text = " ".join(sorted(search_terms))
-    # Pass None so the engine picks a backend-appropriate default.
-    # For TF-IDF this is 0.01; for embeddings 0.3. But since this is
-    # a permissive paper-scoring use case (not evidence surfacing),
-    # use a very low threshold to keep almost all matches.
+    # A permissive paper-scoring use (not evidence surfacing): pass a
+    # threshold far below the engine's defaults (0.01 for TF-IDF, 0.60
+    # for embeddings) to keep almost all matches.
     min_score = 0.001 if engine.backend == "tfidf" else 0.0
     results = engine.retrieve(query_text, top_k=top_k, min_score=min_score)
     # A paper can contribute several chunks (``max_chunks_per_paper``,
@@ -402,8 +402,8 @@ def recommend_papers(
 ) -> list[Paper]:
     """Recommend relevant papers from the telecoupling literature database.
 
-    Uses title, keywords, citation count, and **full-text TF-IDF
-    relevance** (from bundled MD files) to rank papers.
+    Uses title, keywords, citation count, and **full-text relevance**
+    (from the RAG index over the bundled papers) to rank papers.
 
     Parameters
     ----------

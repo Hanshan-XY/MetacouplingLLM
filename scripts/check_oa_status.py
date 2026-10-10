@@ -60,7 +60,7 @@ MANUAL_OVERRIDES = {
     "Liu et al. - 2025 - From Plate to Plow How Dietary Shifts Drive Telecoupled Cropland Erosion in China.md": "liu_plate_2025",
     "Li et al. - 2019 - Tightening ecological management facilitates green development in the Qilian Mountains.md": "zhao_tightening_2019",
     "Reis et al. - 2020 - Understanding the Stickiness of Commodity Supply Chains Is Key to Improving Their Sustainability.md": "dosreis_understanding_2020",
-    "Zheng and Sun_The short-range and remote analysis of virtual water trade in China.md": "zheng_short_2023",
+    "Zheng and Sun - 2023 - The short-range and remote analysis of virtual water trade in China.md": "zheng_short_2023",
 }
 # Strip the .md extension for matching against PDF stems (which have no ext)
 MANUAL_OVERRIDES_STEM = {Path(k).stem: v for k, v in MANUAL_OVERRIDES.items()}

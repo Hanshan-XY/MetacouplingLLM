@@ -1498,7 +1498,7 @@ class RAGEngine:
         min_score:
             Minimum similarity threshold. When ``None`` (default), a
             backend-appropriate value is used: 0.01 for TF-IDF,
-            0.3 for embedding cosine similarity.
+            0.60 for embedding cosine similarity.
         max_chunks_per_paper:
             Cap on how many chunks from the same paper may appear in
             the result set (default ``3``). Set to ``1`` for the
@@ -1752,7 +1752,7 @@ def _score_to_confidence(score: float, backend: str = "tfidf") -> str:
 
         - TF-IDF: typical range 0.01–0.4 for relevant chunks.
           Thresholds: 0.15 / 0.08 / 0.03.
-        - Embeddings (BGE-small cosine): typical range 0.5–0.9 for
+        - Embeddings (BGE-base cosine): typical range 0.5–0.9 for
           relevant chunks. Thresholds: 0.7 / 0.6 / 0.5.
     """
     if backend == "embeddings":

@@ -393,7 +393,8 @@ class TestBundledBibliographyText:
     ``social&amp;#8211;ecological``, ``CÃ“RDOBA``), fifteen journals had
     ``&amp;``, eleven titles copied from file names had ``_`` for an
     apostrophe or a colon (``China_s``, ``Organic Foods_ Impactos Amb``),
-    and five entries had no journal.
+    five entries had no journal, and three titles stopped where their
+    files' names were cut.
     """
 
     @pytest.mark.parametrize("field", ["title", "authors", "journal"])
@@ -410,6 +411,29 @@ class TestBundledBibliographyText:
 
     def test_every_entry_names_its_journal(self):
         assert [p.key for p in _get_database() if not p.journal] == []
+
+    def test_titles_cut_at_their_file_names_are_complete(self):
+        # These three repeated their bundled files' names, which are cut
+        # at about 100 characters ("... A case study of", "... Global So").
+        published = {
+            "al_analysis_2023": (
+                "Analysis of the proximity and telecoupling mechanism of "
+                "cultivated land use change: A case study of Yangtze River "
+                "Economic Belt"
+            ),
+            "al_drivers_2023": (
+                "Drivers of ecosystem service specialization in a smallholder "
+                "agricultural landscape of the Global South: a case study in "
+                "Ethiopia"
+            ),
+            "friis_land_2017": (
+                "Land-use change in a telecoupled world: the relevance and "
+                "applicability of the telecoupling framework in the case of "
+                "banana plantation expansion in Laos"
+            ),
+        }
+        titles = {p.key: p.title for p in _get_database() if p.key in published}
+        assert titles == published
 
     def test_flags_the_forms_the_fixed_entries_had(self):
         assert _artifacts("dolphinfish (<i>Coryphaena hippurus</i>)") == [
