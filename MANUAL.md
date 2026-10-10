@@ -1,4 +1,4 @@
-# Metacoupling Package — User Manual
+# MetacouplingLLM — User Manual
 
 **Version 0.2.0**
 
@@ -69,7 +69,7 @@ pip install "metacouplingllm[grok]"
 pip install "metacouplingllm[viz]"
 ```
 
-### With quantitative indicators (PR #35, pandas)
+### With quantitative indicators (pandas)
 
 ```bash
 pip install "metacouplingllm[indicators]"
@@ -79,7 +79,7 @@ Pulls in `pandas`, the only extra dependency for the
 `metacouplingllm.indicators` submodule (deterministic flow-share /
 evenness / concentration math; see §16).
 
-### With scholar export (PR #31, #32 — python-docx)
+### With scholar export (python-docx)
 
 ```bash
 pip install "metacouplingllm[export]"
@@ -110,6 +110,9 @@ pip install "metacouplingllm[all]"
 ### Requirements
 
 - Python 3.10 or higher
+- Runtime dependencies installed with the base package: `numpy>=1.21` and
+  `fastembed>=0.8` (default RAG embeddings; the BAAI/bge-base-en-v1.5 ONNX
+  model is downloaded the first time a RAG query runs)
 - An API key from OpenAI, Anthropic, Google Gemini, or xAI Grok (for
   LLM-based analysis)
 
@@ -139,7 +142,6 @@ advisor = MetacouplingAssistant(
     auto_map=True,
     rag_corpus="journal_articles_2025",
     rag_top_k=8,
-    rag_min_score=0.60,
 )
 
 # 3. Analyze your research
@@ -155,12 +157,13 @@ if result.map:
     result.map.savefig("map.png", dpi=150, bbox_inches="tight")
 ```
 
-`web_structured_extraction=True` is the default: whenever `web_search=True`, the
-advisor performs an extra LLM pass over the web snippets to extract validated
-receiving countries, spillover countries, and map-ready flows, plus evidence
-cards that are added to the analysis prompt. The validated payload is also
-stored on `result.web_map_signals`. Pass `web_structured_extraction=False` to
-skip the extra call.
+`web_structured_extraction=True` is the default: whenever `web_search=True` and
+the search returns results, the advisor performs an extra LLM pass over the web
+results (title, URL and summary text) to extract validated receiving countries,
+spillover countries, and map-ready flows, plus evidence cards that are added to
+the analysis prompt. The validated payload is also stored on
+`result.web_map_signals`. Pass `web_structured_extraction=False` to skip the
+extra call.
 
 ---
 
@@ -235,6 +238,18 @@ Your Research Description
 └──────────────────────────┘
 ```
 
+Before the prompt is built, `analyze()` runs the optional web search
+(`web_search=True`; its context goes into the system prompt) and, when a
+RAG corpus is configured, retrieves literature passages (they go into the
+user message). After the main call the response is parsed and checked
+against the adjacency databases; the optional map-data extraction
+(`auto_map=True`) and the abstract (`generate_abstract=True`, the
+default) then each make one more model call. With every stage on, a run
+makes up to five model calls: native web search, structured web
+extraction, main analysis, map-data extraction and abstract.
+`rag_structured_extraction=True` adds a sixth, and a failed or non-JSON
+map-data reply is retried once.
+
 ---
 
 ## 4. LLM Setup
@@ -279,9 +294,9 @@ advisor = MetacouplingAssistant(adapter)
 
 ### Option C: Google Gemini
 
-Built against the new **`google.genai` SDK** (the unified Google
-GenAI SDK released in 2025; the older `google.generativeai` package
-is deprecated).
+Uses the `google.genai` SDK (PyPI package `google-genai`); pass a
+`google.genai.Client`. The older `google.generativeai` package is not
+supported.
 
 ```python
 from google import genai
@@ -315,7 +330,7 @@ advisor = MetacouplingAssistant(adapter)
 Grok's API is OpenAI-protocol-compatible, so you reuse the `openai`
 SDK with xAI's base URL. The dedicated `GrokAdapter` (rather than
 `OpenAIAdapter`) lets the advisor route web search to Grok's native
-**Live Search** tool (which queries both the web and X/Twitter).
+server-side `web_search` tool (xAI's `/responses` endpoint; see §14).
 
 Install with: `pip install "metacouplingllm[grok]"`
 
@@ -329,8 +344,10 @@ from metacouplingllm import MetacouplingAssistant, LLMResponse, Message
 
 class MyLocalLLM:
     def chat(self, messages: list[Message], temperature=0.7, max_tokens=None):
-        # Call your local model here
-        response_text = my_model.generate(messages[-1].content)
+        # Call your local model here. messages[0] is the system prompt, so
+        # send every message, not only the last one.
+        prompt = "\n\n".join(f"{m.role.upper()}: {m.content}" for m in messages)
+        response_text = my_model.generate(prompt)
         return LLMResponse(content=response_text)
 
 advisor = MetacouplingAssistant(MyLocalLLM())
@@ -345,17 +362,22 @@ API key).
 Each adapter auto-wires its **native** web-search backend when you set
 `web_search=True` — no extra configuration needed:
 
-| Adapter | Native backend (auto-wired) | PR |
-|---|---|---|
-| `OpenAIAdapter` | `OpenAIWebSearchBackend` (`web_search` tool) | #17 |
-| `AnthropicAdapter` | `AnthropicWebSearchBackend` (`web_search_20250305` tool) | #28 |
-| `GeminiAdapter` | `GeminiWebSearchBackend` (Google Search grounding) | #29 |
-| `GrokAdapter` | `GrokWebSearchBackend` (server-side `web_search` tool) | #29 |
-| Custom client | DuckDuckGo fallback cascade (free, no API key; no backend class) | — |
+| Adapter | Native backend (auto-wired) |
+|---|---|
+| `OpenAIAdapter` | `OpenAIWebSearchBackend` (`web_search` tool) |
+| `AnthropicAdapter` | `AnthropicWebSearchBackend` (`web_search_20250305` tool) |
+| `GeminiAdapter` | `GeminiWebSearchBackend` (Google Search grounding) |
+| `GrokAdapter` | `GrokWebSearchBackend` (server-side `web_search` tool) |
+| Custom client | DuckDuckGo fallback cascade (free, no API key; no backend class) |
 
-All four native backends share the same rich prompt + strict structured
-output + `blocked_domains` + scaled `max_output_tokens` + supranational
-flow handling — see §14 for details and configuration knobs.
+All four native backends share the same rich prompt template, a strict
+structured-output schema, the default domain blocklist (reddit.com,
+quora.com, pinterest.com; the field is `blocked_domains` on the OpenAI,
+Anthropic and Gemini backends and `excluded_domains` on the Grok backend)
+and an output-token budget that scales with `web_search_max_results`.
+Supranational unions are handled downstream of the backends, in the
+structured web extraction, the map-data extraction and the map renderer,
+for every provider. See §14 for details and configuration knobs.
 
 ---
 
@@ -376,8 +398,13 @@ print(result.formatted)
 ```python
 advisor = MetacouplingAssistant(
     adapter,
-    temperature=0.7,          # Creativity (0.0=deterministic, 1.0=creative)
-    max_tokens=None,           # Response length limit (None=model default)
+    temperature=0.7,          # Creativity (0.0=deterministic, 1.0=creative);
+                              #   ignored by gpt-5* models (always run at 1) and
+                              #   claude-opus-4-7; main analysis call only
+    max_tokens=None,           # Response length limit (None = the provider's default);
+                               #   AnthropicAdapter sends 4096 because the Anthropic API
+                               #   requires a limit, which can cut a long report short —
+                               #   pass a larger value for Claude
     max_examples=2,            # Number of curated examples in the prompt
     verbose=False,             # Print diagnostic info during execution
     recommend_papers=False,    # Auto-append literature recommendations
@@ -387,7 +414,11 @@ advisor = MetacouplingAssistant(
                                #   into its de-facto administrator (vs strict WB)
     coupling_standard="moderate",  # "stringent"/"moderate"/"lenient" — how
                                #   water-only borders are treated in validation
-    trace=True,                # Write a run-trace folder per analyze()/refine()
+    generate_abstract=True,    # One extra model call per analyze()/refine() to write
+                               #   result.abstract; False skips it
+    trace=None,                # Write a run-trace folder per analyze()/refine():
+                               #   None = on unless METACOUPLINGLLM_DISABLE_TRACE=1,
+                               #   True/False force it on/off
     trace_dir=None,            # Where to write it (default: runs/<utc>_<slug>/)
 )
 ```
@@ -402,13 +433,19 @@ uses the strict World Bank standard layer instead of the de-facto view. Defaults
 (`True` / `"moderate"`) match the database defaults; see §8 for the full
 semantics.
 
+The pre-LLM pericoupling hint placed in the system prompt (§8, step 1) always
+uses the defaults (`True` / `"moderate"`); with other settings it can disagree
+with the validation block.
+
 ### Run tracing (`trace`, `trace_dir`)
 
 Tracing is **on by default**. Each `analyze()` / `refine()` captures every
 chat call made through the assistant's client (prompts, response, token usage,
 duration) plus the pipeline intermediates (raw web results, RAG chunks, parsed
-analysis, map data, formatted output) and run metadata (model, git SHA,
-environment), then writes a folder of human-readable artifacts:
+analysis, map data, formatted output) and run metadata (model, the git SHA of
+the repository in the working directory — `unknown` outside one — and the
+environment, including the package version), then writes a folder of
+human-readable artifacts:
 
 ```text
 runs/<utc-timestamp>_<query-slug>/turn1/
@@ -417,10 +454,12 @@ runs/<utc-timestamp>_<query-slug>/turn1/
     map.png            # when a map was rendered
 ```
 
-A multi-turn session writes `turn1/`, `turn2/`, … under one session root. The
-same trace is attached to the result as `result.trace` (a `RunTrace`);
-`result.trace.out_dir` is the folder on disk, and `result.trace.calls` is the
-list of captured `CallRecord`s.
+An `analyze()` followed by `refine()` calls writes `turn1/`, `turn2/`, … under
+one session root. Each new `analyze()` starts a new session; in RAG-only mode
+every call is an `analyze()` call, so with the default `trace_dir` each turn
+gets its own `runs/<utc>_<slug>/turnK/`. The same trace is attached to the
+result as `result.trace` (a `RunTrace`); `result.trace.out_dir` is the folder
+on disk, and `result.trace.calls` is the list of captured `CallRecord`s.
 
 ```python
 result = advisor.analyze("…")
@@ -429,7 +468,8 @@ print(result.trace.total_tokens)     # input + output across all captured calls
 ```
 
 - **Disable it** with `trace=False`, or globally with the
-  `METACOUPLINGLLM_DISABLE_TRACE=1` environment variable.
+  `METACOUPLINGLLM_DISABLE_TRACE=1` environment variable. An explicit
+  `trace=True` / `trace=False` overrides the environment variable.
 - **Choose the location** with `trace_dir="my/path"` (the per-turn subfolders
   are written underneath it).
 - The default `runs/` directory is **gitignored**; commit a specific run with
@@ -452,14 +492,15 @@ and the other **228 as structured, paraphrased summaries** (metadata + key
 findings, no source text) — those 228 being papers that cannot be
 redistributed in full (paywalled, or open-to-read but restrictively
 licensed).  Retrieval runs over both, so a summary-only paper can still
-surface as supporting evidence.  See INTRODUCTION §4.3 and
-`data/PROVENANCE.md` for the corpus composition and methodology.
+surface as supporting evidence.  See INTRODUCTION §4.3 and §6 for the
+corpus composition.
 
-> **Not the same as the recommendation database.**  This 420-paper RAG corpus
-> (quoted as evidence passages) is distinct from the 265-article BibTeX
-> literature database used by `recommend_papers` / `get_database_info` (§9).
-> RAG *grounds* the analysis with passages; the recommendation database
-> *suggests* further reading.
+> **The recommendation database is the BibTeX layer of this corpus.**  The
+> 265-article BibTeX literature database used by `recommend_papers` /
+> `get_database_info` (§9) is matched to 265 of these 420 papers; the other
+> 155 have no BibTeX entry and are never recommended. RAG *grounds* the
+> analysis with quoted passages; the recommendation database *suggests*
+> further reading.
 
 ### How RAG citations work
 
@@ -467,24 +508,25 @@ When a RAG corpus is configured, the package retrieves corpus passages
 from the research description **before** calling the LLM, embeds them
 in the user message as a `<retrieved_literature turn="k">` XML block,
 and instructs the LLM (via a citation-rules layer in the system
-prompt) to cite them inline as `[Tk:N]` — turn-scoped so the same
-token never changes meaning across follow-ups.
+prompt) to cite them inline as `[Tk:N]` (`k` is the conversation
+turn) — turn-scoped so the same token never changes meaning across
+follow-ups.
 
 **What the LLM sees.** Each user message includes a labelled XML
-block with the top-k retrieved passages numbered 1..N:
+block with the top-k retrieved passages numbered 1..N (illustrative
+text):
 
 ```xml
 <retrieved_literature turn="1">
-  <passage turn="1" id="1" paper_key="liu_2017_metacoupling"
-           title="Integration across a metacoupled world"
-           authors="Liu, J." year="2017" section="Results">
+  <passage turn="1" id="1"
+           paper_key="liu_2017_integration_across_a_metacoupled_world"
+           authors="Liu" year="2017" section="Results" score="0.74">
     Brazilian soybean exports to China are primarily destined for
     the swine and poultry feed industry, with a fivefold increase
     in shipment volume between 2000 and 2015...
   </passage>
   <passage turn="1" id="2" paper_key="fearnside_2001_amazon"
-           title="Soybean cultivation as a threat to the environment"
-           authors="Fearnside, P." year="2001" section="Discussion">
+           authors="Fearnside, P." year="2001" section="Discussion" score="0.68">
     Cerrado-to-cropland conversion accounts for the bulk of
     deforestation associated with soybean expansion...
   </passage>
@@ -520,16 +562,17 @@ strips any citation token the LLM should not have emitted:
   were retrieved this turn
 - **Forward references** — e.g. `[T9:1]` in turn 2 (no such turn
   has happened yet)
-- **Bare legacy tokens** — `[N]` or `[W1]` without the `Tk:`
-  prefix (a pre-2026 grammar)
+- **Bare tokens** — `[N]` or `[W1]` without the `Tk:` prefix
 
-Out-of-range and forward-reference strips are reported via a single
-aggregate `MetacouplingAssistant sanitized N invalid citation
-token(s)` warning in the logger so the gap is auditable; bare
-legacy `[N]` / `[W1]` tokens are stripped silently (no warning).
-Prior-turn back-references (e.g. `[T1:3]` appearing in a turn-2
-answer) are **kept** verbatim — the LLM is encouraged to
-back-reference earlier evidence by copying the original token.
+Out-of-range and forward-reference strips are reported as WARNING log
+records (`metacouplingllm.knowledge.citations`: "Stripped N invalid
+turn-scoped citation(s): ..."; in framework mode also
+`metacouplingllm.core`: "MetacouplingAssistant sanitized N invalid
+citation token(s) ...") so the gap is auditable; bare `[N]` / `[W1]`
+tokens are stripped silently (no warning). Prior-turn back-references
+(e.g. `[T1:3]` appearing in a turn-2 answer) are **kept** verbatim —
+the LLM is encouraged to back-reference earlier evidence by copying
+the original token.
 
 `refine()` always re-retrieves using a labeled merged query that
 combines the **original** research description with the new
@@ -547,16 +590,6 @@ The original research question is anchored at `analyze()` time and is
 **never** overwritten by subsequent refines, so multi-turn
 conversations stay anchored to the topic you started with.
 
-> 🆕 **Turn-scoped citations (v0.1.3).** Citations are emitted as
-> `[Tk:N]` (literature) and `[Tk:Wn]` (web), where `k` is the
-> conversation turn. Once a citation is emitted it never changes
-> meaning — turn 1's `[T1:3]` always refers to turn 1's 3rd passage,
-> even after several refines. The LLM may also back-reference prior
-> turns by copying the exact token verbatim (e.g., *"extending
-> [T1:3] with the new data..."*). Each turn's
-> `SUPPORTING EVIDENCE FROM LITERATURE (turn k)` block remains the
-> authoritative mapping for that turn's citations.
-
 ### What you get back: `AnalysisResult`
 
 ```python
@@ -564,16 +597,20 @@ result = advisor.analyze("My research about coffee trade...")
 
 result.formatted     # str — Human-readable report (print this)
 result.parsed        # ParsedAnalysis — Structured data for programmatic use
-result.raw           # str — Unprocessed LLM response
+result.raw           # str — LLM response; when a RAG corpus is configured, it is the
+                     #   response after citation sanitization (invalid [Tk:N] and bare
+                     #   [N] tokens removed, whitespace normalised)
 result.turn_number   # int — Which conversation turn (1 for first analysis)
 result.usage         # dict | None — Token usage (keys vary by provider)
 ```
 
 > **Note:** the `usage` keys are provider-dependent: OpenAI and Grok
 > report `prompt_tokens` / `completion_tokens` / `total_tokens`;
-> Anthropic reports `input_tokens` / `output_tokens`; Gemini reports
-> `prompt_token_count` / `candidates_token_count` / `total_token_count`.
-> Use `result.usage.get(...)` rather than assuming a key exists.
+> Anthropic reports `input_tokens` / `output_tokens` (no total); Gemini
+> reports `input_tokens` / `output_tokens` / `total_tokens` (the adapter
+> renames the SDK's `*_token_count` fields). `usage` is `None` when the
+> client reports none, so use `(result.usage or {}).get(...)` rather than
+> assuming a key exists.
 
 ### RAG-only mode (`coupling_analysis=False`)
 
@@ -617,14 +654,20 @@ The result is a `RAGResult` (not `AnalysisResult`) with these fields:
 | `turn_number` | `int` | 1 for the first call; increments across turns |
 | `usage` | `dict \| None` | token accounting |
 | `raw` | `str` | the LLM response before citation sanitization |
+| `retrieval_backend` | `str` | `"embeddings"` or `"tfidf"`, the backend that scored the passages |
+| `reference_passage_ids` | `list[int]` | parallel to `references`: the passage number `N` of the `[Tk:N]` at which each paper was first cited |
+| `trace` | `RunTrace \| None` | run trace of this turn (see Run tracing above); `None` when tracing is off |
 
 `formatted` is computed on access (no caching) so it always reflects
 the current state of the result. The LLM emits stable turn-scoped
 tokens like `[T1:1]` and `[T1:3]` directly — no remapping is
-performed, so the markers in the answer body match the bibliography
-entries exactly. Prior-turn back-references (e.g. `[T1:3]` appearing
-in a turn-2 answer) are kept verbatim but excluded from the current
-turn's references list.
+performed, so each marker keeps the passage number the model used.
+The bibliography lists one entry per paper, labelled with the first
+passage cited from it; a later marker for another passage of the same
+paper (for example `[T1:5]` after `[T1:1]`) has no entry of its own —
+find it in `retrieved_passages`. Prior-turn back-references (e.g.
+`[T1:3]` appearing in a turn-2 answer) are kept verbatim but excluded
+from the current turn's references list.
 
 **Multi-turn by default.** Each subsequent `analyze()` call appends
 to a running conversation, so follow-ups work naturally:
@@ -638,24 +681,29 @@ rag_advisor.clear_history()             # reset and start over
 
 Each turn runs a **fresh RAG retrieval** keyed off that turn's query,
 so follow-ups get the most relevant passages for *their* specific
-question rather than reusing turn 1's hits.
+question rather than reusing turn 1's hits. `refine()` is framework-only:
+in RAG-only mode it raises `RuntimeError`, so ask follow-ups with further
+`analyze()` calls.
 
 **Citations are turn-scoped.** A `[T2:1]` in turn 2's answer refers
 to turn 2's first passage, and a `[T1:3]` in turn 2's answer
 back-references turn 1's third passage — both meanings remain stable
 forever. The LLM may freely back-reference prior-turn evidence by
-copying the original token. Bare `[N]` / `[W1]` tokens (the legacy
-grammar) are illegal under the new rules and are silently stripped
-by the sanitizer.
+copying the original token. Bare `[N]` / `[W1]` tokens (no `Tk:`
+prefix) are invalid and are silently stripped by the sanitizer.
 
-**Framework-only options are silently disabled** when
-`coupling_analysis=False`: `auto_map`, `recommend_papers`,
-`rag_structured_extraction`, `web_structured_extraction`. A notice is
-printed if any of those are set (`web_structured_extraction`, which is on
-by default, only when `web_search=True`). All other options
-(`web_search`, `rag_top_k`, `rag_backend`, `rag_min_score`,
-`rag_max_chunks_per_paper`, `temperature`, `max_tokens`, `verbose`)
-work in both modes.
+**Framework-only options are ignored** when `coupling_analysis=False`:
+`auto_map`, `recommend_papers`, `rag_structured_extraction`,
+`web_structured_extraction`. A notice is printed at construction if any
+of those four is set (`web_structured_extraction`, which is on by
+default, only when `web_search=True`). `max_examples`,
+`max_recommendations`, `generate_abstract`, `de_facto_borders`,
+`coupling_standard`, `adm0_shapefile`, `adm1_shapefile`,
+`web_structured_min_confidence` and `web_structured_max_targets` are
+also ignored, without a notice. `rag_corpus`, `rag_papers_dir`,
+`web_search`, `web_search_max_results`, `rag_top_k`, `rag_backend`,
+`rag_min_score`, `rag_max_chunks_per_paper`, `temperature`,
+`max_tokens`, `verbose`, `trace` and `trace_dir` work in both modes.
 
 **One advisor = one mode.** The flag is set at construction time and
 not mutable afterward — create a separate `MetacouplingAssistant`
@@ -709,8 +757,8 @@ analysis blocks (2 = Intracoupling, 3 = Pericoupling,
 4 = Telecoupling — each with N.1 Systems Identification, N.2 Flows
 Analysis, N.3 Agents, N.4 Causes, N.5 Effects), §5 is Cross-coupling
 Interactions, §6 Research Gaps, §7 Evidence Coverage. Coupling types
-with no content are skipped, so the numbering can jump (e.g. 1 → 4 in
-a purely telecoupled analysis):
+with no content are skipped, so the numbering can jump (e.g. 2 → 4 when
+the analysis has no pericoupling section):
 
 ```
 ========================================================================
@@ -719,18 +767,23 @@ METACOUPLING FRAMEWORK ANALYSIS
 
 1. Coupling Classification
 ----------------------------------------
-Telecoupling (primary) — the study involves interactions between
-Brazil (sending) and China (receiving) through soybean trade...
+- Intracoupling — soybean production and handling within Brazil...
+- Telecoupling (primary) — the study involves interactions between
+  Brazil (sending) and China (receiving) through soybean trade...
+
+2. Intracoupling Analysis
+----------------------------------------
+  ...
 
 4. Telecoupling Analysis
 ----------------------------------------
   4.1 Systems Identification
-  [Sending System]
+  [Sending System (distant)]
     Brazil soybean production regions
     Human subsystem: Farmers, agribusiness corporations
     Natural subsystem: Cerrado biome, Amazon rainforest
     Geographic scope: Mato Grosso, Goiás, Bahia
-  [Receiving System]
+  [Receiving System (distant)]
     China consumer markets
     ...
   [Spillover System]
@@ -755,10 +808,14 @@ Brazil (sending) and China (receiving) through soybean trade...
   ...
 
   4.5 Effects
-  Environmental:
+  Ecological / Biological:
     - Deforestation of Amazon and Cerrado biomes
-  Socioeconomic:
+  Cultural / Social / Demographic:
     - Improved food security in receiving system
+  ...
+
+5. Cross-coupling Interactions
+----------------------------------------
   ...
 
 6. Research Gaps and Suggestions
@@ -768,25 +825,22 @@ Brazil (sending) and China (receiving) through soybean trade...
 
 7. Evidence Coverage
 ----------------------------------------
-  The trade-volume claims are grounded in retrieved literature
-  [T1:2] and recent export statistics; spillover-system evidence
-  is thinner and partly relies on framework reasoning...
+The trade-volume claims are grounded in retrieved literature
+[T1:2] and recent export statistics; spillover-system evidence
+is thinner and partly relies on framework reasoning...
 
 COUPLING DATABASE VALIDATION
 ----------------------------------------
-  This block cross-checks the LLM's coupled-system claims
-  against the bundled coupling databases (country adjacency).
-  Pairs are labeled PERICOUPLED (adjacent) countries or
-  TELECOUPLED (distant) countries per the database.  Core
-  subnational regions are subnational regions identified
-  based on the analysis results and are provided for
-  reference only.
+  This block cross-checks the LLM's coupled-system
+  claims against the bundled coupling databases
+  (country adjacency).  Pairs are labeled PERICOUPLED
+  (adjacent) countries or TELECOUPLED (distant) countries
+  per the database.  Core subnational regions are
+  subnational regions identified based on the analysis
+  results and are provided for reference only.
 
   Focal System: Brazil (BRA)
-    Core subnational regions: Mato Grosso, Pará
-
-  Pericoupled Countries:
-    Brazil (BRA) ↔ Argentina (ARG)
+    Core subnational regions: Mato Grosso, Para
 
   Telecoupled Countries:
     Brazil (BRA) ↔ China (CHN)
@@ -795,6 +849,15 @@ COUPLING DATABASE VALIDATION
 
 ========================================================================
 ```
+
+Countries the LLM placed in the spillover role (such as the
+`[Spillover System]` above) are not listed, because adjacency cannot
+validate that indirect role; a group with no pairs is not printed. The
+Note compares coupling types, not individual partners: if the database
+shows a pericoupled pair but the classification does not mention
+pericoupling (or shows only telecoupled pairs but the classification
+does not mention telecoupling), the Note is printed as
+`Note (country): ...` and ends with "Consider revising."
 
 The `Core subnational regions:` sub-line appears only for
 national-scope queries (user named a country, not a state) and
@@ -858,7 +921,7 @@ for suggestion in parsed.research_gaps:
 # named a region that resolves to an ADM1 code; skipped in
 # national mode) live in separate fields and can both be present
 # at once.
-if parsed.country_pericoupling_info:   # country-level (PR #27)
+if parsed.country_pericoupling_info:   # country-level
     print(parsed.country_pericoupling_info.get("pair_results", ""))
     print(parsed.country_pericoupling_info.get("note", ""))
 if parsed.pericoupling_info:            # subnational (ADM1)
@@ -886,30 +949,37 @@ print(formatter.format_component(parsed, "classification"))
 print(formatter.format_component(parsed, "telecoupling"))
 print(formatter.format_component(parsed, "suggestions"))
 
-# Compare multiple analyses side by side
+# Compact comparison: one summary block per analysis (classification line,
+# active coupling types, flow count, research-gap count)
 print(formatter.format_comparison([parsed1, parsed2, parsed3]))
 ```
 
-### Scholar-ready abstract (`result.abstract`, PR #31)
+### Scholar-ready abstract (`result.abstract`)
 
-Every `AnalysisResult` now exposes a one-paragraph scholar abstract
-generated by a second, conservative LLM pass:
+Every `AnalysisResult` has a one-paragraph scholar abstract in
+`result.abstract`, generated by an extra model call after the main analysis:
 
 ```python
 result = advisor.analyze("Brazil soybean exports to China...")
 print(result.abstract)
 # "This analysis applies the metacoupling framework to Brazil's soybean
-#  export system to China.  We identify Brazil's Cerrado and Amazon
-#  agricultural regions as the sending system and Chinese feed and oil
+#  export system to China.  Brazil's Cerrado and Amazon agricultural
+#  regions are identified as the sending system and Chinese feed and oil
 #  markets as the receiving system..."
 ```
 
-The abstract is intentionally **standalone**: the generation prompt
-forbids the `[Tk:N]` / `[Tk:Wn]` citation markers used in the main
-report, so it can be pasted into a manuscript as-is. It's computed
-once per `analyze()` call and cached on the result.
+The abstract is meant to be **standalone**: the generation prompt tells
+the model not to use the `[Tk:N]` / `[Tk:Wn]` citation markers of the
+main report. The reply is not post-processed apart from stripping code
+fences, so look for stray markers. It is model-generated text: check it
+against the analysis and its sources before putting it in a manuscript.
+It is generated by one extra model call when each result is built, i.e.
+at every `analyze()` and every `refine()` turn, and cached on that
+result. Pass `generate_abstract=False` to `MetacouplingAssistant(...)`
+to skip the call; `result.abstract` is an empty string if the call is
+skipped or fails.
 
-### Markdown + Word export (`result.to_markdown` / `result.to_docx`, PR #31, #32)
+### Markdown + Word export (`result.to_markdown` / `result.to_docx`)
 
 ```python
 result = advisor.analyze("Brazil soybean exports to China...")
@@ -924,20 +994,22 @@ result.to_docx("brazil_soybean.docx")
 
 The exporters carry over:
 
-- a **title** auto-derived from the research description (PR #32)
+- a **title** auto-derived from the research description
 - the scholar **abstract**
-- bold sub-field labels (Sending / Receiving / Spillover system names,
-  flow `direction`, agent `level`, etc.)
+- bold sub-field labels (each system's Human subsystem / Natural
+  subsystem / Geographic scope / Description labels, and the agent
+  `level`); each system's role and name is a heading, and flow
+  `direction` is plain text
 - per-category **Flows** subsections (Matter, Capital, Information,
   Energy, People, Organisms)
 - per-category **Causes** + **Effects** subsections matching the eight
   fixed categories
-- **RAG evidence** + **web sources** blocks (PR #31 follow-up)
+- **RAG evidence** + **web sources** blocks
 - multi-bullet **§1 classification** rendered as proper bullet
   paragraphs in the docx export, and every system role line promoted
-  to a **§N.1.K subheading** (PR #33)
+  to a **§N.1.K subheading**
 
-### Evidence coverage note (`result.parsed.evidence_coverage_note`, PR #20)
+### Evidence coverage note (`result.parsed.evidence_coverage_note`)
 
 Every framework analysis requests a §7 **Evidence Coverage**
 self-assessment (2–5 short paragraphs) summarising **what evidence
@@ -959,29 +1031,57 @@ print(result.parsed.evidence_coverage_note)
 
 ## 8. Pericoupling Database
 
-The package includes a curated country-pair database in which 326
-symmetric country pairs share a border; under the default adjacency
-settings (`de_facto_borders=True`, `coupling_standard="moderate"`)
-**321** of them are exposed as pericoupled (geographically adjacent) —
-the moderate standard drops 5 water-only pairs with no fixed crossing.
+The package includes a curated country-pair database with 326 adjacent
+pairs (the `lenient` view with `de_facto_borders=True`: 323 pairs that touch
+in the World Bank standard layer plus 3 de-facto pairs across disputed
+land); under the default adjacency settings (`de_facto_borders=True`,
+`coupling_standard="moderate"`) **321** of them are exposed as pericoupled
+(geographically adjacent) — the moderate standard drops 5 water-only pairs
+with no fixed crossing, and the stringent standard leaves 307.
 All other pairs are telecoupled (geographically distant). Based on
 current ISO 3166-1 alpha-3 country codes (World Bank Official
-Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`).
+Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`). A second,
+subnational database connects 3,374 first-level administrative (ADM1)
+regions in 196 countries through border pairs (with `de_facto_borders=True`:
+8,462 under `lenient`, 8,026 under `moderate`, 7,638 under `stringent`);
+regions are identified by World Bank codes such as `MEX014`.
 
 ### Automatic integration
 
 When you run `advisor.analyze()`, the pericoupling database is used in two
 ways:
 
-1. **Pre-LLM hint injection** — The system prompt tells the LLM which
-   countries in your research are pericoupled vs. telecoupled, so it can
-   classify coupling types more accurately.
+1. **Pre-LLM hint injection** — At most one reference-only hint is added to
+   the system prompt (it says that adjacency alone does not prove a
+   coupling), always computed with the default adjacency settings. If the
+   research description names a subnational region that resolves to a World
+   Bank ADM1 code (for example "Michigan"), the hint lists that region's
+   same-country and cross-border neighbors from the ADM1 database.
+   Otherwise, if it names countries, the hint gives the database verdict
+   (pericoupled or telecoupled) for each pair formed by the first-named
+   country and each other named country; when only one country is named, it
+   lists that country's pericoupled neighbors instead. A description that
+   names no country or region, or a lone country with no pericoupled
+   neighbor (an island nation), gets no hint.
 2. **Post-LLM validation** — After parsing the LLM response, the package
-   validates the classification against the database and flags any
-   disagreements.
+   looks up each pair between the focal system and the other named systems
+   (skipping systems the model gave the spillover role) and shows the
+   database verdict for each pair. It adds a "Consider revising" note only
+   when a partner is pericoupled in the database but the classification
+   does not mention pericoupling, or when all partners are telecoupled but
+   it does not mention telecoupling; individual partner labels are not
+   checked.
 
-Both steps use the **focal (sending) country** as the anchor, only checking
-pairs between the focal country and other detected countries.
+Both steps work from one focal system rather than from every pair. Before
+the LLM call, that system is the first subnational region found in the
+research description or, if there is none, the first country named (assumed
+to be the focal one). After it, the validation anchors on the sending (or
+focal) system of the parsed analysis (when your query names a subnational
+region, on the focal region found in the analysis) and shows only that
+system's pairs with the other systems found (partner countries and, for a
+focal region, other mentioned regions); systems the model placed in the
+spillover role are skipped. For a focal region, a partner country counts as
+pericoupled only if the region has a cross-border neighbor in it (§7).
 
 ### Standalone usage (no LLM needed)
 
@@ -1013,15 +1113,25 @@ print(neighbors)
 
 ### Adjacency standards (disputed borders & water-separated pairs)
 
-Both loaders accept two orthogonal toggles (defaults shown):
+The country-level and the ADM1 lookup functions accept two orthogonal
+toggles (defaults shown):
 
-- **`de_facto_borders=True`** — fold disputed land into its de-facto
-  administrator (so China–Pakistan, Israel–Syria and Morocco–Mauritania are
-  adjacent); pass `False` for the strict WB standard-layer view.
+- **`de_facto_borders=True`** — fold each disputed tract, whole, into the
+  administrator that Natural Earth (v5.1.2) records for the largest part of
+  it (so China–Pakistan, Israel–Syria and Morocco–Mauritania are adjacent);
+  this represents de-facto connectivity and takes no position on
+  sovereignty; pass `False` for the strict WB standard-layer view.
 - **`coupling_standard="moderate"`** — for pairs that share **only** a
-  river/lake border, `moderate` keeps a pair only if a fixed crossing **open to
-  traffic** links the two units, `stringent` drops every water-only pair, and
-  `lenient` keeps all.
+  river/lake border, `moderate` keeps a pair only if a completed fixed
+  crossing links the two units, `stringent` drops every water-only pair, and
+  `lenient` keeps all. A completed fixed crossing is a road or rail bridge,
+  causeway, dam-top road or tunnel (not a ferry, ford or footbridge, and not
+  one still under construction); a finished bridge on a politically closed
+  border still counts.
+
+The same two settings can be passed to `MetacouplingAssistant` (§5); there
+they govern only the post-LLM validation block — the pre-LLM hint and the
+maps always use the defaults.
 
 ```python
 # Romania <-> Moldova share only rivers, the Prut and a short Danube reach (bridges exist):
@@ -1043,7 +1153,7 @@ The same `coupling_standard` argument is accepted by the ADM1 functions
 
 `resolve_adm1_code` also consults a bundled **English-exonym alias table**
 (`data/adm1_aliases.csv`, 1,145 validated aliases for 863 regions across 136
-countries; PR #60/#61) before its name/substring strategies, so common English
+countries) before its name/substring strategies, so common English
 names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
 (Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The
 table is additions-only and deterministically validated; a name that is
@@ -1092,12 +1202,16 @@ The package bundles a BibTeX database of 265 empirical telecoupling
 and metacoupling journal articles (2013–2026, filtered from a larger
 Web of Science collection).  Call `get_database_info()` for the live count if
 the corpus drifts.  You can get relevant paper recommendations
-based on keyword matching.
+ranked by author keywords, title words, full-text relevance and citation
+count (see "How recommendations work").
 
-> This 265-article recommendation database is **separate** from the 420-paper
-> RAG evidence corpus (§5, "What's in the RAG corpus"): this one drives
-> `recommend_papers` (suggested reading); the RAG corpus supplies quoted
-> evidence passages during analysis.
+> This 265-article recommendation database is the BibTeX layer of the
+> 420-paper RAG evidence corpus (§5, "What's in the RAG corpus"): every one
+> of the 265 articles is matched to a corpus paper, while the other 155
+> corpus papers have no BibTeX entry and are never returned by
+> `recommend_papers`. The BibTeX database drives `recommend_papers`
+> (suggested reading; its full-text score queries the RAG index); the corpus
+> supplies quoted evidence passages during analysis.
 
 ### Standalone usage
 
@@ -1135,7 +1249,7 @@ The engine scores each paper in the database against your query:
 |---|---|---|
 | Author-assigned keywords | 3.0 per match | Most precise — curated by authors |
 | Title words | 2.0 per match | Captures the paper's core topic |
-| Full-text relevance (RAG index over bundled paper texts) | up to 3.0 (cosine similarity × 3.0) | Matches the paper body, not just the front matter (TF-IDF, or embeddings when available) |
+| Full-text relevance (RAG index over bundled paper texts) | up to 3.0 (cosine similarity × 3.0) | Matches the paper body, not just the front matter (embeddings by default, TF-IDF as the fallback) |
 | Citation count | up to 2.0 (log-scaled) | Highly-cited papers are more influential |
 
 Papers are ranked by total score, then by citation count, then by year.
@@ -1199,8 +1313,19 @@ pip install "metacouplingllm[viz]"
 On **database-only** maps every country in the adjacency database is
 colored (all non-adjacent countries show as telecoupled). On
 **analysis-based** maps (next subsections) coloring is
-analysis-driven: only countries the LLM identified — plus validated
-web-extraction targets — are colored; everything else stays grey.
+analysis-driven: only countries identified from the analysis (and, on
+automatic maps, from web extraction) are colored, and everything else stays
+grey. The two routes differ in detail. The automatic map (`auto_map=True`,
+stored on `result.map`) colors the focal country (or focal ADM1 region), the
+receiving countries found by its map-data extraction call and the validated
+receiving targets from web extraction; spillover countries stay grey (NA) by
+design. A direct `plot_analysis_map(result.parsed)` call instead colors
+every country that a text scan finds in the parsed systems, flows, coupling
+classification, cross-coupling interactions, research gaps, causes and
+effects (spillover systems included), and colors web-extraction targets only
+if you pass them as `extra_mentioned_countries=`. If the map-data
+extraction fails or returns no focal country, `result.map` falls back to
+that same text scan.
 Map adjacency always uses the package defaults
 (`de_facto_borders=True`, `coupling_standard="moderate"`; see §8) —
 the plot functions don't currently expose those knobs.
@@ -1247,6 +1372,44 @@ parsed analysis, color-coded by flow category with their own legend
 entries (matter, capital, information, energy, people, organisms).
 
 ```python
+# Arrows default to the flows in the parsed analysis; pass your own to override them
+fig = plot_analysis_map(
+    result.parsed,
+    flows=[{"category": "matter", "direction": "Mexico → United States"}],
+)
+```
+
+### Automatic maps (`auto_map=True`)
+
+`auto_map` is off by default. When it is on, each `analyze()` / `refine()`
+turn makes an extra model call to extract the map data, draws a map and
+stores it on `result.map`: an ADM1 (subnational) map
+(`plot_focal_adm1_map`) when your query names a subnational region (by name
+or ADM1 code, e.g. "Michigan" or "USA023"), otherwise the country-level map
+described above. Maps are drawn only at country or ADM1 scale: a city,
+watershed or protected-area study is mapped through its parent country or
+ADM1 region when the model resolves one, and otherwise gets no map.
+
+`result.map_notice` is a short status note that is also appended to
+`result.formatted`. It says which kind of map was drawn or, when
+`result.map` is `None`, why: no country or ADM1 focal system could be
+resolved (for example a city, watershed or protected-area study), the map
+dependencies (`geopandas`, `matplotlib`) are not installed, or the map could
+not be rendered. It stays `None` when `auto_map=False`.
+
+### Subnational (ADM1) map
+
+`plot_focal_adm1_map` takes a World Bank ADM1 code (look one up with
+`resolve_adm1_code("Michigan")`) and colors the focal region, the regions
+that border it and distant systems with the same coupling colors.
+
+```python
+from metacouplingllm import plot_focal_adm1_map
+
+fig = plot_focal_adm1_map("USA023")   # Michigan
+fig.savefig("michigan_adm1.png", dpi=150, bbox_inches="tight")
+# Needs the World Bank Admin 1 GeoPackage: found in the local cache, otherwise
+# downloaded on first use (or pass shapefile="path/to/Admin 1.gpkg")
 ```
 
 ### Custom colors
@@ -1274,6 +1437,12 @@ fig = plot_focal_country_map("China")
 # To save to file as well:
 fig.savefig("output.png", dpi=150, bbox_inches="tight")
 ```
+
+Figures returned by `plot_focal_country_map`, `plot_analysis_map` and
+`plot_focal_adm1_map` stay open in pyplot and display automatically.
+`result.map` (from `auto_map=True`) is closed on purpose and does not
+display by itself: end the cell with `result.map` or call
+`display(result.map)`.
 
 ---
 
@@ -1324,7 +1493,8 @@ for topic in topics:
     r = advisor.analyze(topic)
     results.append(r.parsed)
 
-# Side-by-side comparison
+# Compact comparison: one summary block per analysis (classification line,
+# active coupling types, flow count, research-gap count)
 comparison = AnalysisFormatter.format_comparison(results)
 print(comparison)
 ```
@@ -1371,7 +1541,7 @@ papers = recommend_papers("rare earth mining environmental impact trade", max_re
 print(format_recommendations(papers))
 ```
 
-### Combining qualitative + quantitative analysis (PR #35)
+### Combining qualitative + quantitative analysis
 
 Once you have *both* an LLM-driven case-study analysis **and** your own
 flow dataset, you can ground the qualitative narrative in the
@@ -1388,7 +1558,8 @@ print(result.formatted)
 # Quantitative — your own classified flow data
 flows = pd.read_csv("brazil_soybean_flows_classified.csv")
 summary = summarize_metacoupling(flows)
-print(summary)        # IFS / PFS / TFS / MFE / IFCI / PFCI / TFCI per system
+print(summary)        # one row per system, 18 columns: focal_system_id, F_I/F_P/F_T/F_total,
+                      # IFS/PFS/TFS, MFE, IFCI/PFCI/TFCI, n_I/n_P/n_T, ENP_I/ENP_P/ENP_T
 ```
 
 See §16 for the indicator math and the Brazil-soybean worked example,
@@ -1411,18 +1582,75 @@ methods-section drafting around the deterministic core.
 | `ParsedAnalysis` | Structured data extracted from LLM response (incl. `evidence_coverage_note`). Import from `metacouplingllm.llm.parser` (not the top-level package). |
 | `AnalysisFormatter` | Formats ParsedAnalysis into various text representations. Import from `metacouplingllm.output.formatter` (not the top-level package). |
 | `RAGResult` | Container returned when `coupling_analysis=False` (RAG-only Q&A mode). |
+| `RunTrace` / `CallRecord` | Run-trace records attached as `result.trace` (see "Run tracing" in §5): a `RunTrace` holds the run's `calls` (one `CallRecord` per traced chat call), `total_tokens`, `git_sha`, `env` and `out_dir`. |
+| `Paper` | One entry of the literature database (`key`, `title`, `authors`, `year`, `journal`, `doi`, `keywords`, `cited_by`); returned by `recommend_papers`. |
 
-### AnalysisResult properties + exporters (PR #31, #32)
+### MetacouplingAssistant
+
+`MetacouplingAssistant(llm_client, ...)` takes the parameters below; every
+parameter except `llm_client` is optional.
+
+| Parameter | Default | Description |
+|---|---|---|
+| `llm_client` | required | Any `LLMClient`: an adapter or your own object with a `chat()` method. |
+| `temperature` | `0.7` | Sampling temperature of the main analysis call (§5). |
+| `max_tokens` | `None` | Response-length limit; `None` uses the provider's default (§5). |
+| `max_examples` | `2` | Curated examples placed in the system prompt. |
+| `verbose` | `False` | Print diagnostic messages while running. |
+| `recommend_papers` | `False` | Append a "RECOMMENDED LITERATURE" section to `result.formatted` (§9). |
+| `max_recommendations` | `5` | Number of papers to recommend. |
+| `auto_map` | `False` | Draw a map for each result and store it on `result.map` (§10). |
+| `adm1_shapefile` | `None` | Path to a World Bank Admin 1 GeoPackage for ADM1 maps; skips the cache and the download (§13). |
+| `adm0_shapefile` | `None` | Path to a World Bank Admin 0 GeoPackage for country maps; skips the cache and the download (§13). |
+| `rag_papers_dir` | `None` | Folder of your own markdown papers to use as the RAG corpus instead of the bundled one; cannot be combined with `rag_corpus`. |
+| `rag_corpus` | `None` | Built-in RAG corpus: `"journal_articles_2025"` (exported as `JOURNAL_ARTICLES_2025`). With neither this nor `rag_papers_dir`, RAG is off (§5). |
+| `rag_top_k` | `8` | Passages retrieved per analysis. |
+| `rag_backend` | `"auto"` | `"auto"` (embeddings, TF-IDF fallback), `"embeddings"` or `"tfidf"`. |
+| `rag_max_chunks_per_paper` | `3` | Most passages one paper can contribute to a retrieval. |
+| `rag_structured_extraction` | `False` | With RAG, one extra model call that extracts systems and flows from the retrieved passages into `result.structured_supplement`. |
+| `web_search` | `False` | Search the web before the analysis (§14). |
+| `web_search_max_results` | `10` | Hits requested per query (§14). |
+| `web_structured_extraction` | `True` | With `web_search=True`, an extra model call that extracts validated countries, flows and evidence cards (§14). |
+| `web_structured_min_confidence` | `0.7` | Minimum confidence for a web-extracted country or flow to be kept (§14). |
+| `web_structured_max_targets` | `6` | Cap on web-extracted receiving and spillover targets (§14). |
+| `rag_min_score` | `None` | Minimum retrieval score; `None` applies a floor for the active backend (0.60 for embeddings, 0.01 for TF-IDF). |
+| `coupling_analysis` | `True` | `False` switches to RAG-only Q&A, which returns a `RAGResult` (§5). |
+| `de_facto_borders` | `True` | Disputed-territory setting of the pericoupling validation (§8). |
+| `coupling_standard` | `"moderate"` | Water-only-border setting of the pericoupling validation (§8). |
+| `generate_abstract` | `True` | One extra model call per result to write `result.abstract`; `False` skips it. |
+| `trace` | `None` | Write a run-trace folder per `analyze()` / `refine()`: `None` = on unless `METACOUPLINGLLM_DISABLE_TRACE=1`, `True` / `False` force it (§5). |
+| `trace_dir` | `None` | Where trace folders are written (default `runs/<utc>_<slug>/`). |
+
+Methods and properties:
+
+| Method / property | Returns | Description |
+|---|---|---|
+| `analyze(research_description)` | `AnalysisResult` (`RAGResult` when `coupling_analysis=False`) | Runs an analysis. In framework mode it starts a new conversation; in RAG-only mode it answers the question and adds a turn to the running conversation. |
+| `refine(additional_info, focus_component=None)` | `AnalysisResult` | Continues the conversation with more information. Framework mode only: it raises `RuntimeError` before `analyze()` and in RAG-only mode. |
+| `reset()` | `None` | Clears the framework conversation. |
+| `clear_history()` | `None` | Clears both the framework and the RAG-only conversations. |
+| `history` | `list[Message]` | Copy of the framework conversation's messages (system prompt included). |
+| `turn_count` | `int` | Completed framework turns. |
+| `conversation_turns` | `int` | Completed RAG-only turns (0 in framework mode). |
+
+### AnalysisResult properties + exporters
 
 | Method / property | Returns | Description |
 |---|---|---|
 | `result.formatted` | `str` | Human-readable report (the default `print()` surface). |
 | `result.parsed` | `ParsedAnalysis` | Structured fields for programmatic access. |
-| `result.raw` | `str` | Unmodified LLM response (pre-sanitization). |
+| `result.raw` | `str` | The response text that was parsed. With no RAG corpus it is the model's text unchanged; with a RAG corpus (`rag_corpus` / `rag_papers_dir`) invalid `[Tk:N]` markers and bare `[N]` / `[W1]` tokens have already been stripped and whitespace normalised. The verbatim provider response is the `response_content` of the `main_analysis` call in `result.trace.calls` (tracing on). |
 | `result.turn_number` | `int` | 1 for the first turn; increments across `refine()`. |
 | `result.usage` | `dict \| None` | Token-usage accounting (provider-dependent). |
 | `result.map` | `Figure \| None` | Generated map (when `auto_map=True`). |
 | `result.abstract` | `str` | Scholar-ready one-paragraph abstract. |
+| `result.trace` | `RunTrace \| None` | Per-run trace: `out_dir` (artifact folder, or `None` if writing failed), `calls` (`list[CallRecord]`: prompts, response, usage, duration), `total_tokens`, `git_sha`, `env`; `None` when tracing is off (`trace=False`). See "Run tracing" in §5. |
+| `result.web_map_signals` | `dict \| None` | Validated countries, flows and evidence cards from the structured web extraction (`web_search=True`); `None` without it. |
+| `result.evidence_coverage_note` | `str` | Copy of `result.parsed.evidence_coverage_note`. |
+| `result.map_notice` | `str \| None` | Why a map was or was not produced (`auto_map=True`; §10). |
+| `result.structured_supplement` | `dict \| None` | Output of `rag_structured_extraction=True`; `None` when it is off or failed. |
+| `result.flow_parse_warnings` | `list[dict]` | Flow directions the automatic map's text-scan fallback could not resolve (keys `direction`, `category`, `reason`); empty otherwise. |
+| `result.suggested_followup_queries` | `list[str]` | Follow-up web-search queries from the web-extraction call; empty without web search. |
 | `result.to_markdown(path=None)` | `str` | Manuscript-ready Markdown; writes to `path` if given. |
 | `result.to_docx(path=None)` | `Path` | Word document; defaults to `./metacoupling_report.docx` and returns the written `Path` (requires `metacouplingllm[export]`). |
 
@@ -1431,29 +1659,31 @@ methods-section drafting around the deterministic core.
 | Class | Description |
 |---|---|
 | `OpenAIAdapter(client, model="gpt-4o")` | Wraps an `openai.OpenAI` instance. |
-| `AnthropicAdapter(client, model="claude-sonnet-4-20250514")` | Wraps an `anthropic.Anthropic` instance. |
+| `AnthropicAdapter(client, model="claude-sonnet-4-20250514", extended_thinking=None)` | Wraps an `anthropic.Anthropic` instance; `extended_thinking` (e.g. `{"type": "enabled", "budget_tokens": 10000}`) is forwarded as the `thinking` request parameter and is not sent when `None`. |
 | `GeminiAdapter(client, model="gemini-2.5-flash")` | Wraps a `google.genai.Client` instance. |
 | `GrokAdapter(client, model="grok-3")` | Wraps an `openai.OpenAI` instance pointed at `https://api.x.ai/v1`. |
 | `LLMClient` | Protocol — implement `chat()` for custom LLM providers. |
+| `Message(role, content)` | One chat message (`role` is `"system"`, `"user"` or `"assistant"`); what `LLMClient.chat()` receives. |
+| `LLMResponse(content, usage={}, tool_uses=None)` | What `LLMClient.chat()` returns: the reply text, a token-`usage` dict and optional `tool_uses`. |
 
 ### Web-Search Backends (auto-wired when `web_search=True`)
 
-| Class | Native API | PR |
-|---|---|---|
-| `OpenAIWebSearchBackend` | OpenAI `web_search` tool | #17, #18, #21 |
-| `AnthropicWebSearchBackend` | Anthropic `web_search_20250305` tool | #28 |
-| `GeminiWebSearchBackend` | Google Search grounding | #29 |
-| `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool | #29 |
-| `search_web()` built-in fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) | — |
+| Class | Native API |
+|---|---|
+| `OpenAIWebSearchBackend` | OpenAI `web_search` tool |
+| `AnthropicWebSearchBackend` | Anthropic `web_search_20250305` tool |
+| `GeminiWebSearchBackend` | Google Search grounding |
+| `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool |
+| `search_web()` built-in fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) |
 
 ### Pericoupling Functions (country level)
 
 | Function | Returns | Description |
 |---|---|---|
-| `lookup_pericoupling(a, b, de_facto_borders=True, coupling_standard="moderate")` | `PericouplingResult` | Full lookup with pair type and codes. |
-| `is_pericoupled(a, b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick check: True/False/None. |
+| `lookup_pericoupling(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `PericouplingResult` | Full lookup with pair type and codes. |
+| `is_pericoupled(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick check: True/False/None. |
 | `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All pericoupled ISO codes. |
-| `resolve_country_code(name)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3. |
+| `resolve_country_code(name_or_code)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3. |
 | `get_country_name(code)` | `str` | ISO alpha-3 code to canonical English name. |
 
 `de_facto_borders` toggles the disputed-territory overlay;
@@ -1464,15 +1694,15 @@ water-only pairs — see §8 "Adjacency standards".
 
 | Function | Returns | Description |
 |---|---|---|
-| `lookup_adm1_pericoupling(a, b, de_facto_borders=True, coupling_standard="moderate")` | `Adm1PericouplingResult` | Full ADM1 lookup with pair type. |
-| `is_adm1_pericoupled(a, b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick adjacency check at the ADM1 scale. |
-| `get_adm1_neighbors(code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All ADM1 neighbors (domestic + cross-border). |
-| `get_cross_border_neighbors(code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | ADM1 neighbors in other countries only. |
-| `get_adm1_codes_for_country(iso)` | `set[str]` | All ADM1 codes inside the given country. |
-| `get_adm1_info(code)` | `dict \| None` | ADM1 metadata (canonical name, country, region). |
-| `get_adm1_country(code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
-| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` (PR #45) — and **English exonyms / alternative spellings** via a bundled alias table (PR #60/#61) — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
-| `get_adm1_aliases(code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
+| `lookup_adm1_pericoupling(adm1_a, adm1_b, de_facto_borders=True, coupling_standard="moderate")` | `Adm1PericouplingResult` | Full ADM1 lookup with pair type. |
+| `is_adm1_pericoupled(adm1_a, adm1_b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick adjacency check at the ADM1 scale. |
+| `get_adm1_neighbors(adm1_code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All ADM1 neighbors (domestic + cross-border). |
+| `get_cross_border_neighbors(adm1_code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | ADM1 neighbors in other countries only. |
+| `get_adm1_codes_for_country(country)` | `set[str]` | All ADM1 codes inside the given country (name or ISO alpha-3). |
+| `get_adm1_info(adm1_code)` | `dict \| None` | Dict with keys `name` (canonical ADM1 name), `country_name`, `iso_a3` and `wb_region` (World Bank region code, e.g. `LCR`); `None` if the code is unknown. |
+| `get_adm1_country(adm1_code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` — and **English exonyms / alternative spellings** via a bundled alias table — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
+| `get_adm1_aliases(adm1_code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
 
 ### Literature Functions
 
@@ -1482,15 +1712,34 @@ water-only pairs — see §8 "Adjacency standards".
 | `format_recommendations(papers)` | `str` | Format papers as readable text. |
 | `get_database_info()` | `dict` | Summary statistics of the literature database. |
 
+### RAG, citation and web-evidence helpers
+
+Lower-level building blocks behind the RAG, citation and web-evidence steps,
+exported for custom pipelines.
+
+| Name | Description |
+|---|---|
+| `JOURNAL_ARTICLES_2025` | `"journal_articles_2025"`, the name of the bundled RAG corpus (`rag_corpus=JOURNAL_ARTICLES_2025`). |
+| `RAGEngine(papers_dir, max_chunk_words=250, overlap_words=50, verbose=False, backend="auto")` | Retrieval engine over a folder of markdown papers: call `load()` once, then `retrieve(query, top_k=5, min_score=None, max_chunks_per_paper=3)`, which returns a `list[RetrievalResult]`. |
+| `RetrievalResult(chunk, score)` / `TextChunk` | A retrieved passage with its score / the passage itself (`paper_key`, `paper_title`, `authors`, `year`, `section`, `text`, `chunk_index`). |
+| `format_evidence(results, anchor_text="", backend="tfidf", turn=1, *, max_chars=None)` | Render retrieved passages as the human-readable evidence block with `[Tk:N]` headers. |
+| `TURN_CITATION_PATTERN` | Compiled regex matching the turn-scoped citation markers `[Tk:N]` (literature) and `[Tk:Wn]` (web). |
+| `sanitize_turn_citations(text, turn_passage_counts, turn_web_counts, current_turn)` | Strip out-of-range citation markers; returns `(sanitized_text, invalid_markers)`. |
+| `extract_turn_cited_ids(text)` | The `(k, kind, N)` tuples of the turn-scoped markers used in `text`. |
+| `format_web_context(results, turn=1)` | Format `search_web()` results as the prompt's web-context section. |
+| `annotate_web_citations(formatted, web_results, min_keyword_overlap=3, min_overlap_ratio=0.25, turn=1)` | Add inline `[Tk:Wn]` citations to the lines of formatted text that match a web result. |
+| `extract_web_map_signals(query, results, llm_client, *, min_confidence=0.7, max_targets=6, temperature=0.0, max_tokens=8192)` | One model call that extracts validated map-ready countries and flows from web results (the source of `result.web_map_signals`); returns a dict or `None`. |
+| `format_web_map_signals_context(signals)` | Format those signals as a prompt-ready section. |
+
 ### Visualization Functions
 
 | Function | Returns | Description |
 |---|---|---|
-| `plot_focal_country_map(country, ...)` | `Figure` | World map from country name/code. |
-| `plot_analysis_map(parsed, ...)` | `Figure` | World map from LLM analysis result. |
+| `plot_focal_country_map(focal_country, ...)` | `Figure` | World map from country name/code. |
+| `plot_analysis_map(parsed_analysis, ...)` | `Figure` | World map from LLM analysis result. |
 | `plot_focal_adm1_map(focal_adm1, ...)` | `Figure` | Subnational (ADM1) map for the focal region + its neighbors. |
 
-### Quantitative Indicator Functions (PR #35 — `metacouplingllm.indicators`)
+### Quantitative Indicator Functions (`metacouplingllm.indicators`)
 
 | Function | Returns | Description |
 |---|---|---|
@@ -1501,7 +1750,7 @@ water-only pairs — see §8 "Adjacency standards".
 | `compute_mfci(data, ...)` | `pd.DataFrame` | Normalised HHI per coupling type (long-format: one row per system × coupling type). |
 | `summarize_metacoupling(data, ...)` | `pd.DataFrame` | One-shot combined indicator table (this is what produces the wide IFCI/PFCI/TFCI + ENP_* columns — ENP_I/P/T = Equivalent Number of Intra-/Peri-/Telecoupled Partners). |
 
-### LLM-Assisted Indicator Helpers (PR #36 — `metacouplingllm.indicators`)
+### LLM-Assisted Indicator Helpers (`metacouplingllm.indicators`)
 
 | Function | Returns | Description |
 |---|---|---|
@@ -1518,6 +1767,7 @@ water-only pairs — see §8 "Adjacency standards".
 |---|---|
 | `CouplingType` | `INTRACOUPLING`, `PERICOUPLING`, `TELECOUPLING` |
 | `SystemRole` | `SENDING`, `RECEIVING`, `SPILLOVER` |
+| `FrameworkComponent` | `SYSTEMS`, `FLOWS`, `AGENTS`, `CAUSES`, `EFFECTS` |
 | `FlowCategory` | `CAPITAL`, `ENERGY`, `INFORMATION`, `MATTER`, `ORGANISMS`, `PEOPLE` |
 | `AgentLevel` | `INDIVIDUALS_HOUSEHOLDS`, `FIRMS_TRADERS_CORPORATIONS`, `GOVERNMENTS_POLICYMAKERS`, `ORGANIZATIONS_NGOS`, `NON_HUMAN_AGENTS` |
 | `CauseCategory` / `EffectCategory` | `ECONOMIC`, `POLITICAL_INSTITUTIONAL`, `ECOLOGICAL_BIOLOGICAL`, `TECHNOLOGICAL_INFRASTRUCTURAL`, `CULTURAL_SOCIAL_DEMOGRAPHIC`, `HYDROLOGICAL`, `CLIMATIC_ATMOSPHERIC`, `GEOLOGICAL_GEOMORPHOLOGICAL` |
@@ -1556,9 +1806,11 @@ from google.colab import userdata
 client = OpenAI(api_key=userdata.get('OPENAI_API_KEY'))
 ```
 
-### `ModuleNotFoundError: No module named 'geopandas'`
+### `ImportError: Visualization requires geopandas, matplotlib`
 
-Install the visualization dependencies:
+The map functions (`plot_focal_country_map`, `plot_analysis_map`,
+`plot_focal_adm1_map`) need the `[viz]` extra (geopandas and matplotlib;
+the message names whichever of the two is missing):
 
 ```python
 !pip install "metacouplingllm[viz]"
@@ -1566,7 +1818,7 @@ Install the visualization dependencies:
 
 ### `ImportError: metacouplingllm.indicators requires pandas`
 
-The quantitative indicators submodule (PR #35) needs pandas. Install
+The quantitative indicators submodule needs pandas. Install
 the `[indicators]` extra:
 
 ```python
@@ -1575,7 +1827,7 @@ the `[indicators]` extra:
 
 ### `ImportError: render_docx requires the optional python-docx dependency`
 
-The Word exporter (PR #31, #32) needs `python-docx`. Install the
+The Word exporter needs `python-docx`. Install the
 `[export]` extra:
 
 ```python
@@ -1585,11 +1837,33 @@ The Word exporter (PR #31, #32) needs `python-docx`. Install the
 `result.to_markdown(...)` and `result.abstract` work without this
 extra.
 
-### `FileNotFoundError: No World Bank ... GeoPackage found` / map download failures
+### `FileNotFoundError` for the World Bank boundary data / map download failures
 
 The package downloads the needed World Bank boundary GeoPackages on
 first use and caches them locally. Ensure you have internet access for
-the first map generation; subsequent renders use the cache.
+the first map generation; subsequent renders use the cache. When the file
+can be neither found nor downloaded, country maps raise `Country-level maps
+require World Bank ADM0 boundary data ...` and ADM1 maps raise `No World
+Bank Admin 1 GeoPackage found in cache ...`.
+
+If the machine is offline or the download is blocked, download the World
+Bank Official Boundaries GeoPackages once (Admin 0 and Admin 1; World Bank
+Data Catalog, dataset 0038272) and pass their paths:
+
+```python
+fig = plot_focal_country_map("China", adm0_shapefile="path/to/Admin 0_all_layers.gpkg")
+fig = plot_focal_adm1_map("MEX001", shapefile="path/to/Admin 1.gpkg")
+
+advisor = MetacouplingAssistant(
+    adapter,
+    auto_map=True,
+    adm0_shapefile="path/to/Admin 0_all_layers.gpkg",
+    adm1_shapefile="path/to/Admin 1.gpkg",
+)
+```
+
+Downloads are cached under `~/.cache/metacoupling` (set
+`METACOUPLING_CACHE_DIR` to use another folder).
 
 ### Map shows `TclError: Can't find a usable tk.tcl`
 
@@ -1610,29 +1884,46 @@ backend is used automatically.
 
 ### Pericoupling validation shows unexpected country pairs
 
-The package only validates pairs involving the **sending (focal) country**.
-If you see unexpected pairs, the LLM may have identified a different
-country as the sending system than you intended. Use
+The package only validates pairs involving the **focal system**: the
+sending (or focal) system of the parsed analysis, which is the focal
+subnational region when your query names one. If you see unexpected
+pairs, the LLM may have identified a different country as the sending
+system than you intended. Use
 `list(result.parsed.iter_system_entries())` to check what the LLM
 detected.
 
 ### A subnational region the LLM clearly mentioned isn't in the validator block
 
 The validator can only show regions whose name `resolve_adm1_code` can
-match against the bundled ADM1 database. PR #45 broadened recognition to
-include unaccented forms (`Michoacan` → `Michoacán de Ocampo`), possessives
-(`Michoacán's`), and hyphenated compounds (`Michoacán-Jalisco`); PR #60/#61
-added an English-exonym alias table (`Bavaria` → `Bayern`, `Tuscany` →
-`Toscana`); and the validator now surfaces LLM-mentioned ADM1 partners as
-`pair_results` lines so the formatter buckets them into the COUPLING DATABASE
-VALIDATION block. But a few edge cases still slip through:
+match against the bundled ADM1 database. Recognition covers unaccented
+forms (`Michoacan` → `Michoacán de Ocampo`), possessives (`Michoacán's`),
+hyphenated compounds (`Michoacán-Jalisco`) and English exonyms through the
+alias table (`Bavaria` → `Bayern`, `Tuscany` → `Toscana`). When the
+research description names a subnational region, LLM-mentioned ADM1
+partners are emitted as `pair_results` lines, which the formatter buckets
+into the COUPLING DATABASE VALIDATION block. A region can still be missing
+from the block in these cases:
 
+- **Country-scope query.** The subnational (ADM1) part of the validator
+  runs only when the research description passed to `analyze()` names a
+  subnational region: a capitalised region name that `resolve_adm1_code`
+  resolves and that is not also a country name, or an ADM1 code such as
+  `MEX016`. Adjacent capitalised words are read as one name, so write
+  `Michoacán, Mexico` rather than `Michoacán Mexico`. For any other
+  (country-scope) query, mentioned regions of the focal country appear only
+  on the `Core subnational regions:` line, never as pair lines, and regions
+  of other countries are not listed.
+- **Spillover role.** In subnational-scope queries, regions the model lists
+  as spillover systems are deliberately not classified (adjacency cannot
+  show whether a place plays that indirect role).
+- **Country not named.** When the analysis names other countries but not
+  the region's own country, the region is dropped as a likely false match.
 - **Non-canonical names.** The DB uses official names (e.g.
   `Michoacán de Ocampo`, not `Michoacan State`). Short or colloquial
   forms work via the substring / folded fallback (which also
   transliterates letters NFKD cannot decompose, e.g. `Łódź`,
   `Đắk Lắk`), and many English
-  exonyms now resolve through the alias table, but truly different
+  exonyms resolve through the alias table, but truly different
   names (e.g. local short names not in the gazetteer or the alias table)
   won't.
 - **Region mentioned only in `name` or `geographic_scope` fields.**
@@ -1654,8 +1945,9 @@ to confirm whether the resolver finds it at all.
 ### Literature recommendations seem unrelated
 
 The engine ranks papers by author-assigned keywords, title words,
-full-text relevance from the bundled RAG index (TF-IDF, or embeddings
-when available), and citation count — see §9 "How recommendations
+full-text relevance from the bundled RAG index (embeddings by default,
+with a TF-IDF fallback when fastembed or the precomputed vectors are
+unavailable), and citation count — see §9 "How recommendations
 work". Try more specific terms in your research description so the
 keyword and full-text components have something to bite on.
 
@@ -1663,7 +1955,9 @@ keyword and full-text components have something to bite on.
 
 You must call `advisor.analyze()` before calling `advisor.refine()`. The
 `refine()` method continues a multi-turn conversation that `analyze()`
-starts.
+starts. In RAG-only mode (`coupling_analysis=False`) `refine()` is not
+available and always raises this error; ask follow-up questions with
+further `analyze()` calls instead (see §5, RAG-only mode).
 
 ---
 
