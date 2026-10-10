@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-**Metacoupling** is a Python package (v0.1.3) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
+**Metacoupling** is a Python package (v0.2.0) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
 
 **Key capabilities:**
 
@@ -544,7 +544,7 @@ The same DataFrame plugs into the optional LLM-assisted helpers (PR #36) — `de
 | ADM1 alias table (CSV) | 1,145 English exonyms / alternative spellings for 863 ADM1 regions in 136 countries (e.g. Bavaria→Bayern, Tuscany→Toscana), so `resolve_adm1_code` matches common English names; deterministically validated (see `data/PROVENANCE.md`) |
 | Framework examples | Curated case studies (soybean trade, urban water) for prompt injection |
 
-*Counts above are as of v0.1.3.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
+*Counts above are as of v0.2.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile("Papers.zip").namelist())` for the live paper count if the corpus drifts.*
 
 ---
 
