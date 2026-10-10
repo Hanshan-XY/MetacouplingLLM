@@ -1,0 +1,1122 @@
+{
+ "Albania": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Algeria": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "American Samoa": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Andaman & Nicobar Isl. (India)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Angola": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Anguilla (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Antigua & Barbuda": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Argentina": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Aruba": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Ascension Islands": {
+  "grp": null,
+  "region": null
+ },
+ "Australia": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Azores Islands (Portugal)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Bahamas": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Bahrain": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Balearic Islands (Spain)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Bangladesh": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Barbados": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Belgium": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Belize": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Benin": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Bermuda (UK)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Bonaire (Netherlands)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Bosnia & Herzegovina": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Bouvet Isl. (Norway)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Brazil (mainland)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "British Virgin Isl. (UK)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Brunei Darussalam": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Bulgaria": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Cambodia": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Cameroon": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Canada (Arctic)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Canada (East Coast)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Canada (Pacific)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Canary Isl. (Spain)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Cape Verde": {
+  "grp": null,
+  "region": null
+ },
+ "Cayman Isl. (UK)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Chagos Archipelago (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Channel Isl. (UK)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Chile (mainland)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "China": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Christmas Isl. (Australia)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Clipperton Isl. (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Cocos (Keeling) Isl. (Australia)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Colombia (Caribbean)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Colombia (Pacific)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Comoros Isl.": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Congo (Republic of)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Congo (ex-Zaire)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Cook Islands": {
+  "grp": null,
+  "region": null
+ },
+ "Corsica (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Costa Rica (Caribbean)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Costa Rica (Pacific)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Cote dIvoire (Ivory Coast)": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Crete (Greece)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Croatia": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Crozet Isl. (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Cuba": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Curacao (Netherlands)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Cyprus (North)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Cyprus (South)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Denmark (Baltic Sea)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Denmark (North Sea)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Desventuradas Isl. (Chile)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Djibouti": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Dominica": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Dominican Republic": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Easter Isl. (Chile)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Ecuador (mainland)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Egypt (Mediterranean)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Egypt (Red Sea)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "El Salvador": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Equatorial Guinea": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Eritrea": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Estonia": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Faeroe Isl.": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Falkland Isl. (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Fernando de Noronha (Brazil)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Fiji": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Finland": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "France  (Atlantic Coast)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "France (Mediterranean)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "French Guiana": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "French Polynesia": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Gabon": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Galapagos Isl. (Ecuador)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Gambia": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Gaza Strip": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Georgia": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Germany (Baltic Sea)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Germany (North Sea)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Ghana": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Glorieuse Islands (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Greece (without Crete)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Greenland (Denmark)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Grenada": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Guadeloupe (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Guam (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Guatemala (Caribbean)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Guatemala (Pacific)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Guinea": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Guinea-Bissau": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Guyana": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Haiti": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Hawaii Main Islands (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Hawaii Northwest Islands (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Heard & McDonald Isl. (Australia)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Honduras (Caribbean)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Honduras (Pacific)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Hong Kong (China)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Howland & Baker Isl. (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Iceland": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "India (mainland)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Indonesia (Central)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Indonesia (Eastern)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Indonesia (Indian Ocean)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Iran (Persian Gulf)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Iran (Sea of Oman)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Iraq": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Ireland": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Israel (Mediterranean)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Israel (Red Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Italy (mainland)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Jamaica": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Jan Mayen Isl. (Norway)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Japan (Daito Islands)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Japan (Ogasawara Islands)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Japan (main islands)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Jarvis Isl. (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Johnston Atoll (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Jordan": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Juan Fernandez Islands (Chile)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Kenya": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Kerguelen Isl. (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Kermadec Isl. (New Zealand)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Kiribati (Gilbert Islands)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Kiribati (Line Islands)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Kiribati (Phoenix Islands)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Korea (North)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Korea (South)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Kuwait": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Latvia": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Lebanon": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Liberia": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Libya": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Lithuania": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Lord Howe Isl. (Australia)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Macquarie Isl. (Australia)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Madagascar": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Madeira Isl. (Portugal)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Malaysia (Peninsula East)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Malaysia (Peninsula West)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Malaysia (Sabah)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Malaysia (Sarawak)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Maldives": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Malta": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Marshall Isl.": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Martinique (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Mauritania": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Mauritius": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Mayotte (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Mexico (Atlantic)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Mexico (Pacific)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Micronesia (Federal States of)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Montenegro": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Montserrat (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Morocco (Central)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Morocco (Mediterranean)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Morocco (South)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Mozambique": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Mozambique Channel Isl. (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Myanmar": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Namibia": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Nauru": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Netherlands": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "New Caledonia (France)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "New Zealand": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Nicaragua (Caribbean)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Nicaragua (Pacific)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Nigeria": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Niue (New Zealand)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Norfolk Isl. (Australia)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Northern Marianas (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Norway": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Oman": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Oman (Musandam)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Pakistan": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Palau": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Palmyra Atoll & Kingman Reef (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Panama (Caribbean)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Panama (Pacific)": {
+  "grp": "Central America",
+  "region": "Central America"
+ },
+ "Papua New Guinea": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Peru": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Philippines": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Pitcairn (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Poland": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Portugal (mainland)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Prince Edward Isl. (South Africa)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Puerto Rico (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Qatar": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Reunion (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Romania": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Russia (Baltic Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Russia (Barents Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Russia (Black Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Russia (Far East)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Russia (Kara Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Russia (Laptev to Chukchi Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Saba and Sint Eustaius (Netherlands)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Saint Helena (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Saint Kitts & Nevis": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Saint Lucia": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Saint Pierre & Miquelon (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Saint Vincent & the Grenadines": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Samoa": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Sao Tome & Principe": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Sardinia (Italy)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Saudi Arabia (Persian Gulf)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Saudi Arabia (Red Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Senegal": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Seychelles": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Sicily (Italy)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Sierra Leone": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Singapore": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Sint Maarten (Netherlands)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Slovenia": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Solomon Isl.": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Somalia": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "South Africa (Atlantic and Cape)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "South Africa (Indian Ocean Coast)": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "South Georgia & Sandwich Isl. (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "South Orkney Islands (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Spain (Northwest)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Spain (mainland, Med and Gulf of Cadiz)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Sri Lanka": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "St Barthelemy (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "St Martin (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "St Paul & Amsterdam Isl. (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "St Paul and St. Peter Archipelago (Brazil)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Sudan": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Suriname": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Svalbard Isl. (Norway)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Sweden (Baltic)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Sweden (West Coast)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Syria": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Taiwan": {
+  "grp": null,
+  "region": null
+ },
+ "Tanzania": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Thailand (Andaman Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Thailand (Gulf of Thailand)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Timor Leste": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Togo": {
+  "grp": "Africa (West)",
+  "region": "Africa_western"
+ },
+ "Tokelau (New Zealand)": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Tonga": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Trindade & Martim Vaz Isl. (Brazil)": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Trinidad & Tobago": {
+  "grp": "Caribbean",
+  "region": "Caribbean"
+ },
+ "Tristan da Cunha Isl. (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Tromelin Isl. (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Tunisia": {
+  "grp": "Africa (non-western)",
+  "region": "Africa_not western"
+ },
+ "Turkey (Black Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Turkey (Marmara Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Turkey (Mediterranean Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Turks & Caicos Isl. (UK)": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "Tuvalu": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "US Virgin Isl.": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "USA (Alaska, Arctic)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "USA (Alaska, Subarctic)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "USA (East Coast)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "USA (Gulf of Mexico)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "USA (West Coast)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Ukraine": {
+  "grp": "Europe (E/S)",
+  "region": "Europe_eastern/southern"
+ },
+ "United Arab Emirates": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "United Arab Emirates (Fujairah)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "United Kingdom (UK)": {
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
+ },
+ "Uruguay": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Vanuatu": {
+  "grp": "Oceania",
+  "region": "Oceania"
+ },
+ "Venezuela": {
+  "grp": "South America",
+  "region": "South America"
+ },
+ "Viet Nam": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Wake Isl. (USA)": {
+  "grp": "North America",
+  "region": "North America"
+ },
+ "Wallis & Futuna Isl. (France)": {
+  "grp": "Europe (West)",
+  "region": "Europe_western"
+ },
+ "Yemen (Arabian Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ },
+ "Yemen (Red Sea)": {
+  "grp": "Asia",
+  "region": "Asia"
+ }
+}
