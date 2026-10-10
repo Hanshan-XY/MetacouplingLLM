@@ -15,10 +15,12 @@ from metacouplingllm.knowledge.rag import (
     TfIdfIndex,
     _build_query_from_analysis,
     _CHUNK_HARD_CHAR_CAP,
+    _assign_db_matches,
     _chunk_markdown,
     _load_precomputed_embeddings,
     _match_paper_to_db,
     _normalise_for_match,
+    _paper_from_filename,
     _score_to_confidence,
     _split_oversized,
     _tokenise,
@@ -147,6 +149,81 @@ class TestMatchPaperToDb:
         paper = _match_paper_to_db(filename, MOCK_DB_PAPERS)
         assert paper is not None
         assert paper.key == "bicudo_sino_2017"
+
+
+# The entry's own paper, and a later paper by the same first author
+# whose best match is that entry too (score 0.385 + 0.05 vs 1.0 + 0.05).
+CARLSON_2017 = (
+    "Carlson et al. - 2017 - The Telecoupling Framework An Integrative "
+    "Tool for Enhancing Fisheries Management.md"
+)
+CARLSON_2018 = (
+    "Carlson et al. - 2018 - The telecoupling framework applied to "
+    "inland fisheries management.md"
+)
+
+
+class TestAssignDbMatches:
+    """Each BibTeX entry goes to one file: the one that matches it best."""
+
+    def test_both_files_match_the_entry_on_their_own(self):
+        for filename in (CARLSON_2017, CARLSON_2018):
+            paper = _match_paper_to_db(filename, MOCK_DB_PAPERS)
+            assert paper is not None
+            assert paper.key == "carlson_telecoupling_2017"
+
+    def test_entry_goes_to_best_scoring_file(self):
+        liu = "Liu - 2017 - Integration across a metacoupled world.md"
+        # The weaker file comes first: order does not decide the winner.
+        matches = _assign_db_matches(
+            [CARLSON_2018, liu, CARLSON_2017], MOCK_DB_PAPERS,
+        )
+        assert matches[CARLSON_2017].key == "carlson_telecoupling_2017"
+        assert matches[liu].key == "liu_integration_2017"
+        assert CARLSON_2018 not in matches
+
+    def test_tie_goes_to_first_filename(self):
+        a = "Liu - 2017 - Integration across a metacoupled world.md"
+        b = "Liu - 2018 - Integration across a metacoupled world.md"
+        assert list(_assign_db_matches([a, b], MOCK_DB_PAPERS)) == [a]
+        assert list(_assign_db_matches([b, a], MOCK_DB_PAPERS)) == [b]
+
+    def test_unmatched_and_invalid_filenames_left_out(self):
+        matches = _assign_db_matches(
+            ["Smith - 2050 - Something completely different.md",
+             "not_a_paper.txt"],
+            MOCK_DB_PAPERS,
+        )
+        assert matches == {}
+
+    def test_load_gives_the_other_file_its_filename_metadata(
+        self, tmp_path, monkeypatch,
+    ):
+        body = "## Introduction\n\n" + " ".join(["fisheries"] * 60) + "\n"
+        for filename in (CARLSON_2017, CARLSON_2018):
+            (tmp_path / filename).write_text(body, encoding="utf-8")
+        monkeypatch.setattr(
+            "metacouplingllm.knowledge.literature._get_database",
+            lambda: MOCK_DB_PAPERS,
+        )
+
+        engine = RAGEngine(papers_dir=tmp_path, backend="tfidf")
+        engine.load()
+
+        assert engine.total_files == 2
+        assert engine.matched_papers == 1
+        entry = next(
+            p for p in MOCK_DB_PAPERS if p.key == "carlson_telecoupling_2017"
+        )
+        own = _paper_from_filename(CARLSON_2018)
+        metadata = {
+            (c.paper_key, c.paper_title, c.authors, c.year)
+            for c in engine._index._chunks
+        }
+        assert metadata == {
+            (entry.key, entry.title, entry.authors, 2017),
+            (own.key, own.title, "Carlson et al.", 2018),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -1313,6 +1390,96 @@ class TestBundledManifestIntegrity:
         )
 
 
+class TestBundledCorpusPaperKeys:
+    """Every bundled paper's chunks carry its own key, every BibTeX
+    entry goes to one bundled file, and no entry goes to two.
+
+    Matched one file at a time, 17 entries match two to five bundled
+    files each (37 files).  Without the one-file-per-entry rule, 20
+    papers' passages would carry another paper's key, title, authors
+    and year, and share its ``max_chunks_per_paper`` budget.  A file
+    whose name lacks the ``Author - YYYY - Title.md`` pattern matches
+    no entry and is indexed with year 0.
+    """
+
+    @pytest.fixture(scope="class")
+    def engine(self):
+        from metacouplingllm.knowledge.rag import _extract_bundled_papers
+
+        engine = RAGEngine(
+            _extract_bundled_papers(verbose=False), backend="tfidf",
+        )
+        engine.load()
+        return engine
+
+    def test_one_key_per_file(self, engine):
+        keys = {c.paper_key for c in engine._index._chunks}
+        assert engine.total_files == 420
+        assert len(keys) == 420
+
+    def test_no_bibtex_key_goes_to_two_files(self, engine):
+        from metacouplingllm.knowledge.literature import _get_database
+
+        bib_keys = {p.key for p in _get_database()}
+        chunk_bib_keys = {c.paper_key for c in engine._index._chunks} & bib_keys
+        # As many distinct entries as files that were given one.
+        assert len(chunk_bib_keys) == engine.matched_papers
+
+    def test_every_file_name_gives_author_year_and_title(self, engine):
+        from metacouplingllm.knowledge.rag import _FILENAME_RE
+
+        names = [p.name for p in engine._papers_dir.glob("*.md")]
+        assert len(names) == 420
+        assert [n for n in names if not _FILENAME_RE.match(n)] == []
+
+    def test_every_bibtex_entry_goes_to_a_file(self, engine):
+        from metacouplingllm.knowledge.literature import _get_database
+
+        bib_keys = {p.key for p in _get_database()}
+        chunk_keys = {c.paper_key for c in engine._index._chunks}
+        assert sorted(bib_keys - chunk_keys) == []
+
+    @pytest.mark.parametrize(
+        ("filename", "entry_key"),
+        [
+            (
+                "Agusdinata et al. - 2022 - Critical minerals for electric "
+                "vehicles a telecoupling review.md",
+                "liu_sustainable_2022",
+            ),
+            (
+                "Coenen et al. - 2023 - Toward spatial fit in the "
+                "governance of global commodity flows.md",
+                "al_drivers_2023",
+            ),
+            (
+                "Buerkert et al. - 2021 - WATER USE IN HUMAN CIVILIZATIONS "
+                "AN INTERDISCIPLINARY ANALYSIS OF A PERPETUAL "
+                "SOCIAL-ECOLOGICAL CHA.md",
+                "al_human_2021",
+            ),
+            (
+                "Carlson et al. - 2022 - More than ponds amid skyscrapers "
+                "Urban fisheries as multiscalar human-natural systems.md",
+                "carlson_modeling_2021",
+            ),
+        ],
+    )
+    def test_file_that_lost_an_entry_keeps_its_own_metadata(
+        self, engine, filename, entry_key,
+    ):
+        chunks = engine._index._chunks
+        own = _paper_from_filename(filename)
+        own_metadata = {
+            (c.paper_title, c.authors, c.year)
+            for c in chunks
+            if c.paper_key == own.key
+        }
+        assert own_metadata == {(own.title, own.authors, own.year)}
+        # The entry stays with its own paper.
+        assert any(c.paper_key == entry_key for c in chunks)
+
+
 # ---------------------------------------------------------------------------
 # Multi-chunk retrieval per paper
 # ---------------------------------------------------------------------------
@@ -1541,7 +1708,7 @@ class TestRAGEngineMaxChunksPerPaper:
                 self.authors = authors
                 self.year = year
 
-        original_match = rag_mod._match_paper_to_db
+        original_match = rag_mod._best_db_match
         original_get_db = rag_mod._get_database_uncached if hasattr(
             rag_mod, "_get_database_uncached"
         ) else None
@@ -1549,10 +1716,10 @@ class TestRAGEngineMaxChunksPerPaper:
         def _fake_match(filename, db_papers):  # noqa: ARG001
             if filename.startswith("Alpha"):
                 return _FakePaper("alpha_2024", "UK feed barley study",
-                                  "Alpha et al.", 2024)
+                                  "Alpha et al.", 2024), 1.0
             if filename.startswith("Bravo"):
                 return _FakePaper("bravo_2024", "Soybean telecoupling",
-                                  "Bravo et al.", 2024)
+                                  "Bravo et al.", 2024), 1.0
             return None
 
         # literature._get_database returns something truthy so load()
@@ -1561,7 +1728,7 @@ class TestRAGEngineMaxChunksPerPaper:
         original_db = lit_mod._get_database if hasattr(lit_mod, "_get_database") else None
 
         try:
-            rag_mod._match_paper_to_db = _fake_match
+            rag_mod._best_db_match = _fake_match
             lit_mod._get_database = lambda: [True]  # non-empty sentinel
 
             engine = RAGEngine(
@@ -1594,6 +1761,6 @@ class TestRAGEngineMaxChunksPerPaper:
             # The legacy mode must return FEWER Alpha chunks than default
             assert len(alpha_legacy) < len(alpha_default)
         finally:
-            rag_mod._match_paper_to_db = original_match
+            rag_mod._best_db_match = original_match
             if original_db is not None:
                 lit_mod._get_database = original_db

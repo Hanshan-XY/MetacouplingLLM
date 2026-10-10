@@ -31,6 +31,9 @@ change:
 
 - `src/metacouplingllm/data/Papers.zip` (new / updated papers)
 - The chunking parameters or output order in `rag._chunk_markdown`
+- The paper key any chunk carries: the bibliography
+  (`telecoupling_literature.bib`) or the filename-to-entry matching in
+  `rag.py` (the fingerprint covers each chunk's paper key)
 - The default embedding model (`DEFAULT_EMBEDDING_MODEL` in `rag.py`)
 
 To rebuild::
