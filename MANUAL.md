@@ -1,6 +1,6 @@
 # Metacoupling Package — User Manual
 
-**Version 0.1.3**
+**Version 0.2.0**
 
 A Python package that helps researchers apply the telecoupling and metacoupling
 frameworks (Liu et al., 2013; Liu, 2017) to their research using Large Language
@@ -1142,7 +1142,7 @@ Papers are ranked by total score, then by citation count, then by year.
 
 ### Exploring the database
 
-Live values as of v0.1.3; call `get_database_info()` for
+Live values as of v0.2.0; call `get_database_info()` for
 current counts:
 
 ```python

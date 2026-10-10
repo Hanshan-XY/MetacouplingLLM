@@ -7,6 +7,46 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-10
+
+The first release since 0.1.2. Version 0.1.3 was never tagged or published to
+PyPI; its changes (under [0.1.3] below) ship in 0.2.0. The development status
+moves from Alpha to Beta.
+
+Highlights:
+
+- **Pericoupling databases** built from the World Bank Official Boundaries
+  (release of 2026-05-14): 326 country pairs and 8,462 ADM1 border pairs across
+  3,374 regions in 196 countries (321 and 8,026 under the default moderate
+  standard), with the `de_facto_borders` (disputed areas) and
+  `coupling_standard` (stringent / moderate / lenient) toggles. Each of the 824
+  water-only ADM1 borders (388 with a fixed crossing, 436 without) rests on
+  two-model adjudication (GPT-5.6 Sol research, Claude Sonnet 5 judgment) or a
+  maintainer ruling; a preregistered study measured the error rates of the
+  automatic decisions as they stood in July 2026 (`docs/VALIDATION_STUDY.md`).
+  `scripts/build_all.py` rebuilds the databases in one command.
+- **Quantitative indicators** (`metacouplingllm.indicators`): Metacoupled Flow
+  Shares, Metacoupled Flow Evenness, the Metacoupled Flow Concentration Index
+  and the Equivalent Number of Partners, computed deterministically from a flow
+  table, with optional LLM helpers that return an `LLMTrace`.
+- **Qualitative workflow**: native web search for OpenAI, Anthropic, Gemini and
+  Grok (DuckDuckGo fallback), structured web extraction on by default, evidence
+  coverage notes, adjacency validation of the model's coupling classification at
+  country and ADM1 level, `result.abstract`, Markdown and Word export, and
+  built-in run tracing.
+- **Literature**: RAG over 420 papers (192 full text, 228 structured summaries)
+  with BGE-base embeddings by default. Each of the 265 bibliography entries goes
+  to one bundled paper; all 265 were checked for DOIs and author names, and
+  titles and journal names were corrected where they carried markup or
+  file-name artifacts.
+- **Example**: `examples/fishing_eez/` reproduces the regional tables of the
+  fishing example in the EMS paper.
+- **Breaking changes**: the legacy `post_hoc` RAG mode and `annotate_citations`
+  are removed (PR #38); web-search results carry `model_summary` instead of
+  `snippet`; and the pre-0.1.3 citation API is gone (see [0.1.3]).
+
+The detailed entries follow.
+
 ### Added
 
 - **One rule for every shipped water-only row: all 866 put to it, 286 ruled by the maintainer, 42 leave the water-only set (water-only 866 → 824 = 388 / 436; ADM1 8,463 → 8,462; moderate 8,015 → 8,026; stringent 7,597 → 7,638; ADM0 moderate 320 → 321, stringent 300 → 307).**  The adjudication rule (a row stands on its latest two-model record only if both passes said water-only at high confidence with nothing flagged; otherwise it needs a maintainer ruling) had been applied to each campaign's new rows, never to the rows already shipped.  Campaign `ua1` (`build_data/water_screen_rebuild/uniform_acceptance/SPEC_ua1_uniform_acceptance.md`, approved 2026-10-02) applied it to all 866 rows and their fixed-crossing flags.  The 438 rows that stood on both passes at high confidence were judged again first, since Standard M had never been applied to them (19 fail it) and their judges had not been blind: Claude Sonnet 5 judged all 438 again, blind to every earlier verdict (two first runs, served Claude Sonnet 5.5 for the alias 'sonnet', were discarded, and the model is pinned), and the 381 on which both passes then said water-only were judged once more with the web allowed, by judges using web search and fetch only.  The 63 crossing judgments of 2026-10-02, also served Sonnet 5.5, were run again on Sonnet 5 (58 the same, 5 changed).  On 2026-10-04 the maintainer ruled the 286 rows the rule did not close and the 5 changed crossing flags: 244 water-only (70 row by row, 174 by exception), 41 not water-only, and La Paz↔Callao not adjacent (denylisted, `docs/FUTURE_EDGE_AUDITS.md` #14); a fixed crossing on four flags, none on Kayunga↔Mukono.  Tier A is now every row with a maintainer ruling on record (tiers 332 / 238 / 296 → 561 / 119 / 144; tier B stays inside the validation study's frame).  ADM0 roll-ups 26 → 19 (CHN↔PRK, CMR↔GAB, DEU↔LUX, FIN↔SWE, GRC↔TUR, MOZ↔TZA and MRT↔SEN each have a border that is not water-only); the denylist 6 → 7.  The 63 crossing clauses of 2026-10-02 now name Sonnet 5.5 and add the Sonnet 5 re-run.
@@ -2757,6 +2797,8 @@ file. The format is loosely based on
     API change.
 
 ## [0.1.3] — Turn-scoped citation markers `[Tk:N]`
+
+Not tagged or published to PyPI; these changes ship in 0.2.0.
 
 Multi-turn citation disambiguation. **Recommended upgrade for anyone
 using `refine()` or follow-up `analyze()` calls in RAG-only mode.**
