@@ -337,8 +337,8 @@ def _extract_manual_section12() -> str:
 
 def _keyword_present(keyword: str, haystack: str) -> bool:
     """Return True iff every whitespace-separated word in ``keyword``
-    appears in ``haystack`` (case-insensitive, hyphens treated as
-    spaces).
+    starts a word in ``haystack`` (case-insensitive, hyphens treated
+    as spaces).
 
     This is intentionally lenient: ``"quantitative indicators"``
     matches both ``"Quantitative indicators"`` and the variant
@@ -346,13 +346,23 @@ def _keyword_present(keyword: str, haystack: str) -> bool:
     uses, and ``"web search"`` matches the hyphenated
     ``"Web-Search Backends"`` heading in MANUAL.  Stylistic
     differences shouldn't break the test; only genuine missing
-    concepts should.
+    concepts should.  A word must start a word, though: a plain
+    substring test let ``"RAG"`` pass on ``"coverage"``.
     """
     normalized = haystack.lower().replace("-", " ")
     return all(
-        word in normalized
+        re.search(r"\b" + re.escape(word), normalized)
         for word in keyword.lower().replace("-", " ").split()
     )
+
+
+def test_keyword_present_matches_word_starts_only():
+    assert _keyword_present("RAG", "a RAG-only mode")
+    assert _keyword_present("quantitative indicators",
+                            "Quantitative metacoupling indicators")
+    assert _keyword_present("web search", "Web-Search Backends")
+    assert _keyword_present("indicator", "flow indicators")
+    assert not _keyword_present("RAG", "evidence_coverage_note summaries")
 
 
 def _missing_features(section_text: str, doc_tag: str) -> list[str]:

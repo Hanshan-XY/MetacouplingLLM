@@ -600,7 +600,7 @@ The package includes a comprehensive test suite. The tests are in the source rep
 
 ```bash
 pip install -e ".[all,dev]"
-pytest tests/        # CI runs: pytest tests/ --ignore=tests/test_rag.py -q
+pytest tests/        # CI runs: pytest tests/ -q
 ```
 
 Tests that need pandas, python-docx or geopandas are skipped when that extra is missing (`[all]` installs them), and the live OpenAI tests (`tests/test_openai_integration.py`) are skipped unless `OPENAI_API_KEY` is set in the environment or a `.env` file, in which case they make real API calls.
