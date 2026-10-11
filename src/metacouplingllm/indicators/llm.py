@@ -4,7 +4,8 @@ Five helpers + one shared adapter-dispatch routine + one
 ``LLMTrace`` dataclass for reproducibility.  Each helper takes any
 ``LLMClient`` (OpenAI / Anthropic / Gemini / Grok adapters from
 ``metacouplingllm.llm.client``) and returns a
-``(result, trace)`` tuple per spec §15.4 reproducibility rule.
+``(result, trace)`` tuple so every call can be reproduced
+(MANUAL.md §17).
 
 Strict-output dispatch reuses the pattern from
 ``websearch.py::extract_web_map_signals`` (PR #28 + PR #30):
@@ -69,8 +70,8 @@ if TYPE_CHECKING:  # pragma: no cover - type-only
 
 @dataclass
 class LLMTrace:
-    """Per spec §15.4 item 7: everything needed to reproduce an
-    LLM-assisted indicator call.  Returned alongside the result
+    """Everything needed to reproduce an LLM-assisted indicator call
+    (MANUAL.md §17).  Returned alongside the result
     from every helper so users can save it however they like.
 
     Attributes
@@ -422,8 +423,8 @@ def classify_ambiguous_edges(
     ``"high"``), ``reason``, and ``needs_user_confirmation``.
 
     The LLM is instructed to return ``"unknown"`` when information
-    is insufficient -- per spec §16 item 3, the package never lets
-    the LLM invent adjacency facts.
+    is insufficient -- the package never lets the LLM invent
+    adjacency facts (MANUAL.md §17).
     """
     try:
         import pandas as pd
@@ -576,7 +577,7 @@ def write_methods(
     ``indicator_spec`` is an arbitrary dict the user provides to
     describe their study (e.g., focal system, flow type, indicators
     used).  The LLM weaves this into formal prose with formulas
-    and citations per spec §15.2 example E.
+    and citations (MANUAL.md §17).
     """
     if not isinstance(indicator_spec, dict):
         raise TypeError(

@@ -1,7 +1,7 @@
 """Tests for the metacouplingllm.indicators submodule (PR #35).
 
-Covers spec Section 20 worked test cases + the Brazil soybean
-end-to-end example from spec Section 11 + pandas-optional gating.
+Covers hand-worked test cases + a Brazil soybean end-to-end example
+(IFS / PFS / TFS = 0.1 / 0.2 / 0.7) + pandas-optional gating.
 
 Pandas is an optional dependency; this whole file skips when
 pandas isn't installed (mirrors the python-docx pattern in
@@ -278,7 +278,7 @@ class TestClassifyCoupling:
 
     def test_missing_adjacency_raises_for_cross_system_edges(self):
         """When edges include cross-system flows but no adjacency
-        table is provided, raise ValueError per spec §13."""
+        table is provided, raise ValueError (MANUAL.md §16, Guardrails)."""
         edges = pd.DataFrame([
             {"origin_id": "Brazil", "destination_id": "China"},
         ])
@@ -524,7 +524,7 @@ class TestBuildAdjacency:
 
 class TestSummarizeMetacoupling:
     def test_brazil_soybean_end_to_end(self):
-        """End-to-end: spec §11 worked example reproduces all key
+        """End-to-end: the Brazil soybean example reproduces all key
         values in one summary table."""
         edges = _brazil_soybean_edges()
         with _suppress_user_warnings():
