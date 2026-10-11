@@ -129,8 +129,10 @@ turn it off.
   summaries; BGE-base embeddings with a TF-IDF fallback); passages are cited
   inline as `[Tk:N]` and web sources as `[Tk:Wn]`, and
   `coupling_analysis=False` gives a RAG-only literature Q&A mode
-- Optional web-search grounding with native backends per provider — plus
-  `evidence_coverage_note` summaries
+- Optional web-search grounding with native backends per provider
+- A closing `evidence_coverage_note` in every framework-mode report: the
+  model's self-assessment of how well the retrieved literature passages and,
+  when web search is on, the web results support each group of claims
 - Built-in run tracing (on by default): every `analyze()` / `refine()`
   writes an inspectable folder under `runs/` and attaches `result.trace`;
   disable with the `trace=False` constructor argument or
