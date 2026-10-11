@@ -1001,10 +1001,10 @@ class GrokWebSearchBackend:
     are GONE for web_search and have no replacements.
 
     Brought to parity with OpenAI (PRs #17/#18/#24) and Anthropic
-    (PR #28): rich prompt, strict json_schema response_format,
-    excluded_domains (capped at 5 per xAI API), max_tokens scaling,
+    (PR #28): rich prompt, a strict JSON schema (``text.format``),
+    domain filters (capped at 5 per xAI API), max_tokens scaling,
     silent-fallback warning, Grok 4.3 as default,
-    reasoning_effort="high" per user preference.
+    reasoning effort "high" per user preference.
 
     Architecture difference vs OpenAI / Anthropic: xAI's
     ``/responses`` server-side tool path does NOT return separate
@@ -1031,16 +1031,20 @@ class GrokWebSearchBackend:
         Grok model identifier (default ``"grok-4.3"``).  Other
         variants: ``"grok-4.1-fast"`` (cheaper, 2M ctx).
     excluded_domains / allowed_domains:
-        xAI's ``/responses`` ``web_search`` tool accepts up to 5
-        domains in each list (mutually exclusive).  Default
-        ``excluded_domains`` mirrors OpenAIWebSearchBackend (PR #18).
+        Sent as the ``web_search`` tool's ``filters``; xAI accepts up
+        to 5 domains in a list and only one of the two lists, so
+        ``allowed_domains``, when set, replaces ``excluded_domains``.
+        Default ``excluded_domains`` mirrors OpenAIWebSearchBackend
+        (PR #18).
     reasoning_effort:
-        ``"none" | "low" | "medium" | "high"``.  Applies to Grok 4.3.
-        Default ``"high"`` per user memory preference.
+        Sent as ``reasoning={"effort": ...}``; the accepted values
+        depend on the model.  Default ``"high"`` per user memory
+        preference; ``None`` omits it.
     max_turns:
         Server-side tool-invocation budget for the search loop
-        (1-2 quick / 3-5 balanced / 10+ deep).  Default 5
-        (balanced).
+        (1-2 quick / 3-5 balanced / 10+ deep), an xAI-only
+        parameter sent through ``extra_body``.  Default 5
+        (balanced); ``None`` omits it.
     enable_image_understanding:
         Whether the web_search tool should also fetch and process
         images from results.  Default False (text-only, faster).
@@ -1144,43 +1148,52 @@ class GrokWebSearchBackend:
         # has no documented hard ceiling).
         effective_max_tokens = max(self.max_tokens, max_results * 1000)
 
-        # PR #29: build the web_search tool spec.  excluded_domains
-        # and allowed_domains are capped at 5 per xAI API; we
-        # silently truncate if the user passed more.
+        # xAI's web_search tool takes its domain lists inside a
+        # ``filters`` object, at most 5 domains each, and rejects
+        # allowed_domains together with excluded_domains, so an
+        # allow-list replaces the default block-list.
         web_search_tool: dict[str, object] = {
             "type": "web_search",
             "enable_image_understanding": (
                 self.enable_image_understanding
             ),
         }
-        if self.excluded_domains:
-            web_search_tool["excluded_domains"] = list(
-                self.excluded_domains
-            )[: self._MAX_DOMAIN_LIST_SIZE]
         if self.allowed_domains:
-            web_search_tool["allowed_domains"] = list(
-                self.allowed_domains
-            )[: self._MAX_DOMAIN_LIST_SIZE]
+            web_search_tool["filters"] = {
+                "allowed_domains": list(
+                    self.allowed_domains
+                )[: self._MAX_DOMAIN_LIST_SIZE],
+            }
+        elif self.excluded_domains:
+            web_search_tool["filters"] = {
+                "excluded_domains": list(
+                    self.excluded_domains
+                )[: self._MAX_DOMAIN_LIST_SIZE],
+            }
 
-        # PR #29: strict json_schema response_format combined with
-        # web_search tool (explicitly documented to work together
-        # at https://docs.x.ai/docs/guides/structured-outputs).
+        # Responses-API shapes, as the openai SDK sends them: the
+        # schema goes in ``text.format`` and the effort in
+        # ``reasoning``; ``max_turns`` is xAI-only, so it rides in
+        # ``extra_body`` (a top-level keyword makes the SDK raise
+        # TypeError before any request is sent).
         request_kwargs: dict[str, object] = {
             "model": self.model,
             "input": prompt,
             "max_output_tokens": effective_max_tokens,
             "tools": [web_search_tool],
-            "max_turns": self.max_turns,
-            "reasoning_effort": self.reasoning_effort,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
+            "text": {
+                "format": {
+                    "type": "json_schema",
                     "name": "web_search_results",
                     "strict": True,
                     "schema": _GROK_WEB_SEARCH_RESULTS_SCHEMA,
                 },
             },
         }
+        if self.reasoning_effort:
+            request_kwargs["reasoning"] = {"effort": self.reasoning_effort}
+        if self.max_turns:
+            request_kwargs["extra_body"] = {"max_turns": self.max_turns}
 
         try:
             response = self.client.responses.create(**request_kwargs)
@@ -1215,12 +1228,7 @@ class GrokWebSearchBackend:
         if not parsed_results:
             # Try to detect whether web_search was even invoked, to
             # give a more actionable warning.
-            tool_usage = getattr(response, "server_side_tool_usage", None)
-            web_search_calls = 0
-            if tool_usage is not None:
-                web_search_calls = getattr(
-                    tool_usage, "web_search_count", 0,
-                ) or 0
+            web_search_calls = _grok_web_search_calls(response)
             if web_search_calls == 0:
                 print(
                     "[GrokWebSearchBackend] Warning: web_search was "
@@ -1289,12 +1297,54 @@ def _extract_gemini_grounding_results(
     return out
 
 
+def _grok_web_search_calls(response: object) -> int:
+    """Number of web_search calls an xAI ``/responses`` reply reports.
+
+    Through the openai SDK the count is
+    ``usage.server_side_tool_usage_details.web_search_calls``; the
+    xAI SDK exposes ``server_side_tool_usage.web_search_count``.
+    """
+    usage = getattr(response, "usage", None)
+    details = getattr(usage, "server_side_tool_usage_details", None)
+    if isinstance(details, dict):
+        count = details.get("web_search_calls")
+    else:
+        count = getattr(details, "web_search_calls", None)
+    if count is None:
+        legacy = getattr(response, "server_side_tool_usage", None)
+        count = getattr(legacy, "web_search_count", 0)
+    try:
+        return int(count or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _grok_annotation_citations(response: object) -> list[dict[str, str]]:
+    """``url_citation`` annotations on the reply's output text (openai SDK)."""
+    out: list[dict[str, str]] = []
+    for item in getattr(response, "output", None) or []:
+        for content in getattr(item, "content", None) or []:
+            for ann in getattr(content, "annotations", None) or []:
+                if getattr(ann, "type", None) != "url_citation":
+                    continue
+                url = str(getattr(ann, "url", "") or "").strip()
+                if url:
+                    title = str(getattr(ann, "title", "") or "").strip()
+                    out.append({"url": url, "title": title or url})
+    return out
+
+
 def _extract_grok_citation_results(
     response: object,
     max_results: int,
 ) -> list[dict[str, str]]:
-    """Harvest ``response.citations`` (URLs) as fallback web results."""
-    citations = getattr(response, "citations", None) or []
+    """Harvest cited URLs as fallback web results.
+
+    Reads ``response.citations`` (xAI SDK) and the ``url_citation``
+    annotations on the output text (openai SDK).
+    """
+    citations = list(getattr(response, "citations", None) or [])
+    citations += _grok_annotation_citations(response)
     out: list[dict[str, str]] = []
     seen_urls: set[str] = set()
     for cite in citations:

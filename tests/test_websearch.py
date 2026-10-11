@@ -2820,7 +2820,7 @@ class TestGrokWebSearchBackend:
         assert len(tools) == 1
         web_search = tools[0]
         assert web_search["type"] == "web_search"
-        assert set(web_search["excluded_domains"]) == {
+        assert set(web_search["filters"]["excluded_domains"]) == {
             "reddit.com", "quora.com", "pinterest.com",
         }
 
@@ -2837,7 +2837,7 @@ class TestGrokWebSearchBackend:
                               "e.com", "f.com", "g.com"],
         )
         backend.search("test")
-        excluded = captured["tools"][0]["excluded_domains"]
+        excluded = captured["tools"][0]["filters"]["excluded_domains"]
         assert len(excluded) == 5
 
     def test_search_prompt_contains_source_selection_rules(self):
@@ -2878,29 +2878,136 @@ class TestGrokWebSearchBackend:
         assert "REQUIRED" in prompt
         assert "MUST use the web_search" in prompt
 
-    def test_search_passes_strict_json_schema_response_format(self):
-        """PR #29: response_format includes strict json_schema with
-        the Grok-specific schema (evidence_urls field)."""
+    def test_search_passes_strict_json_schema_text_format(self):
+        """The strict schema (with the evidence_urls field) goes in the
+        Responses API's ``text.format``, not a chat-style
+        ``response_format``."""
         from metacouplingllm.knowledge.websearch import (
             GrokWebSearchBackend,
             _GROK_WEB_SEARCH_RESULTS_SCHEMA,
         )
         client, captured = self._capturing_client()
         GrokWebSearchBackend(client=client).search("test")
-        rf = captured["response_format"]
-        assert rf["type"] == "json_schema"
-        assert rf["json_schema"]["strict"] is True
-        assert rf["json_schema"]["schema"] == _GROK_WEB_SEARCH_RESULTS_SCHEMA
+        fmt = captured["text"]["format"]
+        assert fmt["type"] == "json_schema"
+        assert fmt["name"] == "web_search_results"
+        assert fmt["strict"] is True
+        assert fmt["schema"] == _GROK_WEB_SEARCH_RESULTS_SCHEMA
+        assert "response_format" not in captured
 
     def test_search_passes_reasoning_effort_and_max_turns(self):
-        """PR #29: reasoning_effort + max_turns are forwarded."""
+        """The effort goes in ``reasoning``; xAI-only ``max_turns``
+        goes in ``extra_body``."""
         from metacouplingllm.knowledge.websearch import (
             GrokWebSearchBackend,
         )
         client, captured = self._capturing_client()
         GrokWebSearchBackend(client=client).search("test")
-        assert captured["reasoning_effort"] == "high"
-        assert captured["max_turns"] == 5
+        assert captured["reasoning"] == {"effort": "high"}
+        assert captured["extra_body"] == {"max_turns": 5}
+        assert "reasoning_effort" not in captured
+        assert "max_turns" not in captured
+
+    def test_search_omits_reasoning_and_max_turns_when_none(self):
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(
+            client=client, reasoning_effort=None, max_turns=None,
+        ).search("test")
+        assert "reasoning" not in captured
+        assert "extra_body" not in captured
+
+    def test_search_request_binds_to_openai_responses_create(self):
+        """Regression: the request must bind to the real openai SDK
+        signature.  Top-level ``max_turns`` / ``reasoning_effort`` /
+        ``response_format`` made ``responses.create`` raise TypeError
+        before any request was sent, and every Grok run silently fell
+        back to DuckDuckGo."""
+        import inspect
+
+        pytest.importorskip("openai")
+        from openai.resources.responses import Responses
+
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(
+            client=client, allowed_domains=["nature.com"],
+        ).search("test")
+        inspect.signature(Responses.create).bind(object(), **captured)
+
+    def test_allowed_domains_replace_default_excluded_domains(self):
+        """xAI rejects allowed_domains together with excluded_domains,
+        so an allow-list replaces the default block-list."""
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, captured = self._capturing_client()
+        GrokWebSearchBackend(
+            client=client, allowed_domains=["nature.com"],
+        ).search("test")
+        assert captured["tools"][0]["filters"] == {
+            "allowed_domains": ["nature.com"],
+        }
+
+    def test_web_search_count_read_from_usage_details(self):
+        """Through the openai SDK the count is
+        usage.server_side_tool_usage_details.web_search_calls."""
+        from types import SimpleNamespace
+
+        from metacouplingllm.knowledge.websearch import (
+            _grok_web_search_calls,
+        )
+        sdk = SimpleNamespace(usage=SimpleNamespace(
+            server_side_tool_usage_details=SimpleNamespace(
+                web_search_calls=4,
+            ),
+        ))
+        as_dict = SimpleNamespace(usage=SimpleNamespace(
+            server_side_tool_usage_details={"web_search_calls": 2},
+        ))
+        legacy = SimpleNamespace(server_side_tool_usage=SimpleNamespace(
+            web_search_count=3,
+        ))
+        assert _grok_web_search_calls(sdk) == 4
+        assert _grok_web_search_calls(as_dict) == 2
+        assert _grok_web_search_calls(legacy) == 3
+        assert _grok_web_search_calls(SimpleNamespace()) == 0
+
+    def test_citation_fallback_reads_url_citation_annotations(self):
+        """The openai SDK reply has no ``citations``; cited URLs come as
+        ``url_citation`` annotations on the output text."""
+        from types import SimpleNamespace
+
+        from metacouplingllm.knowledge.websearch import (
+            GrokWebSearchBackend,
+        )
+        client, _ = self._capturing_client(output_text="")
+        response = client.responses.create()
+        response.output = [SimpleNamespace(content=[SimpleNamespace(
+            annotations=[
+                SimpleNamespace(
+                    type="url_citation",
+                    url="https://www.fas.usda.gov/a",
+                    title="USDA report",
+                ),
+                SimpleNamespace(type="other", url="https://x.example"),
+                SimpleNamespace(
+                    type="url_citation",
+                    url="https://www.fas.usda.gov/a",
+                    title="duplicate",
+                ),
+            ],
+        )])]
+        results = GrokWebSearchBackend(client=client).search("test")
+        assert results == [{
+            "title": "USDA report",
+            "model_summary": "",
+            "url": "https://www.fas.usda.gov/a",
+        }]
 
     def test_search_scales_max_output_tokens_with_max_results(self):
         """PR #29: max_output_tokens scales to max_results * 1000."""
