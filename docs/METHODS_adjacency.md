@@ -24,13 +24,15 @@ validation record* of those reviews, not steps a reader re-runs.
    subtraction). Because WB polygons include lake water, pairs meeting across a
    lake are native edges here — **no lake filter removes them**, so no
    restoration overlay is needed. The two reviewed corrections that change
-   polygons act before contiguity: a **source-relabel** reassigns 10 reviewed WB
+   polygons act before contiguity: a **source-relabel** reassigns reviewed WB
    sliver-corridor artifacts (thin border-tracing ribbons of one unit's land
-   mislabeled onto a neighbour) to their true owners
+   mislabeled onto a neighbour; 10 host polygons, 11 manifest rows, 12
+   corridors moved) to their true owners
    (`scripts/relabel_sliver_corridors.py`; §10), and a **unit merge** rejoins
    Kalmykia's split western salient (RUS050 → RUS024; §10).
 2. **De-facto connectivity (NDLSA).** Folds each disputed tract into the
-   administrator Natural Earth records for most of it and re-measures adjacency;
+   administrator Natural Earth records for most of it (23 of the 24 tracts; the
+   UN Buffer Zone, with none recorded, stays unassigned) and re-measures adjacency;
    adds the pairs whose sole land link is a tract (§5). Geometry-derived and
    validated per tract. The geometry build (`scripts/build_pericoupling_db.py`)
    ends here and writes the base edge list.
@@ -1186,7 +1188,7 @@ roll-ups unchanged; the seven rechecked rows carry a `cw1` clause after their `b
 by a recheck. Record: `build_data/water_screen_rebuild/crossing_width/` (`SPEC_cw1_*`, `cw1_*`).
 
 **The de facto administrators (`da1`, 2026-09-25; §5).** Not a water change: each disputed-area tract
-is now assigned whole to the administrator Natural Earth v5.1.2 records for the largest part of it,
+is now assigned whole to the administrator Natural Earth v5.1.2 records for the largest part of it (23 of the 24 tracts; the UN Buffer Zone has none and stays unassigned),
 which adds three de facto province pairs (Jerusalem↔Ramallah; Southern Darfur↔Warrap and Southern
 Kordofan↔Warrap across Abyei). A de facto edge has no border arc, so the edge screens' population
 stays 8,421 and no water row changes. The corridor census takes only pairs that are not edges: the
