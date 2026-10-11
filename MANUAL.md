@@ -2550,10 +2550,10 @@ your output file.
 
 `classify_coupling()` takes three keyword-only arguments for
 LLM-assisted edge resolution: `llm_client`, `study_config` and `model`.
-Do not set `model` with the built-in adapters: it is forwarded to
-`llm_client.chat(model=...)`, which none of the four adapters accepts
-(`TypeError`); choose the model when you construct the adapter, e.g.
-`OpenAIAdapter(client, model="gpt-4o-mini")`.
+`model` runs the LLM call on another model than the adapter's: a
+built-in adapter is copied with that model (its other settings kept;
+the adapter you passed is unchanged), and a custom client receives
+`model=` on `chat()`. The same keyword works on every LLM helper.
 
 When `llm_client` is supplied AND the deterministic pass leaves some
 edges as `NaN`, the function automatically calls

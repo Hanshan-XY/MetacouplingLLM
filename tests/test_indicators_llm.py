@@ -417,3 +417,82 @@ class TestLLMTrace:
         assert re.match(
             r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", trace.timestamp_utc,
         ), f"unexpected timestamp format: {trace.timestamp_utc!r}"
+
+
+# ---------------------------------------------------------------------------
+# TestModelOverride -- ``model=`` on the helpers
+# ---------------------------------------------------------------------------
+
+
+class TestModelOverride:
+    """``model=`` overrides a built-in adapter's model for that call.
+
+    The built-in adapters reject a ``model`` keyword on ``chat()``;
+    forwarding it made every helper raise TypeError whenever ``model=``
+    was set.
+    """
+
+    @staticmethod
+    def _openai_adapter(content: str, model: str = "gpt-orig"):
+        from types import SimpleNamespace
+
+        from metacouplingllm.llm.client import OpenAIAdapter
+
+        calls: list[dict] = []
+
+        def create(**kwargs):
+            calls.append(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(
+                    message=SimpleNamespace(content=content),
+                )],
+                usage=None,
+            )
+
+        raw = SimpleNamespace(chat=SimpleNamespace(
+            completions=SimpleNamespace(create=create),
+        ))
+        return OpenAIAdapter(raw, model=model), calls
+
+    def test_prose_helper_runs_builtin_adapter_on_requested_model(self):
+        adapter, calls = self._openai_adapter("Methods text.")
+        text, trace = write_methods(
+            {"indicators": ["MFE"]}, llm_client=adapter, model="gpt-other",
+        )
+        assert text == "Methods text."
+        assert calls[0]["model"] == "gpt-other"
+        assert trace.model == "gpt-other"
+        assert adapter.model == "gpt-orig"
+
+    def test_strict_json_helper_runs_builtin_adapter_on_requested_model(self):
+        config_json = json.dumps({
+            "focal_system": "X", "flow_type": "y", "flow_unit": "z",
+            "intracoupling_rule": "", "pericoupling_rule": "",
+            "telecoupling_rule": "", "recommended_input_level": "",
+            "required_columns": [], "warnings": [],
+        })
+        adapter, calls = self._openai_adapter(config_json)
+        result, trace = define_study(
+            "desc", llm_client=adapter, model="gpt-other",
+        )
+        assert result["focal_system"] == "X"
+        assert calls[0]["model"] == "gpt-other"
+        assert "response_format" in calls[0]
+        assert trace.model == "gpt-other"
+        assert adapter.model == "gpt-orig"
+
+    def test_custom_client_receives_model_keyword(self):
+        from metacouplingllm import LLMResponse
+
+        class _Client:
+            def __init__(self):
+                self.models: list[str | None] = []
+
+            def chat(self, messages, temperature=0.7, max_tokens=None,
+                     model=None):
+                self.models.append(model)
+                return LLMResponse(content="Methods text.", usage=None)
+
+        client = _Client()
+        write_methods({"indicators": ["MFE"]}, llm_client=client, model="m1")
+        assert client.models == ["m1"]

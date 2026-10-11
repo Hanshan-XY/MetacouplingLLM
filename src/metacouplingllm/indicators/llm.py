@@ -26,6 +26,7 @@ ImportError as the rest of the submodule.
 
 from __future__ import annotations
 
+import copy
 import datetime
 import json
 import warnings
@@ -121,6 +122,35 @@ def _model_of(llm_client: Any) -> str:
     return str(model) if model else ""
 
 
+def _client_for_model(
+    llm_client: Any, model: str | None,
+) -> tuple[Any, dict[str, Any]]:
+    """The client to call, and extra ``chat()`` kwargs, for a ``model=``.
+
+    The built-in adapters fix their model at construction and reject a
+    ``model`` keyword on ``chat()``, so they get a shallow copy with the
+    model swapped (other settings, such as Anthropic's extended
+    thinking, carry over); any other client receives ``model=`` on
+    ``chat()``.
+    """
+    if model is None:
+        return llm_client, {}
+    from metacouplingllm.llm.client import (
+        AnthropicAdapter,
+        GeminiAdapter,
+        GrokAdapter,
+        OpenAIAdapter,
+    )
+    if isinstance(
+        llm_client,
+        (OpenAIAdapter, AnthropicAdapter, GeminiAdapter, GrokAdapter),
+    ):
+        clone = copy.copy(llm_client)
+        clone._model = model
+        return clone, {}
+    return llm_client, {"model": model}
+
+
 # ---------------------------------------------------------------------------
 # Strict-output dispatch (adapter-aware)
 # ---------------------------------------------------------------------------
@@ -167,11 +197,11 @@ def _call_with_strict_json(
         OpenAIAdapter,
     )
 
+    llm_client, chat_kwargs = _client_for_model(llm_client, model)
     messages = [
         Message(role="system", content=system_prompt),
         Message(role="user", content=user_prompt),
     ]
-    chat_kwargs: dict[str, Any] = {}
     used_tool_path = False
     tool_name = f"submit_{schema_name}"
     submit_tool = _build_submit_tool(
@@ -214,14 +244,6 @@ def _call_with_strict_json(
             },
         }
     # else: unknown adapter -- send plain chat + parse from prose.
-
-    if model is not None:
-        # Best-effort model override: only supported by adapters
-        # that expose a `model` kwarg on chat().  For now, attach
-        # to the kwargs and trust the adapter to ignore unknowns
-        # (most do).  Users who need strict model override should
-        # construct a new adapter instance.
-        chat_kwargs.setdefault("model", model)
 
     response = llm_client.chat(messages=messages, **chat_kwargs)
 
@@ -275,13 +297,11 @@ def _call_with_prose(
     """Plain chat call for the prose-output helpers
     (``interpret_results``, ``write_methods``).  No strict-output
     dispatch needed -- we just want the text back."""
+    llm_client, chat_kwargs = _client_for_model(llm_client, model)
     messages = [
         Message(role="system", content=system_prompt),
         Message(role="user", content=user_prompt),
     ]
-    chat_kwargs: dict[str, Any] = {}
-    if model is not None:
-        chat_kwargs.setdefault("model", model)
     response = llm_client.chat(messages=messages, **chat_kwargs)
     text = (response.content or "").strip()
     trace = LLMTrace(
