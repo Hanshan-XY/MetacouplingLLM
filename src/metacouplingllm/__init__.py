@@ -147,14 +147,14 @@ from metacouplingllm import indicators  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# Lazy-import wrappers for visualization (requires metacoupling[viz])
+# Lazy-import wrappers for visualization (requires metacouplingllm[viz])
 # ---------------------------------------------------------------------------
 
 
 def plot_focal_country_map(focal_country, **kwargs):
     """Plot a world map by coupling type relative to a focal country.
 
-    Requires: ``pip install metacoupling[viz]``
+    Requires: ``pip install metacouplingllm[viz]``
     """
     from metacouplingllm.visualization.worldmap import (
         plot_focal_country_map as _f,
@@ -166,7 +166,7 @@ def plot_focal_country_map(focal_country, **kwargs):
 def plot_analysis_map(parsed_analysis, **kwargs):
     """Plot a world map from LLM analysis results.
 
-    Requires: ``pip install metacoupling[viz]``
+    Requires: ``pip install metacouplingllm[viz]``
     """
     from metacouplingllm.visualization.worldmap import plot_analysis_map as _f
 
@@ -176,7 +176,7 @@ def plot_analysis_map(parsed_analysis, **kwargs):
 def plot_focal_adm1_map(focal_adm1, **kwargs):
     """Plot a subnational (ADM1) map by coupling type relative to a focal region.
 
-    Requires: ``pip install metacoupling[viz]``
+    Requires: ``pip install metacouplingllm[viz]``
     """
     from metacouplingllm.visualization.adm1_map import plot_focal_adm1_map as _f
 
@@ -241,7 +241,7 @@ __all__ = [
     "TURN_CITATION_PATTERN",
     "sanitize_turn_citations",
     "extract_turn_cited_ids",
-    # Web search (requires metacoupling[search])
+    # Web search (requires metacouplingllm[search])
     "search_web",
     "AnthropicWebSearchBackend",
     "GeminiWebSearchBackend",
@@ -251,7 +251,7 @@ __all__ = [
     "annotate_web_citations",
     "extract_web_map_signals",
     "format_web_map_signals_context",
-    # Visualization (requires metacoupling[viz])
+    # Visualization (requires metacouplingllm[viz])
     "plot_focal_country_map",
     "plot_analysis_map",
     "plot_focal_adm1_map",
