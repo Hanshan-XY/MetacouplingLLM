@@ -124,11 +124,15 @@ def _parse_bibtex(text: str) -> list[Paper]:
         if cite_m:
             cited_by = int(cite_m.group(1))
 
-        # Parse keywords into a set
+        # Parse keywords into a set.  The bundled entries separate
+        # keywords with semicolons, and a keyword may itself contain a
+        # comma ("textile, apparel and fashion"); commas separate
+        # keywords only in a field without a semicolon.
         raw_kw = fields.get("keywords", "")
         keywords: set[str] = set()
         if raw_kw:
-            for kw in re.split(r"\s*,\s*", raw_kw):
+            sep = r"\s*;\s*" if ";" in raw_kw else r"\s*,\s*"
+            for kw in re.split(sep, raw_kw):
                 kw = kw.strip().lower()
                 if kw:
                     keywords.add(kw)
