@@ -491,8 +491,10 @@ on first use (embeddings by default, TF-IDF fallback).  It is split by what
 can be redistributed, not by topic: **192 papers are indexed as full text**
 and the other **228 as structured, paraphrased summaries** (metadata + key
 findings, no source text) — those 228 being papers that cannot be
-redistributed in full (paywalled, or open-to-read but restrictively
-licensed).  Retrieval runs over both, so a summary-only paper can still
+redistributed in full: 124 paywalled, and 104 not cleared for
+redistribution (free to read without a redistribution licence, restrictively
+licensed, preprint-only, or with open-access status not established).
+Retrieval runs over both, so a summary-only paper can still
 surface as supporting evidence.  See INTRODUCTION §4.3 and §6 for the
 corpus composition.
 
