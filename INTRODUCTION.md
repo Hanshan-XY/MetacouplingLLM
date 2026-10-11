@@ -27,8 +27,8 @@
 
 The package exposes two complementary analysis tracks that can be used independently or combined:
 
-1. **Qualitative LLM-driven case-study analysis** via `MetacouplingAssistant` — produces a structured, framework-compliant report with citations, optional maps, and scholar-ready Markdown / Word export.
-2. **Quantitative deterministic indicators** via the `metacouplingllm.indicators` submodule — computes flow-share / evenness / concentration indicators on user-supplied flow data. Five optional LLM-assisted helpers (`define_study`, `check_inputs`, `classify_ambiguous_edges`, `interpret_results`, `write_methods`) wrap natural-language judgment tasks around the deterministic core.
+1. **Deterministic core** — the national (ADM0) and subnational (ADM1) adjacency databases and the `metacouplingllm.indicators` submodule, which computes flow-share / evenness / concentration indicators on user-supplied flow data. Five optional LLM-assisted helpers (`define_study`, `check_inputs`, `classify_ambiguous_edges`, `interpret_results`, `write_methods`) wrap natural-language judgment tasks around the deterministic core.
+2. **Qualitative LLM-driven case-study analysis** via `MetacouplingAssistant` — produces a structured, framework-compliant report with citations, optional maps, and scholar-ready Markdown / Word export.
 
 ### Quick Install
 
@@ -261,9 +261,9 @@ only fires if its precondition is met):
   inline citation (turn-scoped — `k` is the conversation turn).
   Only when `web_search=True` and at least one hit returned.
 - **Structured web map hints** — receiving/spillover countries and
-  flows extracted by a second LLM pass over the web snippets, each
+  flows extracted by a second LLM pass over the web results, each
   kept only if it resolves to a real country/union and cites a real
-  retrieved snippet (confidence ≥ 0.7).  This grounds the *evidence*,
+  retrieved web result (confidence ≥ 0.7).  This grounds the *evidence*,
   not the spillover *role* (which classification the LLM still
   decides).  Only when `web_structured_extraction=True` (the default).
 
@@ -286,7 +286,7 @@ Web search injects current, real-world context (trade data, policies, recent eve
 - **Native auto-wiring** when `web_search=True`: each adapter routes to its own backend — `OpenAIWebSearchBackend`, `AnthropicWebSearchBackend`, `GeminiWebSearchBackend` (Google Search grounding), `GrokWebSearchBackend` (xAI's server-side `web_search` tool on the `/responses` endpoint). Custom clients, and any native backend that raises or returns no results, fall back to the built-in DuckDuckGo search cascade.
 - DuckDuckGo backend has three fallback layers: `ddgs` -> `duckduckgo_search` -> stdlib (`urllib` + `html.parser`); works on Google Colab without any extra packages.
 - Results cited as `[Tk:W1]`, `[Tk:W2]`, ... -- the `W` prefix distinguishes web sources from literature `[Tk:1]`, `[Tk:2]`. `k` is the turn index, so prior-turn web references stay stable across `refine()` calls.
-- On by default (`web_structured_extraction=True`): a second LLM pass (strict JSON / tool-output across all four providers) over the web snippets and validates map-ready countries and flows before using them in auto-maps.
+- On by default (`web_structured_extraction=True`): a second LLM pass (strict JSON / tool-output across all four providers) over the web results and validates map-ready countries and flows before using them in auto-maps.
 - `evidence_coverage_note` is the model's 2-5 paragraph closing self-assessment (§7), requested in every framework-mode analysis, of how well the retrieved literature passages and web sources support each group of claims and which claims rest on inference — surfaced on `result.parsed.evidence_coverage_note` and `result.evidence_coverage_note`.
 - Supranational unions (EU / ASEAN / USMCA / NAFTA) are handled end-to-end: the map-data extraction prompt lets the model name a union as a flow target and the package expands it to its member states, web-result summaries are passed to the map-data extraction call up to 2,500 characters each, and the map renderer dissolves union borders and draws the bloc as one region, filled as pericoupling if any member borders the focal country and as telecoupling otherwise.
 
