@@ -330,7 +330,8 @@ advisor = MetacouplingAssistant(adapter)
 Grok's API is OpenAI-protocol-compatible, so you reuse the `openai`
 SDK with xAI's base URL. The dedicated `GrokAdapter` (rather than
 `OpenAIAdapter`) lets the advisor route web search to Grok's native
-server-side `web_search` tool (xAI's `/responses` endpoint; see §14).
+server-side `web_search` tool (xAI's `/responses` endpoint; not yet
+validated against the live API, see §14).
 
 Install with: `pip install "metacouplingllm[grok]"`
 
@@ -367,7 +368,7 @@ Each adapter auto-wires its **native** web-search backend when you set
 | `OpenAIAdapter` | `OpenAIWebSearchBackend` (`web_search` tool) |
 | `AnthropicAdapter` | `AnthropicWebSearchBackend` (`web_search_20250305` tool) |
 | `GeminiAdapter` | `GeminiWebSearchBackend` (Google Search grounding) |
-| `GrokAdapter` | `GrokWebSearchBackend` (server-side `web_search` tool) |
+| `GrokAdapter` | `GrokWebSearchBackend` (server-side `web_search` tool; not yet validated against the live API, see §14) |
 | Custom client | DuckDuckGo fallback cascade (free, no API key; no backend class) |
 
 All four native backends share the same rich prompt template, a strict
@@ -1016,8 +1017,9 @@ self-assessment (2–5 short paragraphs) summarising **what evidence
 was available** (retrieved literature, web sources when
 `web_search=True`), **what coverage gaps remain**, and **whether the
 analysis relied on training memory** to fill those gaps.  Surface it
-alongside the formatted report so reviewers can audit evidence
-provenance:
+alongside the formatted report so reviewers can see where the analysis
+is well grounded and where it is thin (it is the model's own assessment:
+check it against the cited sources):
 
 ```python
 print(result.parsed.evidence_coverage_note)
@@ -1609,7 +1611,7 @@ parameter except `llm_client` is optional.
 | `rag_max_chunks_per_paper` | `3` | Most passages one paper can contribute to a retrieval. |
 | `rag_structured_extraction` | `False` | With RAG, one extra model call that extracts systems and flows from the retrieved passages into `result.structured_supplement`. |
 | `web_search` | `False` | Search the web before the analysis (§14). |
-| `web_search_max_results` | `10` | Hits requested per query (§14). |
+| `web_search_max_results` | `10` | Web hits requested (§14). |
 | `web_structured_extraction` | `True` | With `web_search=True`, an extra model call that extracts validated countries, flows and evidence cards (§14). |
 | `web_structured_min_confidence` | `0.7` | Minimum confidence for a web-extracted country or flow to be kept (§14). |
 | `web_structured_max_targets` | `6` | Cap on web-extracted receiving and spillover targets (§14). |
@@ -1673,7 +1675,7 @@ Methods and properties:
 | `OpenAIWebSearchBackend` | OpenAI `web_search` tool |
 | `AnthropicWebSearchBackend` | Anthropic `web_search_20250305` tool |
 | `GeminiWebSearchBackend` | Google Search grounding |
-| `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool |
+| `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool (not yet validated against the live API; see §14) |
 | `search_web()` built-in fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) |
 
 ### Pericoupling Functions (country level)
@@ -1964,10 +1966,12 @@ further `analyze()` calls instead (see §5, RAG-only mode).
 ## 14. Web Search & Web-Sourced Evidence
 
 The package can ground its analysis in real-time web search results. Each
-LLM adapter auto-wires its **native** web-search backend; custom clients
-fall back to DuckDuckGo. All native backends share the same prompt
-contract, structured output schema, and configuration knobs so the
-calling code is identical across providers.
+LLM adapter auto-wires its **native** web-search backend; custom clients,
+and any run in which the native backend raises or returns no usable
+results, fall back to the built-in DuckDuckGo cascade. All four native
+backends share the same prompt template and strict structured-output
+schema, so the calling code is identical across providers; their
+backend-level options differ (see "Configuration knobs").
 
 ### Enabling web search
 
@@ -1975,8 +1979,8 @@ calling code is identical across providers.
 advisor = MetacouplingAssistant(
     OpenAIAdapter(client, model="gpt-4o"),
     web_search=True,                  # turn on web search
-    web_search_max_results=10,        # number of hits per query (default; PR #24 raised from 5)
-    web_structured_extraction=True,   # Stage-3 validated countries + flows
+    web_search_max_results=10,        # number of web hits requested (default 10)
+    web_structured_extraction=True,   # validated countries + flows (structured web extraction; on by default)
 )
 ```
 
@@ -1989,13 +1993,13 @@ from the adapter type — see §4 LLM Setup, "Web-search auto-wiring".
 
 ### Backend matrix
 
-| Adapter | Backend | Native API | Parity/upgrade PR |
-|---|---|---|---|
-| `OpenAIAdapter` | `OpenAIWebSearchBackend` | OpenAI `web_search` tool with `tool_choice="required"` (PR #18, #21) | PR #17 |
-| `AnthropicAdapter` | `AnthropicWebSearchBackend` | Claude `web_search_20250305` tool + `submit_results` strict-output tool | PR #28 |
-| `GeminiAdapter` | `GeminiWebSearchBackend` | Google Search grounding | PR #29 |
-| `GrokAdapter` | `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool (the older Live Search API was retired 2026-01) | PR #29 |
-| Custom client | DuckDuckGo fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) | — |
+| Adapter | Backend | Native API |
+|---|---|---|
+| `OpenAIAdapter` | `OpenAIWebSearchBackend` | OpenAI `web_search` tool with `tool_choice="required"` |
+| `AnthropicAdapter` | `AnthropicWebSearchBackend` | Claude `web_search_20250305` tool + `submit_results` strict-output tool |
+| `GeminiAdapter` | `GeminiWebSearchBackend` | Google Search grounding |
+| `GrokAdapter` | `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool (not yet validated against the live API; as coded, the `openai` SDK rejects the request, so Grok runs fall back to DuckDuckGo) |
+| Custom client | DuckDuckGo fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) |
 
 Auto-wiring reuses **your adapter's model** for the search call; the
 backend dataclasses' own model defaults only apply if you instantiate
@@ -2006,42 +2010,56 @@ a backend directly.
 | Setting | Default | Notes |
 |---|---|---|
 | `web_search` | `False` | Master switch (constructor kwarg). |
-| `web_search_max_results` | `10` | Number of hits requested per query. Scales `max_output_tokens` automatically (PR #24). |
-| `web_structured_extraction` | `True` | Runs a second, strict-JSON LLM pass over the snippets to extract validated receiving countries, spillover countries, and map-ready flows, plus evidence cards for the analysis prompt. Runs only when `web_search=True`; pass `False` to skip it. |
-| `web_structured_min_confidence` | `0.7` | Minimum confidence for a Stage-3 country/flow to be kept in the validated payload. |
-| `web_structured_max_targets` | `6` | Cap on validated receiving/spillover targets kept per analysis. |
-| `blocked_domains` | `["reddit.com", "quora.com", "pinterest.com"]` | Field of the backend dataclasses (not an adapter kwarg): low-authority domains are excluded **out of the box**; override it by instantiating the backend yourself. |
-| `search_context_size`, `return_token_budget` | `"high"` / `"default"` | Fields of `OpenAIWebSearchBackend` (PR #18) — `"high"` deliberately maximises evidence depth. Only configurable when you instantiate the backend yourself. |
+| `web_search_max_results` | `10` | Number of web hits requested. Scales `max_output_tokens` automatically. |
+| `web_structured_extraction` | `True` | Runs a second, strict-JSON LLM pass over the web results to extract validated receiving countries, spillover countries, and map-ready flows, plus evidence cards for the analysis prompt. Runs only when `web_search=True` and the search returns results; pass `False` to skip it. |
+| `web_structured_min_confidence` | `0.7` | Minimum confidence for a country or flow from the structured web extraction to be kept in the validated payload. |
+| `web_structured_max_targets` | `6` | Cap on the validated receiving systems and, separately, the spillover systems kept (6 each by default); validated map-ready flows are capped at this value + 2 (8 by default). |
+| `blocked_domains` | `["reddit.com", "quora.com", "pinterest.com"]` | Field of the backend dataclasses (not an assistant or adapter kwarg): `blocked_domains` on the OpenAI, Anthropic and Gemini backends (Gemini filters the returned URLs client-side), `excluded_domains` (at most 5 entries) on `GrokWebSearchBackend`. Low-authority domains are excluded **out of the box**. `MetacouplingAssistant` always auto-wires a backend with these defaults and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, blocked_domains=[]))` yourself. |
+| `search_context_size`, `return_token_budget` | `"high"` / `"default"` | Fields of `OpenAIWebSearchBackend` — `"high"` deliberately maximises evidence depth. `MetacouplingAssistant` always auto-wires a backend with these defaults and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, search_context_size="medium"))` yourself. |
 
 The validated structured-extraction payload appears at
-`result.web_map_signals` (an output field, not a setting).
+`result.web_map_signals` (an output field, not a setting). The same pass
+proposes 3-5 follow-up web-search queries, available as
+`result.suggested_followup_queries` and appended to `result.formatted`
+under "Suggested follow-up web searches".
+
+With `auto_map=True`, the map-data extraction call (§10) also receives the
+web hits: up to 100 of them, each summary truncated to 2,500 characters,
+so country names that appear late in a long summary are not cut off.
 
 ### Citation grammar
 
 Web hits are labelled `[Tk:W1]`, `[Tk:W2]`, ... — the `W` prefix
 distinguishes web sources from literature `[Tk:1]` / `[Tk:2]`, and `k`
 is the conversation turn so prior-turn references stay stable across
-`refine()` calls (PR #19, #21 sanitiser).
+`refine()` calls. Web search (and the structured extraction) runs once,
+inside `analyze()`; `refine()` does not search again, so in later turns
+web sources are cited by their original `[T1:Wn]` tokens.
 
-### Supranational flow handling (PR #22, #23, #25, #26)
+### Supranational flow handling
 
 When the analysis touches a supranational union (EU, ASEAN, USMCA,
 NAFTA), the package:
 
-1. **Stage-1 prompt** teaches the LLM to keep the union label intact
-   AND list its member states (PR #22)
-2. **Stage-3 web summary** is bumped from 200 to 2500 characters so
-   the LLM has the room it needs to surface member-state-level
-   detail (PR #26)
-3. **Map renderer** dissolves the union's borders and colours
-   member states by their relationship to the focal country
-   (PR #23, #25)
+1. **Structured web extraction** lets the LLM name a bloc (European
+   Union/EU, ASEAN, USMCA, NAFTA) as the country or flow endpoint when
+   a source names only the bloc, and tells it to prefer the member
+   states (omitting the bloc) when the source names them; the package
+   then expands the bloc to its member ISO codes (27, 10, 3 and 3
+   member states for the EU, ASEAN, USMCA and NAFTA).
+2. **Map renderer** dissolves the member states into one region and
+   fills it as a whole: the pericoupling colour when the focal country
+   borders at least one member, otherwise the telecoupling colour.
 
-### Evidence Coverage note (PR #20)
+### Evidence coverage note
 
-When web search is on, the LLM also emits a one-paragraph
-`evidence_coverage_note` summarising what kinds of sources it found,
-what coverage gaps remain, and whether it leaned on training memory:
+Every framework analysis, with or without web search, is instructed to
+close with a §7 Evidence Coverage self-assessment of 2-5 short
+paragraphs. The model weighs all the evidence it was given (retrieved
+literature and, when present, web sources) and says which claims rest on
+several sources, on one weak source, or only on training-data knowledge.
+The text is stored in `result.parsed.evidence_coverage_note` (mirrored on
+`result.evidence_coverage_note`; empty when the model left §7 out):
 
 ```python
 print(result.parsed.evidence_coverage_note)
@@ -2051,19 +2069,24 @@ print(result.parsed.evidence_coverage_note)
 #  gap rather than fabricating numbers."
 ```
 
-This is the reviewer-facing audit trail for evidence provenance.
+This is the model's own self-assessment of its evidence base. It helps
+reviewers, but it is model-generated, so check it against the cited
+sources and the run trace (`result.trace`).
 
-### Strict structured output across all four providers (PR #28, #29, #30)
+### Strict structured output across all four providers
 
-The Stage-3 web-extraction call uses each provider's native
+The structured web-extraction call uses each provider's native
 strict-output mode so the validated payload is guaranteed to match
 the expected schema:
 
 | Adapter | Strict-output mode |
 |---|---|
 | OpenAI / Grok | `response_format = {"type": "json_schema", ...}` |
-| Anthropic | `tools = [submit_results]` + `tool_choice = {"type": "tool"}` |
+| Anthropic | `tools = [submit_web_map_signals]` + `tool_choice = {"type": "tool", "name": "submit_web_map_signals"}` |
 | Gemini | `response_schema` + `response_mime_type = "application/json"` |
+
+The web-search call itself uses a separate `submit_results` tool (see the
+backend matrix).
 
 Falls back to a defensive JSON-object extractor only when the strict
 path returns malformed output.
@@ -2075,9 +2098,9 @@ path returns malformed output.
 Once you have an `AnalysisResult`, three exporter surfaces help you
 turn it into something a co-author or reviewer can read:
 
-- `result.abstract` (PR #31) — a one-paragraph scholar abstract
-- `result.to_markdown(path=None)` (PR #31) — manuscript-ready Markdown
-- `result.to_docx(path=None)` (PR #31, #32) — Word document with
+- `result.abstract` — a one-paragraph scholar abstract
+- `result.to_markdown(path=None)` — manuscript-ready Markdown
+- `result.to_docx(path=None)` — Word document with
   headings; defaults to `./metacoupling_report.docx` and returns the
   written `Path`
 
@@ -2102,7 +2125,6 @@ advisor = MetacouplingAssistant(
     web_structured_extraction=True,
     rag_corpus=JOURNAL_ARTICLES_2025,
     rag_top_k=8,
-    rag_min_score=0.60,
     recommend_papers=True,
 )
 
@@ -2119,35 +2141,44 @@ result.to_docx("avocado.docx")
 
 ### What ends up in the exports
 
-Both exporters carry over (PR #31 + follow-up + PR #32 + PR #33):
+Both exporters carry over:
 
 | Element | Markdown | Word |
 |---|---|---|
 | Title from research description | ✓ | ✓ |
 | Scholar abstract | ✓ | ✓ |
-| Bold sub-field labels (system names, flow direction, agent level, ...) | ✓ | ✓ |
+| Bold sub-field labels (Human subsystem / Natural subsystem / Geographic scope / Description) and agent level | ✓ | ✓ |
 | Per-category Flows subsections (Matter / Capital / Information / Energy / People / Organisms) | ✓ | ✓ |
 | Per-category Causes + Effects subsections (eight fixed categories) | ✓ | ✓ |
 | RAG evidence + web sources block | ✓ | ✓ |
-| Classification bullets at top of each system role section (PR #33) | ✓ | ✓ |
-| Per-role §N.1 heading (PR #33) | ✓ | ✓ |
+| §1 classification as a bullet list when the model wrote bullets (Markdown: printed as written; Word: each bullet becomes a bullet paragraph) | ✓ | ✓ |
+| §N.1.K sub-heading for each system (role and name, e.g. `Sending: Mexico avocado regions`) | ✓ | ✓ |
 | Inline `[Tk:N]` / `[Tk:Wn]` citation markers | ✓ | ✓ |
+| §5 Cross-Coupling Interactions, §6 Research Gaps, §7 Evidence Coverage | ✓ | ✓ |
+| Flows table (Category / Source / Target / Bidirectional / Description); Source and Target show — unless structured map data exists (an `auto_map=True` run) | ✓ | ✓ |
+| Map | `<stem>_map.png` written beside the file and linked (only when `path` is given and a map exists) | embedded figure (when a map exists) |
+
+Web sources are listed as `[W1]`, `[W2]`, ... in hit order, without the
+turn prefix; match them to the inline `[T1:Wn]` markers by number.
 
 ### Customising the abstract pass
 
-The abstract is computed at `analyze()` time and cached on the result
-as a plain attribute — to customise it, simply reassign
-`result.abstract = "..."` before exporting (both exporters read the
-attribute). There is no public regeneration API; the internal hook is
-private (`advisor._generate_abstract(formatted_text)`) and takes the
-fully-assembled formatted report string, so editing `result.parsed`
-alone does not change the abstract.
+The abstract is generated by one extra LLM call at the end of every
+`analyze()` and `refine()` turn and stored as a plain attribute of that
+turn's result; to customise it, reassign `result.abstract = "..."` before
+exporting (both exporters read the attribute). Pass
+`generate_abstract=False` to `MetacouplingAssistant(...)` to skip the
+call: `result.abstract` is then `""` (as it is if the call fails) and the
+exports leave out the Abstract section. There is no public regeneration
+API; the internal hook is private (`advisor._generate_abstract(formatted_text)`)
+and takes the fully-assembled formatted report string, so editing
+`result.parsed` alone does not change the abstract.
 
 ---
 
 ## 16. Quantitative Indicators
 
-The `metacouplingllm.indicators` submodule (PR #35) computes
+The `metacouplingllm.indicators` submodule computes
 deterministic metacoupling indicators on the user's own flow data.
 This section gives the formulas first, then the public functions and
 how to feed them your data.
@@ -2175,22 +2206,22 @@ $$
 \qquad s_c \in \{\mathrm{IFS}_i,\ \mathrm{PFS}_i,\ \mathrm{TFS}_i\}
 $$
 
-**MFCI** — Metacoupled Flow Concentration Index (Hirschman 1945 HHI, normalised per Hannah & Kay 1977; per coupling type *c*):
+**MFCI** — Metacoupled Flow Concentration Index (Hirschman 1945 / Herfindahl 1950 HHI, normalised per Hannah & Kay 1977; per coupling type *c*):
 
 $$
-\mathrm{HHI}_{ic} = \sum_j \left( \frac{f_{ij}^{c}}{F_i^{c}} \right)^{2},
+\mathrm{HHI}_{ic} = \sum_j \left( \frac{f_{ij}^{c}}{F_{ic}} \right)^{2},
 \qquad
 \mathrm{MFCI}_{ic} = \frac{\mathrm{HHI}_{ic} - 1/n_{ic}}{1 - 1/n_{ic}},
 \qquad
 \mathrm{ENP}_{ic} = \frac{1}{\mathrm{HHI}_{ic}}
 $$
 
-where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_i^{c} = \sum_j f_{ij}^{c}$, $n_{ic}$ is the number of partners, and ENP is the Equivalent Number of Partners (Laakso & Taagepera 1979) — reported per coupling type as `ENP_I` / `ENP_P` / `ENP_T`, the Equivalent Number of Intra-/Peri-/Telecoupled Partners.
+where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_{ic} = \sum_j f_{ij}^{c}$, $n_{ic}$ is the number of partners with type-$c$ flow (partners with zero flow are not counted), and ENP is the Equivalent Number of Partners (Laakso & Taagepera 1979) — reported per coupling type as `ENP_I` / `ENP_P` / `ENP_T`, the Equivalent Number of Intra-/Peri-/Telecoupled Partners.
 
 Two edge-case conventions (each emits a `UserWarning`): when
 $n_{ic} = 1$ the normalisation is undefined and MFCI is defined as
 **1** by convention (a single partner is maximal concentration —
-e.g. the intracoupling self-loop, which is why `IFCI = 1.00` in the
+e.g. the intracoupling self-loop, which is why `IFCI = 1` in the
 worked example below); when $F_{ic} = 0$ MFCI is **NaN**. In the MFE
 sum, $0 \ln 0 = 0$ by convention.
 
@@ -2201,7 +2232,7 @@ sum, $0 \ln 0 = 0$ by convention.
 | `classify_coupling(edges, focal_id, adjacency, ...)` | Add `coupling_type` column (`I` / `P` / `T`) to an edge table using a user-supplied adjacency table. |
 | `build_adjacency(pairs, level, ...)` | Fill the `adjacent` flag (`1` / `0` / `<NA>`) from the bundled pericoupling DB (`level="adm0"` or `"adm1"`) — feeds `classify_coupling` (see below). |
 | `compute_flow_shares(data, ...)` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
-| `compute_mfe(data, ...)` | Metacoupled Flow Evenness — normalised Shannon entropy. |
+| `compute_mfe(data, ...)` | Metacoupled Flow Evenness — normalised Shannon entropy. `data` is the shares table returned by `compute_flow_shares` (needs `IFS` / `PFS` / `TFS`), not the edge table. |
 | `compute_mfci(data, ...)` | Metacoupled Flow Concentration Index — normalised HHI per coupling type. |
 | `summarize_metacoupling(data, ...)` | One-shot combined indicator table. |
 
@@ -2229,6 +2260,16 @@ You provide **two tables**:
 | `flow_value` | the flow magnitude (tonnes, USD, head, …; use one unit per analysis) | ✓ |
 | `flow_type` | optional Liu-2017 category (`matter`, `capital`, …) for per-type breakdowns | optional |
 
+Partners (for MFCI, ENP and the `n_*` counts) are read from
+`destination_id` (keyword `partner_col`, default `"destination_id"`), so
+each row should be a flow from the focal system to a partner. For inbound
+flows (partner in `origin_id`, focal system in `destination_id`) pass
+`partner_col="origin_id"` to `summarize_metacoupling` / `compute_mfci`;
+otherwise every inbound partner is counted as the focal system itself and
+MFCI, ENP and `n_*` are wrong (shares and MFE are unaffected). For a table
+that mixes exports and imports, add a column with each row's partner (the
+end that is not the focal system) and pass its name as `partner_col`.
+
 **2. An adjacency table** — which partners physically border the focal
 system (this is what distinguishes *peri-* from *telecoupling*):
 
@@ -2237,10 +2278,29 @@ system (this is what distinguishes *peri-* from *telecoupling*):
 | `origin_id`, `destination_id` | a bordering pair |
 | `adjacent` | `1` if they share a border |
 
+If you already have a coupling label for every flow, skip
+`classify_coupling`: put it in a `coupling_type` column (`I` / `P` / `T`,
+case-insensitive; `intra` / `peri` / `tele`, `intracoupling` /
+`pericoupling` / `telecoupling` and `intracoupled` / `pericoupled` /
+`telecoupled` are also accepted) and pass the table straight to
+`summarize_metacoupling` (or to `compute_flow_shares` / `compute_mfci`).
+That table needs only `focal_system_id`, `destination_id` (the partner),
+`flow_value` and `coupling_type`; `origin_id` is not read. Rows with any
+other label are left out of the totals, with a `UserWarning` from
+`summarize_metacoupling` and `compute_flow_shares` (`compute_mfci` alone
+drops them silently).
+
 > **CSV needs nothing beyond pandas.** **Excel** (`.xlsx`) additionally
 > needs `pip install openpyxl`. If your spreadsheet uses different
 > headers, you don't have to rename anything — every function takes
-> `*_col` keyword arguments (e.g. `origin_col="from"`, `weight_col="tonnes"`).
+> column-name keywords: `classify_coupling` (`origin_col`,
+> `destination_col` for the flows table; `adjacency_origin_col`,
+> `adjacency_destination_col`, `adjacency_flag_col` for the adjacency
+> table; `coupling_col_out` names the new column), `build_adjacency`
+> (`origin_col`, `destination_col`, `flag_col`), `compute_flow_shares`
+> (`system_col`, `coupling_col`, `weight_col`), `compute_mfci` and
+> `summarize_metacoupling` (`system_col`, `partner_col`, `coupling_col`,
+> `weight_col`), `compute_mfe` (`share_cols`).
 
 ### Auto-filling `adjacent` from the bundled database (ADM0 & ADM1)
 
@@ -2260,8 +2320,10 @@ Because the focal system's `origin_id` / `destination_id` columns are
 already in your flows table, you can point it straight at `edges`:
 
 ```python
+import pandas as pd
 from metacouplingllm.indicators import build_adjacency
 
+edges = pd.read_csv("examples/brazil_soybean_flows.csv")   # sample flows file, see the worked example below
 adjacency = build_adjacency(edges, level="adm0")   # fills 1/0 from the DB
 print(adjacency)
 #   origin_id destination_id  adjacent
@@ -2285,6 +2347,8 @@ The same call at the subnational scale, mixing codes and names:
 
 ```python
 import pandas as pd
+from metacouplingllm.indicators import build_adjacency
+
 pairs = pd.DataFrame({
     "origin_id":      ["MEX008", "Chihuahua, Mexico"],
     "destination_id": ["USA044", "Florida, United States"],
@@ -2303,8 +2367,11 @@ table; it doesn't replace your judgement.
 
 ### Worked example: Brazil soybean (from CSV files)
 
-A sample dataset ships at `examples/brazil_soybean_flows.csv` and
-`examples/brazil_soybean_adjacency.csv`. The flows file looks like this
+Sample files are in the repository's `examples/` folder
+(`examples/brazil_soybean_flows.csv` and
+`examples/brazil_soybean_adjacency.csv`); they are not installed by
+`pip install`. Run the snippet from a clone of the repository, or save
+the two CSV blocks below under those names. The flows file looks like this
 (a real study would have many more rows and several focal systems):
 
 ```csv
@@ -2329,7 +2396,9 @@ Load, classify, compute, and save the results:
 
 ```python
 import pandas as pd
-from metacouplingllm.indicators import classify_coupling, summarize_metacoupling
+from metacouplingllm.indicators import (
+    build_adjacency, classify_coupling, summarize_metacoupling,
+)
 
 edges     = pd.read_csv("examples/brazil_soybean_flows.csv")
 adjacency = pd.read_csv("examples/brazil_soybean_adjacency.csv")
@@ -2344,15 +2413,22 @@ summary.to_csv("indicators.csv", index=False)          # write results back out
 cols = ["focal_system_id", "IFS", "PFS", "TFS", "MFE", "IFCI", "PFCI", "TFCI"]
 print(summary[cols].round(2))
 #   focal_system_id  IFS  PFS  TFS   MFE  IFCI  PFCI  TFCI
-# 0          Brazil  0.1  0.2  0.7  0.73  1.00  0.25  0.33
+# 0          Brazil  0.1  0.2  0.7  0.73   1.0  0.25  0.33
 ```
 
-`classify_coupling` checks each `destination_id` against the adjacency
-table: the focal system itself → `I`, a listed neighbour → `P`,
-anything else → `T`. The full `indicators.csv` carries 18 columns —
-raw magnitudes (`F_I`/`F_P`/`F_T`/`F_total`), shares, `MFE`,
+`classify_coupling` reads each row's (`origin_id`, `destination_id`) pair:
+both ends are the focal system → `I`; exactly one end is the focal system
+and the pair is listed with `adjacent` = 1 (in either direction) → `P`;
+exactly one end is the focal system and the pair is unlisted, `0` or
+`<NA>` → `T`; neither end is the focal system → `NaN` with a
+`UserWarning` (the row is then left out of the indicators). The full
+`indicators.csv` of this example carries 18 columns (`focal_system_id`
+plus the 17 columns listed here): raw magnitudes
+(`F_I`/`F_P`/`F_T`/`F_total`), shares (`IFS`/`PFS`/`TFS`), `MFE`,
 concentration (`IFCI`/`PFCI`/`TFCI`), partner counts
 (`n_I`/`n_P`/`n_T`), and equivalent partners (`ENP_I`/`ENP_P`/`ENP_T`).
+If a coupling type has no flow in any group, its `xFCI` and `ENP_x`
+columns are omitted (e.g. 16 columns with no pericoupled flow).
 
 Interpretation: 70 % of Brazil's classified soybean-equivalent flow is
 **telecoupled** (China + EU + USA), 20 % **pericoupled** (Argentina +
@@ -2360,6 +2436,20 @@ Paraguay), 10 % **intracoupled**. `MFE ≈ 0.73` shows a moderately even
 mix across coupling types; `TFCI ≈ 0.33` shows the telecoupled flows
 are moderately concentrated (China dominates, with the EU and USA
 sharing the remainder).
+
+`focal_id` names one focal system per call (a list means internal
+subunits of one focal system, so flows among them count as `I`); the
+`focal_system_id` column is not read. With several focal systems,
+classify each system's rows separately and concatenate (the
+`focal_system_id` values must match the IDs used in `origin_id` /
+`destination_id`):
+
+```python
+classified = pd.concat([
+    classify_coupling(g, focal_id=k, adjacency=adjacency)
+    for k, g in edges.groupby("focal_system_id")
+])
+```
 
 ### Orthogonal flow_type × coupling_type analysis
 
@@ -2379,12 +2469,18 @@ flows (cross-border payments).
 
 The functions emit `UserWarning`s when:
 
-- **`F_total == 0`** — IFS/PFS/TFS are returned as NaN.
+- **`F_total == 0`** — IFS/PFS/TFS and MFE are returned as NaN.
 - **`F_I == 0`** but P or T is non-zero — `IFS = 0` is shown but may be
   a data artifact; the warning stops users misreading "missing
   intracoupling data" as "no intracoupling".
 - **Unrecognised coupling-type labels** in the input — dropped from
   totals, with a one-shot warning.
+- **Negative or non-numeric `flow_value`** — the row is excluded from the
+  totals, with a `UserWarning`.
+- **Edges with no focal endpoint** (neither `origin_id` nor
+  `destination_id` is in `focal_id`) — `classify_coupling` leaves
+  `coupling_type` as `NaN`, with a `UserWarning`, and the row is left out
+  of the indicators.
 
 `classify_coupling` raises `ValueError` when called without an
 adjacency table on cross-system edges (it refuses to silently guess
@@ -2396,8 +2492,9 @@ of ambiguous edges (see §17).
 - **Deterministic-first.** The indicator math never calls an LLM;
   identical input → identical output.
 - **Established statistics, not invented indices.** Shannon (1948)
-  entropy; Hirschman (1945) HHI, normalised per Hannah & Kay (1977);
-  Equivalent Number of Partners per Laakso & Taagepera (1979).
+  entropy; Hirschman (1945) / Herfindahl (1950) HHI, normalised per
+  Hannah & Kay (1977); Equivalent Number of Partners per Laakso &
+  Taagepera (1979).
 - **User supplies adjacency** — no hardcoded geography in the indicator
   math. `build_adjacency` is an opt-in helper that fills the `adjacent`
   flag from the bundled pericoupling DB and warns on anything it can't
@@ -2409,7 +2506,7 @@ of ambiguous edges (see §17).
 
 ## 17. LLM-Assisted Indicator Helpers
 
-The optional `metacouplingllm.indicators.llm` submodule (PR #36)
+The optional `metacouplingllm.indicators.llm` submodule
 wraps natural-language judgment tasks around the deterministic
 indicator core. Five helpers cover the workflow steps where LLM help
 adds value, each returning `(result, LLMTrace)` for reproducibility.
@@ -2421,10 +2518,10 @@ Install: any of the LLM-provider extras (`[openai]`, `[anthropic]`,
 
 | Function | What it does |
 |---|---|
-| `define_study(description, *, llm_client)` | Natural-language description → structured study config dict (focal_system, flow_unit, intracoupling/peri/tele rules, required columns, warnings). |
-| `check_inputs(data_summary, sample_rows, *, llm_client)` | Validate user data: which indicator families can be computed, what's missing, unit / intracoupling-self-loop warnings. |
-| `classify_ambiguous_edges(edges, study_config, *, llm_client)` | Classify edges the deterministic pass couldn't resolve. Returns a DataFrame with `suggested_coupling_type` (`"I"` / `"P"` / `"T"` / `"unknown"`), `confidence`, `reason`, `needs_user_confirmation`. |
-| `interpret_results(results, *, llm_client, audience)` | Plain-language interpretation of a computed indicator table. Audience presets: `"academic"` / `"general"` / `"policy"`. |
+| `define_study(description, *, llm_client)` | Natural-language description → structured study config dict (keys: `focal_system`, `flow_type`, `flow_unit`, `intracoupling_rule`, `pericoupling_rule`, `telecoupling_rule`, `recommended_input_level`, `required_columns`, `warnings`). |
+| `check_inputs(data_summary, sample_rows=None, *, llm_client)` | Validate user data: which indicator families can be computed, what's missing, unit / intracoupling-self-loop warnings. |
+| `classify_ambiguous_edges(edges, study_config, *, llm_client)` | Classify edges the deterministic pass couldn't resolve. Returns a DataFrame with `suggested_coupling_type` (`"I"` / `"P"` / `"T"` / `"unknown"`), `confidence`, `reason`, `needs_user_confirmation`. `edges` needs `origin_id` / `destination_id` columns (override with `origin_col=` / `destination_col=`). |
+| `interpret_results(results, *, llm_client, audience="academic")` | Plain-language interpretation of a computed indicator table. Audience presets: `"academic"` / `"general"` / `"policy"`. |
 | `write_methods(indicator_spec, *, llm_client)` | Manuscript-ready Methods text with formulas + standard citations (Shannon 1948, Hirschman 1945, Hannah & Kay 1977, Laakso & Taagepera 1979, Liu 2017). |
 
 ### The `LLMTrace` dataclass
@@ -2449,11 +2546,24 @@ your output file.
 
 ### LLM-assisted edge resolution in `classify_coupling()`
 
-`classify_coupling()` gains three new kwargs in PR #36: `llm_client`,
-`study_config`, `model`. When `llm_client` is supplied AND the
-deterministic pass leaves some edges as `NaN`, the function
-automatically calls `classify_ambiguous_edges()` on just those rows
-and merges the results back:
+`classify_coupling()` takes three keyword-only arguments for
+LLM-assisted edge resolution: `llm_client`, `study_config` and `model`.
+Do not set `model` with the built-in adapters: it is forwarded to
+`llm_client.chat(model=...)`, which none of the four adapters accepts
+(`TypeError`); choose the model when you construct the adapter, e.g.
+`OpenAIAdapter(client, model="gpt-4o-mini")`.
+
+When `llm_client` is supplied AND the deterministic pass leaves some
+edges as `NaN`, the function automatically calls
+`classify_ambiguous_edges()` on just those rows and merges the suggested
+`I`/`P`/`T` labels back. The deterministic pass leaves `NaN` in two cases
+only: no `adjacency` table was passed (then every edge that is not
+intracoupling is left to the LLM), or neither endpoint of the edge is in
+`focal_id`. When a table is passed, a focal-system edge that it does not
+list as adjacent (no row, flag `0`, or `<NA>`) is classified `T`
+deterministically and never reaches the LLM; to have the LLM look at
+pairs that `build_adjacency` left as `<NA>`, call
+`classify_ambiguous_edges()` on those rows directly. Without a table:
 
 ```python
 llm_client = OpenAIAdapter(client, model="gpt-4o")  # the adapter you built in §4
@@ -2461,7 +2571,7 @@ llm_client = OpenAIAdapter(client, model="gpt-4o")  # the adapter you built in �
 classified = classify_coupling(
     edges,
     focal_id="Brazil",
-    adjacency=partial_adjacency,    # missing some cross-border pairs
+    adjacency=None,                 # no table: the LLM classifies every non-intracoupling edge
     llm_client=llm_client,          # ← opt-in LLM fallback
     study_config={"focal_system": "Brazil", "flow_unit": "Mt"},
 )
@@ -2472,19 +2582,26 @@ classified = classify_coupling(
 # fully-deterministic run doesn't raise KeyError:
 trace = classified.attrs.get("llm_classify_trace")
 if trace is not None:
-    print(trace.raw_response)
+    print(trace.raw_response)   # the reply JSON; empty with AnthropicAdapter, whose answer is a tool call the trace does not store
 # trace is None  ⇒  every edge was classified deterministically.
 ```
 
-When the LLM returns `"unknown"`, the row stays `NaN` (per spec §16
-item 3: the package never lets the LLM invent adjacency facts
-silently). Backwards-compat: omit the new kwargs to get exact
-PR #35 behaviour.
+When the LLM returns `"unknown"`, the row stays `NaN`; the prompt tells
+it to answer `"unknown"` rather than guess. Any `I`/`P`/`T` label it does
+return is written into the coupling column (`coupling_type` by default)
+as is: `confidence`, `reason` and `needs_user_confirmation` are not
+copied into the returned table, and no other column marks the row as
+LLM-assigned. To get those fields call `classify_ambiguous_edges()`
+yourself on the unresolved rows, and review every LLM-assigned label
+before relying on it.
+
+Without `llm_client`, no LLM is called: edges the deterministic pass
+cannot classify stay `NaN` with a `UserWarning`; with no adjacency table,
+any edge that is not intracoupling raises `ValueError` instead.
 
 > **Why no `(result, trace)` pair here?** Unlike the five helpers,
-> `classify_coupling` predates the LLM feature and keeps its original
-> single-DataFrame return type for backwards compatibility — the trace
-> rides along in `DataFrame.attrs` instead.
+> `classify_coupling` returns a single DataFrame; when the LLM ran, the
+> trace rides along in `DataFrame.attrs["llm_classify_trace"]` instead.
 
 ### End-to-end workflow
 
@@ -2509,16 +2626,19 @@ study_config, trace_def = define_study(
 )
 
 # 2. Validate that the user's CSV has the right columns
+#    (here the sample files from the repository's examples/ folder, see §16)
 import pandas as pd
-edges = pd.read_csv("brazil_soybean_flows.csv")
+edges = pd.read_csv("examples/brazil_soybean_flows.csv")
 check, trace_chk = check_inputs(
     data_summary={"row_count": len(edges), "columns": list(edges.columns)},
     sample_rows=edges.head(5).to_dict("records"),
     llm_client=llm_client,
 )
 
-# 3. Classify with adjacency + LLM fallback for ambiguous edges
-adjacency = pd.read_csv("brazil_adjacency.csv")
+# 3. Classify with the adjacency table (edges it does not list as adjacent
+#    become T; the LLM is consulted only for edges that do not touch the
+#    focal system)
+adjacency = pd.read_csv("examples/brazil_soybean_adjacency.csv")
 classified = classify_coupling(
     edges, focal_id="Brazil", adjacency=adjacency,
     llm_client=llm_client, study_config=study_config,
@@ -2571,6 +2691,8 @@ to its native strict-JSON mode (see §14 for the matrix).
   System Technical Journal*, 27(3), 379-423.
 - Hirschman, A. O. (1945). *National Power and the Structure of
   Foreign Trade.* Berkeley: University of California Press.
+- Herfindahl, O. C. (1950). *Concentration in the Steel Industry.* PhD
+  thesis, Columbia University, New York.
 - Hannah, L., & Kay, J. A. (1977). *Concentration in Modern Industry:
   Theory, Measurement and the UK Experience.* London: Macmillan
   (Springer).
