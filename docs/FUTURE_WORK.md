@@ -1,10 +1,14 @@
 # Future work — deferred items
 
-Items deliberately **not** acted on, with enough detail to pick up cold. Nothing
-here affects the shipped database: every count in `data/PROVENANCE.md` is current
-and every item below ships unchanged until a maintainer decides otherwise.
+Items recorded but not acted on, or since closed, with enough detail to pick up
+cold. Sections 1 and 3 are closed (their data changes are recorded in
+`CHANGELOG.md` and `data/PROVENANCE.md`); sections 2, 4 and 5 ship unchanged
+until a maintainer decides otherwise.
 
-Deferred **2026-07-26** by maintainer decision, to finish the manuscript first.
+Sections 1 and 2 were deferred **2026-07-26** by maintainer decision, to finish
+the manuscript first; section 3 was recorded 2026-07-27 and executed and closed
+2026-07-28; sections 4 and 5 were recorded 2026-09-21 to 2026-09-23 and both
+updated 2026-09-26.
 
 ---
 
@@ -16,7 +20,7 @@ sheet (U99) that the two units share no genuine boundary, and the contact is in
 not duplicated here.
 
 One-line summary: World Bank's `PER007` polygon is named *Callao* (Peru's Pacific
-port province, next to Lima) but is 4-part with its parts ~900 km apart — the
+port province, next to Lima) but is 4-part with its parts ~1,000 km apart — the
 largest by area sits in **Lake Titicaca** and carries a 62.5 km border with La Paz,
 while the three genuine Callao parts sit on the Pacific coast. La Paz already
 borders the real Puno (`PER021`) natively over 761.7 km, so the Titicaca frontage
@@ -28,7 +32,8 @@ identity-fingerprinting method used for `RUS050` (the Kalmykia salient) and the
 four water-surface placeholders — geodesic area, representative point,
 point-in-polygon probes for known settlements, and the WB adjacency signature —
 run against the pinned GeoPackage. Whatever it concludes is a source-relabel-class
-or denylist-class change, i.e. a Stage-1 edit, not a manifest edit. It was resolved on the
+change (Stage 1) or a denylist-class change (Stage 4, `data/denylist_pairs.csv`),
+not an edit to the water classification file (Stage 3). It was resolved on the
 maintainer's ruling with the World Bank evidence above; no fingerprinting pass was needed, and the
 detector of §2 is still unbuilt.
 
@@ -56,12 +61,12 @@ GeoPackage, 3,591 polygons):
 
 - For every multi-part ADM1 polygon, compute the geodesic distance between part
   centroids. Flag any unit whose parts are separated by more than a threshold
-  (~200 km is a reasonable first cut; `PER007` is ~900 km).
+  (~200 km is a reasonable first cut; `PER007` is ~1,000 km).
 - Secondary signal: flag units where the **largest part by area** lies far from
   the area-weighted centroid, which is the specific signature here — the centroid
   (−71.02 / −15.25) is a compromise between two clusters and belongs to neither.
 - Triage only. Genuine multi-part units are common and legitimate (island groups,
-  exclaves, the Anguilla districts), so output is a candidate list for identity
+  exclaves, Nunavut: `CAN008` has 6,677 parts), so output is a candidate list for identity
   fingerprinting, never an automatic removal — the standing rule that an edge
   falls only on a WB-internal signature or the maintainer's official-map check
   still applies.
@@ -73,7 +78,7 @@ frozen evidence.
 ## 3. Cross-border extension of the current hydro rungs (screen unification)
 
 **Status: EXECUTED and CLOSED 2026-07-28** — the extension ran over all 1,794
-cross-border edges (`build_data/water_screen_rebuild/hydro_fold/crossborder_hydro_disposition.csv`):
+cross-border edges (`build_data/geodesic_sampling/crossborder_hydro_disposition_degree-step_pre-gs1.csv`):
 14/14 previously-unrecorded rows re-nominate, whole-graph attributability
 736/736, and the fold followed (registry 5 → 3; see CHANGELOG). The two NEW
 cross-border nominations it surfaced were **adjudicated the same day** under the
@@ -120,7 +125,7 @@ border would then be attributable to a recorded whole-graph screen.
 
 ## 4. Known water-only borders below every screen's bar (method-scope omissions)
 
-**Status: recorded 2026-09-21, updated 2026-09-22 and 2026-09-23; no action planned.** Four borders ruled water-only on maps by the
+**Status: recorded 2026-09-21, updated 2026-09-22, 2026-09-23 and 2026-09-26; no action planned.** Four borders ruled water-only on maps by the
 maintainer are nominated by none of the edge screens, and the maintainer took them out of the water-only set: the database
 is complete relative to its screens, and a row no recorded screen nominates falls outside the documented method however it
 was ruled ("Even we take 100m, we may still miss pairs"; the removal rule of the border-arc specification,
@@ -142,9 +147,9 @@ one border arc (campaign `ba1`, `build_data/arc_and_combined_screens/`). Measuri
 
 Why the screens miss them: the coverage is a distance to HydroRIVERS' *modelled* centerlines, traced on a 15 arc-second
 elevation grid, and on these borders the model runs between 500 m and 1 km from much of the line: on the three river
-borders the share within 1,000 m (0.67-0.88) is well above the share within 500 m (0.25-0.44), and the whole 0.7 km
+borders the share within 1,000 m (0.65-0.88) is well above the share within 500 m (0.25-0.44), and the whole 0.7 km
 Kyegegwa↔Ssembabule border lies in that band. Those three lie on the lower course of a wide river (the Edo, the Santa Lucía
-and the Bạch Đằng estuaries); Natural Earth carries part of one of them (the Edo, 0.28 within 20 km), and HydroLAKES 0.12 of
+and the Bạch Đằng estuaries); Natural Earth carries part of one of them (the Edo, 0.28 within 20 km), and HydroLAKES 0.13 of
 the Haiphong↔Quảng Ninh border, too little to lift the union to its bar. A screen measured against a surveyed river network (national hydrography, OpenStreetMap waterways) is the route to
 them; it is a new screen with its own nominations to adjudicate. A finer step for every screen is not a remedy on its own:
 measured over all four screens at 100 m (2026-09-21, `build_data/geodesic_sampling/step_sensitivity_all_screens.py`) it
@@ -161,8 +166,8 @@ Hai Duong↔Quang Ninh not water-only.
 
 - **`border_length_km` from the border arc.** The shipped length is the exact shared line (boundary ∩ boundary), so it
   understates the borders where the polygons overlap or face each other across a channel: Trarza↔Saint Louis ships
-  6.4 km against a border arc of 225.3 km, Brakna↔Saint Louis 7.7 km against 223.5 km, Tamaulipas↔Veracruz 29.8 km against
-  147.7 km. Computed from the arc, the lengths of those edges and some `narrow_border` / `potential_artifact` flags
+  6.4 km against a border arc of 224.1 km, Brakna↔Saint Louis 7.7 km against 221.7 km, Tamaulipas↔Veracruz 29.8 km against
+  147.5 km. Computed from the arc, the lengths of those edges and some `narrow_border` / `potential_artifact` flags
   would change; nothing else would.
 - **Water split between a river and a lake.** A border whose water is partly river and partly lake, so that neither the
   river screens nor the lake screens reach their bars, and whose cross-type union share lies between 0.50 and 0.80, is

@@ -27,7 +27,8 @@ python scripts/build_all.py
 1. **Geometry** (`scripts/build_pericoupling_db.py`): rook contiguity at **exact
    contact (tolerance 0)** over the pinned WB polygons, land-clipped; **full**
    shared-boundary lengths, **no lake filter** (lake-meeting pairs are native); a
-   **source-relabel** step first fixes 10 reviewed WB sliver-corridor artifacts
+   **source-relabel** step first fixes the reviewed WB sliver-corridor artifacts
+   of 10 host polygons (11 manifest rows, 12 corridors moved)
    (`scripts/relabel_sliver_corridors.py`): a deterministic shape screen over
    all 3,591 polygons (appendages ≥10 km × ≤500 m mean width) nominated **144**
    candidates in total, of which **14** touch a cross-country border across 13
@@ -192,11 +193,12 @@ GeoPackages — geopandas 1.1.2 / shapely 2.1.2 / pyproj 3.7.2; last run 2026-09
 `build_data/stage_order/` — reproduces the **adjacency pair set exactly**, Stages
 3–4 being applied by the toolchain-independent engine), and
 `water_separated_pairs.csv`, `PeriTelecoupling_clean.csv`, and
-`disputed_overlay_pairs.csv` are **byte-identical**; the advisory `border_length_km` column (a length-only
-value — it never adds or drops an edge; see `docs/METHODS_adjacency.md` §3)
+`disputed_overlay_pairs.csv` are **byte-identical**; the advisory `border_length_km` column
 can differ in low-order digits under a different GEOS/Shapely toolchain,
 because the geometry-cleaning and ocean-clip operations that precede the
-length measurement are sensitive to the buffer implementation. Exact
+length measurement are sensitive to the buffer implementation (the same
+cleaned polygons decide which units are adjacent, and the pair set has been
+regenerated on the original toolchain only). Exact
 byte-identity of the lengths therefore additionally requires the original
 toolchain, as scoped in the manuscript's reproducibility statement. Stages 3
 and 4 are toolchain-independent: the engine reproduces the shipped CSVs
