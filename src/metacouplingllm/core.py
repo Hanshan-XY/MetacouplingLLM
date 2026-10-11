@@ -4748,12 +4748,8 @@ class MetacouplingAssistant:
         # Capitalised word groups: "Michoacán", "São Paulo",
         # "New South Wales".  Same regex shape as
         # ``_extract_mentioned_adm1_from_text`` for consistency.
-        # Note: ``resolve_adm1_code`` matches the database's exact
-        # form, which preserves Spanish/Portuguese diacritics
-        # ("Michoacán", not "Michoacan").  A user typing the
-        # unaccented form will hit the country-level fallback;
-        # that's the safe default — users can use ISO codes
-        # ("MEX016") to force ADM1 explicitly.
+        # ``resolve_adm1_code`` ignores diacritics, so the unaccented
+        # "Michoacan" resolves as "Michoacán" does.
         for word_group in re.findall(
             _CAPITALIZED_WORD_GROUP_RE, query
         ):

@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """Draw the preregistered validation sample (docs/VALIDATION_SAMPLING_PLAN.md).
 
-Fully deterministic: fixed seed 20260713, strata sorted by pair id before
-drawing. Re-running reproduces the identical sample byte-for-byte.
+Deterministic for fixed inputs: fixed seed 20260713, strata sorted by pair id
+before drawing, so a rerun on the same inputs gives the same bytes. The drawn
+sample came from the inputs at the preregistration commit 5c6609d (population
+P: 240 dual-AI rows); P is now read from water_classification_pairs.csv, where
+222 rows carry "dual-AI", so a rerun on today's data draws a different sample.
+The drawn ids are fixed in build_data/water_screen_rebuild/validation/drawn_ids.json.
 
 Inputs: the water classification file (population P: the rows whose source
 records a dual-AI verdict, the rows of the former rescreen manifests) and the untracked

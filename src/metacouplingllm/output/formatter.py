@@ -386,7 +386,10 @@ class AnalysisFormatter:
 
     @staticmethod
     def format_comparison(analyses: list[ParsedAnalysis]) -> str:
-        """Produce a side-by-side comparison of multiple analyses."""
+        """Produce a compact comparison: one summary block per analysis
+        (classification line, active coupling types, flow count,
+        research-gap count), stacked.  A single analysis gets the full
+        report (:meth:`format_full`)."""
         if not analyses:
             return "(No analyses to compare)"
         if len(analyses) == 1:
