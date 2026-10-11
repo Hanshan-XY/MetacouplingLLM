@@ -23,7 +23,8 @@ Usage::
 
 Options::
 
-    --model MODEL_NAME   Model to use (default: BAAI/bge-base-en-v1.5)
+    --model MODEL_NAME   Model to use (default: ``DEFAULT_EMBEDDING_MODEL``
+                         in ``rag.py``, BAAI/bge-base-en-v1.5)
     --papers-dir PATH    Markdown corpus directory to encode
     --force              Overwrite an existing .npy file without prompting
 
@@ -46,6 +47,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from metacouplingllm.knowledge.rag import DEFAULT_EMBEDDING_MODEL  # noqa: E402
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -53,8 +56,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default="BAAI/bge-base-en-v1.5",
-        help="fastembed model name (default: BAAI/bge-base-en-v1.5)",
+        default=DEFAULT_EMBEDDING_MODEL,
+        help=f"fastembed model name (default: {DEFAULT_EMBEDDING_MODEL})",
     )
     parser.add_argument(
         "--papers-dir",

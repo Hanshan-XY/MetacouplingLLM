@@ -44,12 +44,10 @@ To rebuild::
     pip install fastembed
     python scripts/build_embeddings.py --force
 
-`scripts/build_embeddings.py` does not read `DEFAULT_EMBEDDING_MODEL`; its
-`--model` default is `BAAI/bge-base-en-v1.5`. After changing the constant,
-pass the new model explicitly, or the corpus is encoded with the old model and
-the loader cannot tell (it never compares the manifest's `embedding_model`)::
-
-    python scripts/build_embeddings.py --force --model <new model>
+The script's `--model` default is `DEFAULT_EMBEDDING_MODEL`, so after the
+constant changes the command above encodes the corpus with the new model. Do
+not pass a different `--model`: queries are encoded with the constant, and the
+loader never compares the manifest's `embedding_model`.
 
 The script writes `chunk_embeddings.npy` (~15 MB for BGE-base) **and a
 sidecar `chunk_embeddings.manifest.json`** (chunk-order fingerprint). Commit
