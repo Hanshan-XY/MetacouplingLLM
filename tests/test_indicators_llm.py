@@ -354,7 +354,7 @@ class TestClassifyCouplingIntegration:
     def test_unknown_llm_suggestion_leaves_nan(self):
         """When the LLM returns "unknown", the row stays NaN -- the
         package never lets the LLM invent adjacency facts silently
-        (spec §16 item 3)."""
+        (MANUAL.md §17)."""
         edges = pd.DataFrame([
             {"origin_id": "Brazil", "destination_id": "Mars"},
         ])

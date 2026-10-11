@@ -1,7 +1,7 @@
 """Quantitative metacoupling indicators (PR #35).
 
-Three indicator families documented in
-``docs/metacoupling_codex_prompts_and_formulas_with_llm.md``:
+Three indicator families, with their formulas in MANUAL.md §16
+(Quantitative Indicators):
 
 1. **Metacoupled Flow Shares** (``compute_flow_shares``) -- IFS,
    PFS, TFS.  Relative size of intra-, peri-, and telecoupled flows.
@@ -18,7 +18,7 @@ Plus three utilities:
   pericoupling DB (ADM0 / ADM1) so the adjacency table need not be
   authored by hand
 - ``summarize_metacoupling`` -- one-shot combined indicator table
-  (per spec §12.5)
+  (columns listed in MANUAL.md §16)
 
 All of these functions take a ``pandas.DataFrame`` and return a
 ``pandas.DataFrame``.  Pandas is an OPTIONAL dependency; install
@@ -33,7 +33,7 @@ Design principles:
   entropy; Hirschman (1945) HHI, normalised per Hannah & Kay (1977);
   Equivalent Number of Partners per Laakso & Taagepera (1979).
 - **User supplies adjacency**: no hardcoded geography in the indicator
-  math (spec §4).  ``build_adjacency`` is an opt-in helper that fills the
+  math (MANUAL.md §16).  ``build_adjacency`` is an opt-in helper that fills the
   ``adjacent`` flag from the bundled pericoupling DB (ADM0 / ADM1) and
   warns on anything it cannot resolve; the user still reviews the table
   and passes it to ``classify_coupling``.
@@ -57,7 +57,7 @@ from metacouplingllm.indicators.core import (
 # takes any LLMClient (OpenAIAdapter / AnthropicAdapter /
 # GeminiAdapter / GrokAdapter) and returns a (result, trace)
 # tuple.  The trace is an LLMTrace dataclass with prompt /
-# response / timestamp / model for reproducibility per spec §15.4.
+# response / timestamp / model for reproducibility (MANUAL.md §17).
 from metacouplingllm.indicators.llm import (
     LLMTrace,
     check_inputs,

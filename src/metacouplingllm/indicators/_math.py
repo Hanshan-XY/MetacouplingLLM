@@ -1,9 +1,9 @@
 """Pure-numpy math primitives shared by the indicator functions.
 
 These have no pandas dependency and can be reused outside the
-indicators submodule.  All conventions per the spec at
-``docs/metacoupling_codex_prompts_and_formulas_with_llm.md``
-(Sections 7-8) and the established literature:
+indicators submodule.  All conventions follow the formulas in
+MANUAL.md §16 (Quantitative Indicators) and the established
+literature:
 
 - Shannon (1948) entropy, normalised to [0, 1] by dividing by ln(n)
 - Hirschman (1945) / Herfindahl (1950) HHI, normalised per
@@ -74,7 +74,7 @@ def normalised_hhi(shares: np.ndarray) -> float:
     Per Hannah & Kay (1977): ``HHI_norm = (HHI - 1/n) / (1 - 1/n)``
     where ``HHI = sum(p_i^2)``.
 
-    Single-partner convention (per spec Section 8 edge cases):
+    Single-partner convention (MANUAL.md §16, edge cases):
     when ``len(shares) == 1`` the normalisation denominator is zero,
     so we define ``HHI_norm = 1`` (all flow concentrated in one
     partner) and emit a ``UserWarning``.
@@ -105,7 +105,7 @@ def raw_hhi(shares: np.ndarray) -> float:
     """Raw (un-normalised) Herfindahl-Hirschman Index.
 
     Companion to ``normalised_hhi`` -- ``ENP = 1 / HHI_raw`` gives
-    the effective number of equally-sized partners (spec §9.2).
+    the effective number of equally-sized partners (ENP, MANUAL.md §16).
     Empty / all-zero shares return ``nan``.
     """
     arr = np.asarray(shares, dtype=float)

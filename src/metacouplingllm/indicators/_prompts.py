@@ -1,6 +1,6 @@
 """Prompt templates for the LLM-assisted helpers (PR #36).
 
-System + user prompt pairs per spec §15.2.  Versioned via
+System + user prompt pairs for the helpers in MANUAL.md §17.  Versioned via
 ``*_PROMPT_VERSION`` constants so the reproducibility trace
 (``LLMTrace.prompt_version``) records exactly which prompt fired.
 Bump the version string when changing a prompt's wording so old
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 
 # ---------------------------------------------------------------------------
-# Shared guardrail block prepended to every system prompt -- per spec §15.4
+# Shared guardrail block prepended to every system prompt (MANUAL.md §17)
 # ---------------------------------------------------------------------------
 
 _GUARDRAILS = (
