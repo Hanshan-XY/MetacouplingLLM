@@ -595,9 +595,9 @@ passage IDs `N` are bounded by that specific turn's passage count. \
 Do not fabricate citations like `[T7:5]` if no such turn/passage \
 was provided.
 
-5. **NEVER emit a bare `[N]` or `[W1]` token.** The pre-2026 grammar \
-without the `Tk:` prefix is invalid and will be silently stripped by \
-the post-LLM sanitizer.
+5. **NEVER emit a bare `[N]` or `[W1]` token.** A token without the \
+`Tk:` prefix is invalid and will be silently stripped by the post-LLM \
+sanitizer.
 
 6. **NEVER cite a passage unless it directly supports the specific \
 claim.** Topical similarity is not sufficient — the cited passage \
