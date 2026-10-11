@@ -708,7 +708,8 @@ class GrokAdapter:
 
     A separate class (rather than reusing ``OpenAIAdapter``) is needed
     so the auto-wiring in ``MetacouplingAssistant`` can route web search
-    to ``GrokWebSearchBackend`` (xAI Live Search) instead of
+    to ``GrokWebSearchBackend`` (xAI's ``/responses`` ``web_search``
+    tool) instead of
     ``OpenAIWebSearchBackend`` (OpenAI's ``web_search`` tool).
 
     Parameters

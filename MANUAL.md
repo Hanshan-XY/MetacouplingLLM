@@ -368,7 +368,7 @@ Each adapter auto-wires its **native** web-search backend when you set
 | `OpenAIAdapter` | `OpenAIWebSearchBackend` (`web_search` tool) |
 | `AnthropicAdapter` | `AnthropicWebSearchBackend` (`web_search_20250305` tool) |
 | `GeminiAdapter` | `GeminiWebSearchBackend` (Google Search grounding) |
-| `GrokAdapter` | `GrokWebSearchBackend` (server-side `web_search` tool; not yet validated against the live API, see §14) |
+| `GrokAdapter` | `GrokWebSearchBackend` (xAI's server-side `web_search` tool on `/responses`, see §14) |
 | Custom client | DuckDuckGo fallback cascade (free, no API key; no backend class) |
 
 All four native backends share the same rich prompt template, a strict
@@ -1677,7 +1677,7 @@ Methods and properties:
 | `OpenAIWebSearchBackend` | OpenAI `web_search` tool |
 | `AnthropicWebSearchBackend` | Anthropic `web_search_20250305` tool |
 | `GeminiWebSearchBackend` | Google Search grounding |
-| `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool (not yet validated against the live API; see §14) |
+| `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool (see §14) |
 | `search_web()` built-in fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) |
 
 ### Pericoupling Functions (country level)
@@ -2000,7 +2000,7 @@ from the adapter type — see §4 LLM Setup, "Web-search auto-wiring".
 | `OpenAIAdapter` | `OpenAIWebSearchBackend` | OpenAI `web_search` tool with `tool_choice="required"` |
 | `AnthropicAdapter` | `AnthropicWebSearchBackend` | Claude `web_search_20250305` tool + `submit_results` strict-output tool |
 | `GeminiAdapter` | `GeminiWebSearchBackend` | Google Search grounding |
-| `GrokAdapter` | `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool (not yet validated against the live API; as coded, the `openai` SDK rejects the request, so Grok runs fall back to DuckDuckGo) |
+| `GrokAdapter` | `GrokWebSearchBackend` | xAI `/responses` server-side `web_search` tool, through the `openai` SDK: the strict JSON schema in `text.format`, `reasoning={"effort": ...}`, the xAI-only `max_turns` in `extra_body`, and the domain list in the tool's `filters` |
 | Custom client | DuckDuckGo fallback | `ddgs` → `duckduckgo_search` → stdlib cascade (function-based; no backend class) |
 
 Auto-wiring reuses **your adapter's model** for the search call; the
@@ -2016,7 +2016,7 @@ a backend directly.
 | `web_structured_extraction` | `True` | Runs a second, strict-JSON LLM pass over the web results to extract validated receiving countries, spillover countries, and map-ready flows, plus evidence cards for the analysis prompt. Runs only when `web_search=True` and the search returns results; pass `False` to skip it. |
 | `web_structured_min_confidence` | `0.7` | Minimum confidence for a country or flow from the structured web extraction to be kept in the validated payload. |
 | `web_structured_max_targets` | `6` | Cap on the validated receiving systems and, separately, the spillover systems kept (6 each by default); validated map-ready flows are capped at this value + 2 (8 by default). |
-| `blocked_domains` | `["reddit.com", "quora.com", "pinterest.com"]` | Field of the backend dataclasses (not an assistant or adapter kwarg): `blocked_domains` on the OpenAI, Anthropic and Gemini backends (Gemini filters the returned URLs client-side), `excluded_domains` (at most 5 entries) on `GrokWebSearchBackend`. Low-authority domains are excluded **out of the box**. `MetacouplingAssistant` always auto-wires a backend with these defaults and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, blocked_domains=[]))` yourself. |
+| `blocked_domains` | `["reddit.com", "quora.com", "pinterest.com"]` | Field of the backend dataclasses (not an assistant or adapter kwarg): `blocked_domains` on the OpenAI, Anthropic and Gemini backends (Gemini filters the returned URLs client-side), `excluded_domains` (at most 5 entries) on `GrokWebSearchBackend`, where an `allowed_domains` list, if given, replaces it (xAI accepts only one of the two). Low-authority domains are excluded **out of the box**. `MetacouplingAssistant` always auto-wires a backend with these defaults and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, blocked_domains=[]))` yourself. |
 | `search_context_size`, `return_token_budget` | `"high"` / `"default"` | Fields of `OpenAIWebSearchBackend` — `"high"` deliberately maximises evidence depth. `MetacouplingAssistant` always auto-wires a backend with these defaults and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, search_context_size="medium"))` yourself. |
 
 The validated structured-extraction payload appears at
