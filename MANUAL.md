@@ -2585,7 +2585,7 @@ classified = classify_coupling(
 # fully-deterministic run doesn't raise KeyError:
 trace = classified.attrs.get("llm_classify_trace")
 if trace is not None:
-    print(trace.raw_response)   # the reply JSON; empty with AnthropicAdapter, whose answer is a tool call the trace does not store
+    print(trace.raw_response)   # the reply JSON (with AnthropicAdapter, the input of its tool call)
 # trace is None  ⇒  every edge was classified deterministically.
 ```
 
