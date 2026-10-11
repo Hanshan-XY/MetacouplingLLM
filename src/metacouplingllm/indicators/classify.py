@@ -57,8 +57,9 @@ def classify_coupling(
     adjacency:
         DataFrame with at least 3 columns: origin id, destination
         id, and an ``adjacent`` flag (0/1 or bool).  When ``None``,
-        only self-loop intracoupling edges can be classified;
-        every cross-system edge raises ``ValueError``.
+        only intracoupling edges can be classified: any other edge
+        raises ``ValueError`` or, with ``llm_client``, is left to the
+        LLM.
     origin_col, destination_col:
         Column names in ``edges``.
     coupling_col_out:
@@ -70,9 +71,13 @@ def classify_coupling(
     Returns
     -------
     Copy of ``edges`` with a new ``coupling_type`` column whose
-    values are ``"I"`` / ``"P"`` / ``"T"`` / ``NaN``.  ``NaN``
-    is used when the adjacency table doesn't cover that edge --
-    a ``UserWarning`` is emitted in that case.
+    values are ``"I"`` / ``"P"`` / ``"T"`` / ``NaN``.  An edge with
+    one end in the focal system is ``"P"`` when the adjacency table
+    lists the pair as adjacent (either direction) and ``"T"``
+    otherwise, including a pair the table does not list.  ``NaN``
+    (with a ``UserWarning``) marks an edge with neither end in the
+    focal system; with ``llm_client``, ``NaN`` rows go to the LLM,
+    and an ``"I"`` / ``"P"`` / ``"T"`` answer replaces the ``NaN``.
 
     Notes
     -----

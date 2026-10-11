@@ -399,6 +399,36 @@ class TestLLMTrace:
             "prompt_tokens": 100, "completion_tokens": 50,
         }
 
+    def test_anthropic_trace_records_submitted_tool_input(self):
+        """Anthropic's strict path answers with a tool call and no text,
+        so the trace records the tool input."""
+        from types import SimpleNamespace
+
+        from metacouplingllm.llm.client import AnthropicAdapter
+
+        config = {
+            "focal_system": "X", "flow_type": "y", "flow_unit": "z",
+            "intracoupling_rule": "", "pericoupling_rule": "",
+            "telecoupling_rule": "", "recommended_input_level": "",
+            "required_columns": [], "warnings": [],
+        }
+
+        def create(**kwargs):
+            return SimpleNamespace(
+                content=[SimpleNamespace(
+                    type="tool_use", id="toolu_1",
+                    name=kwargs["tool_choice"]["name"], input=config,
+                )],
+                usage=None,
+            )
+
+        raw = SimpleNamespace(messages=SimpleNamespace(create=create))
+        result, trace = define_study(
+            "desc", llm_client=AnthropicAdapter(raw, model="claude-test"),
+        )
+        assert result == config
+        assert json.loads(trace.raw_response) == config
+
     def test_timestamp_is_utc_iso8601(self):
         client = _RecordingMockLLMClient(responses=["{}"])
         # define_study will raise RuntimeError on "{}" (missing

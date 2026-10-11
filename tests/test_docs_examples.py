@@ -419,7 +419,7 @@ def test_shipped_indicator_csvs_match_manual():
     row = summary.iloc[0]
     # Documented printed table (MANUAL.md §16):
     #   focal_system_id  IFS  PFS  TFS   MFE  IFCI  PFCI  TFCI
-    # 0          Brazil  0.1  0.2  0.7  0.73  1.00  0.25  0.33
+    # 0          Brazil  0.1  0.2  0.7  0.73   1.0  0.25  0.33
     assert list(summary["focal_system_id"]) == ["Brazil"]
     assert row["IFS"] == pytest.approx(0.1)
     assert row["PFS"] == pytest.approx(0.2)

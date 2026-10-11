@@ -27,10 +27,11 @@ Stage 1 — geometry:
 4. ``border_length_km`` is the **full** shared-boundary length in kilometres
    (geodesic, ``pyproj.Geod``) — no river/lake subtraction.
 
-Stage 2 — **de-facto disputed overlay**: each WB NDLSA disputed-area tract is
-folded into the administrator Natural Earth records for most of it
-(``_NDLSA_TRACT_ADMIN``); the overlay pairs are derived from the geometry and
-validated against it at build time.
+Stage 2 — **de-facto disputed overlay**: 23 of the 24 WB NDLSA disputed-area
+tracts are folded into the administrator Natural Earth records for most of
+each (``_NDLSA_TRACT_ADMIN``; the UN Buffer Zone, with none recorded, stays
+unassigned); the overlay pairs are derived from the geometry and validated
+against it at build time.
 
 Stages 3 (the water-only classification) and 4 (the reviewed edge
 corrections: the land-gap borders and the denylist of non-adjacent contacts)

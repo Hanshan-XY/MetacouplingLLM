@@ -254,7 +254,9 @@ class AnalysisResult:
     formatted:
         Human-readable text ready to display.
     raw:
-        The unprocessed LLM response.
+        The LLM response after citation sanitization (invalid
+        ``[Tk:N]`` / ``[Tk:Wn]`` and bare ``[N]`` / ``[W1]`` tokens
+        removed, whitespace normalised).
     turn_number:
         Which conversational turn produced this result (1-indexed).
     usage:
@@ -1723,9 +1725,9 @@ class MetacouplingAssistant:
         )
 
         # Record per-turn citation-validation counts. Refine() does NOT
-        # re-run web search (only re-retrieves literature), so we
-        # record the most recent web-result count under this turn so
-        # the LLM can still back-reference prior-turn `[Tk:Wn]` tokens.
+        # re-run web search (only re-retrieves literature), so this turn
+        # has no web sources of its own; the LLM back-references turn
+        # 1's as `[T1:Wn]`.
         self._turn_passage_counts[next_turn] = (
             len(literature_for_msg) if literature_for_msg else 0
         )
@@ -4746,12 +4748,8 @@ class MetacouplingAssistant:
         # Capitalised word groups: "Michoacán", "São Paulo",
         # "New South Wales".  Same regex shape as
         # ``_extract_mentioned_adm1_from_text`` for consistency.
-        # Note: ``resolve_adm1_code`` matches the database's exact
-        # form, which preserves Spanish/Portuguese diacritics
-        # ("Michoacán", not "Michoacan").  A user typing the
-        # unaccented form will hit the country-level fallback;
-        # that's the safe default — users can use ISO codes
-        # ("MEX016") to force ADM1 explicitly.
+        # ``resolve_adm1_code`` ignores diacritics, so the unaccented
+        # "Michoacan" resolves as "Michoacán" does.
         for word_group in re.findall(
             _CAPITALIZED_WORD_GROUP_RE, query
         ):
@@ -4818,22 +4816,23 @@ class MetacouplingAssistant:
         # [W1] from a slipping LLM are also stripped here silently.
         # The sanitizer also runs an idempotent whitespace/punctuation
         # cleanup pass so the result reads naturally even when tokens
-        # were stripped.
-        if self._last_rag_hits is not None:
-            sanitized, invalid_tokens = sanitize_turn_citations(
-                response.content,
-                turn_passage_counts=self._turn_passage_counts,
-                turn_web_counts=self._turn_web_counts,
-                current_turn=self._turn,
+        # were stripped. It runs with or without a literature corpus:
+        # the prompt always carries the citation rules, and web
+        # sources are cited as [Tk:Wn] too.
+        sanitized, invalid_tokens = sanitize_turn_citations(
+            response.content,
+            turn_passage_counts=self._turn_passage_counts,
+            turn_web_counts=self._turn_web_counts,
+            current_turn=self._turn,
+        )
+        if invalid_tokens:
+            logger.warning(
+                "MetacouplingAssistant sanitized %d invalid citation "
+                "token(s) from LLM response: %s",
+                len(invalid_tokens),
+                sorted(invalid_tokens),
             )
-            if invalid_tokens:
-                logger.warning(
-                    "MetacouplingAssistant sanitized %d invalid citation "
-                    "token(s) from LLM response: %s",
-                    len(invalid_tokens),
-                    sorted(invalid_tokens),
-                )
-            response = LLMResponse(content=sanitized, usage=response.usage)
+        response = LLMResponse(content=sanitized, usage=response.usage)
 
         parsed = parse_analysis(response.content)
 
@@ -4925,7 +4924,9 @@ class MetacouplingAssistant:
                         f"evidence formatting failed: {exc}"
                     )
 
-        # Optional: annotate and append web search sources
+        # Optional: annotate and append web search sources. Web search
+        # runs only in analyze(), so on every turn the hits are turn 1's
+        # and keep their [T1:Wn] labels.
         if self._last_web_results:
             try:
                 from metacouplingllm.knowledge.websearch import (
@@ -4934,12 +4935,12 @@ class MetacouplingAssistant:
 
                 formatted = annotate_web_citations(
                     formatted, self._last_web_results,
-                    turn=self._turn,
+                    turn=1,
                 )
             except Exception:
                 pass  # Non-fatal: skip web annotation
             formatted += self._format_web_sources(
-                self._last_web_results, turn=self._turn,
+                self._last_web_results, turn=1,
             )
 
         # Optional: second LLM call to extract structured map data

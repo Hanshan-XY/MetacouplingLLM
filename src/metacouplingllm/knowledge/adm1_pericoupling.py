@@ -10,11 +10,13 @@ regions** across **196 countries**.  The graph is built in four stages (full
 provenance in ``data/PROVENANCE.md`` and ``docs/METHODS_adjacency.md``):
 (1) **geometry** -- rook contiguity at exact contact (tolerance 0) over the
 World Bank polygons, with **no lake filter** (so lake-meeting pairs are native
-edges), after a **source-relabel** step fixing 10 reviewed cross-country
-sliver-corridor artifacts and a reviewed **unit merge** (RUS050 "Name Unknown",
-the GAUL-split western salient of Kalmykia, merged into RUS024); (2) the
-geometry-derived **16-pair disputed overlay** (each disputed tract folded into
-the administrator Natural Earth records for most of it); (3) the reviewed
+edges), after a **source-relabel** step fixing reviewed cross-country
+sliver-corridor artifacts (10 host polygons, 11 manifest rows, 12 corridors
+moved) and a reviewed **unit merge** (RUS050 "Name Unknown", the GAUL-split
+western salient of Kalmykia, merged into RUS024); (2) the geometry-derived
+**16-pair disputed overlay** (23 of the 24 disputed tracts folded into the
+administrator Natural Earth records for most of each; the UN Buffer Zone, with
+none recorded, stays unassigned); (3) the reviewed
 **water-only classification** (one file, each row nominated by a deterministic
 Python screen and adjudicated): 798 existing edges flagged water-only and the
 **26** water borders between non-touching units that the corridor census found,

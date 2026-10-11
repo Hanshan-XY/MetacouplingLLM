@@ -2,8 +2,9 @@
 Literature recommendation engine for telecoupling/metacoupling research.
 
 Parses a bundled BibTeX database of telecoupling and metacoupling papers
-and recommends relevant publications based on keyword matching against
-a user's research topic or parsed LLM analysis.
+and recommends relevant publications for a user's research topic or
+parsed LLM analysis, ranked by keyword and title matches, full-text
+relevance from the RAG index, and citation count.
 """
 
 from __future__ import annotations

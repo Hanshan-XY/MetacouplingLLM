@@ -88,7 +88,9 @@ class LLMTrace:
         The exact strings sent to the LLM.
     raw_response:
         The full ``response.content`` string returned by the LLM
-        (before JSON parsing).
+        (before JSON parsing); with ``AnthropicAdapter``, whose
+        strict-JSON answer arrives as a tool call, the JSON of that
+        call's input.
     usage:
         Token-usage dict from the adapter when available
         (e.g., ``{"prompt_tokens": ..., "completion_tokens": ...}``).
@@ -258,6 +260,9 @@ def _call_with_strict_json(
                 tu_input = tu.get("input")
                 if isinstance(tu_input, dict):
                     parsed = tu_input
+                    # The answer is the tool input (``content`` has no
+                    # text on this path), so the trace records it.
+                    raw_response = json.dumps(tu_input, ensure_ascii=False)
                     break
 
     # Fallback: parse JSON from response text.

@@ -600,9 +600,9 @@ result = advisor.analyze("My research about coffee trade...")
 
 result.formatted     # str — Human-readable report (print this)
 result.parsed        # ParsedAnalysis — Structured data for programmatic use
-result.raw           # str — LLM response; when a RAG corpus is configured, it is the
-                     #   response after citation sanitization (invalid [Tk:N] and bare
-                     #   [N] tokens removed, whitespace normalised)
+result.raw           # str — LLM response after citation sanitization (invalid [Tk:N] /
+                     #   [Tk:Wn] and bare [N] / [W1] tokens removed, whitespace
+                     #   normalised)
 result.turn_number   # int — Which conversation turn (1 for first analysis)
 result.usage         # dict | None — Token usage (keys vary by provider)
 ```
@@ -1643,7 +1643,7 @@ Methods and properties:
 |---|---|---|
 | `result.formatted` | `str` | Human-readable report (the default `print()` surface). |
 | `result.parsed` | `ParsedAnalysis` | Structured fields for programmatic access. |
-| `result.raw` | `str` | The response text that was parsed. With no RAG corpus it is the model's text unchanged; with a RAG corpus (`rag_corpus` / `rag_papers_dir`) invalid `[Tk:N]` markers and bare `[N]` / `[W1]` tokens have already been stripped and whitespace normalised. The verbatim provider response is the `response_content` of the `main_analysis` call in `result.trace.calls` (tracing on). |
+| `result.raw` | `str` | The response text that was parsed: invalid `[Tk:N]` / `[Tk:Wn]` markers and bare `[N]` / `[W1]` tokens have already been stripped and whitespace normalised. The verbatim provider response is the `response_content` of the `main_analysis` call in `result.trace.calls` (tracing on). |
 | `result.turn_number` | `int` | 1 for the first turn; increments across `refine()`. |
 | `result.usage` | `dict \| None` | Token-usage accounting (provider-dependent). |
 | `result.map` | `Figure \| None` | Generated map (when `auto_map=True`). |
@@ -2036,7 +2036,8 @@ distinguishes web sources from literature `[Tk:1]` / `[Tk:2]`, and `k`
 is the conversation turn so prior-turn references stay stable across
 `refine()` calls. Web search (and the structured extraction) runs once,
 inside `analyze()`; `refine()` does not search again, so in later turns
-web sources are cited by their original `[T1:Wn]` tokens.
+web sources are cited by their original `[T1:Wn]` tokens and listed under
+`WEB SOURCES (turn 1)`.
 
 ### Supranational flow handling
 
@@ -2584,7 +2585,7 @@ classified = classify_coupling(
 # fully-deterministic run doesn't raise KeyError:
 trace = classified.attrs.get("llm_classify_trace")
 if trace is not None:
-    print(trace.raw_response)   # the reply JSON; empty with AnthropicAdapter, whose answer is a tool call the trace does not store
+    print(trace.raw_response)   # the reply JSON (with AnthropicAdapter, the input of its tool call)
 # trace is None  ⇒  every edge was classified deterministically.
 ```
 
