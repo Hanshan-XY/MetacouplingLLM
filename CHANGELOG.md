@@ -7,6 +7,10 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Docs
+
+- **Documentation audit at v0.2.0 (#157 README and the release checklist, #158 INTRODUCTION, #159 MANUAL, #160 REPRODUCING, VALIDATION_STUDY and FUTURE_WORK).** The seven documents were checked line by line against the code, the bundled data and the EMS paper draft; each finding was reported by one Claude Sonnet 5.5 agent and upheld by an independent re-check (235 upheld, 1 refuted), the fixes were applied by Sonnet 5.5 agents, and each diff was reviewed by a separate agent and by Claude Opus 5.5. The main corrections: run tracing records the model calls made through the assistant's client, and the two web-stage calls bypass it; the evidence coverage note closes every framework report, not only web-search runs; Grok is described by its `/responses` `web_search` tool; the LLM helpers' real inputs and examples that run as written; the token-usage keys per provider; partners for MFCI / ENP are read from `destination_id` (inbound flows need `partner_col="origin_id"`); the release checklist's manifest behaviour (a stale manifest silently falls back to TF-IDF) and smoke test (the built wheel); REPRODUCING's account of human review (561 of 824 water rows carry a maintainer ruling, 263 rest on two-model agreement) and of toolchain reproducibility. Version-history narratives and PR-number change records left the current-state documents. No code, test or data change. Found by the audit and left for a code change: CI runs `pytest --ignore=tests/test_rag.py`; the docs-capability guard matches "RAG" inside "coverage"; `GrokWebSearchBackend` passes `max_turns`, `reasoning_effort` and `response_format` to `openai`'s `Responses.create`, which rejects them, so Grok runs fall back to DuckDuckGo; the indicator LLM helpers forward `model=` to adapters that reject it; the `.bib` keyword parser splits on commas while the entries use semicolons.
+
 ## [0.2.0] — 2026-10-10
 
 The first release since 0.1.2. Version 0.1.3 was never tagged or published to
