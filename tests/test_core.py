@@ -197,6 +197,75 @@ class TestMetacouplingAdvisor:
         assert self.advisor.turn_count == 2
 
 
+class TestWebCitationsAcrossTurns:
+    """Web search runs once, in ``analyze()``: a refined result keeps
+    its hits as turn 1's (``[T1:Wn]``), and invalid citation tokens are
+    stripped without a literature corpus too."""
+
+    WEB_RESULTS = [
+        {
+            "title": "Ethiopian coffee exports",
+            "url": "https://example.org/w1",
+            "model_summary": "Ethiopia exports specialty coffee to Europe.",
+        },
+        {
+            "title": "European coffee imports",
+            "url": "https://example.org/w2",
+            "model_summary": "European roasters import Ethiopian coffee.",
+        },
+    ]
+
+    def _analyze_and_refine(self, monkeypatch, analyze_reply, refine_reply):
+        import metacouplingllm.knowledge.websearch as websearch
+
+        monkeypatch.setattr(
+            websearch, "search_web",
+            lambda *args, **kwargs: [dict(r) for r in self.WEB_RESULTS],
+        )
+        replies = [analyze_reply, refine_reply]
+
+        class ScriptedClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content=replies.pop(0))
+
+        advisor = MetacouplingAssistant(
+            llm_client=ScriptedClient(),
+            web_search=True,
+            web_structured_extraction=False,
+            generate_abstract=False,
+            trace=False,
+        )
+        return advisor.analyze("Coffee trade"), advisor.refine("More detail")
+
+    def test_refined_result_lists_web_sources_as_turn_one(self, monkeypatch):
+        _, refined = self._analyze_and_refine(
+            monkeypatch,
+            MOCK_LLM_RESPONSE,
+            MOCK_REFINE_RESPONSE.replace("market share", "market share [T1:W1]"),
+        )
+        assert "WEB SOURCES (turn 1)" in refined.formatted
+        assert "[T1:W1] Ethiopian coffee exports" in refined.formatted
+        assert "[T2:W" not in refined.formatted
+        assert "[T1:W1]" in refined.raw
+
+    def test_sanitizer_runs_without_literature_corpus(self, monkeypatch):
+        first, refined = self._analyze_and_refine(
+            monkeypatch,
+            MOCK_LLM_RESPONSE.replace(
+                "consumption systems.",
+                "consumption systems [T1:W2] [T1:W9] [W1].",
+            ),
+            MOCK_REFINE_RESPONSE.replace(
+                "market share", "market share [T1:W1] [T2:W1]",
+            ),
+        )
+        assert "consumption systems [T1:W2]." in first.raw
+        assert "[T1:W9]" not in first.raw
+        assert "[W1]" not in first.raw
+        assert "[T1:W1]" in refined.raw
+        assert "[T2:W1]" not in refined.raw
+
+
 class TestAnalysisResult:
     def test_fields(self):
         from metacouplingllm.llm.parser import ParsedAnalysis
