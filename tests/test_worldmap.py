@@ -1108,3 +1108,23 @@ class TestSupranationalRendering:
             f"dissolved area {total_after} not within 15% of "
             f"sum-of-members {total_before}"
         )
+
+
+@pytest.mark.parametrize("module", [
+    "metacouplingllm.visualization.worldmap",
+    "metacouplingllm.visualization.adm1_map",
+])
+def test_missing_viz_dependency_names_the_installable_package(
+    module, monkeypatch,
+):
+    """The install hint must name the distribution that exists on PyPI
+    (``metacouplingllm``), not the pre-rename ``metacoupling``."""
+    import importlib
+    import sys
+
+    mod = importlib.import_module(module)
+    monkeypatch.setitem(sys.modules, "geopandas", None)
+    with pytest.raises(
+        ImportError, match=r"pip install metacouplingllm\[viz\]",
+    ):
+        mod._check_dependencies()

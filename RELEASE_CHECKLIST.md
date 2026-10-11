@@ -59,10 +59,10 @@ from the chunks `RAGEngine.load()` builds) makes `EmbeddingRetriever` raise
 it and, with the default `rag_backend="auto"`, silently falls back to TF-IDF,
 so every RAG user would get weaker retrieval and no error. A missing
 manifest is not an error either: the check is skipped (a warning is logged
-only with `verbose=True`). CI skips `tests/test_rag.py`, which holds the
-manifest-vs-chunks check, so before a release run
-`python -m pytest tests/test_rag.py::TestBundledManifestIntegrity` and confirm
-that a RAG run prints `[RAG] Using embedding retrieval backend`.
+only with `verbose=True`). The manifest-vs-chunks check is
+`tests/test_rag.py::TestBundledManifestIntegrity`, which CI runs; before a
+release also confirm that a RAG run prints
+`[RAG] Using embedding retrieval backend`.
 
 ## 4. Test
 

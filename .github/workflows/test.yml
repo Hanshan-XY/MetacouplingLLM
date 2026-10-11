@@ -72,9 +72,4 @@ jobs:
             fastembed-model-
 
       - name: Run pytest
-        # test_rag.py has a pre-existing 768-vs-384 embedding dimension
-        # mismatch in TestEmbeddingRetriever::test_query_returns_results_with_precomputed
-        # that is unrelated to current work. Excluded here until that
-        # specific test is fixed; the rest of the RAG surface is exercised
-        # by test_rag_pipeline.py and test_rag_only_mode.py.
-        run: pytest tests/ --ignore=tests/test_rag.py -q
+        run: pytest tests/ -q

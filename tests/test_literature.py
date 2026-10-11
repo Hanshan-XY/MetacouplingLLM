@@ -79,6 +79,32 @@ class TestParseBibtex:
         assert "telecoupling" in papers[0].keywords
         assert "sustainability" in papers[0].keywords
 
+    def test_parses_semicolon_separated_keywords(self):
+        """The bundled entries separate keywords with semicolons, and a
+        keyword may contain a comma; splitting on commas left the whole
+        field as one keyword."""
+        bib = """
+@article{key_semicolons_2024,
+    title = {Title},
+    author = {A, B},
+    year = {2024},
+    keywords = {Land use; textile, apparel and fashion (TAF); telecoupling},
+}
+"""
+        papers = _parse_bibtex(bib)
+        assert papers[0].keywords == {
+            "land use", "textile, apparel and fashion (taf)", "telecoupling",
+        }
+
+    def test_bundled_keywords_are_split(self):
+        """Every bundled keyword field is split into separate keywords."""
+        from metacouplingllm.knowledge.literature import _get_database
+
+        with_keywords = [p for p in _get_database() if p.keywords]
+        assert with_keywords
+        assert all(";" not in kw for p in with_keywords for kw in p.keywords)
+        assert sum(len(p.keywords) > 1 for p in with_keywords) > 200
+
     def test_parses_citation_count(self):
         papers = _parse_bibtex(_SAMPLE_BIB)
         assert papers[0].cited_by == 500

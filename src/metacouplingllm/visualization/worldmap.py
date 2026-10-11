@@ -5,7 +5,7 @@ Generates choropleth maps where countries are color-coded by their coupling
 type (intracoupling, pericoupling, telecoupling) relative to a focal country.
 
 Uses **geopandas** and **matplotlib** (optional dependencies).  Install
-with ``pip install metacoupling[viz]``.
+with ``pip install metacouplingllm[viz]``.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ def _check_dependencies() -> None:
     if missing:
         raise ImportError(
             f"Visualization requires {', '.join(missing)}. "
-            f"Install with:  pip install metacoupling[viz]"
+            f"Install with:  pip install metacouplingllm[viz]"
         )
 
 

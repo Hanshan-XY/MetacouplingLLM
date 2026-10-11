@@ -392,7 +392,7 @@ Five optional helpers in `metacouplingllm.indicators` wrap natural-language judg
 
 The `LLMTrace` dataclass carries `timestamp_utc`, `model`, `prompt_version`, `system_prompt`, `user_prompt`, `raw_response`, `usage` so old traces stay attributable when prompt wording evolves.
 
-**Automatic LLM resolution of ambiguous edges in `classify_coupling()`:** pass `llm_client=` (plus optional `study_config=`) and the function automatically calls `classify_ambiguous_edges()` on any rows the deterministic pass left as `NaN`, merging suggestions back. To use another model, build the adapter with it (for example `OpenAIAdapter(client, model=...)`); a `model=` keyword is forwarded to the client's `chat()`, and the four built-in adapters reject it with `TypeError`. When the LLM returns `"unknown"`, the row stays `NaN`; any `"I"` / `"P"` / `"T"` label it does give is written into `coupling_type` whatever its confidence, with the call's `LLMTrace` kept in the returned table's `.attrs["llm_classify_trace"]`, so review the labels (`classify_ambiguous_edges()` called directly also returns each suggestion's `confidence` and `needs_user_confirmation`).
+**Automatic LLM resolution of ambiguous edges in `classify_coupling()`:** pass `llm_client=` (plus optional `study_config=`) and the function automatically calls `classify_ambiguous_edges()` on any rows the deterministic pass left as `NaN`, merging suggestions back. A `model=` keyword runs the call on another model: a built-in adapter is copied with that model (its other settings kept), and a custom client receives `model=` on `chat()`. When the LLM returns `"unknown"`, the row stays `NaN`; any `"I"` / `"P"` / `"T"` label it does give is written into `coupling_type` whatever its confidence, with the call's `LLMTrace` kept in the returned table's `.attrs["llm_classify_trace"]`, so review the labels (`classify_ambiguous_edges()` called directly also returns each suggestion's `confidence` and `needs_user_confirmation`).
 
 All five helpers work across OpenAI / Anthropic / Gemini / Grok adapters and use each provider's native strict-JSON / tool-output mode for the structured-output helpers.
 
@@ -600,9 +600,9 @@ The package includes a comprehensive test suite. The tests are in the source rep
 
 ```bash
 pip install -e ".[all,dev]"
-pytest tests/        # CI runs: pytest tests/ --ignore=tests/test_rag.py -q
+pytest tests/        # CI runs: pytest tests/ -q
 ```
 
 Tests that need pandas, python-docx or geopandas are skipped when that extra is missing (`[all]` installs them), and the live OpenAI tests (`tests/test_openai_integration.py`) are skipped unless `OPENAI_API_KEY` is set in the environment or a `.env` file, in which case they make real API calls.
 
-1430 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.
+1438 tests covering all modules: core advisor logic, framework enums, prompt construction, LLM parsing, RAG retrieval, literature matching, web search (including stdlib fallback), pericoupling databases, country resolution, visualization colors, map generation, scholar export, quantitative indicators, and a CI-enforced doc-capability drift guard that fails the build when shipped features aren't advertised in INTRODUCTION/README/MANUAL.

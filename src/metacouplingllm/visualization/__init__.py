@@ -3,7 +3,7 @@ Map visualization for metacoupling analysis.
 
 Requires optional dependencies::
 
-    pip install metacoupling[viz]
+    pip install metacouplingllm[viz]
 
 Three map functions are provided:
 
@@ -38,7 +38,7 @@ def plot_focal_country_map(
 ) -> matplotlib.figure.Figure:
     """Generate a world map colored by coupling type relative to a focal country.
 
-    Requires: ``pip install metacoupling[viz]``
+    Requires: ``pip install metacouplingllm[viz]``
 
     See :func:`metacouplingllm.visualization.worldmap.plot_focal_country_map`
     for full documentation.
@@ -67,7 +67,7 @@ def plot_analysis_map(
 ) -> matplotlib.figure.Figure:
     """Generate a world map from a parsed LLM analysis result.
 
-    Requires: ``pip install metacoupling[viz]``
+    Requires: ``pip install metacouplingllm[viz]``
 
     See :func:`metacouplingllm.visualization.worldmap.plot_analysis_map`
     for full documentation.
@@ -95,7 +95,7 @@ def plot_focal_adm1_map(
 ) -> matplotlib.figure.Figure:
     """Generate a subnational (ADM1) map colored by coupling type.
 
-    Requires: ``pip install metacoupling[viz]``
+    Requires: ``pip install metacouplingllm[viz]``
 
     See :func:`metacouplingllm.visualization.adm1_map.plot_focal_adm1_map`
     for full documentation.
