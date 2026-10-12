@@ -8,7 +8,7 @@
 
 - Structured metacoupling analysis from free-text research descriptions
 - Multi-turn refinement via conversational LLM interaction
-- Retrieval-Augmented Generation (RAG) over 420 telecoupling/metacoupling papers — 192 indexed as full text, the other 228 as structured paraphrased summaries (used wherever redistributing the full text would not be licence-safe)
+- Retrieval-Augmented Generation (RAG) over 421 telecoupling/metacoupling papers — 219 indexed as full text, the other 202 as structured paraphrased summaries (used wherever redistributing the full text would not be licence-safe)
 - **RAG-only literature Q&A mode** for users already familiar with the framework (`coupling_analysis=False`)
 - Literature recommendation from a curated BibTeX database
 - Real-time web search grounding with native backends for OpenAI, Anthropic, Gemini, and Grok (DuckDuckGo fallback for custom clients and whenever a native backend fails or returns nothing)
@@ -95,7 +95,7 @@ The package encodes 14 telecoupling categories from the literature (trade, migra
           |                   |                   |
   +-------v-------+  +-------v--------+  +-------v-------+
   | PromptBuilder  |  |  Web Search    |  | RAG Engine    |
-  | (6-layer       |  |  (native +     |  | (420 papers,  |
+  | (6-layer       |  |  (native +     |  | (421 papers,  |
   |  system prompt)|  |   DuckDuckGo)  |  |  embeddings   |
   |                |  |                |  |  or TF-IDF    |
   |                |  |                |  |  fallback)    |
@@ -269,7 +269,7 @@ only fires if its precondition is met):
 
 ### 4.3 Retrieval-Augmented Generation (RAG)
 
-The RAG engine provides evidence grounding from a corpus of 420 telecoupling and metacoupling papers. The split is by what can be redistributed, not by topic: 192 papers whose licences allow it are indexed as **full text**, and the remaining 228 are indexed as **structured, paraphrased summaries** (metadata plus key findings, no source text) so they stay searchable without reproducing copyrighted material. Those 228 are papers the corpus cannot redistribute in full — 124 paywalled articles and 104 articles not cleared for redistribution (free to read without a redistribution licence, restrictively licensed, available only as a preprint, or with open-access status not established):
+The RAG engine provides evidence grounding from a corpus of 421 telecoupling and metacoupling papers. The split is by what can be redistributed, not by topic: 219 papers whose licences allow it are indexed as **full text**, and the remaining 202 are indexed as **structured, paraphrased summaries** (metadata plus key findings, no source text) so they stay searchable without reproducing copyrighted material. Those 202 are papers the corpus cannot redistribute in full — 125 paywalled articles and 77 articles not cleared for redistribution (free to read without a redistribution licence, restrictively licensed, available only as a preprint, or with open-access status not established):
 
 - **Indexing**: Papers are chunked by section and indexed by one of two backends:
   - **Embeddings (default)** -- semantic retrieval via `fastembed` + the `BAAI/bge-base-en-v1.5` ONNX model. Captures synonyms, paraphrases, and related concepts (e.g., a query about "soybean trade" also matches chunks about "soya bean exports" and "Glycine max shipments"). Pre-computed corpus vectors are shipped with the package as `chunk_embeddings.npy` (~15 MB) so users never have to re-encode.
@@ -568,8 +568,8 @@ The same tables feed the optional LLM-assisted helpers (natural-language study s
 
 | Resource | Description |
 |---|---|
-| 420 papers (Papers.zip) | Markdown for RAG — 192 indexed as full text, 228 as structured paraphrased summaries (papers that cannot be redistributed in full: 124 paywalled, and 104 not cleared for redistribution — free to read without a redistribution licence, restrictively licensed, preprint-only, or with open-access status not established) |
-| Precomputed embeddings (`chunk_embeddings.npy` + `chunk_embeddings.manifest.json`) | 10,039 × 768 float16 vectors (`BAAI/bge-base-en-v1.5`), one per chunk of the 420 papers, so the corpus never has to be re-encoded; the manifest records the chunk count and chunk-order fingerprint they were built from |
+| 421 papers (Papers.zip) | Markdown for RAG — 219 indexed as full text, 202 as structured paraphrased summaries (papers that cannot be redistributed in full: 125 paywalled, and 77 not cleared for redistribution — free to read without a redistribution licence, restrictively licensed, preprint-only, or with open-access status not established) |
+| Precomputed embeddings (`chunk_embeddings.npy` + `chunk_embeddings.manifest.json`) | 10,970 × 768 float16 vectors (`BAAI/bge-base-en-v1.5`), one per chunk of the 421 papers, so the corpus never has to be re-encoded; the manifest records the chunk count and chunk-order fingerprint they were built from |
 | BibTeX database (telecoupling_literature.bib) | 265 empirical journal articles (2013–2026) with metadata for literature recommendation |
 | Country pericoupling database (CSV) | Global country-pair adjacency classification |
 | ADM1 edge list (CSV) | 8,462 subnational shared-border pairs across 3,374 regions in 196 countries (World Bank Official Boundaries, 2026-05-14; see `data/PROVENANCE.md`) |

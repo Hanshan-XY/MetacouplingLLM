@@ -485,13 +485,13 @@ print(result.trace.total_tokens)     # input + output across all captured calls
 
 ### What's in the RAG corpus
 
-The RAG evidence corpus is a curated set of **420 telecoupling and
+The RAG evidence corpus is a curated set of **421 telecoupling and
 metacoupling papers**, shipped with the package as `Papers.zip` and indexed
 on first use (embeddings by default, TF-IDF fallback).  It is split by what
-can be redistributed, not by topic: **192 papers are indexed as full text**
-and the other **228 as structured, paraphrased summaries** (metadata + key
-findings, no source text) — those 228 being papers that cannot be
-redistributed in full: 124 paywalled, and 104 not cleared for
+can be redistributed, not by topic: **219 papers are indexed as full text**
+and the other **202 as structured, paraphrased summaries** (metadata + key
+findings, no source text) — those 202 being papers that cannot be
+redistributed in full: 125 paywalled, and 77 not cleared for
 redistribution (free to read without a redistribution licence, restrictively
 licensed, preprint-only, or with open-access status not established).
 Retrieval runs over both, so a summary-only paper can still
@@ -500,8 +500,8 @@ corpus composition.
 
 > **The recommendation database is the BibTeX layer of this corpus.**  The
 > 265-article BibTeX literature database used by `recommend_papers` /
-> `get_database_info` (§9) is matched to 265 of these 420 papers; the other
-> 155 have no BibTeX entry and are never recommended. RAG *grounds* the
+> `get_database_info` (§9) is matched to 265 of these 421 papers; the other
+> 156 have no BibTeX entry and are never recommended. RAG *grounds* the
 > analysis with quoted passages; the recommendation database *suggests*
 > further reading.
 
@@ -1210,8 +1210,8 @@ ranked by author keywords, title words, full-text relevance and citation
 count (see "How recommendations work").
 
 > This 265-article recommendation database is the BibTeX layer of the
-> 420-paper RAG evidence corpus (§5, "What's in the RAG corpus"): every one
-> of the 265 articles is matched to a corpus paper, while the other 155
+> 421-paper RAG evidence corpus (§5, "What's in the RAG corpus"): every one
+> of the 265 articles is matched to a corpus paper, while the other 156
 > corpus papers have no BibTeX entry and are never returned by
 > `recommend_papers`. The BibTeX database drives `recommend_papers`
 > (suggested reading; its full-text score queries the RAG index); the corpus
