@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-**MetacouplingLLM** (import name `metacouplingllm`) is a Python package (v0.2.0) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
+**MetacouplingLLM** (import name `metacouplingllm`) is a Python package (v0.2.1) that helps researchers apply the telecoupling and metacoupling frameworks (Liu et al., 2013; Liu, 2017) to their own research topics using Large Language Models (LLMs). Given a natural-language research description, the package produces a structured, framework-compliant analysis that identifies coupled human and natural systems, classifies coupling types, maps flows, agents, causes, and effects, and grounds the output in both a curated literature database and real-time web search results.
 
 **Key capabilities:**
 
@@ -578,7 +578,7 @@ The same tables feed the optional LLM-assisted helpers (natural-language study s
 | Disputed-territory overlay and edge-correction files (CSV) | `disputed_overlay_pairs.csv`: 19 pairs (16 ADM1 + 3 ADM0), read by `de_facto_borders`; `sliver_corridor_relabel.csv` (11 rows), `land_gap_overlay_pairs.csv` (5 pairs) and `denylist_pairs.csv` (7 pairs): the reviewed corrections behind the ADM1 edge list (see `data/PROVENANCE.md`) |
 | Framework examples | Five curated case studies (soybean trade, red imported fire ant invasion, Beijing urban water, panda conservation, Wolong Nature Reserve); the best matches (`max_examples`, default 2) are injected into the prompt |
 
-*Counts above are as of v0.2.0.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile(pathlib.Path(metacouplingllm.__file__).parent / "data" / "Papers.zip").namelist())` (after `import zipfile, pathlib, metacouplingllm`) for the live paper count if the corpus drifts.*
+*Counts above are as of v0.2.1.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile(pathlib.Path(metacouplingllm.__file__).parent / "data" / "Papers.zip").namelist())` (after `import zipfile, pathlib, metacouplingllm`) for the live paper count if the corpus drifts.*
 
 ---
 

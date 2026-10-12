@@ -7,6 +7,27 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-10-12
+
+A maintenance release after the documentation audit of 0.2.0.
+
+Highlights:
+
+- **The RAG corpus checked paper by paper**: 421 papers, 219 indexed as full
+  text and 202 as paraphrased summaries, each licence traced to the paper or
+  its publisher; nine author labels corrected, Newig et al. 2020 added, and
+  the embeddings rebuilt. The README states the bundled papers' licences.
+- **Grok web search works**: its request now takes the Responses-API shapes
+  xAI documents, so Grok runs search natively instead of falling back to
+  DuckDuckGo.
+- **Indicator LLM helpers** run on the model passed as `model=`, and their
+  trace records Anthropic's answer.
+- **Citations**: a refined result lists its web sources as turn 1's, and the
+  citation sanitizer also runs without a literature corpus.
+- **Smaller fixes**: bibliography keywords split on semicolons, install hints
+  name `metacouplingllm[viz]`, CI runs the RAG tests, and the documentation
+  and docstrings were checked against the code, the data and the paper.
+
 ### Fixed
 
 - **Grok web search works: the backend's request was rejected by the openai SDK, so every Grok run fell back to DuckDuckGo.** `GrokWebSearchBackend` passed `max_turns`, `reasoning_effort` and a chat-style `response_format` as top-level arguments to `client.responses.create`; the openai SDK (2.30.0) has none of them and raised TypeError before sending anything, the backend caught it and returned no results, and `search_web` fell back to DuckDuckGo. The request now takes the Responses-API shapes xAI documents: the strict JSON schema in `text.format`, `reasoning={"effort": ...}`, the xAI-only `max_turns` in `extra_body`, and the domain list in the `web_search` tool's `filters`; an `allowed_domains` list replaces the default `excluded_domains`, as xAI accepts only one of the two. The diagnostic web-search count now reads `usage.server_side_tool_usage_details.web_search_calls`, and the citation fallback also reads the `url_citation` annotations the openai SDK returns. Verified live on 2026-10-11: grok-4.7 and grok-4.6 each returned 5 sourced results with 200-400-word summaries (Nature, Ambio, Yale e360, the CRI report), and a full `MetacouplingAssistant` analysis through `GrokAdapter` on grok-4.7 searched natively (10 sources), its structured web extraction accepted 1 receiving system and 2 flows, and the report and abstract completed. The MANUAL's caveat about the defect is removed, and `GrokAdapter`'s docstring no longer names the retired Live Search API. Tests +5, among them a check that the request binds to the real `Responses.create` signature, which the old request fails (suite 1,430; the 1,422 in INTRODUCTION and REPRODUCING predates the three MANUAL examples #159 added).
