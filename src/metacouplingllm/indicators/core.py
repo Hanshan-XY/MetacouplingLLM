@@ -1,8 +1,7 @@
 """Deterministic metacoupling indicator functions (PR #35).
 
 Five public functions implementing the three indicator families
-documented in the spec
-``docs/metacoupling_codex_prompts_and_formulas_with_llm.md``:
+whose formulas MANUAL.md §16 (Quantitative Indicators) gives:
 
 1. ``classify_coupling`` -- in ``classify.py``; assigns I/P/T
    coupling type to each edge based on user-supplied adjacency.
@@ -53,8 +52,8 @@ def _require_pandas() -> "Any":
         ) from exc
 
 
-# Canonical coupling-type labels per spec §3.  Accept both single
-# letter and full-word forms; normalise internally.
+# Canonical coupling-type labels I / P / T (MANUAL.md §16).  Accept
+# both single letter and full-word forms; normalise internally.
 _COUPLING_ALIASES: dict[str, str] = {
     "i": "I",
     "intra": "I",
@@ -96,7 +95,7 @@ def compute_flow_shares(
 ) -> "pd.DataFrame":
     """Compute Intracoupled / Pericoupled / Telecoupled Flow Shares.
 
-    Per spec §6:
+    Formulas (MANUAL.md §16):
       IFS_i = F_iI / (F_iI + F_iP + F_iT)
       PFS_i = F_iP / (F_iI + F_iP + F_iT)
       TFS_i = F_iT / (F_iI + F_iP + F_iT)
@@ -107,12 +106,12 @@ def compute_flow_shares(
         Edge-level OR aggregated DataFrame.  At minimum needs
         ``system_col``, ``coupling_col``, ``weight_col`` columns.
     system_col, coupling_col, weight_col:
-        Column names in ``data``.  Defaults match the canonical
-        names from spec §14.2.
+        Column names in ``data``.  Defaults match the column names
+        in MANUAL.md §16 (Preparing your data).
     group_cols:
         Optional extra grouping columns (e.g., ``["year"]`` for
         time-series output, or ``["year", "flow_type"]`` for the
-        per-flow-type analysis described in spec §3).  One output
+        per-flow-type analysis in MANUAL.md §16).  One output
         row per (system, *group_cols).
 
     Returns
@@ -124,7 +123,7 @@ def compute_flow_shares(
     Edge cases
     ----------
     - ``F_total == 0``: ``IFS / PFS / TFS = NaN`` plus a
-      ``UserWarning`` (spec §13).
+      ``UserWarning`` (MANUAL.md §16, Guardrails).
     - ``F_I == 0``: emits a ``UserWarning`` so users don't misread
       missing intracoupling data as "no intracoupling" (per scope
       decision: intracoupled flow data is required for meaningful
@@ -231,7 +230,7 @@ def compute_mfe(
 ) -> "pd.DataFrame":
     """Compute Metacoupled Flow Evenness (MFE) for each row.
 
-    Per spec §7: normalised Shannon entropy over (IFS, PFS, TFS).
+    Normalised Shannon entropy over (IFS, PFS, TFS) (MANUAL.md §16).
 
     Adds an ``MFE`` column in-place-style (returns a copy).
     Rows whose three shares are all NaN or all zero get
@@ -273,8 +272,8 @@ def compute_mfci(
 ) -> "pd.DataFrame":
     """Compute Metacoupled Flow Concentration Index per coupling type.
 
-    Per spec §8: normalised HHI computed from partner-level shares
-    within each coupling type.
+    Normalised HHI computed from partner-level shares within each
+    coupling type (formula and edge cases: MANUAL.md §16).
 
     Returns
     -------
@@ -282,13 +281,13 @@ def compute_mfci(
     carrying [n_partners, HHI, MFCI, effective_n_partners].
     Coupling-type values are ``"I"`` / ``"P"`` / ``"T"`` (always
     all three rows per group, even when ``F_ic = 0``, with numeric
-    columns set to ``NaN`` per spec §8 edge cases).
+    columns set to ``NaN``).
 
     Edge cases
     ----------
-    - ``F_ic == 0``: ``MFCI = NaN`` + ``UserWarning`` (spec §8).
+    - ``F_ic == 0``: ``MFCI = NaN`` + ``UserWarning``.
     - ``n_ic == 1``: ``MFCI = 1`` by convention + ``UserWarning``
-      (spec §8 + §14.6 -- intracoupling self-loop case).
+      (e.g. the intracoupling self-loop).
     """
     pd = _require_pandas()
     _check_columns(
@@ -368,7 +367,7 @@ def summarize_metacoupling(
     weight_col: str = "flow_value",
     group_cols: list[str] | None = None,
 ) -> "pd.DataFrame":
-    """One-shot combined indicator table per spec §12.5.
+    """One-shot combined indicator table (MANUAL.md §16).
 
     Combines ``compute_flow_shares``, ``compute_mfe``, and
     ``compute_mfci`` outputs into a single wide table.
@@ -430,7 +429,7 @@ def summarize_metacoupling(
 
     merged = shares_with_mfe.merge(mfci_wide, on=group_keys, how="left")
 
-    # Stable column order matching spec §12.5.
+    # Stable column order, as MANUAL.md §16 lists the columns.
     ordered = [
         *group_keys,
         "F_I", "F_P", "F_T", "F_total",

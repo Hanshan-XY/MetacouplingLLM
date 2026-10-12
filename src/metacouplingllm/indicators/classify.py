@@ -1,13 +1,13 @@
 """Classify each flow edge as intracoupled / pericoupled /
 telecoupled.
 
-Per spec §4 and §12.1:
+Coupling types (MANUAL.md §16):
 - I (intracoupling): flow occurs within the focal system
 - P (pericoupling): focal connects to an adjacent system
 - T (telecoupling): focal connects to a non-adjacent / distant system
 
 This implementation uses a USER-SUPPLIED adjacency table (no
-hardcoded geography per spec §4).  Distance-threshold classification
+hardcoded geography).  Distance-threshold classification
 is documented as out of scope for PR #35; users wanting that today
 can pre-compute their own adjacency from a distance matrix.
 """
@@ -182,8 +182,8 @@ def classify_coupling(
             )
             # Merge resolved suggestions back into out by index.
             # When the LLM returned "unknown", leave the NaN so
-            # downstream code can see the gap (per spec §16 item 3:
-            # never let the LLM invent adjacency facts silently).
+            # downstream code can see the gap (the LLM must never
+            # invent adjacency facts silently; MANUAL.md §17).
             for idx, row in resolved.iterrows():
                 suggestion = row.get("suggested_coupling_type", "unknown")
                 if suggestion in ("I", "P", "T"):
@@ -211,8 +211,8 @@ def _classify_one(
     if in_focal_origin and in_focal_dest:
         return "I"
     # If neither endpoint is the focal system, we can still ask:
-    # is this even an edge we should classify?  The spec frames
-    # classification as "for focal system i", so non-focal edges
+    # is this even an edge we should classify?  The indicators are
+    # defined per focal system i (MANUAL.md §16), so non-focal edges
     # are not the package's job -- return None.
     if not (in_focal_origin or in_focal_dest):
         return None
