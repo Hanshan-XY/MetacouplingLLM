@@ -1,9 +1,17 @@
-"""Apply Strategy B (ship CC-BY + SA + NC + NC-SA; skip ND/NC-ND/closed/bronze
-/green-preprint) and write tmp/strategy_b_decision.xlsx with two sheets:
-  - 'Journal Articles' (420 papers)
+"""Apply Strategy B (ship CC BY, BY-SA, BY-NC, BY-NC-SA, BY-ND, BY-NC-ND, CC0
+and public domain; skip closed/bronze/green-preprint) and write
+tmp/strategy_b_decision.xlsx with two sheets:
+  - 'Journal Articles'
   - 'Book Chapters'    (25 papers)
 
 Each row: filename, title, year, doi, oa_status, license, ship, reason.
+ND texts ship unaltered (back matter left out) for non-commercial use.
+
+Since 2026-10-12 the table's 'Journal Articles' sheet (421 papers) also
+carries corrections that this Unpaywall-based rule cannot reproduce: licences
+traced to the paper's own licence line, the publisher's Crossref deposit or the
+journal, recorded in the reason column ("verified 2026-10-..."). Re-running this
+script overwrites them.
 """
 from __future__ import annotations
 
@@ -17,9 +25,10 @@ from openpyxl.styles import Alignment, Font, PatternFill
 IN_PATH = Path("tmp/oa_status_report.xlsx")
 OUT_PATH = Path("tmp/strategy_b_decision.xlsx")
 
-# Strategy B: permissive (CC-BY family without ND) + NC variants without ND
+# Strategy B: the CC BY family, NC and ND variants included (the package is
+# non-commercial and ships ND texts unaltered)
 SHIP_LICENSES = {"cc-by", "cc-by-sa", "cc-by-nc", "cc-by-nc-sa",
-                 "cc0", "pd", "public-domain"}
+                 "cc-by-nd", "cc-by-nc-nd", "cc0", "pd", "public-domain"}
 
 
 def xml_safe(s):
@@ -45,8 +54,6 @@ def decide(license_: str, oa_status: str, doi: str, version: str) -> tuple[str, 
                 return "Yes", f"green OA published version, {license_}"
             return "No", f"green OA but only {version or 'unknown'} version available"
         return "No", f"OA status {oa_status or 'unknown'} unclear despite license {license_}"
-    if license_.endswith("-nd"):
-        return "No", f"ND license ({license_}) prohibits derivative chunks/embeddings"
     if oa_status == "bronze":
         return "No", "bronze OA, free to read but no license to redistribute"
     if oa_status == "closed":

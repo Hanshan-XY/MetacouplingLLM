@@ -124,8 +124,8 @@ turn it off.
   each with auto-wired web search and strict structured output
 - Literature recommendations from a curated telecoupling/metacoupling database
 - Retrieval-augmented generation (RAG, enabled with
-  `rag_corpus=JOURNAL_ARTICLES_2025`) over a bundled corpus of 420
-  telecoupling/metacoupling studies (192 full text, 228 structured
+  `rag_corpus=JOURNAL_ARTICLES_2025`) over a bundled corpus of 421
+  telecoupling/metacoupling studies (219 full text, 202 structured
   summaries; BGE-base embeddings with a TF-IDF fallback); passages are cited
   inline as `[Tk:N]` and web sources as `[Tk:Wn]`, and
   `coupling_analysis=False` gives a RAG-only literature Q&A mode
@@ -180,3 +180,11 @@ turn it off.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+The MIT licence covers the package's code and data files, not the research
+papers bundled in `src/metacouplingllm/data/Papers.zip`. Each of the 219 full
+texts keeps its own Creative Commons licence; 55 of them are for
+non-commercial use only (CC BY-NC, BY-NC-SA or BY-NC-ND), and the BY-NC-ND
+texts are included unaltered (their reference lists and other back matter are
+left out). The other 202 papers are represented only by paraphrased summaries
+that contain no source text.

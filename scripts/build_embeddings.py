@@ -2,7 +2,7 @@
 """Pre-compute corpus embeddings for the RAG engine.
 
 Runs the fastembed encoder over every chunk in the bundled RAG corpus
-(``Papers.zip`` → 9,581 chunks as of writing) and saves the resulting
+(``Papers.zip`` → 10,970 chunks as of writing) and saves the resulting
 (n_chunks, dims) numpy array to
 ``src/metacouplingllm/data/chunk_embeddings.npy``.
 

@@ -1414,8 +1414,8 @@ class TestBundledCorpusPaperKeys:
 
     def test_one_key_per_file(self, engine):
         keys = {c.paper_key for c in engine._index._chunks}
-        assert engine.total_files == 420
-        assert len(keys) == 420
+        assert engine.total_files == 421
+        assert len(keys) == 421
 
     def test_no_bibtex_key_goes_to_two_files(self, engine):
         from metacouplingllm.knowledge.literature import _get_database
@@ -1429,7 +1429,7 @@ class TestBundledCorpusPaperKeys:
         from metacouplingllm.knowledge.rag import _FILENAME_RE
 
         names = [p.name for p in engine._papers_dir.glob("*.md")]
-        assert len(names) == 420
+        assert len(names) == 421
         assert [n for n in names if not _FILENAME_RE.match(n)] == []
 
     def test_every_bibtex_entry_goes_to_a_file(self, engine):
