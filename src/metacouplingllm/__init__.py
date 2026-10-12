@@ -120,7 +120,7 @@ def _resolve_version() -> str:
         )
     except OSError:
         match = None
-    return match.group(1) if match else "0.2.0"
+    return match.group(1) if match else "0.2.1"
 
 
 __version__ = _resolve_version()
