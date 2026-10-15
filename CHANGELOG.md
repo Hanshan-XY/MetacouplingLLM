@@ -7,6 +7,20 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Changed
+
+- **The five bundled framework examples were replaced.** Each now summarises
+  one paper in the literature corpus and was checked against it: Wolong Nature
+  Reserve (Liu 2017), South American food trade (Herzberger et al. 2019),
+  global marine fishing (Carlson et al. 2020), groundwater bottling and Michigan
+  trout streams (Carlson, Taylor and Hughes 2020) and transatlantic wood pellets
+  (Parish et al. 2018). The old set misstated some sources, for example the
+  fire-ant case cited Liu et al. (2013) for a USA-to-China invasion the paper
+  does not describe. Examples are now laid out coupling-first like the analysis
+  they model, give each system's role per flow, and use the template's
+  cross-coupling vocabulary; tests check that every source paper is in the
+  bundled corpus and that country pericouplings match the adjacency data.
+
 ## [0.2.1] — 2026-10-12
 
 A maintenance release after the documentation audit of 0.2.0.
