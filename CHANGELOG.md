@@ -23,6 +23,40 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **Region names written with their type resolve: "Narok County",
+  "Kagoshima Prefecture", "Rangpur Division".** `resolve_adm1_code` returned
+  `None` for many names as researchers write them, so adjacency validation
+  never engaged for those regions: with the country hint, "Narok County" gave
+  `None` while "Narok" gave `KEN033`, and "Rajshahi Division" resolved only
+  because the alias table happened to list it, while "Rangpur Division" did
+  not. When no strategy matches, the resolver now removes one trailing
+  designator and resolves the rest. Region, province, state and oblast count
+  in any country, as they already did after a canonical name; county,
+  prefecture, division, department, district, governorate and voivodeship
+  count only in the countries whose World Bank first-level units carry them,
+  so "Washington County" does not become the State of Washington, nor
+  "Khulna District" the Khulna Division. The result is refused when the rest
+  also names another unit of the same country ("Almaty Province": "Almaty"
+  is Almaty City) or matches several regions ("La Paz Department" without a
+  country). A name that resolved before is unchanged: of the 183,917
+  queries recorded before the change (each World Bank name and alias with
+  and without its country hint, alone and followed by a designator, and the
+  recorded name-matching queries), none of the 43,883 that resolved gives a
+  different code. The alias table gains 18 curated entries, each checked
+  against the source its basis cites (now 1,163 entries for 872 regions):
+  "Mexico City", "Silesian Voivodeship", "North-West District" (Ngamiland),
+  "Barisal", the English names of five more Polish voivodeships and two
+  Chilean regions, the full official names of three Chilean regions that the
+  World Bank names shorten ("Libertador General Bernardo O'Higgins" for
+  "Libertador Gral. Bernardo O'Higgins"), and four spellings the World Bank
+  names get wrong ("Lubelskie" for "Lubeiskie", "Małopolskie" for
+  "Malopolske", "Arica y Parinacota" for "Arica y Painacota",
+  "Zachodniopomorskie" for "Zachodnio-Pomorskie"). An alias that contains a
+  country name ("Mexico City", "Lesser Poland") resolves only with a country
+  hint, because without one `resolve_country_code` reads the name as that
+  country. `scripts/validate_adm1_aliases.py` holds the curated list and
+  still reproduces the other 1,145 entries byte for byte. Tests +108 (suite
+  1,571).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty

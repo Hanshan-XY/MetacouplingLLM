@@ -1159,14 +1159,29 @@ The same `coupling_standard` argument is accepted by the ADM1 functions
 `docs/METHODS_adjacency.md` §8, and `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
 `resolve_adm1_code` also consults a bundled **English-exonym alias table**
-(`data/adm1_aliases.csv`, 1,145 validated aliases for 863 regions across 136
+(`data/adm1_aliases.csv`, 1,163 validated aliases for 872 regions across 136
 countries) before its name/substring strategies, so common English
 names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
 (Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The
 table is additions-only and deterministically validated; a name that is
-ambiguous or denotes a different place (e.g. `"Mexico City"` vs the State of
-México) returns `None` rather than a confident wrong answer.  See
-`data/PROVENANCE.md` for the generation and validation methodology.
+ambiguous or denotes a different place (e.g. `"New Mexico"` with
+`country="MEX"`) returns `None` rather than a confident wrong answer.  An
+alias that contains a country name (`"Mexico City"` → `MEX009`, `"Lesser
+Poland"` → `POL006`) resolves only when `country` is given; without it the
+name is read as the country.  See `data/PROVENANCE.md` for the generation
+and validation methodology.
+
+When no strategy matches a name, `resolve_adm1_code` removes one trailing
+administrative designator and resolves the rest: `"Narok County"` →
+`KEN033`, `"Kagoshima Prefecture"` → `JPN017`, `"Rangpur Division"` →
+`BGD007`.  Region, province, state and oblast are removed for any country.
+County, prefecture, division, department, district, governorate and
+voivodeship are removed only for countries whose first-level units carry
+them, so `"Washington County"` stays `None` rather than becoming the State of
+Washington.  The result is also refused when the rest names another unit of
+the same country (`"Almaty Province"`: `"Almaty"` is Almaty City, the
+province a separate unit) or matches several regions (`"La Paz Department"`
+without `country`).
 
 ### Country name resolution
 
@@ -1713,7 +1728,7 @@ water-only pairs — see §8 "Adjacency standards".
 | `get_adm1_codes_for_country(country)` | `set[str]` | All ADM1 codes inside the given country (name or ISO alpha-3). |
 | `get_adm1_info(adm1_code)` | `dict \| None` | Dict with keys `name` (canonical ADM1 name), `country_name`, `iso_a3` and `wb_region` (World Bank region code, e.g. `LCR`); `None` if the code is unknown. |
 | `get_adm1_country(adm1_code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
-| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` — and **English exonyms / alternative spellings** via a bundled alias table — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` — and **English exonyms / alternative spellings** via a bundled alias table — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016` — and a trailing administrative designator, removed when the full name does not resolve — `"Narok County"` → `KEN033`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
 | `get_adm1_aliases(adm1_code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
 
 ### Literature Functions
@@ -1931,10 +1946,11 @@ from the block in these cases:
 - **Country not named.** When the analysis names other countries but not
   the region's own country, the region is dropped as a likely false match.
 - **Non-canonical names.** The DB uses official names (e.g.
-  `Michoacán de Ocampo`, not `Michoacan State`). Short or colloquial
+  `Michoacán de Ocampo`). Short or colloquial
   forms work via the substring / folded fallback (which also
   transliterates letters NFKD cannot decompose, e.g. `Łódź`,
-  `Đắk Lắk`), and many English
+  `Đắk Lắk`), a trailing designator is removed when the full name
+  fails (`Michoacan State`, `Narok County`), and many English
   exonyms resolve through the alias table, but truly different
   names (e.g. local short names not in the gazetteer or the alias table)
   won't.

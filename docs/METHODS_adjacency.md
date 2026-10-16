@@ -1434,10 +1434,14 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
 (`resolve_adm1_code`) through ordered strategies, each designed to fail to
 `None` rather than guess:
 
-1. **Alias table** (`data/adm1_aliases.csv`; 1,145 validated English exonyms /
-   alternative spellings for 863 regions across 136 countries, PR #60/#61) —
-   `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`. Additions-only,
-   deterministically validated, with a curated review denylist.
+1. **Alias table** (`data/adm1_aliases.csv`; 1,163 validated English exonyms /
+   alternative spellings for 872 regions across 136 countries: 1,145
+   LLM-generated, PR #60/#61, and 18 curated by hand from cited sources) —
+   `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`, `"Mexico City"` →
+   `MEX009`. Additions-only, deterministically validated, with a curated
+   review denylist. An alias containing a country name (`"Mexico City"`,
+   `"Lesser Poland"`) resolves only with a country hint, since without one
+   the name is read as the country.
 2. **Exact / normalized match** against the official WB names, tolerant of
    possessives, hyphens, and administrative suffixes.
 3. **Accent-folded fallback** (PR #45): lookup keys and queries are
@@ -1453,9 +1457,21 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
    grammatically declined stems (`"Krāslava"` vs `Krāslavas novads`) do not
    stem-match — deliberate strictness; such cases are handled by adding an
    alias-table entry, not by loosening the matcher.
+5. **Trailing designator**: when strategies 1–4 all fail, one trailing
+   administrative designator is removed and the rest resolved again
+   (`"Narok County"` → `KEN033`, `"Kagoshima Prefecture"` → `JPN017`).
+   Region, province, state and oblast count in any country, as they already
+   pad a canonical name in strategy 4; county, prefecture, division,
+   department, district, governorate and voivodeship count only in the
+   countries whose World Bank first-level units are of that kind, so a US
+   county, a Bangladeshi district or a Chinese prefecture does not resolve
+   to the first-level unit of the same name. The result is refused when the
+   rest also names another unit of the same country, whole or before an
+   administrative word (`"Almaty Province"`: `"Almaty"` is Almaty City,
+   `"almaty region"` the province).
 
 Ambiguous names (several candidate regions, or a name denoting a different
-place, e.g. `"Mexico City"` vs the State of México) return `None`. Full usage
+place, e.g. `"New Mexico"` in Mexico) return `None`. Full usage
 documentation: `MANUAL.md` §8 and §12.
 
 ## 10. Source-relabel: fixing sliver-corridor artifacts at the source

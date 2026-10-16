@@ -79,6 +79,7 @@ centre-south,Centre-South,BFA007,BFA
 upper basins,Upper Basins,BFA009,BFA
 central plateau,Central Plateau,BFA011,BFA
 south-west,South-West,BFA013,BFA
+barisal,Barisal,BGD001,BGD
 chittagong,Chittagong,BGD002,BGD
 rajshahi division,Rajshahi Division,BGD006,BGD
 yambol,Yambol,BGR006,BGR
@@ -111,6 +112,7 @@ wangdi phodrang,Wangdi Phodrang,BTN019,BTN
 wangdue phodrang,Wangdue Phodrang,BTN019,BTN
 ghanzi district,Ghanzi District,BWA003,BWA
 kalahari,Kalahari,BWA004,BWA
+north-west district,North-West District,BWA007,BWA
 equator,Equator,CAF002,CAF
 appenzell outer rhodes,Appenzell Outer Rhodes,CHE002,CHE
 appenzell inner rhodes,Appenzell Inner Rhodes,CHE003,CHE
@@ -126,9 +128,15 @@ st gallen,St Gallen,CHE016,CHE
 st. gallen,St. Gallen,CHE016,CHE
 wallis,Wallis,CHE023,CHE
 aysen,Aysén,CHL001,CHL
+aysen del general carlos ibanez del campo,Aysén del General Carlos Ibáñez del Campo,CHL001,CHL
 aysen region,Aysén Region,CHL001,CHL
+arica and parinacota,Arica and Parinacota,CHL004,CHL
+arica y parinacota,Arica y Parinacota,CHL004,CHL
+libertador general bernardo o'higgins,Libertador General Bernardo O'Higgins,CHL008,CHL
 o'higgins,O'Higgins,CHL008,CHL
 o'higgins region,O'Higgins Region,CHL008,CHL
+magallanes and the chilean antarctica,Magallanes and the Chilean Antarctica,CHL011,CHL
+magallanes y de la antartica chilena,Magallanes y de la Antártica Chilena,CHL011,CHL
 metropolitan region,Metropolitan Region,CHL013,CHL
 santiago metropolitan region,Santiago Metropolitan Region,CHL013,CHL
 canton province,Canton Province,CHN006,CHN
@@ -595,6 +603,7 @@ majunga,Majunga,MDG032,MDG
 tamatave,Tamatave,MDG033,MDG
 tulear,Tulear,MDG034,MDG
 baja california norte,Baja California Norte,MEX002,MEX
+mexico city,Mexico City,MEX009,MEX
 northeastern region,Northeastern Region,MKD002,MKD
 pelagonija,Pelagonija,MKD003,MKD
 southeastern region,Southeastern Region,MKD006,MKD
@@ -692,8 +701,14 @@ muslim mindanao,Muslim Mindanao,PHL015,PHL
 simbu,Simbu,PNG003,PNG
 port moresby,Port Moresby,PNG015,PNG
 lower silesia,Lower Silesia,POL001,POL
+lower silesian,Lower Silesian,POL001,POL
 kuyavian-pomeranian,Kuyavian-Pomeranian,POL002,POL
 lodz,Lodz,POL003,POL
+lubelskie,Lubelskie,POL004,POL
+lublin,Lublin,POL004,POL
+lubusz,Lubusz,POL005,POL
+lesser poland,Lesser Poland,POL006,POL
+malopolskie,Małopolskie,POL006,POL
 masovian,Masovian,POL007,POL
 mazovia,Mazovia,POL007,POL
 opole,Opole,POL008,POL
@@ -703,11 +718,14 @@ pomerania,Pomerania,POL011,POL
 pomeranian,Pomeranian,POL011,POL
 silesia,Silesia,POL012,POL
 silesian,Silesian,POL012,POL
+silesian voivodeship,Silesian Voivodeship,POL012,POL
 holy cross,Holy Cross,POL013,POL
 masuria,Masuria,POL014,POL
 warmian-masurian,Warmian-Masurian,POL014,POL
+greater poland,Greater Poland,POL015,POL
 west pomerania,West Pomerania,POL016,POL
 west pomeranian,West Pomeranian,POL016,POL
+zachodniopomorskie,Zachodniopomorskie,POL016,POL
 chagang province,Chagang Province,PRK001,PRK
 north hamgyong,North Hamgyong,PRK002,PRK
 north hamgyong province,North Hamgyong Province,PRK002,PRK

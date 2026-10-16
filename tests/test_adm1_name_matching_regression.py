@@ -20,6 +20,8 @@ the results to outputs recorded from the regular-expression implementation
 ``runs/avocado_2026-06-16_gpt-5.5_builtin-trace/turn1/05_llm_call_main_analysis.md``,
 copied so that re-running the trace harness, which writes to that folder,
 cannot change this test's input.
+
+Results changed on purpose since the recording are listed in ``_AMENDED``.
 """
 
 from __future__ import annotations
@@ -41,6 +43,14 @@ _DATA = Path(__file__).resolve().parent / "data"
 _GOLDEN = json.loads(
     (_DATA / "adm1_resolve_golden.json").read_text(encoding="utf-8")
 )
+
+# (query, country hint) -> result, for recorded results changed on purpose:
+# the curated alias "mexico city" (2026-10-16) resolves Mexico City to
+# Ciudad de México when a country hint is given.
+_AMENDED = {
+    ("Mexico City", "MEX"): "MEX009",
+    ("Mexico City", "Mexico"): "MEX009",
+}
 
 
 def _regex_phrase(haystack: str, needle: str) -> bool:
@@ -87,11 +97,12 @@ class TestRecordedOutputs:
 
     def test_resolve_adm1_code_unchanged(self):
         rows = _GOLDEN["resolve_adm1_code"]
+        assert set(_AMENDED) <= {(query, country) for query, country, _ in rows}
         changed = [
             (query, country, expected, got)
-            for query, country, expected in rows
+            for query, country, recorded in rows
             if (got := adm1.resolve_adm1_code(query, country=country))
-            != expected
+            != (expected := _AMENDED.get((query, country), recorded))
         ]
         assert not changed, (
             f"{len(changed)} of {len(rows)} results changed: {changed[:10]}"

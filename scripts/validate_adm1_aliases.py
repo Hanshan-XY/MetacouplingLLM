@@ -2,7 +2,8 @@
 """Validate and write the ADM1 alias CSVs from raw workflow output.
 
 Reads build_data/raw_aliases.json (output of the alias generation workflow),
-applies all deterministic validation rules, and writes:
+adds the curated aliases listed in this script (_CURATED_ALIASES, source
+"curated"), applies all deterministic validation rules, and writes:
 
   src/metacouplingllm/data/adm1_aliases.csv   — lean shipped table
   docs/adm1_aliases_audit.csv                 — full provenance table
@@ -10,7 +11,11 @@ applies all deterministic validation rules, and writes:
 Validation rules
 ----------------
 N0  Normalize key: lowercase, strip, collapse spaces, NFKD-fold.
-G   Drop if the key resolves as a country name.
+G   Drop if the key resolves as a country name.  A curated key is dropped
+    only if it IS a country's ISO code, name or alias; one that merely
+    contains a country name ("mexico city") is kept and resolves only with
+    a country hint, because resolve_adm1_code reads such a name as the
+    country when no hint is given.
 S1  Drop keys shorter than 4 characters.
 W1  Drop generic single geo-words (direction/type words, ADM1 suffixes).
 DR  Drop curated manual-review rejections (_REVIEW_DENYLIST): semantic scope
@@ -32,6 +37,14 @@ U3  Drop if key matches an existing canonical index entry for a different code
     (would shadow a real region name).
 D0  Deduplicate identical (code, alias_key) pairs from parallel generation.
 C1  Cap at 3 aliases per code (highest confidence first, then alphabetical).
+
+R1, O1 and X1 test a key against the name matcher that the alias table
+supplements: _resolve_adm1_name with the alias table cleared (strategies 1-3
+of resolve_adm1_code), not resolve_adm1_code itself, whose trailing-designator
+retry runs after the alias table.  An alias such as "rajshahi division"
+therefore stays in the table although the retry would also resolve it.
+
+The script stops with an error if any rule drops a curated alias.
 
 Usage
 -----
@@ -58,9 +71,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from metacouplingllm.knowledge.adm1_pericoupling import (  # noqa: E402
     _load_adm1_data,
     _get_adm1_name_index,
-    resolve_adm1_code,
+    _resolve_adm1_name,
 )
-from metacouplingllm.knowledge.countries import resolve_country_code  # noqa: E402
+from metacouplingllm.knowledge.countries import (  # noqa: E402
+    ISO_ALPHA3_NAMES,
+    _ALIASES as _COUNTRY_ALIASES,
+    resolve_country_code,
+)
 
 # ---------------------------------------------------------------------------
 # Generic geo-words to drop (W1)
@@ -145,6 +162,85 @@ _REVIEW_DENYLIST: frozenset[tuple[str, str]] = frozenset({
     ("silent city", "MLT029"),
 })
 
+# ---------------------------------------------------------------------------
+# Curated aliases, added on 2026-10-16 after the generation run
+# ---------------------------------------------------------------------------
+# English names, and local spellings the World Bank names abbreviate or
+# misspell, that researchers write and the resolver did not match.  Each name
+# was checked against the source quoted in its basis.  "Mexico City", "Lesser Poland", "Greater Poland" and "Magallanes and
+# the Chilean Antarctica" contain a country name or demonym, so they resolve
+# only with a country hint (see rule G).
+_CURATED_ALIASES: tuple[dict[str, str], ...] = (
+    {"alias_display": "Mexico City", "code": "MEX009", "iso_a3": "MEX",
+     "basis": "English name of Mexico's capital, which the WB stores under "
+              "its Spanish name (Wikipedia, 'Mexico City': the federal "
+              "district, renamed Ciudad de México in 2016)."},
+    {"alias_display": "Silesian Voivodeship", "code": "POL012", "iso_a3": "POL",
+     "basis": "English name of śląskie (Wikipedia, 'Voivodeships of Poland': "
+              "Silesian / śląskie); WB name Slaskie."},
+    {"alias_display": "Lower Silesian", "code": "POL001", "iso_a3": "POL",
+     "basis": "English name of dolnośląskie (Wikipedia, 'Voivodeships of "
+              "Poland': Lower Silesian / dolnośląskie)."},
+    {"alias_display": "Lublin", "code": "POL004", "iso_a3": "POL",
+     "basis": "English name of lubelskie (Wikipedia, 'Voivodeships of "
+              "Poland': Lublin / lubelskie), named after its capital like the "
+              "shipped aliases opole and lodz."},
+    {"alias_display": "Lubelskie", "code": "POL004", "iso_a3": "POL",
+     "basis": "Polish name of the voivodeship; the WB name misspells it "
+              "Lubeiskie."},
+    {"alias_display": "Lubusz", "code": "POL005", "iso_a3": "POL",
+     "basis": "English name of lubuskie (Wikipedia, 'Voivodeships of "
+              "Poland': Lubusz / lubuskie)."},
+    {"alias_display": "Lesser Poland", "code": "POL006", "iso_a3": "POL",
+     "basis": "English name of małopolskie (Wikipedia, 'Voivodeships of "
+              "Poland': Lesser Poland / małopolskie)."},
+    # NFKD leaves "ł" as it is, so the folded key is given explicitly.
+    {"alias_display": "Małopolskie", "alias_key": "malopolskie",
+     "code": "POL006", "iso_a3": "POL",
+     "basis": "Polish name of the voivodeship; the WB name misspells it "
+              "Malopolske."},
+    {"alias_display": "Greater Poland", "code": "POL015", "iso_a3": "POL",
+     "basis": "English name of wielkopolskie (Wikipedia, 'Voivodeships of "
+              "Poland': Greater Poland / wielkopolskie)."},
+    {"alias_display": "Zachodniopomorskie", "code": "POL016", "iso_a3": "POL",
+     "basis": "Polish name of the voivodeship, written as one word; the WB "
+              "name hyphenates it Zachodnio-Pomorskie."},
+    {"alias_display": "North-West District", "code": "BWA007", "iso_a3": "BWA",
+     "basis": "Botswana's district stored by the WB as Ngamiland (Wikipedia, "
+              "'North-West District (Botswana)': 'The North-West District or "
+              "Ngamiland'; Chobe separate since 2006)."},
+    {"alias_display": "Barisal", "code": "BGD001", "iso_a3": "BGD",
+     "basis": "English spelling of the division the WB stores as Barishal "
+              "(Wikipedia article 'Barisal Division'); the counterpart of the "
+              "shipped alias chittagong."},
+    {"alias_display": "Arica and Parinacota", "code": "CHL004", "iso_a3": "CHL",
+     "basis": "English name of the Región de Arica y Parinacota (Wikipedia, "
+              "'Regions of Chile'); the WB name misspells it Arica y "
+              "Painacota."},
+    {"alias_display": "Arica y Parinacota", "code": "CHL004", "iso_a3": "CHL",
+     "basis": "Spanish name of the region (Wikipedia, 'Regions of Chile'); "
+              "the WB name misspells it Arica y Painacota."},
+    {"alias_display": "Libertador General Bernardo O'Higgins", "code": "CHL008",
+     "iso_a3": "CHL",
+     "basis": "Official name of the Región del Libertador General Bernardo "
+              "O'Higgins (Wikipedia, 'Regions of Chile'); the WB name "
+              "abbreviates General to Gral."},
+    {"alias_display": "Aysén del General Carlos Ibáñez del Campo",
+     "code": "CHL001", "iso_a3": "CHL",
+     "basis": "Official name of the Región Aysén del General Carlos Ibáñez "
+              "del Campo (Wikipedia, 'Regions of Chile'); the WB name "
+              "abbreviates General to Gral."},
+    {"alias_display": "Magallanes and the Chilean Antarctica", "code": "CHL011",
+     "iso_a3": "CHL",
+     "basis": "English name of the region (Wikipedia, 'Magallanes Region': "
+              "'Magallanes and the Chilean Antarctica Region in English')."},
+    {"alias_display": "Magallanes y de la Antártica Chilena", "code": "CHL011",
+     "iso_a3": "CHL",
+     "basis": "Official Spanish name of the Región de Magallanes y de la "
+              "Antártica Chilena (Wikipedia, 'Regions of Chile'); the WB "
+              "name drops 'de la'."},
+)
+
 
 def _fold(text: str) -> str:
     return "".join(
@@ -156,6 +252,17 @@ def _fold(text: str) -> str:
 def _normalize_key(raw: str) -> str:
     """N0: lowercase, strip, collapse spaces, NFKD-fold."""
     return _fold(raw.strip().lower())
+
+
+def _is_country_name(key: str) -> bool:
+    """G for a curated key: the key is a country's ISO alpha-3 code, its
+    name or a country alias itself, the matches ``resolve_country_code``
+    makes before its free-text step."""
+    return (
+        key.upper() in ISO_ALPHA3_NAMES
+        or key in _COUNTRY_ALIASES
+        or key in {name.lower() for name in ISO_ALPHA3_NAMES.values()}
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -171,6 +278,11 @@ def main(argv: list[str] | None = None) -> None:
     with open(raw_path, encoding="utf-8") as fh:
         raw_aliases: list[dict] = json.load(fh)
     print(f"  {len(raw_aliases)} raw candidates")
+    raw_aliases += [
+        {**alias, "source": "curated", "confidence": "high"}
+        for alias in _CURATED_ALIASES
+    ]
+    print(f"  + {len(_CURATED_ALIASES)} curated aliases")
 
     # Load ADM1 data for validation
     print("Loading ADM1 metadata ...")
@@ -216,7 +328,10 @@ def main(argv: list[str] | None = None) -> None:
             continue
 
         # G
-        if resolve_country_code(key) is not None:
+        if (
+            _is_country_name(key) if source == "curated"
+            else resolve_country_code(key) is not None
+        ):
             drop_counts["G_country_name"] += 1
             continue
 
@@ -232,7 +347,7 @@ def main(argv: list[str] | None = None) -> None:
             continue
 
         # R1 / O1
-        resolved = resolve_adm1_code(key, country=iso)
+        resolved = _resolve_adm1_name(key, iso)
         if resolved == code:
             drop_counts["R1_redundant"] += 1
             continue
@@ -246,7 +361,7 @@ def main(argv: list[str] | None = None) -> None:
         # lands on a DIFFERENT code.  Catches folded cross-country collisions
         # that U3 misses because U3 only consults the accented name index
         # (e.g. folded "ash sharqiyah" → SAU008 while the alias claims OMN002).
-        nohint = resolve_adm1_code(key)
+        nohint = _resolve_adm1_name(key, None)
         if nohint is not None and nohint != code:
             drop_counts["X1_nohint_shadow"] += 1
             continue
@@ -352,6 +467,20 @@ def main(argv: list[str] | None = None) -> None:
     print(f"Override candidates (excluded from shipped, in audit): {override_count}")
     print(f"Codes with at least one alias: {len(by_code)}")
 
+    # Every curated alias was checked by hand: if a rule dropped one, stop
+    # before writing anything.
+    shipped_pairs = {(r["alias_key"], r["code"]) for r in final_shipped}
+    dropped_curated = []
+    for alias in _CURATED_ALIASES:
+        key = _normalize_key(alias.get("alias_key") or alias["alias_display"])
+        if (key, alias["code"]) not in shipped_pairs:
+            dropped_curated.append(f"{key} -> {alias['code']}")
+    if dropped_curated:
+        sys.exit(
+            "ERROR: validation dropped curated aliases: "
+            + "; ".join(dropped_curated)
+        )
+
     # ---------------------------------------------------------------------------
     # Write shipped CSV
     # ---------------------------------------------------------------------------
@@ -386,7 +515,10 @@ def main(argv: list[str] | None = None) -> None:
     assert len(shipped_keys) == len(set(shipped_keys)), "FAIL: duplicate alias_key in shipped CSV"
     for rec in final_shipped:
         assert rec["code"] in valid_codes, f"FAIL: unknown code {rec['code']}"
-        assert resolve_country_code(rec["alias_key"]) is None, f"FAIL: alias_key is a country name: {rec['alias_key']}"
+        if rec["source"] == "curated":
+            assert not _is_country_name(rec["alias_key"]), f"FAIL: curated alias_key is a country name: {rec['alias_key']}"
+        else:
+            assert resolve_country_code(rec["alias_key"]) is None, f"FAIL: alias_key is a country name: {rec['alias_key']}"
     print("All assertions passed.")
 
     # Summary by drop rule

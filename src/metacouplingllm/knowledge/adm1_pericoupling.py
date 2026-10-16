@@ -1010,6 +1010,138 @@ def _is_cross_country_folded_collision(name_lower: str) -> bool:
     return len({iso for _, iso in entries}) > 1
 
 
+# Trailing administrative designators.  When no strategy matches a name,
+# ``resolve_adm1_code`` removes one trailing designator ("Narok County" ->
+# "Narok") and resolves the rest once more.  ``None`` accepts the result in
+# any country: region, province, state and oblast already pad a canonical
+# name without changing it (Direction A of ``_substring_match``), and the
+# retry extends that to aliases and to partial or accent-folded names.  The
+# other designators name first-level units in some countries and lower
+# levels elsewhere (US counties, French departments, Chinese prefectures,
+# Bangladeshi or Tanzanian districts), so the result must lie in a country
+# whose World Bank ADM1 units are of that kind, checked against each
+# country's unit names.  Former terms that are still common count: Peru's
+# departments, the divisions of Myanmar and The Gambia, and the districts of
+# Luxembourg and Timor-Leste.
+_TRAILING_DESIGNATORS: dict[str, frozenset[str] | None] = {
+    "region": None,
+    "province": None,
+    "state": None,
+    "oblast": None,
+    "county": frozenset({
+        "EST", "HRV", "HUN", "IRL", "ISL", "KEN", "LBR", "LTU", "NOR", "ROU",
+        "SWE",
+    }),
+    "prefecture": frozenset({"JPN"}),
+    "division": frozenset({"BGD", "FJI", "GMB", "MMR"}),
+    "department": frozenset({
+        "BEN", "BOL", "COG", "COL", "GTM", "HND", "HTI", "NIC", "PER", "PRY",
+        "SLV", "URY",
+    }),
+    "district": frozenset({
+        "ALB", "BLZ", "BRN", "BTN", "BWA", "CIV", "CYP", "ISR", "LBY", "LSO",
+        "LUX", "MUS", "PRT", "SRB", "SYC", "TLS", "UGA",
+    }),
+    "governorate": frozenset({
+        "EGY", "IRQ", "JOR", "KWT", "LBN", "OMN", "PSE", "SYR", "TUN", "YEM",
+    }),
+    "voivodeship": frozenset({"POL"}),
+    "voivodship": frozenset({"POL"}),
+}
+
+
+# Words that mark a name as an administrative unit's, for
+# ``_base_names_another_unit``: the designators above and the type words
+# that end World Bank names or aliases.
+_ADMIN_WORDS: frozenset[str] = frozenset(_TRAILING_DESIGNATORS) | frozenset({
+    "krai", "kray", "okrug", "republic", "rep.", "sheng", "zizhiqu",
+    "laen", "maakond", "novads",
+})
+
+_unit_name_heads: tuple[
+    object, dict[str, dict[tuple[str, ...], set[str]]]
+] | None = None
+
+
+def _get_unit_name_heads() -> dict[str, dict[tuple[str, ...], set[str]]]:
+    """Lazily build, per country, the codes that each word sequence names.
+
+    The sequences are the accent-folded words of every name-index key
+    (canonical name, suffix-stripped and slash-split variants) and alias
+    key, and of each such name's part before an administrative word
+    (``("moscow",)`` from the alias "moscow oblast").  Rebuilt when the
+    alias table is replaced.
+    """
+    global _unit_name_heads
+    aliases = _adm1_aliases
+    if _unit_name_heads is None or _unit_name_heads[0] is not aliases:
+        heads: dict[str, dict[tuple[str, ...], set[str]]] = {}
+        keyed = [*_get_adm1_name_index().items(), *(aliases or {}).items()]
+        for key, entries in keyed:
+            words = tuple(_name_words(_fold_diacritics(key)))
+            spans = [words] + [
+                words[:k] for k in range(1, len(words))
+                if words[k] in _ADMIN_WORDS
+            ]
+            for code, iso in entries:
+                by_words = heads.setdefault(iso, {})
+                for span in spans:
+                    by_words.setdefault(span, set()).add(code)
+        _unit_name_heads = (aliases, heads)
+    return _unit_name_heads[1]
+
+
+def _base_names_another_unit(base: str, code: str) -> bool:
+    """Whether ``base`` names a unit other than ``code`` in the same
+    country: the whole of that unit's name, or the part before an
+    administrative word.
+
+    The second case is a city and the region around it: "Almaty" alone
+    resolves to Almaty City (``KAZ004``), but "Almaty Province" means
+    Almatinskaya (``KAZ003``, alias "almaty region"), so the designator
+    retry refuses it.  A qualified name is not shared: "Pomeranian" does
+    not name West Pomeranian, nor "Nord" Nord-Est.
+    """
+    _ensure_loaded()
+    assert _adm1_country is not None
+    iso = _adm1_country.get(code)
+    words = tuple(_name_words(_fold_diacritics(base.strip().lower())))
+    if iso is None or not words:
+        return False
+    codes = _get_unit_name_heads().get(iso, {}).get(words, set())
+    return bool(codes - {code})
+
+
+def _resolve_without_designator(
+    name: str, country: str | None,
+) -> str | None:
+    """Resolve ``name`` after removing one trailing administrative designator.
+
+    The last step of :func:`resolve_adm1_code`, reached only when every
+    strategy has failed on the full name.  Returns ``None`` unless the name
+    ends, after at least one other word, in a designator of
+    ``_TRAILING_DESIGNATORS``; the rest resolves; the region lies in a
+    country whose first-level units carry that designator; and the rest
+    names no other unit of that country.
+    """
+    parts = name.strip().rsplit(None, 1)
+    if len(parts) != 2:
+        return None
+    base, designator = parts
+    designator = designator.lower()
+    if designator not in _TRAILING_DESIGNATORS:
+        return None
+    code = _resolve_adm1_name(base, country)
+    if code is None:
+        return None
+    countries = _TRAILING_DESIGNATORS[designator]
+    if countries is not None and get_adm1_country(code) not in countries:
+        return None
+    if _base_names_another_unit(base, code):
+        return None
+    return code
+
+
 def resolve_adm1_code(
     name: str,
     country: str | None = None,
@@ -1038,6 +1170,33 @@ def resolve_adm1_code(
        Ambiguity from folding is contained by reusing
        ``_pick_best_candidate`` (single ISO or matching country
        filter required).
+
+    When all four fail, one trailing administrative designator is
+    removed and the rest resolved again (see below).
+
+    Trailing designators
+    --------------------
+    Researchers often add the type of unit to its name: ``"Narok
+    County"``, ``"Kagoshima Prefecture"``, ``"Rangpur Division"``.  If the
+    full name does not resolve and its last word is ``region``,
+    ``province``, ``state``, ``oblast``, ``county``, ``prefecture``,
+    ``division``, ``department``, ``district``, ``governorate`` or
+    ``voivodeship`` (also ``voivodship``; any case), that word is removed
+    and the rest goes
+    through the four strategies once more.  A name that resolves as
+    written is never changed, and only one designator is removed.  The
+    result is kept only if
+
+    * the region's country uses that designator for its first-level units
+      (region, province, state and oblast count everywhere; the others are
+      listed by country in ``_TRAILING_DESIGNATORS``), so ``"Washington
+      County"`` does not become the State of Washington, nor ``"Khulna
+      District"`` the Khulna Division; and
+    * the rest names no other unit of the same country, so ``"Almaty
+      Province"`` does not become Almaty City.
+
+    A rest that matches several regions stays unresolved, as it does
+    without the designator.
 
     Cross-country ambiguity
     -----------------------
@@ -1088,7 +1247,24 @@ def resolve_adm1_code(
 
     >>> resolve_adm1_code("Equateur", country="COD")    # hint disambiguates
     'COD013'
+
+    >>> resolve_adm1_code("Narok County", country="KEN")  # designator removed
+    'KEN033'
+
+    >>> resolve_adm1_code("Washington County", country="USA") is None
+    True
     """
+    if not name or not name.strip():
+        return None
+    code = _resolve_adm1_name(name, country)
+    if code is None:
+        code = _resolve_without_designator(name, country)
+    return code
+
+
+def _resolve_adm1_name(name: str, country: str | None) -> str | None:
+    """Strategies 0-3 of :func:`resolve_adm1_code` with its country and
+    folded-collision guards, without the trailing-designator retry."""
     if not name or not name.strip():
         return None
 

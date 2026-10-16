@@ -1,6 +1,7 @@
 """Tests for knowledge/adm1_pericoupling.py — ADM1 pericoupling database lookup."""
 
 import csv
+import json
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,7 @@ from metacouplingllm.knowledge.adm1_pericoupling import (
     _adm1_pairs,
     _adm1_country,
     _adm1_metadata,
+    _resolve_adm1_name,
 )
 
 
@@ -500,8 +502,9 @@ class TestResolveAdm1Code:
         """A query that merely CONTAINS a region name plus a meaningful extra
         word must not resolve to that region -- it denotes a different place.
         Previously 'Mexico City' wrongly returned MEX015 (the *State* of
-        México) instead of CDMX, and 'New Mexico' (a US state) likewise."""
-        assert resolve_adm1_code("Mexico City", country="Mexico") is None
+        México) instead of CDMX, and 'New Mexico' (a US state) likewise.
+        'Mexico City' now resolves to CDMX itself through its alias."""
+        assert resolve_adm1_code("Mexico City", country="Mexico") == "MEX009"
         assert resolve_adm1_code("New Mexico", country="Mexico") is None
         assert resolve_adm1_code("Greater Mexico", country="Mexico") is None
         assert resolve_adm1_code("Chihuahua Desert", country="Mexico") is None
@@ -554,6 +557,229 @@ class TestResolveAdm1Code:
         # And legitimate Direction-B head matches are unaffected.
         assert resolve_adm1_code("Michoacan de Ocampo") == "MEX016"
         assert resolve_adm1_code("Veracruz") == "MEX030"
+
+
+# ---------------------------------------------------------------------------
+# Trailing administrative designators
+# ---------------------------------------------------------------------------
+
+# Names researchers wrote that returned None, with the country hint passed,
+# until the designator retry and the curated aliases (2026-10-16).
+_REPORTED_NAMES = [
+    ("Narok County", "KEN", "KEN033"),
+    ("Kwale County", "KEN", "KEN019"),
+    ("Mombasa County", "KEN", "KEN028"),
+    ("Kagoshima Prefecture", "JPN", "JPN017"),
+    ("Rangpur Division", "BGD", "BGD007"),
+    ("Khulna Division", "BGD", "BGD004"),
+    ("Beni Department", "BOL", "BOL001"),
+    ("Rivas Department", "NIC", "NIC017"),
+    ("Magallanes Region", "CHL", "CHL011"),
+    ("Chobe District", "BWA", "BWA002"),
+    ("North-West District", "BWA", "BWA007"),
+    ("Troms county", "NOR", "NOR017"),
+    ("Silesian Voivodeship", "POL", "POL012"),
+    ("Mexico City", "MEX", "MEX009"),
+]
+
+
+class TestTrailingDesignator:
+    """When a name does not resolve, one trailing administrative designator
+    is removed and the rest resolved again ("Narok County" -> "Narok")."""
+
+    @pytest.mark.parametrize("name, country, code", _REPORTED_NAMES)
+    def test_reported_names_resolve(self, name, country, code):
+        assert resolve_adm1_code(name, country=country) == code
+
+    @pytest.mark.parametrize(
+        "name, country, code",
+        [row for row in _REPORTED_NAMES if row[0] != "Mexico City"],
+    )
+    def test_reported_names_resolve_without_hint(self, name, country, code):
+        assert resolve_adm1_code(name) == code
+
+    def test_mexico_city_needs_the_hint(self):
+        """Without a hint, resolve_country_code finds 'Mexico' inside
+        'Mexico City' and the country guard returns None."""
+        assert resolve_adm1_code("Mexico City") is None
+
+    def test_bare_names_keep_their_codes(self):
+        assert resolve_adm1_code("Narok", country="KEN") == "KEN033"
+        assert resolve_adm1_code("Kagoshima", country="JPN") == "JPN017"
+        assert resolve_adm1_code("Rajshahi Division", country="BGD") == "BGD006"
+        assert resolve_adm1_code("Beni", country="BOL") == "BOL001"
+        assert resolve_adm1_code("Ciudad de México", country="MEX") == "MEX009"
+        assert resolve_adm1_code("Śląskie", country="POL") == "POL012"
+
+    @pytest.mark.parametrize("iso, designator", [
+        ("KEN", "County"), ("NOR", "County"), ("JPN", "Prefecture"),
+        ("BGD", "Division"), ("BOL", "Department"), ("NIC", "Department"),
+        ("CHL", "Region"), ("BWA", "District"), ("POL", "Voivodeship"),
+        ("MEX", "State"),
+    ])
+    def test_every_unit_with_its_designator(self, iso, designator):
+        """'Rajshahi Division' used to resolve through an alias row while
+        'Rangpur Division' did not; now every unit of these countries
+        resolves under its World Bank name plus the designator."""
+        _ensure_loaded()
+        from metacouplingllm.knowledge.adm1_pericoupling import _adm1_metadata
+        units = {
+            code: meta["name"] for code, meta in _adm1_metadata.items()
+            if meta["iso_a3"] == iso
+        }
+        assert units
+        failed = [
+            (name, code) for code, name in units.items()
+            if resolve_adm1_code(f"{name} {designator}", country=iso) != code
+        ]
+        assert not failed, failed
+
+    def test_case_and_spacing(self):
+        assert resolve_adm1_code("NAROK COUNTY") == "KEN033"
+        assert resolve_adm1_code("narok county") == "KEN033"
+        assert resolve_adm1_code("  Narok   County  ", country="KEN") == "KEN033"
+
+    def test_only_one_designator_is_removed(self):
+        assert resolve_adm1_code("Narok County County", country="KEN") is None
+        assert resolve_adm1_code("County", country="KEN") is None
+        assert resolve_adm1_code("the county") is None
+
+    def test_designator_must_name_first_level_units(self):
+        """US counties, Bangladeshi and Tanzanian districts and Chinese
+        prefectures lie below the first level: the region the rest names is
+        not what the designated name means."""
+        assert resolve_adm1_code("Washington", country="USA") == "USA048"
+        assert resolve_adm1_code("Washington County") is None
+        assert resolve_adm1_code("Washington County", country="USA") is None
+        assert resolve_adm1_code("Hidalgo") == "MEX013"
+        assert resolve_adm1_code("Hidalgo County") is None
+        assert resolve_adm1_code("Khulna", country="BGD") == "BGD004"
+        assert resolve_adm1_code("Khulna District", country="BGD") is None
+        assert resolve_adm1_code("Arusha", country="TZA") == "TZA001"
+        assert resolve_adm1_code("Arusha District", country="TZA") is None
+        assert resolve_adm1_code("Jilin", country="CHN") == "CHN017"
+        assert resolve_adm1_code("Jilin Prefecture", country="CHN") is None
+
+    def test_rest_matching_several_regions_stays_unresolved(self):
+        """Busia is a Kenyan county and a Ugandan district; La Paz a
+        department of Bolivia, Honduras and El Salvador; 'Central River'
+        matches both Central River North and South in The Gambia."""
+        assert resolve_adm1_code("Busia County") is None
+        assert resolve_adm1_code("Busia County", country="KEN") == "KEN004"
+        assert resolve_adm1_code("Busia District", country="UGA") == "UGA023"
+        assert resolve_adm1_code("La Paz Department") is None
+        assert resolve_adm1_code("La Paz Department", country="BOL") == "BOL004"
+        assert resolve_adm1_code("La Paz Department", country="HND") == "HND011"
+        assert resolve_adm1_code("La Paz Department", country="SLV") == "SLV006"
+        assert resolve_adm1_code("Central River Division", country="GMB") is None
+        assert resolve_adm1_code("Lower River Division", country="GMB") == "GMB005"
+
+    def test_city_and_surrounding_region_refused(self):
+        """'Almaty' and 'Moscow' resolve to the cities, whose surrounding
+        regions are other units ('almaty region', 'moscow oblast'): a
+        designated form means the region, so it stays unresolved."""
+        assert resolve_adm1_code("Almaty") == "KAZ004"
+        assert resolve_adm1_code("Almaty Region") == "KAZ003"
+        assert resolve_adm1_code("Almaty Province") is None
+        assert resolve_adm1_code("Moscow") == "RUS048"
+        assert resolve_adm1_code("Moscow Region") == "RUS047"
+        assert resolve_adm1_code("Moscow Province") is None
+
+    def test_qualified_names_of_other_units_do_not_block(self):
+        """'West Pomeranian', 'Norte de Santander' and 'Nord-Est' are other
+        regions; they do not make 'Pomeranian', 'Santander' or 'Nord'
+        ambiguous."""
+        assert resolve_adm1_code("Pomeranian Voivodeship", country="POL") == "POL011"
+        assert resolve_adm1_code("Santander Department", country="COL") == "COL028"
+        assert resolve_adm1_code("Nord Department", country="HTI") == "HTI005"
+
+    def test_never_changes_a_resolving_name(self):
+        """Wherever strategies 0-3 resolve a query, resolve_adm1_code returns
+        the same code: the retry runs only after a miss.  Checked on every
+        query of the recorded name-matching outputs (14,421 queries)."""
+        rows = json.loads(
+            (Path(__file__).parent / "data" / "adm1_resolve_golden.json")
+            .read_text(encoding="utf-8")
+        )["resolve_adm1_code"]
+        changed = [
+            (query, country, code)
+            for query, country, _ in rows
+            if (code := _resolve_adm1_name(query, country)) is not None
+            and resolve_adm1_code(query, country=country) != code
+        ]
+        assert not changed, changed[:10]
+
+
+# Outputs of resolve_adm1_code recorded on main 6831ec7, before the designator
+# retry and the curated aliases: names resolving through each strategy, names
+# with a designator that already resolved, and names that did not resolve.
+_RECORDED_BEFORE_RETRY = [
+    ("Michigan", None, "USA023"),
+    ("Anhui", None, "CHN001"),
+    ("Georgia", "USA", "USA011"),
+    ("Khyber Pakhtunkhwa", None, "PAK005"),
+    ("Bavaria", None, "DEU002"),
+    ("Tuscany", None, "ITA016"),
+    ("Saxony", "DEU", "DEU013"),
+    ("Chittagong", None, "BGD002"),
+    ("Kyoto", None, "JPN021"),
+    ("Saigon", None, "VNM029"),
+    ("State of Yucatan", "MEX", "MEX031"),
+    ("Mexico State", "Mexico", "MEX015"),
+    ("Provincia de Buenos Aires", "ARG", "ARG001"),
+    ("Estado de Jalisco", "MEX", "MEX014"),
+    ("Michoacan", "MEX", "MEX016"),
+    ("Coahuila", "MEX", "MEX005"),
+    ("Magallanes", None, "CHL011"),
+    ("Sao Paulo", "BRA", "BRA029"),
+    ("Lodz", None, "POL003"),
+    ("Łódź", None, "POL003"),
+    ("Équateur", None, "COD013"),
+    ("Equateur", "CAF", "CAF002"),
+    ("New York", None, "USA033"),
+    ("North Carolina", None, "USA034"),
+    ("Rajshahi Division", None, "BGD006"),
+    ("Moscow Oblast", None, "RUS047"),
+    ("Moscow Region", None, "RUS047"),
+    ("Kyiv Oblast", None, "UKR012"),
+    ("Zagreb County", None, "HRV021"),
+    ("akmola region", None, "KAZ001"),
+    ("almaty region", None, "KAZ003"),
+    ("altai krai", None, "RUS004"),
+    ("turkana county", None, "KEN043"),
+    ("blekinge county", None, "SWE001"),
+    ("cauca department", None, "COL012"),
+    ("ariana governorate", None, "TUN024"),
+    ("bor district", None, "SRB001"),
+    ("bamako district", None, "MLI001"),
+    ("chechen republic", None, "RUS012"),
+    ("federal district", None, "BRA007"),
+    ("capital district", "VEN", "VEN011"),
+    ("brussels capital region", None, "BEL001"),
+    ("central region", "MWI", "MWI001"),
+    ("Jalisco State", None, "MEX014"),
+    ("Minsk Region", None, "BLR004"),
+    ("Sofia Province", None, "BGR021"),
+    ("Tashkent Region", None, "UZB013"),
+    ("Lima Region", None, "PER015"),
+    ("Maputo Province", None, "MOZ006"),
+    ("Vientiane Province", None, "LAO013"),
+    ("Equateur", None, None),
+    ("Carolina", None, None),
+    ("york", None, None),
+    ("Mexico State", None, None),
+    ("Mexico City", None, None),
+    ("New Mexico", "Mexico", None),
+    ("central region", None, None),
+    ("federal capital territory", None, None),
+    ("Atlantis", None, None),
+    ("trade", None, None),
+]
+
+
+@pytest.mark.parametrize("name, country, code", _RECORDED_BEFORE_RETRY)
+def test_resolution_recorded_before_retry_unchanged(name, country, code):
+    assert resolve_adm1_code(name, country=country) == code
 
 
 class TestIsoCodeCoverage:
@@ -987,9 +1213,33 @@ class TestAdm1AliasTable:
         assert not bad, f"Unknown ADM1 codes: {bad[:5]}"
 
     def test_no_country_name_keys(self, rows):
-        from metacouplingllm.knowledge.countries import resolve_country_code
-        bad = [r["alias_key"] for r in rows if resolve_country_code(r["alias_key"]) is not None]
+        """No key is a country's ISO code, name or alias (rule G)."""
+        from metacouplingllm.knowledge.countries import (
+            ISO_ALPHA3_NAMES, _ALIASES,
+        )
+        names = {name.lower() for name in ISO_ALPHA3_NAMES.values()}
+        bad = [
+            r["alias_key"] for r in rows
+            if r["alias_key"].upper() in ISO_ALPHA3_NAMES
+            or r["alias_key"] in _ALIASES or r["alias_key"] in names
+        ]
         assert not bad, f"Alias keys that are country names: {bad[:5]}"
+
+    def test_country_named_keys_need_a_hint(self, rows):
+        """Only four curated keys contain a country name or demonym, which
+        resolve_country_code finds inside them; the country guard then
+        returns None unless a country hint is given."""
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        by_key = {r["alias_key"]: r for r in rows}
+        named = {k for k in by_key if resolve_country_code(k) is not None}
+        assert named == {
+            "mexico city", "lesser poland", "greater poland",
+            "magallanes and the chilean antarctica",
+        }
+        for key in named:
+            row = by_key[key]
+            assert resolve_adm1_code(key, country=row["iso_a3"]) == row["code"]
+            assert resolve_adm1_code(key) is None
 
     def test_no_u3_collision(self, rows):
         from metacouplingllm.knowledge.adm1_pericoupling import _get_adm1_name_index
@@ -1024,11 +1274,14 @@ class TestAdm1AliasTable:
         """PR #60's headline feature: a globally-unique alias resolves with NO
         country hint.  U2 guarantees every shipped key is globally unique, so
         each must resolve to its own code hint-free (Strategy 0 + no-hint
-        _pick_best_candidate)."""
+        _pick_best_candidate), except the keys the country guard reads as a
+        country (test_country_named_keys_need_a_hint)."""
+        from metacouplingllm.knowledge.countries import resolve_country_code
         failed = [
             (r["alias_key"], r["code"], resolve_adm1_code(r["alias_key"]))
             for r in rows
-            if resolve_adm1_code(r["alias_key"]) != r["code"]
+            if resolve_country_code(r["alias_key"]) is None
+            and resolve_adm1_code(r["alias_key"]) != r["code"]
         ]
         assert not failed, f"{len(failed)} no-hint resolutions failed; first 3: {failed[:3]}"
 
@@ -1077,9 +1330,35 @@ class TestAdm1AliasTable:
     def test_counts_match_docs(self, rows):
         """Headline provenance counts must match the shipped CSV so docs cannot
         drift (PR #61 — the original '67 countries / 886 regions' were wrong)."""
-        assert len(rows) == 1145
-        assert len({r["code"] for r in rows}) == 863
+        assert len(rows) == 1163
+        assert len({r["code"] for r in rows}) == 872
         assert len({r["iso_a3"] for r in rows}) == 136
+
+    def test_curated_aliases_shipped(self, rows):
+        """The 18 curated aliases of 2026-10-16 are shipped and marked
+        'curated' in the audit table, the only rows so marked."""
+        curated = {
+            "mexico city": "MEX009", "silesian voivodeship": "POL012",
+            "lower silesian": "POL001", "lublin": "POL004",
+            "lubelskie": "POL004", "lubusz": "POL005",
+            "lesser poland": "POL006", "malopolskie": "POL006",
+            "greater poland": "POL015", "zachodniopomorskie": "POL016",
+            "north-west district": "BWA007", "barisal": "BGD001",
+            "arica and parinacota": "CHL004", "arica y parinacota": "CHL004",
+            "libertador general bernardo o'higgins": "CHL008",
+            "aysen del general carlos ibanez del campo": "CHL001",
+            "magallanes and the chilean antarctica": "CHL011",
+            "magallanes y de la antartica chilena": "CHL011",
+        }
+        by_key = {r["alias_key"]: r["code"] for r in rows}
+        assert {k: by_key.get(k) for k in curated} == curated
+        audit = Path(__file__).parent.parent / "docs" / "adm1_aliases_audit.csv"
+        with open(audit, newline="", encoding="utf-8-sig") as fh:
+            marked = {
+                r["alias_key"]: r["code"] for r in csv.DictReader(fh)
+                if r["source"] == "curated"
+            }
+        assert marked == curated
 
 
 def test_u3_shadow_predicate_positive_control():

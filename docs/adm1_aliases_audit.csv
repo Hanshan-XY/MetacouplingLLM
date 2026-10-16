@@ -79,6 +79,7 @@ centre-south,Centre-South,BFA007,BFA,"English translation of the French 'Centre-
 upper basins,Upper Basins,BFA009,BFA,"English translation of the French 'Hauts-Bassins' (hauts = upper/high, bassins = basins), used occasionally in English-language texts.",pretraining,medium,False
 central plateau,Central Plateau,BFA011,BFA,"English translation of 'Plateau Central', with word order reversed per standard English adjective placement, used in English-language references.",pretraining,high,False
 south-west,South-West,BFA013,BFA,"Hyphenated English translation of the French 'Sud-ouest', an alternate spelling used in some English documents.",pretraining,high,False
+barisal,Barisal,BGD001,BGD,English spelling of the division the WB stores as Barishal (Wikipedia article 'Barisal Division'); the counterpart of the shipped alias chittagong.,curated,high,False
 chittagong,Chittagong,BGD002,BGD,"Chittagong is the widely used English name for the Chattogram division, the older anglicized spelling still commonly used in English-language sources.",pretraining,high,False
 rajshahi division,Rajshahi Division,BGD006,BGD,Rajshahi Division is the full formal English name used to distinguish the administrative division from Rajshahi city.,pretraining,medium,False
 yambol,Yambol,BGR006,BGR,The WB canonical name 'Jambol' uses a J-based romanization; 'Yambol' is the standard English spelling used in most English-language sources.,pretraining,high,False
@@ -111,6 +112,7 @@ wangdi phodrang,Wangdi Phodrang,BTN019,BTN,"Wangduephodrang is the WB canonical 
 wangdue phodrang,Wangdue Phodrang,BTN019,BTN,Wangduephodrang written as two words is a common English-language rendering of this Bhutanese district name.,pretraining,high,False
 ghanzi district,Ghanzi District,BWA003,BWA,The region is commonly referred to with the 'District' suffix in English-language sources about Botswana.,pretraining,medium,False
 kalahari,Kalahari,BWA004,BWA,"Kgalagadi District is commonly known in English as the Kalahari region, named after the Kalahari Desert that dominates it.",pretraining,medium,False
+north-west district,North-West District,BWA007,BWA,"Botswana's district stored by the WB as Ngamiland (Wikipedia, 'North-West District (Botswana)': 'The North-West District or Ngamiland'; Chobe separate since 2006).",curated,high,False
 equator,Equator,CAF002,CAF,"Equateur is the French word for Equator, and English-language sources sometimes refer to this region by the English translation.",pretraining,medium,False
 appenzell outer rhodes,Appenzell Outer Rhodes,CHE002,CHE,"The German 'Ausser-rhoden' translates to 'Outer Rhodes' in English, used in anglophone sources.",pretraining,high,False
 appenzell inner rhodes,Appenzell Inner Rhodes,CHE003,CHE,"The German 'Inner-rhoden' translates to 'Inner Rhodes' in English, used in anglophone sources.",pretraining,high,False
@@ -126,9 +128,15 @@ st gallen,St Gallen,CHE016,CHE,"Abbreviated English form without period, also wi
 st. gallen,St. Gallen,CHE016,CHE,Abbreviated English form 'St. Gallen' is the most common English spelling used internationally.,pretraining,high,False
 wallis,Wallis,CHE023,CHE,Wallis is the German co-official name for the bilingual canton canonically listed as Valais (French); both names appear regularly in English-language sources about Switzerland.,pretraining,high,False
 aysen,Aysén,CHL001,CHL,"The region is commonly referred to in English as Aysén or Aysen, dropping the full honorary name of General Carlos Ibáñez del Campo.",pretraining,high,False
+aysen del general carlos ibanez del campo,Aysén del General Carlos Ibáñez del Campo,CHL001,CHL,"Official name of the Región Aysén del General Carlos Ibáñez del Campo (Wikipedia, 'Regions of Chile'); the WB name abbreviates General to Gral.",curated,high,False
 aysen region,Aysén Region,CHL001,CHL,English-language sources commonly refer to this region simply as the Aysén Region.,pretraining,high,False
+arica and parinacota,Arica and Parinacota,CHL004,CHL,"English name of the Región de Arica y Parinacota (Wikipedia, 'Regions of Chile'); the WB name misspells it Arica y Painacota.",curated,high,False
+arica y parinacota,Arica y Parinacota,CHL004,CHL,"Spanish name of the region (Wikipedia, 'Regions of Chile'); the WB name misspells it Arica y Painacota.",curated,high,False
+libertador general bernardo o'higgins,Libertador General Bernardo O'Higgins,CHL008,CHL,"Official name of the Región del Libertador General Bernardo O'Higgins (Wikipedia, 'Regions of Chile'); the WB name abbreviates General to Gral.",curated,high,False
 o'higgins,O'Higgins,CHL008,CHL,"The region is widely known in English simply as O'Higgins, omitting the full official name.",pretraining,high,False
 o'higgins region,O'Higgins Region,CHL008,CHL,"English-language sources consistently shorten the full name to O'Higgins Region, dropping the honorary title.",pretraining,high,False
+magallanes and the chilean antarctica,Magallanes and the Chilean Antarctica,CHL011,CHL,"English name of the region (Wikipedia, 'Magallanes Region': 'Magallanes and the Chilean Antarctica Region in English').",curated,high,False
+magallanes y de la antartica chilena,Magallanes y de la Antártica Chilena,CHL011,CHL,"Official Spanish name of the Región de Magallanes y de la Antártica Chilena (Wikipedia, 'Regions of Chile'); the WB name drops 'de la'.",curated,high,False
 metropolitan region,Metropolitan Region,CHL013,CHL,The Región Metropolitana is universally referred to in English as the Metropolitan Region.,pretraining,high,False
 santiago metropolitan region,Santiago Metropolitan Region,CHL013,CHL,English sources often specify 'Santiago Metropolitan Region' to distinguish it from other metropolitan regions in the world.,pretraining,high,False
 canton province,Canton Province,CHN006,CHN,"Guangdong was historically known in English as Canton or Canton Province, a name still encountered in some English-language sources.",pretraining,medium,False
@@ -595,6 +603,7 @@ majunga,Majunga,MDG032,MDG,"Mahajanga is commonly referred to as Majunga in Engl
 tamatave,Tamatave,MDG033,MDG,"Toamasina is the official name but the city and region were long known as Tamatave in English sources, a name still commonly encountered in historical and some current references.",pretraining,medium,False
 tulear,Tulear,MDG034,MDG,"Toliara is widely referred to as Tulear in English sources, especially in older literature and marine charts, and remains a common alternative name.",pretraining,high,False
 baja california norte,Baja California Norte,MEX002,MEX,"Baja California is sometimes called Baja California Norte in English to distinguish it from Baja California Sur, though the official name lacks 'Norte'.",pretraining,medium,False
+mexico city,Mexico City,MEX009,MEX,"English name of Mexico's capital, which the WB stores under its Spanish name (Wikipedia, 'Mexico City': the federal district, renamed Ciudad de México in 2016).",curated,high,False
 northeastern region,Northeastern Region,MKD002,MKD,North Macedonia's 'Northeast' statistical region is commonly referred to as 'Northeastern Region' in English-language administrative contexts.,pretraining,medium,False
 pelagonija,Pelagonija,MKD003,MKD,The Macedonian/South Slavic spelling 'Pelagonija' is an alternative romanization of the region name 'Pelagonia' used in some official and academic sources.,pretraining,medium,False
 southeastern region,Southeastern Region,MKD006,MKD,North Macedonia's 'Southeast' statistical region is commonly referred to as 'Southeastern Region' in English-language administrative contexts.,pretraining,medium,False
@@ -692,8 +701,14 @@ muslim mindanao,Muslim Mindanao,PHL015,PHL,Muslim Mindanao is a common English s
 simbu,Simbu,PNG003,PNG,"Chimbu Province is commonly referred to as Simbu Province, an alternative spelling widely used in PNG and international contexts.",pretraining,high,False
 port moresby,Port Moresby,PNG015,PNG,"National Capital District is commonly identified by the name of its capital city, Port Moresby, in everyday usage.",pretraining,medium,False
 lower silesia,Lower Silesia,POL001,POL,"Dolnoslaskie is the Polish name for Lower Silesia, the well-established English exonym for this region in southwestern Poland.",pretraining,high,False
+lower silesian,Lower Silesian,POL001,POL,"English name of dolnośląskie (Wikipedia, 'Voivodeships of Poland': Lower Silesian / dolnośląskie).",curated,high,False
 kuyavian-pomeranian,Kuyavian-Pomeranian,POL002,POL,"Kujawsko-Pomorskie is rendered in English as Kuyavian-Pomeranian Voivodeship, referencing the two historical regions of Kujawy and Pomerania it encompasses.",pretraining,high,False
 lodz,Lodz,POL003,POL,Lodzkie (Łódzkie) is named after the city Łódź; English sources commonly refer to this voivodeship as Lodz or Łódź Voivodeship.,pretraining,high,False
+lubelskie,Lubelskie,POL004,POL,Polish name of the voivodeship; the WB name misspells it Lubeiskie.,curated,high,False
+lublin,Lublin,POL004,POL,"English name of lubelskie (Wikipedia, 'Voivodeships of Poland': Lublin / lubelskie), named after its capital like the shipped aliases opole and lodz.",curated,high,False
+lubusz,Lubusz,POL005,POL,"English name of lubuskie (Wikipedia, 'Voivodeships of Poland': Lubusz / lubuskie).",curated,high,False
+lesser poland,Lesser Poland,POL006,POL,"English name of małopolskie (Wikipedia, 'Voivodeships of Poland': Lesser Poland / małopolskie).",curated,high,False
+malopolskie,Małopolskie,POL006,POL,Polish name of the voivodeship; the WB name misspells it Malopolske.,curated,high,False
 masovian,Masovian,POL007,POL,"Mazowieckie is the Polish name for the Masovian Voivodeship, with Masovian being the standard English adjective for the Mazovia region.",pretraining,high,False
 mazovia,Mazovia,POL007,POL,"Mazovia is the English exonym for the historical region corresponding to Mazowieckie voivodeship, widely used in English language sources.",pretraining,high,False
 opole,Opole,POL008,POL,Opolskie is commonly referred to in English as Opole Voivodeship after its capital city Opole.,pretraining,high,False
@@ -703,11 +718,14 @@ pomerania,Pomerania,POL011,POL,Pomerania is the classical English exonym for the
 pomeranian,Pomeranian,POL011,POL,"Pomorskie is the Polish adjective for Pomeranian; English sources refer to this as Pomeranian Voivodeship, using the English exonym for the Pomerania region.",pretraining,high,False
 silesia,Silesia,POL012,POL,Silesia is the well-established English exonym for the Śląsk/Schlesien region; Śląskie voivodeship is commonly identified as Silesia in English.,pretraining,high,False
 silesian,Silesian,POL012,POL,Slaskie (Śląskie) is the Polish adjective for Silesian; English sources commonly refer to this voivodeship as Silesian Voivodeship.,pretraining,high,False
+silesian voivodeship,Silesian Voivodeship,POL012,POL,"English name of śląskie (Wikipedia, 'Voivodeships of Poland': Silesian / śląskie); WB name Slaskie.",curated,high,False
 holy cross,Holy Cross,POL013,POL,"Swietokrzyskie (Świętokrzyskie) literally means Holy Cross in English, and the region is officially translated as Holy Cross Voivodeship in English-language sources.",pretraining,high,False
 masuria,Masuria,POL014,POL,Masuria (Mazury) is one of the two historical regions comprising Warminsko-Mazurskie and is frequently used in English to refer to the whole voivodeship colloquially.,pretraining,medium,False
 warmian-masurian,Warmian-Masurian,POL014,POL,"Warminsko-Mazurskie (Warmińsko-Mazurskie) is the Polish name for Warmian-Masurian Voivodeship, the standard English translation using exonyms for Warmia and Masuria.",pretraining,high,False
+greater poland,Greater Poland,POL015,POL,"English name of wielkopolskie (Wikipedia, 'Voivodeships of Poland': Greater Poland / wielkopolskie).",curated,high,False
 west pomerania,West Pomerania,POL016,POL,"West Pomerania is a common English name for the Zachodniopomorskie region, reflecting the English exonym for the Pomerania region with a western qualifier.",pretraining,high,False
 west pomeranian,West Pomeranian,POL016,POL,"Zachodnio-Pomorskie (Zachodniopomorskie) is officially translated as West Pomeranian Voivodeship in English, using the exonym for western Pomerania.",pretraining,high,False
+zachodniopomorskie,Zachodniopomorskie,POL016,POL,"Polish name of the voivodeship, written as one word; the WB name hyphenates it Zachodnio-Pomorskie.",curated,high,False
 chagang province,Chagang Province,PRK001,PRK,English-language sources commonly refer to this province using the English word 'Province' appended to the Korean name.,pretraining,high,False
 north hamgyong,North Hamgyong,PRK002,PRK,Shortened English exonym widely used in English-language references without the word 'Province'.,pretraining,high,False
 north hamgyong province,North Hamgyong Province,PRK002,PRK,"The standard English exonym translates 'bukto' (북도) as 'North' and appends 'Province', yielding 'North Hamgyong Province'.",pretraining,high,False
