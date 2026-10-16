@@ -516,14 +516,25 @@ _SYSTEM_SUBFIELD_ALIASES: dict[str, str] = {
 
 
 def _parse_systems(text: str) -> list[dict[str, str]]:
-    """Parse a systems-identification block into system-entry dicts."""
+    """Parse a systems-identification block into system-entry dicts.
+
+    A system's scope follows its role in parentheses ("Sending System
+    (distant)") or after a dash ("Sending System — distant"; em dash,
+    en dash or hyphen).  A dash scope must start with "adjacent" or
+    "distant"; in either form the whole qualifier is the scope
+    ("distant coal importer").
+    """
+    role_label = r"(Focal|Adjacent|Sending|Receiving|Spillover)\s*(?:System)?"
+    dash_scope = r"\s*[-—–]\s*((?:adjacent|distant)\b[^:*]*?)"
     system_heading_re = re.compile(
         r"(?:#{1,6}\s*)?\*{0,2}\s*"
-        r"(Focal|Adjacent|Sending|Receiving|Spillover)\s*(?:System)?"
-        r"(?:\s*\(([^)]+)\))?"
-        r"\s*\*{0,2}\s*:\s*(.*)$",
+        + role_label
+        + r"(?:\s*\(([^)]+)\)|"
+        + dash_scope
+        + r")?\s*\*{0,2}\s*:\s*(.*)$",
         re.IGNORECASE,
     )
+    dash_label_re = re.compile(role_label + dash_scope + r"\s*", re.IGNORECASE)
 
     systems: list[dict[str, str]] = []
     current: dict[str, str] | None = None
@@ -547,10 +558,12 @@ def _parse_systems(text: str) -> list[dict[str, str]]:
             found_heading = True
             role = _normalize_system_role(heading_match.group(1))
             current = {"role": role}
-            scope = _normalize_system_scope(heading_match.group(2))
+            scope = _normalize_system_scope(
+                heading_match.group(2) or heading_match.group(3)
+            )
             if scope:
                 current["system_scope"] = scope
-            name = heading_match.group(3).strip().rstrip("*").strip()
+            name = heading_match.group(4).strip().rstrip("*").strip()
             if name:
                 current["name"] = name
             continue
@@ -583,11 +596,17 @@ def _parse_systems(text: str) -> list[dict[str, str]]:
         match = re.match(r"\*{0,2}([^:*]+)\*{0,2}\s*:\s*(.*)", item)
         if not match:
             continue
-        role = _normalize_system_role(match.group(1))
+        dash_match = dash_label_re.fullmatch(match.group(1).strip())
+        if dash_match:
+            role = _normalize_system_role(dash_match.group(1))
+            scope_text = dash_match.group(2)
+        else:
+            role = _normalize_system_role(match.group(1))
+            scope_match = re.search(r"\(([^)]+)\)", match.group(1))
+            scope_text = scope_match.group(1) if scope_match else None
         if role in {"focal", "adjacent", "sending", "receiving", "spillover"}:
             entry = {"role": role, "name": match.group(2).strip()}
-            scope_match = re.search(r"\(([^)]+)\)", match.group(1))
-            scope = _normalize_system_scope(scope_match.group(1) if scope_match else None)
+            scope = _normalize_system_scope(scope_text)
             if scope:
                 entry["system_scope"] = scope
             systems.append(entry)
