@@ -21,6 +21,22 @@ file. The format is loosely based on
   cross-coupling vocabulary; tests check that every source paper is in the
   bundled corpus and that country pericouplings match the adjacency data.
 
+### Fixed
+
+- **A §6 Research Gaps written as a numbered list is parsed.**
+  `parse_analysis` read §6 with the bullet extractor, which takes only dash,
+  asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty
+  `research_gaps`: the full report and the Markdown and Word exports left §6
+  out, the summary, comparison and component views reported no gaps, and the
+  countries and terms it named were missing from every scan of the analysis
+  text (the maps' text-scan fallback, ADM1 resolution, `recommend_papers()`).
+  §6 now also takes numbered items (`1.` or `1)`); the other sections still
+  take bullets only, since a numbered line there can be a heading such as
+  `1. **Matter Flow**`. Of 31 gpt-5.5 analyses saved on 2026-10-15, 7 wrote §6
+  as a numbered list; each now yields its 6 to 8 gaps, and the other 24 parse
+  exactly as before. Tests +4 (suite 1,454; the 1,441 in REPRODUCING predated
+  the nine tests #167 added).
+
 ## [0.2.1] — 2026-10-12
 
 A maintenance release after the documentation audit of 0.2.0.

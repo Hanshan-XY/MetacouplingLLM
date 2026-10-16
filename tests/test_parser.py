@@ -1,5 +1,7 @@
 """Tests for llm/parser.py — response parsing."""
 
+import pytest
+
 from metacouplingllm.llm.parser import ParsedAnalysis, parse_analysis
 
 from ._helpers import (
@@ -829,3 +831,56 @@ class TestParseUnboldCauseEffectCategories:
         result = _extract_categorized_bullets(text)
         assert "general" in result
         assert len(result["general"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# §6 Research Gaps written as a dash list or as a numbered list.
+# ---------------------------------------------------------------------------
+
+
+_GAP_ITEMS = [
+    "**Quantify soybean flows by destination and year**: export volumes and values.",
+    "**Distinguish soybeans, soybean meal, and soybean oil**: each has its own agents.",
+    "**Identify spillover systems**: competing exporters and transit ports.",
+]
+
+
+def _response_with_gaps(markers: list[str]) -> str:
+    """A short response whose §6 lists ``_GAP_ITEMS`` behind *markers*,
+    one item per paragraph, closed by a ``---`` rule before §7."""
+    items = "\n\n".join(
+        f"{marker} {item}" for marker, item in zip(markers, _GAP_ITEMS)
+    )
+    return (
+        "### 1. Coupling Classification\n\n"
+        "Telecoupling.\n\n"
+        "### 6. Research Gaps and Suggestions\n\n"
+        f"{items}\n\n"
+        "---\n\n"
+        "### 7. Evidence Coverage\n\n"
+        "Limited evidence on trade volumes.\n"
+    )
+
+
+class TestResearchGapListForms:
+    """§6 Research Gaps may be a dash list or a numbered list ("1." or
+    "1)"); every form yields the same gaps, without their markers."""
+
+    @pytest.mark.parametrize(
+        "markers",
+        [["-", "-", "-"], ["1.", "2.", "3."], ["1)", "2)", "3)"]],
+        ids=["dash", "number-dot", "number-paren"],
+    )
+    def test_each_list_form_yields_the_gaps(self, markers):
+        result = parse_analysis(_response_with_gaps(markers))
+        assert result.research_gaps == _GAP_ITEMS
+
+    def test_numbered_items_read_only_where_asked(self):
+        """Only §6 asks ``_extract_bullets`` for numbered items; the
+        other sections take bullets only, since a numbered line there
+        can be a heading such as ``1. **Matter Flow**``."""
+        from metacouplingllm.llm.parser import _extract_bullets
+
+        text = "1. **Heading**\n- item"
+        assert _extract_bullets(text) == ["item"]
+        assert _extract_bullets(text, numbered=True) == ["**Heading**", "item"]

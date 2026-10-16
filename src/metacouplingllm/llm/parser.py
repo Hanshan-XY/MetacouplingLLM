@@ -359,6 +359,7 @@ _COUPLING_SUBSECTION_PATTERNS: dict[str, re.Pattern[str]] = {
 
 
 _BULLET_RE = re.compile(r"^\s*[-*•]\s+", re.MULTILINE)
+_NUMBERED_RE = re.compile(r"^\s*\d+[.)]\s+", re.MULTILINE)
 
 _CAUSE_EFFECT_CATEGORY_ALIASES: dict[str, str] = {
     "economic": "economic",
@@ -411,15 +412,25 @@ def _normalize_cause_effect_category(category: str) -> str:
     return _CAUSE_EFFECT_CATEGORY_ALIASES.get(normalized, normalized)
 
 
-def _extract_bullets(text: str) -> list[str]:
-    """Extract bullet items from text."""
+def _extract_bullets(text: str, *, numbered: bool = False) -> list[str]:
+    """Extract bullet items from text.
+
+    With ``numbered=True``, numbered items ("1." or "1)") are extracted
+    too.  Only §6 Research Gaps passes it, because models write that
+    section as a numbered list as well as a bulleted one; the other
+    callers take bullets only.
+    """
     items: list[str] = []
     for line in text.splitlines():
         line = line.strip()
         if _BULLET_RE.match(line):
             clean = _BULLET_RE.sub("", line).strip()
-            if clean:
-                items.append(clean)
+        elif numbered and _NUMBERED_RE.match(line):
+            clean = _NUMBERED_RE.sub("", line).strip()
+        else:
+            continue
+        if clean:
+            items.append(clean)
     return items
 
 
@@ -1001,7 +1012,9 @@ def parse_analysis(response_text: str) -> ParsedAnalysis:
             if line.strip()
         ]
     if "research_gaps" in sections:
-        result.research_gaps = _extract_bullets(sections["research_gaps"])
+        result.research_gaps = _extract_bullets(
+            sections["research_gaps"], numbered=True
+        )
     if "evidence_coverage" in sections:
         # Plain prose section — preserve paragraph structure.  Strip
         # leading/trailing whitespace but keep internal newlines so
