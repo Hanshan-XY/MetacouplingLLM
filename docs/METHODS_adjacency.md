@@ -1434,8 +1434,8 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
 (`resolve_adm1_code`) through ordered strategies, each designed to fail to
 `None` rather than guess:
 
-1. **Alias table** (`data/adm1_aliases.csv`; 1,163 validated English exonyms /
-   alternative spellings for 872 regions across 136 countries: 1,145
+1. **Alias table** (`data/adm1_aliases.csv`; 1,201 validated English exonyms /
+   alternative spellings for 897 regions across 138 countries: 1,183
    LLM-generated, PR #60/#61, and 18 curated by hand from cited sources) —
    `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`, `"Mexico City"` →
    `MEX009`. Additions-only, deterministically validated, with a curated

@@ -40,6 +40,8 @@ buenos aires city,Buenos Aires City,ARG002,ARG
 city of buenos aires,City of Buenos Aires,ARG002,ARG
 gegharkunik,Gegharkunik,ARM004,ARM
 yerevan city,Yerevan City,ARM011,ARM
+lower austria,Lower Austria,AUT003,AUT
+upper austria,Upper Austria,AUT004,AUT
 styria,Styria,AUT006,AUT
 tyrol,Tyrol,AUT007,AUT
 vienna,Vienna,AUT009,AUT
@@ -97,6 +99,7 @@ muharraq governorate,Muharraq Governorate,BHR008,BHR
 northern governorate,Northern Governorate,BHR009,BHR
 southern governorate,Southern Governorate,BHR012,BHR
 federation of bih,Federation of BiH,BIH001,BIH
+federation of bosnia and herzegovina,Federation of Bosnia and Herzegovina,BIH001,BIH
 serb republic,Serb Republic,BIH002,BIH
 homyel,Homyel,BLR002,BLR
 hrodna,Hrodna,BLR003,BLR
@@ -104,6 +107,7 @@ mahilyow,Mahilyow,BLR006,BLR
 vitsebsk,Vitsebsk,BLR007,BLR
 brasilia,Brasilia,BRA007,BRA
 federal district,Federal District,BRA007,BRA
+brunei-muara,Brunei-Muara,BRN002,BRN
 mongar,Mongar,BTN007,BTN
 tashigang,Tashigang,BTN015,BTN
 tashiyangtse,Tashiyangtse,BTN016,BTN
@@ -135,12 +139,15 @@ arica y parinacota,Arica y Parinacota,CHL004,CHL
 libertador general bernardo o'higgins,Libertador General Bernardo O'Higgins,CHL008,CHL
 o'higgins,O'Higgins,CHL008,CHL
 o'higgins region,O'Higgins Region,CHL008,CHL
+magallanes and chilean antarctica,Magallanes and Chilean Antarctica,CHL011,CHL
 magallanes and the chilean antarctica,Magallanes and the Chilean Antarctica,CHL011,CHL
 magallanes y de la antartica chilena,Magallanes y de la Antártica Chilena,CHL011,CHL
 metropolitan region,Metropolitan Region,CHL013,CHL
 santiago metropolitan region,Santiago Metropolitan Region,CHL013,CHL
 canton province,Canton Province,CHN006,CHN
 guangxi zhuang autonomous region,Guangxi Zhuang Autonomous Region,CHN007,CHN
+inner mongolia,Inner Mongolia,CHN019,CHN
+inner mongolia autonomous region,Inner Mongolia Autonomous Region,CHN019,CHN
 ningxia hui autonomous region,Ningxia Hui Autonomous Region,CHN020,CHN
 szechuan,Szechuan,CHN026,CHN
 szechwan,Szechwan,CHN026,CHN
@@ -200,7 +207,13 @@ saxony-anhalt,Saxony-Anhalt,DEU014,DEU
 thuringia,Thuringia,DEU016,DEU
 ali sabieh,Ali Sabieh,DJI001,DJI
 dikhil,Dikhil,DJI002,DJI
+capital region of denmark,Capital Region of Denmark,DNK001,DNK
+central denmark,Central Denmark,DNK002,DNK
+central denmark region,Central Denmark Region,DNK002,DNK
+north denmark region,North Denmark Region,DNK003,DNK
 northern jutland,Northern Jutland,DNK003,DNK
+region of southern denmark,Region of Southern Denmark,DNK004,DNK
+southern denmark,Southern Denmark,DNK004,DNK
 national district,National District,DOM005,DOM
 el seybo,El Seybo,DOM007,DOM
 maria trinidad sanchez,Maria Trinidad Sanchez,DOM015,DOM
@@ -277,6 +290,7 @@ benishangul-gumuz,Benishangul-Gumuz,ETH004,ETH
 gambella,Gambella,ETH006,ETH
 southern nations nationalities and peoples region,Southern Nations Nationalities and Peoples Region,ETH010,ETH
 "southern nations, nationalities, and peoples region","Southern Nations, Nationalities, and Peoples Region",ETH010,ETH
+south west ethiopia peoples region,South West Ethiopia Peoples Region,ETH012,ETH
 lappi,Lappi,FIN002,FIN
 lower normandy,Lower Normandy,FRA005,FRA
 burgundy,Burgundy,FRA006,FRA
@@ -297,11 +311,19 @@ bioko north,Bioko North,GNQ002,GNQ
 bioko south,Bioko South,GNQ003,GNQ
 central south,Central South,GNQ004,GNQ
 south center,South Center,GNQ004,GNQ
+eastern macedonia and thrace,Eastern Macedonia and Thrace,GRC001,GRC
 attica,Attica,GRC002,GRC
+western greece,Western Greece,GRC003,GRC
+western macedonia,Western Macedonia,GRC004,GRC
 ionian islands,Ionian Islands,GRC005,GRC
 epirus,Epirus,GRC006,GRC
+central macedonia,Central Macedonia,GRC007,GRC
 peloponnese,Peloponnese,GRC010,GRC
+central greece,Central Greece,GRC011,GRC
 thessaly,Thessaly,GRC012,GRC
+north greenland,North Greenland,GRL001,GRL
+east greenland,East Greenland,GRL002,GRL
+west greenland,West Greenland,GRL003,GRL
 barima-waini,Barima-Waini,GUY001,GUY
 region 1,Region 1,GUY001,GUY
 cuyuni-mazaruni,Cuyuni-Mazaruni,GUY002,GUY
@@ -371,6 +393,7 @@ pondicherry,Pondicherry,IND027,IND
 tamilnadu,Tamilnadu,IND031,IND
 ardabil,Ardabil,IRN001,IRN
 chaharmahal and bakhtiari,Chaharmahal and Bakhtiari,IRN003,IRN
+east azerbaijan,East Azerbaijan,IRN004,IRN
 isfahan,Isfahan,IRN005,IRN
 qazvin,Qazvin,IRN007,IRN
 kohgiluyeh and boyer-ahmad,Kohgiluyeh and Boyer-Ahmad,IRN018,IRN
@@ -378,6 +401,7 @@ kurdistan,Kurdistan,IRN019,IRN
 sistan and balochestan,Sistan and Balochestan,IRN024,IRN
 sistan and baluchestan,Sistan and Baluchestan,IRN024,IRN
 sistan-baluchestan,Sistan-Baluchestan,IRN024,IRN
+west azerbaijan,West Azerbaijan,IRN026,IRN
 west azerbayjan,West Azerbayjan,IRN026,IRN
 anbar,Anbar,IRQ001,IRQ
 basra,Basra,IRQ002,IRQ
@@ -477,7 +501,15 @@ mangystau,Mangystau,KAZ010,KAZ
 mangystau region,Mangystau Region,KAZ010,KAZ
 pavlodar,Pavlodar,KAZ011,KAZ
 pavlodar region,Pavlodar Region,KAZ011,KAZ
+north kazakhstan,North Kazakhstan,KAZ012,KAZ
+north kazakhstan region,North Kazakhstan Region,KAZ012,KAZ
+east kazakhstan,East Kazakhstan,KAZ013,KAZ
+east kazakhstan region,East Kazakhstan Region,KAZ013,KAZ
+south kazakhstan,South Kazakhstan,KAZ014,KAZ
+south kazakhstan region,South Kazakhstan Region,KAZ014,KAZ
 turkestan region,Turkestan Region,KAZ014,KAZ
+west kazakhstan,West Kazakhstan,KAZ015,KAZ
+west kazakhstan region,West Kazakhstan Region,KAZ015,KAZ
 homa bay county,Homa Bay County,KEN008,KEN
 kisumu city,Kisumu City,KEN017,KEN
 muranga,Muranga,KEN029,KEN
@@ -617,6 +649,7 @@ cospicua,Cospicua,MLT006,MLT
 senglea,Senglea,MLT020,MLT
 rahal gdid,Rahal Gdid,MLT038,MLT
 rabat,Rabat,MLT044,MLT
+rabat malta,Rabat Malta,MLT044,MLT
 rabat gozo,Rabat Gozo,MLT045,MLT
 saint julian's,Saint Julian's,MLT047,MLT
 st julian's,St Julian's,MLT047,MLT
@@ -672,6 +705,8 @@ north caribbean coast autonomous region,North Caribbean Coast Autonomous Region,
 south caribbean coast autonomous region,South Caribbean Coast Autonomous Region,NIC015,NIC
 frisia,Frisia,NLD003,NLD
 north brabant,North Brabant,NLD007,NLD
+north holland,North Holland,NLD008,NLD
+south holland,South Holland,NLD012,NLD
 finmark,Finmark,NOR004,NOR
 more og romsdal,More og Romsdal,NOR007,NOR
 nord-trondelag,Nord-Trondelag,NOR008,NOR
@@ -695,6 +730,7 @@ musandam peninsula,Musandam Peninsula,OMN007,OMN
 islamabad capital territory,Islamabad Capital Territory,PAK003,PAK
 guna yala,Guna Yala,PAN008,PAN
 ngobe bugle,Ngobe Bugle,PAN010,PAN
+west panama,West Panama,PAN012,PAN
 cuzco,Cuzco,PER008,PER
 metro manila,Metro Manila,PHL013,PHL
 muslim mindanao,Muslim Mindanao,PHL015,PHL
@@ -937,8 +973,10 @@ zlatibor district,Zlatibor District,SRB025,SRB
 zilina region,Zilina Region,SVK008,SVK
 upper carniola,Upper Carniola,SVN001,SVN
 gorizia,Gorizia,SVN002,SVN
+southeast slovenia,Southeast Slovenia,SVN003,SVN
 inner carniola-karst,Inner Carniola-Karst,SVN005,SVN
 coastal-karst,Coastal-Karst,SVN006,SVN
+central slovenia,Central Slovenia,SVN007,SVN
 drava,Drava,SVN008,SVN
 mura,Mura,SVN009,SVN
 savinja,Savinja,SVN010,SVN

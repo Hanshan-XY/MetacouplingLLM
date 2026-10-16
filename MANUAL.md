@@ -1159,7 +1159,7 @@ The same `coupling_standard` argument is accepted by the ADM1 functions
 `docs/METHODS_adjacency.md` §8, and `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
 `resolve_adm1_code` also consults a bundled **English-exonym alias table**
-(`data/adm1_aliases.csv`, 1,163 validated aliases for 872 regions across 136
+(`data/adm1_aliases.csv`, 1,201 validated aliases for 897 regions across 138
 countries) before its name/substring strategies, so common English
 names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
 (Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The

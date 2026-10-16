@@ -43,7 +43,8 @@ file. The format is loosely based on
   and without its country hint, alone and followed by a designator, and the
   recorded name-matching queries), none of the 43,883 that resolved gives a
   different code. The alias table gains 18 curated entries, each checked
-  against the source its basis cites (now 1,163 entries for 872 regions):
+  against the source its basis cites (1,145 → 1,163 entries, 863 → 872
+  regions):
   "Mexico City", "Silesian Voivodeship", "North-West District" (Ngamiland),
   "Barisal", the English names of five more Polish voivodeships and two
   Chilean regions, the full official names of three Chilean regions that the
@@ -85,8 +86,31 @@ file. The format is loosely based on
   word groups of the 421 corpus papers and the avocado run, 23 resolve
   differently without a hint: 22 to the region they name (New Jersey,
   Western Australia, New South Wales and others) and "México" to `None`.
-  The alias build still reproduces both tables byte for byte; its rule G
-  still drops the 64 generated aliases that contain a country's name.
+- **The alias table takes English names that contain a country's name:
+  "Upper Austria", "Inner Mongolia", "North Holland", "East Azerbaijan"
+  (1,163 → 1,201 entries, 872 → 897 regions, 136 → 138 countries).**
+  Validation rule G of `scripts/validate_adm1_aliases.py` dropped every
+  generated alias in which `resolve_country_code` found a country, 64 of
+  them, because the resolver read such names as the country without a hint
+  (entry above). It now drops only a key that is a country's code, name or
+  alias, 4 of them ("hong kong", "kuwait", "french guiana", "saint
+  martin"). Of the 50 aliases this admitted, each checked against
+  Wikipedia's lists of the countries' divisions and the units' own
+  articles, 38 ship and 12 went on the review denylist: the capital-city
+  namesakes "kuwait city", "luxembourg city" and "panama city"; "french
+  riviera", the coast of Provence-Alpes-Côte d'Azur; generic labels that
+  span several units, "northern", "eastern" and "western kazakhstan",
+  "north lebanon" (also Akkar), "south lebanon" (also Nabatieh) and
+  "southwest ethiopia" (the RAG corpus's "southwestern Ethiopia" studies lie
+  in Jimma Zone, Oromia); the former name "lower congo" (Bas-Congo, renamed
+  Kongo Central in 2015); and the calque "isle of france", once the name of
+  colonial Mauritius. Seven others are now redundant (rule R1): with the
+  country hint they resolve without an alias ("british columbia", "port of
+  spain"). Deduplication (rule D0) now keeps the curated record when a
+  generated alias has the same key and code, so "mexico city", "lesser
+  poland" and "greater poland", which the generation run had also
+  proposed, keep their cited sources in the audit table. The 14,421
+  recorded name-matching results are unchanged.
 - **`resolve_country_code` ignores accents and reads the World Bank's
   country names.** "México", "Perú", "Panamá", "Curaçao" and "Réunion"
   returned `None`, as did "España", "Brasil", "Bangladeshi", "Kyrgyz
@@ -105,7 +129,7 @@ file. The format is loosely based on
   boundary data behind the ADM1 database, "Democratic Republic of Congo" and
   "D. P. R. of Korea" gave COG and KOR, so for their regions web search
   wrote the Republic of the Congo and South Korea into its queries. Tests
-  +77 with the previous entry (suite 1,648).
+  +78 with the two entries above (suite 1,649).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty

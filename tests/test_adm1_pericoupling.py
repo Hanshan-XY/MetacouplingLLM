@@ -1377,22 +1377,64 @@ class TestAdm1AliasTable:
         assert not bad, f"Alias keys that are country names: {bad[:5]}"
 
     def test_country_named_keys_resolve_without_a_hint(self, rows):
-        """Only four curated keys contain a country name or demonym, which
-        resolve_country_code finds inside them.  They are not a country's
-        name, so they resolve with or without a country hint (until
-        2026-10-16 the country guard returned None for them without
-        one)."""
+        """42 keys contain a country name or demonym, which
+        resolve_country_code finds inside them: four curated ("mexico
+        city", "lesser poland") and the 38 generated ones rule G admitted
+        on 2026-10-16 ("upper austria", "inner mongolia").  None is a
+        country's name, so each resolves with or without a country hint."""
         from metacouplingllm.knowledge.countries import resolve_country_code
-        by_key = {r["alias_key"]: r for r in rows}
-        named = {k for k in by_key if resolve_country_code(k) is not None}
-        assert named == {
-            "mexico city", "lesser poland", "greater poland",
-            "magallanes and the chilean antarctica",
+        named = [r for r in rows if resolve_country_code(r["alias_key"])]
+        assert len(named) == 42
+        failed = [
+            (r["alias_key"], r["code"]) for r in named
+            if resolve_adm1_code(r["alias_key"], country=r["iso_a3"])
+            != r["code"]
+            or resolve_adm1_code(r["alias_key"]) != r["code"]
+        ]
+        assert not failed, failed
+
+    def test_rule_g_admissions_reviewed(self, rows):
+        """When rule G came to drop only keys that ARE a country's name
+        (2026-10-16), it admitted 50 generated aliases; the 38 that passed
+        review ship and the 12 rejected (_REVIEW_DENYLIST) do not."""
+        shipped = {
+            "lower austria": "AUT003", "upper austria": "AUT004",
+            "federation of bosnia and herzegovina": "BIH001",
+            "brunei-muara": "BRN002",
+            "magallanes and chilean antarctica": "CHL011",
+            "inner mongolia": "CHN019",
+            "inner mongolia autonomous region": "CHN019",
+            "capital region of denmark": "DNK001",
+            "central denmark": "DNK002", "central denmark region": "DNK002",
+            "north denmark region": "DNK003",
+            "region of southern denmark": "DNK004",
+            "southern denmark": "DNK004",
+            "south west ethiopia peoples region": "ETH012",
+            "eastern macedonia and thrace": "GRC001",
+            "western greece": "GRC003", "western macedonia": "GRC004",
+            "central macedonia": "GRC007", "central greece": "GRC011",
+            "north greenland": "GRL001", "east greenland": "GRL002",
+            "west greenland": "GRL003",
+            "east azerbaijan": "IRN004", "west azerbaijan": "IRN026",
+            "north kazakhstan": "KAZ012", "north kazakhstan region": "KAZ012",
+            "east kazakhstan": "KAZ013", "east kazakhstan region": "KAZ013",
+            "south kazakhstan": "KAZ014", "south kazakhstan region": "KAZ014",
+            "west kazakhstan": "KAZ015", "west kazakhstan region": "KAZ015",
+            "rabat malta": "MLT044",
+            "north holland": "NLD008", "south holland": "NLD012",
+            "west panama": "PAN012",
+            "southeast slovenia": "SVN003", "central slovenia": "SVN007",
         }
-        for key in named:
-            row = by_key[key]
-            assert resolve_adm1_code(key, country=row["iso_a3"]) == row["code"]
-            assert resolve_adm1_code(key) == row["code"]
+        rejected = {
+            "kuwait city", "luxembourg city", "panama city", "french riviera",
+            "northern kazakhstan", "eastern kazakhstan", "western kazakhstan",
+            "southwest ethiopia", "north lebanon", "south lebanon",
+            "lower congo", "isle of france",
+        }
+        by_key = {r["alias_key"]: r["code"] for r in rows}
+        assert len(shipped) == 38
+        assert {k: by_key.get(k) for k in shipped} == shipped
+        assert not rejected & by_key.keys()
 
     def test_no_u3_collision(self, rows):
         from metacouplingllm.knowledge.adm1_pericoupling import _get_adm1_name_index
@@ -1480,9 +1522,9 @@ class TestAdm1AliasTable:
     def test_counts_match_docs(self, rows):
         """Headline provenance counts must match the shipped CSV so docs cannot
         drift (PR #61 — the original '67 countries / 886 regions' were wrong)."""
-        assert len(rows) == 1163
-        assert len({r["code"] for r in rows}) == 872
-        assert len({r["iso_a3"] for r in rows}) == 136
+        assert len(rows) == 1201
+        assert len({r["code"] for r in rows}) == 897
+        assert len({r["iso_a3"] for r in rows}) == 138
 
     def test_curated_aliases_shipped(self, rows):
         """The 18 curated aliases of 2026-10-16 are shipped and marked

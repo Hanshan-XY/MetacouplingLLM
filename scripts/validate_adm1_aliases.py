@@ -11,19 +11,19 @@ adds the curated aliases listed in this script (_CURATED_ALIASES, source
 Validation rules
 ----------------
 N0  Normalize key: lowercase, strip, collapse spaces, NFKD-fold.
-G   Drop if the key resolves as a country name.  A generated key is dropped
-    if resolve_country_code finds a country name anywhere in it ("upper
-    austria"); a curated key only if it IS a country's ISO code, name or
-    alias (resolve_country_code with substring=False), the names
-    resolve_adm1_code refuses without a country hint.  A curated key that
-    merely contains a country name ("mexico city") is kept and resolves
-    with or without a hint.
+G   Drop if the key IS a country's ISO code, name or alias
+    (resolve_country_code with substring=False), the names resolve_adm1_code
+    refuses without a country hint.  A key that merely contains a country
+    name ("upper austria", "mexico city") is kept and resolves with or
+    without a hint.
 S1  Drop keys shorter than 4 characters.
 W1  Drop generic single geo-words (direction/type words, ADM1 suffixes).
 DR  Drop curated manual-review rejections (_REVIEW_DENYLIST): semantic scope
     violations (historical/former names, capital-city namesakes, multi-region
     labels, acronyms) the deterministic rules cannot detect.  From the Opus
-    double-check of PR #60 (see PR #61).
+    double-check of PR #60 (see PR #61), and from the review of the aliases
+    rule G admitted when it stopped dropping keys that contain a country
+    name (2026-10-16).
 R1  Drop if resolve_adm1_code(key, country=iso) already returns the same code
     (redundant — the existing resolver already handles it).
 O1  If the resolver (with hint) returns a DIFFERENT non-None code → mark as
@@ -37,7 +37,8 @@ U2  Cross-country: if a key maps to regions in more than one country → drop
     (global key ambiguity; callers would need a country hint, reducing value).
 U3  Drop if key matches an existing canonical index entry for a different code
     (would shadow a real region name).
-D0  Deduplicate identical (code, alias_key) pairs from parallel generation.
+D0  Deduplicate identical (code, alias_key) pairs from parallel generation;
+    a curated record wins over a generated one.
 C1  Cap at 3 aliases per code (highest confidence first, then alphabetical).
 
 R1, O1 and X1 test a key against the name matcher that the alias table
@@ -158,6 +159,31 @@ _REVIEW_DENYLIST: frozenset[tuple[str, str]] = frozenset({
     ("bicolandia", "PHL005"),
     ("mother of god", "PER017"),
     ("silent city", "MLT029"),
+    # Review of 2026-10-16.  Rule G had dropped every key containing a
+    # country name; when it came to drop only keys that ARE one, it admitted
+    # 50 generated aliases.  Each was checked against Wikipedia (its lists of
+    # the countries' divisions, the units' own articles); 38 shipped and
+    # these 12 did not.
+    # capital-city namesakes: the city is part of the unit
+    ("kuwait city", "KWT004"),
+    ("luxembourg city", "LUX003"),
+    ("panama city", "PAN011"),
+    # sub-region: the Riviera is the coast of Provence-Alpes-Cote d'Azur
+    ("french riviera", "FRA022"),
+    # generic or multi-region labels: "northern Kazakhstan" spans several
+    # oblasts (the Virgin Lands); "southwestern Ethiopia" studies in the
+    # RAG corpus lie in Jimma Zone, Oromia; "North Lebanon" holds the North
+    # and Akkar governorates, Southern Lebanon the South and Nabatieh ones
+    ("northern kazakhstan", "KAZ012"),
+    ("eastern kazakhstan", "KAZ013"),
+    ("western kazakhstan", "KAZ015"),
+    ("southwest ethiopia", "ETH012"),
+    ("north lebanon", "LBN007"),
+    ("south lebanon", "LBN008"),
+    # former name: Bas-Congo, renamed Kongo Central in 2015
+    ("lower congo", "COD002"),
+    # over-literal calque, and the name of colonial Mauritius (1715-1810)
+    ("isle of france", "FRA013"),
 })
 
 # ---------------------------------------------------------------------------
@@ -253,9 +279,9 @@ def _normalize_key(raw: str) -> str:
 
 
 def _is_country_name(key: str) -> bool:
-    """G for a curated key: the key is a country's ISO alpha-3 code, its
-    name or a country alias itself, the matches ``resolve_country_code``
-    makes before its free-text step."""
+    """G: the key is a country's ISO alpha-3 code, its name or a country
+    alias itself, the matches ``resolve_country_code`` makes before its
+    free-text step."""
     return resolve_country_code(key, substring=False) is not None
 
 
@@ -322,10 +348,7 @@ def main(argv: list[str] | None = None) -> None:
             continue
 
         # G
-        if (
-            _is_country_name(key) if source == "curated"
-            else resolve_country_code(key) is not None
-        ):
+        if _is_country_name(key):
             drop_counts["G_country_name"] += 1
             continue
 
@@ -420,15 +443,19 @@ def main(argv: list[str] | None = None) -> None:
     print(f"  After U3 (no shadow): {len(records)}")
 
     # ---------------------------------------------------------------------------
-    # D0: deduplicate identical (code, alias_key) pairs produced by parallel agents
+    # D0: deduplicate identical (code, alias_key) pairs produced by parallel
+    # agents.  A curated record wins over a generated one with the same pair,
+    # so the audit table keeps the source its basis cites.
     # ---------------------------------------------------------------------------
-    seen_pairs: set[tuple[str, str]] = set()
-    deduped = []
+    by_pair: dict[tuple[str, str], dict] = {}
     for rec in records:
         pair = (rec["code"], rec["alias_key"])
-        if pair not in seen_pairs:
-            seen_pairs.add(pair)
-            deduped.append(rec)
+        kept = by_pair.get(pair)
+        if kept is None or (
+            rec["source"] == "curated" and kept["source"] != "curated"
+        ):
+            by_pair[pair] = rec
+    deduped = list(by_pair.values())
     drop_counts["D0_duplicate"] = len(records) - len(deduped)
     records = deduped
     print(f"  After D0 (dedup same code+key): {len(records)}")
@@ -509,10 +536,7 @@ def main(argv: list[str] | None = None) -> None:
     assert len(shipped_keys) == len(set(shipped_keys)), "FAIL: duplicate alias_key in shipped CSV"
     for rec in final_shipped:
         assert rec["code"] in valid_codes, f"FAIL: unknown code {rec['code']}"
-        if rec["source"] == "curated":
-            assert not _is_country_name(rec["alias_key"]), f"FAIL: curated alias_key is a country name: {rec['alias_key']}"
-        else:
-            assert resolve_country_code(rec["alias_key"]) is None, f"FAIL: alias_key is a country name: {rec['alias_key']}"
+        assert not _is_country_name(rec["alias_key"]), f"FAIL: alias_key is a country name: {rec['alias_key']}"
     print("All assertions passed.")
 
     # Summary by drop rule
