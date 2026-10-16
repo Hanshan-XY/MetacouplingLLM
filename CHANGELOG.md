@@ -121,15 +121,48 @@ file. The format is loosely based on
   the text is a whole name ("the Gambia"). New aliases add the two names in
   the country's own language, "Bangladeshi", and the World Bank's names that
   resolved to `None` or to another country. In its country list
-  (api.worldbank.org, read 2026-10-16) 12 of the 217 economies did, and 10
+  (api.worldbank.org, read 2026-10-16) 12 of the 217 economies did, and 11
   now resolve, among them "St. Lucia", "Virgin Islands (U.S.)" (read as the
-  United States) and "St. Martin (French part)" (as France); the other two
-  are the Channel Islands, which have no ISO code, and "Puerto Rico (US)",
-  which the existing alias "puerto rico" maps to the United States. In the
+  United States), "St. Martin (French part)" (as France) and "Puerto Rico
+  (US)" (next entry); the Channel Islands have no ISO code. In the
   boundary data behind the ADM1 database, "Democratic Republic of Congo" and
   "D. P. R. of Korea" gave COG and KOR, so for their regions web search
   wrote the Republic of the Congo and South Korea into its queries. Tests
   +78 with the two entries above (suite 1,649).
+- **"Puerto Rico" resolves to Puerto Rico, not the United States.** The
+  alias table listed "puerto rico" twice, as PRI and further down as USA,
+  and the later key wins, so `resolve_country_code` read Puerto Rico as the
+  United States, although the country pericoupling table, the ADM1 database
+  and the World Bank boundaries of both maps give it its own code, PRI. A
+  map with Puerto Rico as its focal country showed the United States, with
+  Canada and Mexico pericoupled, and arrows from Puerto Rico started in the
+  middle of the contiguous United States; `lookup_pericoupling` called
+  Puerto Rico and Mexico pericoupled, and the database hint for a research
+  description naming only Puerto Rico gave the United States as its focal
+  country, with Canada and Mexico as neighbours. With the country hint
+  "Puerto Rico", `resolve_adm1_code` found none of the island's eight regions
+  ("San Juan" gave `None`, "Montana" the US state), nor did the map's
+  region scan of an analysis about Puerto Rico, and web search named their
+  country the United States ("Ponce, United States"). "Puerto Rico", the
+  World Bank's "Puerto Rico (US)" and its boundary data's "Puerto Rico
+  (U.S.)" now resolve to PRI, which the pericoupling table gives no
+  pericoupled neighbour. A new test fails on a repeated alias key; the two
+  other repeats in the table gave the same code twice.
+- **ISO 3166 names written inverted resolve to their own country.** In
+  Debian's iso-codes data (the names pycountry gives) and Wikipedia's table
+  of ISO 3166-1, "Korea, Democratic People's Republic of" gave South Korea,
+  "Congo, The Democratic Republic of the" and "Congo, Democratic Republic
+  of the" the Republic of the Congo, "Virgin Islands, British" and "Virgin
+  Islands (British)" the United Kingdom, and "Virgin Islands, U.S." and the
+  official name "Virgin Islands of the United States" the United States,
+  each through a shorter name inside it. Seven aliases add them. Of the 433
+  names of the 249 entries in iso-codes (short, official and common), all
+  now give their own code except "Pitcairn" and the official names of
+  Gabon, Greece, Rwanda and Togo ("Gabonese Republic"), which give `None`,
+  and the names of three places the package has no code for: Antarctica
+  gives `None`, British Indian Ocean Territory the United Kingdom and South
+  Georgia and the South Sandwich Islands Georgia. Tests +10 with the
+  previous entry (suite 1,659).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty

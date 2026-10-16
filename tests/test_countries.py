@@ -164,6 +164,55 @@ class TestNewAliases:
         ) == "COD"
         assert resolve_country_code("Exports to Congo, Dem. Rep.") == "COD"
 
+    @pytest.mark.parametrize("name, code", [
+        # Debian's iso-codes data (the names pycountry gives)
+        ("Korea, Democratic People's Republic of", "PRK"),
+        ("Congo, The Democratic Republic of the", "COD"),
+        ("Virgin Islands, British", "VGB"),
+        ("Virgin Islands, U.S.", "VIR"),
+        ("Virgin Islands of the United States", "VIR"),
+        # Wikipedia's table of ISO 3166-1
+        ("Congo, Democratic Republic of the", "COD"),
+        ("Virgin Islands (British)", "VGB"),
+    ])
+    def test_iso_3166_names(self, name, code):
+        """They gave KOR, COG, GBR and USA."""
+        assert resolve_country_code(name) == code
+        assert resolve_country_code(name, substring=False) == code
+
+    def test_iso_3166_names_keep_the_two_congos_and_koreas_apart(self):
+        assert resolve_country_code("Congo") == "COG"
+        assert resolve_country_code("Korea, Republic of") == "KOR"
+        assert resolve_country_code(
+            "Imports from Korea, Democratic People’s Republic of"
+        ) == "PRK"
+
+    def test_puerto_rico(self):
+        """Puerto Rico has its own ISO code, which the pericoupling
+        databases and the boundary data of both maps use."""
+        assert resolve_country_code("Puerto Rico") == "PRI"
+        # The World Bank's boundary data and its country list
+        assert resolve_country_code("Puerto Rico (U.S.)") == "PRI"
+        assert resolve_country_code("Puerto Rico (US)") == "PRI"
+        assert resolve_country_code("Coffee farms in Puerto Rico") == "PRI"
+
+    def test_alias_keys_are_not_repeated(self):
+        """A dict literal keeps the last value of a repeated key: a second
+        "puerto rico" alias, USA, replaced the first, PRI."""
+        import ast
+        from pathlib import Path
+
+        import metacouplingllm.knowledge.countries as countries
+
+        tree = ast.parse(Path(countries.__file__).read_text(encoding="utf-8"))
+        (table,) = [
+            node.value for node in tree.body
+            if isinstance(node, ast.AnnAssign)
+            and getattr(node.target, "id", None) == "_ALIASES"
+        ]
+        keys = [key.value for key in table.keys]
+        assert sorted(k for k in set(keys) if keys.count(k) > 1) == []
+
 
 class TestWithoutSubstring:
     """``substring=False`` accepts only a whole code, name or alias."""

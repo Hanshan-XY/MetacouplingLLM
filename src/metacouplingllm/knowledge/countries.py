@@ -384,7 +384,6 @@ _ALIASES: dict[str, str] = {
     "trinidad and tobago": "TTO",
     "el salvador": "SLV",
     "costa rica": "CRI",
-    "puerto rico": "USA",
     "central african republic": "CAF",
     "equatorial guinea": "GNQ",
     "guinea-bissau": "GNB",
@@ -414,6 +413,18 @@ _ALIASES: dict[str, str] = {
     "st. martin (french part)": "MAF",
     "virgin islands (u.s.)": "VIR",
     "naoero": "NRU",  # the World Bank's name for Nauru
+    # ISO 3166-1 names as Debian's iso-codes data (the names pycountry
+    # gives) and Wikipedia's table of ISO 3166-1 write them, where a
+    # shorter name inside them gives another country: the short names
+    # written inverted ("Virgin Islands, British" reads "british", the
+    # United Kingdom) and the official name of the US Virgin Islands
+    "korea, democratic people's republic of": "PRK",
+    "congo, democratic republic of the": "COD",
+    "congo, the democratic republic of the": "COD",
+    "virgin islands, british": "VGB",
+    "virgin islands (british)": "VGB",
+    "virgin islands, u.s.": "VIR",
+    "virgin islands of the united states": "VIR",
     # Common demonyms (adjective forms used by LLMs)
     "american": "USA",
     "mexican": "MEX",
@@ -474,7 +485,6 @@ _ALIASES: dict[str, str] = {
     "philippine": "PHL",
     "filipino": "PHL",
     "cambodian": "KHM",
-    "myanmar": "MMR",
     "burmese": "MMR",
     "pakistani": "PAK",
     "bangladeshi": "BGD",
@@ -506,7 +516,6 @@ _ALIASES: dict[str, str] = {
     "irish": "IRL",
     "scottish": "GBR",
     "welsh": "GBR",
-    "new zealand": "NZL",
 }
 
 
@@ -711,8 +720,9 @@ def resolve_country_code(
     1. Exact ISO code match (case-insensitive, e.g. ``"usa"`` → ``"USA"``)
     2. Alias match (e.g. ``"America"`` → ``"USA"``), covering demonyms
        (``"Bangladeshi"``), names in the country's own language
-       (``"Brasil"``) and the World Bank's spellings (``"Congo, Dem.
-       Rep."`` → ``"COD"``)
+       (``"Brasil"``), the World Bank's spellings (``"Congo, Dem.
+       Rep."`` → ``"COD"``) and ISO 3166's inverted short names
+       (``"Virgin Islands, British"`` → ``"VGB"``)
     3. Canonical name match (e.g. ``"United States"`` → ``"USA"``)
     4. Substring match — if *name_or_code* contains a known country name
        or alias as a standalone term (e.g. ``"Ethiopian coffee regions"``

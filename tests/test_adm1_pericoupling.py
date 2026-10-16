@@ -959,8 +959,8 @@ class TestIsoCodeCoverage:
     def test_adm1_country_names_resolve(self):
         """Every country name of the ADM1 data resolves to its units'
         ISO code (get_adm1_info gives it as ``country_name``), except the
-        names listed: "Democratic Republic of Congo" gave COG and "D. P. R.
-        of Korea" KOR until 2026-10-16."""
+        names listed: "Democratic Republic of Congo" gave COG, "D. P. R.
+        of Korea" KOR and "Puerto Rico (U.S.)" USA until 2026-10-16."""
         from metacouplingllm.knowledge.countries import resolve_country_code
         _ensure_loaded()
         from metacouplingllm.knowledge.adm1_pericoupling import _adm1_metadata
@@ -979,8 +979,6 @@ class TestIsoCodeCoverage:
             # Also the name of the territory's one unit (MAF001), which
             # resolve_adm1_code would refuse as a country's.
             ("Saint-Martin (Fr.)", "MAF"): None,
-            # The alias "puerto rico" gives USA.
-            ("Puerto Rico (U.S.)", "PRI"): "USA",
         }
         assert expected.keys() <= pairs
         wrong = [
