@@ -1010,6 +1010,31 @@ def _is_cross_country_folded_collision(name_lower: str) -> bool:
     return len({iso for _, iso in entries}) > 1
 
 
+def _names_a_country(name_lower: str) -> bool:
+    """Return ``True`` when ``name_lower`` is a country's ISO code, name or
+    alias (:func:`resolve_country_code` with ``substring=False``), alone or
+    among words the substring strategies ignore.
+
+    The country guard of ``resolve_adm1_code`` refuses such a name without a
+    country hint.  The ignored words (``_IGNORABLE_SUBSTRING_WORDS``:
+    connectors such as "of" and "the", and administrative words such as
+    "state" and "region") would otherwise let Direction A of
+    ``_substring_match`` resolve phrases from n-gram scans of text, such as
+    ``"region of Mexico"`` (from "the Michoacán region of Mexico") or ``"and
+    Georgia"``, to the State of México or the US state.  So ``"State of
+    Mexico"`` and ``"Niger State"`` need a hint too.  A name with any other
+    word besides a country's name is a region's: ``"New South Wales"``,
+    ``"Mexico City"``.
+    """
+    if resolve_country_code(name_lower, substring=False):
+        return True
+    words = name_lower.split()
+    rest = [w for w in words if w not in _IGNORABLE_SUBSTRING_WORDS]
+    return bool(rest) and len(rest) < len(words) and (
+        resolve_country_code(" ".join(rest), substring=False) is not None
+    )
+
+
 # Trailing administrative designators.  When no strategy matches a name,
 # ``resolve_adm1_code`` removes one trailing designator ("Narok County" ->
 # "Narok") and resolves the rest once more.  ``None`` accepts the result in
@@ -1198,6 +1223,19 @@ def resolve_adm1_code(
     A rest that matches several regions stays unresolved, as it does
     without the designator.
 
+    Country names
+    -------------
+    A name that is itself a country's ISO code, name or alias (see
+    :func:`~metacouplingllm.knowledge.countries.resolve_country_code` with
+    ``substring=False``) returns ``None`` unless ``country`` is given:
+    ``"Georgia"`` is read as the country, not the US state, and ``"Niger"``
+    or ``"Wales"`` likewise.  So does such a name among connector and
+    administrative words, which the substring strategies ignore (``"of
+    Mexico"``, ``"State of Mexico"``, ``"Niger State"``).  A name with any
+    other word besides a country's name is resolved as a region: ``"New
+    South Wales"`` → ``AUS004``, ``"New Mexico"`` → ``USA032``, ``"Mexico
+    City"`` → ``MEX009``.
+
     Cross-country ambiguity
     -----------------------
     If the query is an *unaccented* name whose accent-folded spelling is
@@ -1270,10 +1308,12 @@ def _resolve_adm1_name(name: str, country: str | None) -> str | None:
 
     name_lower = name.strip().lower()
 
-    # Skip if the name resolves as a country (e.g. "Ethiopia", "China")
-    # UNLESS a country filter is provided — that signals the caller knows
-    # this is a subnational region (e.g. "Georgia" in "USA").
-    if country is None and resolve_country_code(name_lower):
+    # Skip if the name IS a country's name (e.g. "Ethiopia", "China") UNLESS
+    # a country filter is provided — that signals the caller knows this is
+    # a subnational region (e.g. "Georgia" in "USA").  A name that only
+    # contains a country name ("New Mexico", "New South Wales") is a
+    # region's (see ``_names_a_country``).
+    if country is None and _names_a_country(name_lower):
         return None
 
     index = _get_adm1_name_index()

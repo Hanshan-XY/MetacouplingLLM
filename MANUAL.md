@@ -1165,11 +1165,19 @@ names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
 (Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The
 table is additions-only and deterministically validated; a name that is
 ambiguous or denotes a different place (e.g. `"New Mexico"` with
-`country="MEX"`) returns `None` rather than a confident wrong answer.  An
-alias that contains a country name (`"Mexico City"` → `MEX009`, `"Lesser
-Poland"` → `POL006`) resolves only when `country` is given; without it the
-name is read as the country.  See `data/PROVENANCE.md` for the generation
-and validation methodology.
+`country="MEX"`) returns `None` rather than a confident wrong answer.  See
+`data/PROVENANCE.md` for the generation and validation methodology.
+
+A name that is a country's ISO code, name or alias (`resolve_country_code`
+with `substring=False`, below) returns `None` unless `country` is given,
+because it is read as the country: `"Georgia"`, `"Niger"`, `"Wales"`,
+`"México"`, or `"Est"`, which is Estonia's ISO code.  The same holds when
+the name stands among connector or administrative words, which the matcher
+ignores (`"of Mexico"`, `"region of Mexico"`, `"State of Mexico"`, `"Niger
+State"`): pass `country` for these.  A name with any other word besides a
+country's name is a region's and resolves without `country`: `"New South
+Wales"` → `AUS004`, `"Mexico City"` → `MEX009`, `"Lesser Poland"` →
+`POL006`.
 
 When no strategy matches a name, `resolve_adm1_code` removes one trailing
 administrative designator and resolves the rest: `"Narok County"` →
@@ -1208,8 +1216,19 @@ resolve_country_code("Mexican")     # "MEX"
 resolve_country_code("Brazilian")   # "BRA"
 resolve_country_code("Chinese")     # "CHN"
 
+# Accents, names in the country's own language, World Bank spellings
+resolve_country_code("México")            # "MEX"
+resolve_country_code("Brasil")            # "BRA"
+resolve_country_code("Congo, Dem. Rep.")  # "COD"
+resolve_country_code("Kyrgyz Republic")   # "KGZ"
+
 # Partial/substring matches
 resolve_country_code("Ethiopian coffee regions")  # "ETH"
+resolve_country_code("New South Wales")   # "GBR" (finds "Wales")
+
+# Whole names only
+resolve_country_code("New South Wales", substring=False)  # None
+resolve_country_code("the Gambia", substring=False)       # "GMB"
 
 # Reverse: code → name
 get_country_name("MEX")  # "Mexico"
@@ -1710,7 +1729,7 @@ Methods and properties:
 | `lookup_pericoupling(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `PericouplingResult` | Full lookup with pair type and codes. |
 | `is_pericoupled(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick check: True/False/None. |
 | `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All pericoupled ISO codes. |
-| `resolve_country_code(name_or_code)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3. |
+| `resolve_country_code(name_or_code, *, substring=True)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3; `substring=False` accepts only a whole code, name or alias. |
 | `get_country_name(code)` | `str` | ISO alpha-3 code to canonical English name. |
 
 `de_facto_borders` toggles the disputed-territory overlay;
@@ -1934,9 +1953,10 @@ from the block in these cases:
 - **Country-scope query.** The subnational (ADM1) part of the validator
   runs only when the research description passed to `analyze()` names a
   subnational region: a capitalised region name that `resolve_adm1_code`
-  resolves and that is not also a country name, or an ADM1 code such as
-  `MEX016`. Adjacent capitalised words are read as one name, so write
-  `Michoacán, Mexico` rather than `Michoacán Mexico`. For any other
+  resolves and that is not itself a country's name (`New South Wales`
+  counts, `Mexico` does not), or an ADM1 code such as `MEX016`. Adjacent
+  capitalised words are read as one name, so write `Michoacán, Mexico`
+  rather than `Michoacán Mexico`. For any other
   (country-scope) query, mentioned regions of the focal country appear only
   on the `Core subnational regions:` line, never as pair lines, and regions
   of other countries are not listed.

@@ -7,6 +7,8 @@ names produced by LLMs can be matched against the pericoupling database.
 
 from __future__ import annotations
 
+import unicodedata
+
 # ---------------------------------------------------------------------------
 # ISO alpha-3 code → canonical English name (covers all 244 ISO codes in the
 # pericoupling databases — current ISO 3166-1 alpha-3, modernized in PR #50
@@ -271,7 +273,10 @@ ISO_ALPHA3_NAMES: dict[str, str] = {
 
 # ---------------------------------------------------------------------------
 # Aliases — common alternative names, demonyms, and abbreviations that map
-# to the canonical ISO alpha-3 code.
+# to the canonical ISO alpha-3 code.  Keys are written as lookups compare
+# them (``_normalize_country_text``): lowercase, without accents, with
+# straight apostrophes and single spaces, so "Côte d'Ivoire" and "España"
+# match the keys "cote d'ivoire" and "espana".
 # ---------------------------------------------------------------------------
 
 _ALIASES: dict[str, str] = {
@@ -303,7 +308,6 @@ _ALIASES: dict[str, str] = {
     "the netherlands": "NLD",
     "ivory coast": "CIV",
     "cote d'ivoire": "CIV",
-    "côte d'ivoire": "CIV",
     "czech republic": "CZE",
     "czechia": "CZE",
     "south korea": "KOR",
@@ -388,8 +392,28 @@ _ALIASES: dict[str, str] = {
     "burkina faso": "BFA",
     "san marino": "SMR",
     "turkiye": "TUR",
-    "türkiye": "TUR",
     "turkey": "TUR",
+    # Names in the country's own language
+    "espana": "ESP",  # España
+    "brasil": "BRA",
+    # Names as the World Bank writes them, in its country list
+    # (api.worldbank.org/v2/country) or in the country field of the
+    # boundary data behind the ADM1 database, where the names above miss
+    # them or a shorter name inside them gives another country ("Congo,
+    # Dem. Rep." reads "congo", the Republic of the Congo)
+    "congo, dem. rep.": "COD",
+    "democratic republic of congo": "COD",
+    "korea, dem. people's rep.": "PRK",
+    "d. p. r. of korea": "PRK",
+    "lao people's democratic republic": "LAO",
+    "kyrgyz republic": "KGZ",
+    "slovak republic": "SVK",
+    "st. kitts and nevis": "KNA",
+    "st. lucia": "LCA",
+    "st. vincent and the grenadines": "VCT",
+    "st. martin (french part)": "MAF",
+    "virgin islands (u.s.)": "VIR",
+    "naoero": "NRU",  # the World Bank's name for Nauru
     # Common demonyms (adjective forms used by LLMs)
     "american": "USA",
     "mexican": "MEX",
@@ -453,6 +477,7 @@ _ALIASES: dict[str, str] = {
     "myanmar": "MMR",
     "burmese": "MMR",
     "pakistani": "PAK",
+    "bangladeshi": "BGD",
     "afghan": "AFG",
     "iranian": "IRN",
     "iraqi": "IRQ",
@@ -587,14 +612,27 @@ def supranational_display_name(member_codes: list[str]) -> str | None:
 # Internal reverse index (lazily built)
 # ---------------------------------------------------------------------------
 
+
+def _normalize_country_text(text: str) -> str:
+    """Return *text* as country lookups compare it: lowercase, with accents
+    folded (``"México"`` → ``"mexico"``), curly apostrophes made straight
+    and each run of whitespace made one space."""
+    folded = "".join(
+        c for c in unicodedata.normalize("NFKD", text)
+        if not unicodedata.combining(c)
+    )
+    folded = folded.replace("\u2019", "'").replace("\u2018", "'")
+    return " ".join(folded.lower().split())
+
+
 _name_to_code: dict[str, str] | None = None
 
 
 def _build_reverse_index() -> dict[str, str]:
-    """Build a mapping from lowercase canonical name → code."""
+    """Build a mapping from normalized canonical name → code."""
     index: dict[str, str] = {}
     for code, name in ISO_ALPHA3_NAMES.items():
-        index[name.lower()] = code
+        index[_normalize_country_text(name)] = code
     return index
 
 
@@ -660,21 +698,37 @@ def _contains_standalone_country_term(text: str, term: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def resolve_country_code(name_or_code: str) -> str | None:
+def resolve_country_code(
+    name_or_code: str, *, substring: bool = True,
+) -> str | None:
     """Resolve a country name or code to an ISO 3166-1 alpha-3 code.
 
-    Tries the following in order:
+    Case, accents, curly apostrophes and repeated spaces are ignored
+    (``"México"`` and ``"MEXICO"`` match ``"Mexico"``), and steps 1-3 also
+    try the text without a leading "the" (``"the Gambia"``).  Tries the
+    following in order:
 
     1. Exact ISO code match (case-insensitive, e.g. ``"usa"`` → ``"USA"``)
-    2. Alias match (e.g. ``"America"`` → ``"USA"``)
+    2. Alias match (e.g. ``"America"`` → ``"USA"``), covering demonyms
+       (``"Bangladeshi"``), names in the country's own language
+       (``"Brasil"``) and the World Bank's spellings (``"Congo, Dem.
+       Rep."`` → ``"COD"``)
     3. Canonical name match (e.g. ``"United States"`` → ``"USA"``)
     4. Substring match — if *name_or_code* contains a known country name
-       (e.g. ``"Ethiopian coffee regions"`` → ``"ETH"``)
+       or alias as a standalone term (e.g. ``"Ethiopian coffee regions"``
+       → ``"ETH"``).  The longest term found wins, which also reads a
+       place named after a country as that country (``"New South
+       Wales"`` → ``"GBR"``).
 
     Parameters
     ----------
     name_or_code:
         Country name, ISO code, or text containing a country name.
+    substring:
+        ``False`` skips step 4, so only a string that *is* a country's
+        code, name or alias resolves: ``"Mexico"`` → ``"MEX"``, but
+        ``"New Mexico"`` → ``None``.  ``resolve_adm1_code`` asks this way
+        whether a region name is a country's.
 
     Returns
     -------
@@ -683,28 +737,31 @@ def resolve_country_code(name_or_code: str) -> str | None:
     if not name_or_code or not name_or_code.strip():
         return None
 
-    text = name_or_code.strip()
-    text_lower = text.lower()
-
-    # 1. Exact code match
-    text_upper = text.upper()
-    if text_upper in ISO_ALPHA3_NAMES:
-        return text_upper
-
-    # 2. Alias match
-    if text_lower in _ALIASES:
-        return _ALIASES[text_lower]
-
-    # 3. Canonical name match
+    text = _normalize_country_text(name_or_code)
     rev = _get_reverse_index()
-    if text_lower in rev:
-        return rev[text_lower]
+
+    for key in dict.fromkeys((text, text.removeprefix("the "))):
+        # 1. Exact code match
+        key_upper = key.upper()
+        if key_upper in ISO_ALPHA3_NAMES:
+            return key_upper
+
+        # 2. Alias match
+        if key in _ALIASES:
+            return _ALIASES[key]
+
+        # 3. Canonical name match
+        if key in rev:
+            return rev[key]
+
+    if not substring:
+        return None
 
     # 4. Substring match — check if any alias or canonical name appears
     #    in the input text. Try longest matches first to avoid partial hits.
     #    (e.g. "South Korea" before "Korea")
     for name_lower, code in _get_sorted_all_names():
-        if _contains_standalone_country_term(text_lower, name_lower):
+        if _contains_standalone_country_term(text, name_lower):
             return code
 
     return None

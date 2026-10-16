@@ -1,7 +1,11 @@
 """Tests for knowledge/countries.py — ISO country code resolution."""
 
+import pytest
+
 from metacouplingllm.knowledge.countries import (
     ISO_ALPHA3_NAMES,
+    _ALIASES,
+    _normalize_country_text,
     expand_supranational,
     get_country_name,
     resolve_country_code,
@@ -80,6 +84,119 @@ class TestResolveCountryCode:
 
     def test_none_like_inputs(self):
         assert resolve_country_code("") is None
+
+
+class TestNormalization:
+    """Accents, curly apostrophes and repeated spaces do not matter; until
+    2026-10-16 "México" and the other accented names returned None."""
+
+    @pytest.mark.parametrize("name, code", [
+        ("México", "MEX"),
+        ("Perú", "PER"),
+        ("Panamá", "PAN"),
+        ("Curaçao", "CUW"),
+        ("Réunion", "REU"),
+        ("Côte d'Ivoire", "CIV"),
+        ("Türkiye", "TUR"),
+        ("São Tomé and Príncipe", "STP"),
+        ("Åland Islands", "ALA"),
+    ])
+    def test_accents_are_folded(self, name, code):
+        assert resolve_country_code(name) == code
+        assert resolve_country_code(name, substring=False) == code
+
+    def test_accents_are_folded_in_free_text(self):
+        assert resolve_country_code("Aguacates de México") == "MEX"
+
+    def test_curly_apostrophes(self):
+        assert resolve_country_code("Côte d’Ivoire") == "CIV"
+        assert resolve_country_code(
+            "Lao People’s Democratic Republic"
+        ) == "LAO"
+
+    def test_repeated_spaces(self):
+        assert resolve_country_code("United   States") == "USA"
+        assert resolve_country_code("Exports to  United  States") == "USA"
+
+    def test_alias_keys_are_written_normalized(self):
+        """Lookups compare normalized text with the keys as written."""
+        assert all(_normalize_country_text(k) == k for k in _ALIASES)
+
+
+class TestNewAliases:
+    """Names that returned None, or another country, until 2026-10-16."""
+
+    def test_names_in_the_countrys_own_language(self):
+        assert resolve_country_code("España") == "ESP"
+        assert resolve_country_code("Espana") == "ESP"
+        assert resolve_country_code("Brasil") == "BRA"
+
+    def test_bangladeshi(self):
+        assert resolve_country_code("Bangladeshi") == "BGD"
+        assert resolve_country_code("Bangladeshi rice farmers") == "BGD"
+
+    @pytest.mark.parametrize("name, code", [
+        # api.worldbank.org/v2/country
+        ("Congo, Dem. Rep.", "COD"),
+        ("Korea, Dem. People's Rep.", "PRK"),
+        ("Kyrgyz Republic", "KGZ"),
+        ("Slovak Republic", "SVK"),
+        ("St. Kitts and Nevis", "KNA"),
+        ("St. Lucia", "LCA"),
+        ("St. Vincent and the Grenadines", "VCT"),
+        ("St. Martin (French part)", "MAF"),
+        ("Virgin Islands (U.S.)", "VIR"),
+        ("Naoero", "NRU"),
+        # The country field of the World Bank boundary data
+        ("Democratic Republic of Congo", "COD"),
+        ("D. P. R. of Korea", "PRK"),
+        ("Lao People's Democratic Republic", "LAO"),
+    ])
+    def test_world_bank_names(self, name, code):
+        assert resolve_country_code(name) == code
+        assert resolve_country_code(name, substring=False) == code
+
+    def test_world_bank_names_keep_the_two_congos_and_koreas_apart(self):
+        assert resolve_country_code("Congo, Rep.") == "COG"
+        assert resolve_country_code("Korea, Rep.") == "KOR"
+        assert resolve_country_code(
+            "Cobalt from the Democratic Republic of Congo"
+        ) == "COD"
+        assert resolve_country_code("Exports to Congo, Dem. Rep.") == "COD"
+
+
+class TestWithoutSubstring:
+    """``substring=False`` accepts only a whole code, name or alias."""
+
+    def test_whole_names_resolve(self):
+        assert resolve_country_code("Mexico", substring=False) == "MEX"
+        assert resolve_country_code("mex", substring=False) == "MEX"
+        assert resolve_country_code("Mexican", substring=False) == "MEX"
+        assert resolve_country_code("Georgia", substring=False) == "GEO"
+        assert resolve_country_code("Est", substring=False) == "EST"
+
+    @pytest.mark.parametrize("text, found", [
+        ("New South Wales", "GBR"),
+        ("New Mexico", "MEX"),
+        ("Mexico City", "MEX"),
+        ("Northern Ireland", "IRL"),
+        ("Port of Spain", "ESP"),
+        ("Thai Binh", "THA"),
+        ("Ethiopian coffee regions", "ETH"),
+    ])
+    def test_text_containing_a_country_does_not(self, text, found):
+        assert resolve_country_code(text) == found
+        assert resolve_country_code(text, substring=False) is None
+
+    def test_leading_the(self):
+        """English writes some country names with "the"."""
+        assert resolve_country_code("the Gambia", substring=False) == "GMB"
+        assert resolve_country_code("The Bahamas", substring=False) == "BHS"
+        assert resolve_country_code(
+            "the United States", substring=False
+        ) == "USA"
+        assert resolve_country_code("the Mexico", substring=False) == "MEX"
+        assert resolve_country_code("The Hague", substring=False) is None
 
 
 class TestGetCountryName:

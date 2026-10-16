@@ -4753,11 +4753,12 @@ class MetacouplingAssistant:
 
         Implementation: scan capitalised word groups in the query
         against the ADM1 database via ``resolve_adm1_code``.  Word
-        groups that also resolve to a country (e.g. "Mexico" -- both
-        a country and a Mexican state) are treated as country
+        groups that are a country's name, code or alias (e.g. "Mexico"
+        -- both a country and a Mexican state) are treated as country
         mentions and skipped, because users naming a country at the
-        top level are framing at country scale.  ISO-style codes
-        ("MEX016") are also recognised.
+        top level are framing at country scale; a region whose name
+        contains a country's ("New South Wales") still counts.
+        ISO-style codes ("MEX016") are also recognised.
         """
         query = (self._original_query or "").strip()
         if not query:
@@ -4776,10 +4777,11 @@ class MetacouplingAssistant:
         for word_group in re.findall(
             _CAPITALIZED_WORD_GROUP_RE, query
         ):
-            # Country mentions take precedence: if the word group
-            # resolves to a country, the user is framing at country
-            # scale (e.g. "Mexico" the country, not the state).
-            if resolve_country_code(word_group):
+            # Country mentions take precedence: if the word group is a
+            # country's name, the user is framing at country scale (e.g.
+            # "Mexico" the country, not the state).  ``substring=False``
+            # keeps "New South Wales" from counting as Wales.
+            if resolve_country_code(word_group, substring=False):
                 continue
             if resolve_adm1_code(word_group):
                 return True

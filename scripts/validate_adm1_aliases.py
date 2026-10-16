@@ -11,11 +11,13 @@ adds the curated aliases listed in this script (_CURATED_ALIASES, source
 Validation rules
 ----------------
 N0  Normalize key: lowercase, strip, collapse spaces, NFKD-fold.
-G   Drop if the key resolves as a country name.  A curated key is dropped
-    only if it IS a country's ISO code, name or alias; one that merely
-    contains a country name ("mexico city") is kept and resolves only with
-    a country hint, because resolve_adm1_code reads such a name as the
-    country when no hint is given.
+G   Drop if the key resolves as a country name.  A generated key is dropped
+    if resolve_country_code finds a country name anywhere in it ("upper
+    austria"); a curated key only if it IS a country's ISO code, name or
+    alias (resolve_country_code with substring=False), the names
+    resolve_adm1_code refuses without a country hint.  A curated key that
+    merely contains a country name ("mexico city") is kept and resolves
+    with or without a hint.
 S1  Drop keys shorter than 4 characters.
 W1  Drop generic single geo-words (direction/type words, ADM1 suffixes).
 DR  Drop curated manual-review rejections (_REVIEW_DENYLIST): semantic scope
@@ -73,11 +75,7 @@ from metacouplingllm.knowledge.adm1_pericoupling import (  # noqa: E402
     _get_adm1_name_index,
     _resolve_adm1_name,
 )
-from metacouplingllm.knowledge.countries import (  # noqa: E402
-    ISO_ALPHA3_NAMES,
-    _ALIASES as _COUNTRY_ALIASES,
-    resolve_country_code,
-)
+from metacouplingllm.knowledge.countries import resolve_country_code  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Generic geo-words to drop (W1)
@@ -167,9 +165,9 @@ _REVIEW_DENYLIST: frozenset[tuple[str, str]] = frozenset({
 # ---------------------------------------------------------------------------
 # English names, and local spellings the World Bank names abbreviate or
 # misspell, that researchers write and the resolver did not match.  Each name
-# was checked against the source quoted in its basis.  "Mexico City", "Lesser Poland", "Greater Poland" and "Magallanes and
-# the Chilean Antarctica" contain a country name or demonym, so they resolve
-# only with a country hint (see rule G).
+# was checked against the source quoted in its basis.  "Mexico City", "Lesser
+# Poland", "Greater Poland" and "Magallanes and the Chilean Antarctica"
+# contain a country name or demonym but are not one, so rule G keeps them.
 _CURATED_ALIASES: tuple[dict[str, str], ...] = (
     {"alias_display": "Mexico City", "code": "MEX009", "iso_a3": "MEX",
      "basis": "English name of Mexico's capital, which the WB stores under "
@@ -258,11 +256,7 @@ def _is_country_name(key: str) -> bool:
     """G for a curated key: the key is a country's ISO alpha-3 code, its
     name or a country alias itself, the matches ``resolve_country_code``
     makes before its free-text step."""
-    return (
-        key.upper() in ISO_ALPHA3_NAMES
-        or key in _COUNTRY_ALIASES
-        or key in {name.lower() for name in ISO_ALPHA3_NAMES.values()}
-    )
+    return resolve_country_code(key, substring=False) is not None
 
 
 def main(argv: list[str] | None = None) -> None:

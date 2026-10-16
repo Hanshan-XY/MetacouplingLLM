@@ -1439,9 +1439,7 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
    LLM-generated, PR #60/#61, and 18 curated by hand from cited sources) —
    `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`, `"Mexico City"` →
    `MEX009`. Additions-only, deterministically validated, with a curated
-   review denylist. An alias containing a country name (`"Mexico City"`,
-   `"Lesser Poland"`) resolves only with a country hint, since without one
-   the name is read as the country.
+   review denylist.
 2. **Exact / normalized match** against the official WB names, tolerant of
    possessives, hyphens, and administrative suffixes.
 3. **Accent-folded fallback** (PR #45): lookup keys and queries are
@@ -1469,6 +1467,19 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
    rest also names another unit of the same country, whole or before an
    administrative word (`"Almaty Province"`: `"Almaty"` is Almaty City,
    `"almaty region"` the province).
+
+Before these strategies, a name that is itself a country's ISO code, name or
+alias (`resolve_country_code` with `substring=False`: case, accents and a
+leading "the" ignored) returns `None` unless a country hint is given: the name
+is read as the country. `"Georgia"` is the country, not the US state, as are
+`"Niger"`, `"Wales"`, `"México"`, and `"Est"`, which is Estonia's ISO code; 21
+of the 3,374 regions have such a name and resolve only with a hint. So does a
+country's name among the connector and administrative words that strategy 4
+ignores (`"State of Mexico"`, `"Niger State"`), which keeps n-grams of running
+text such as `"region of Mexico"` (from "the Michoacán region of Mexico") from
+resolving to the State of México. A name with any other word besides a
+country's name is a region's and needs no hint: `"New South Wales"` →
+`AUS004`, `"Mexico City"` → `MEX009`, `"Lesser Poland"` → `POL006`.
 
 Ambiguous names (several candidate regions, or a name denoting a different
 place, e.g. `"New Mexico"` in Mexico) return `None`. Full usage

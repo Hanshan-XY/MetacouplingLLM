@@ -44,12 +44,29 @@ _GOLDEN = json.loads(
     (_DATA / "adm1_resolve_golden.json").read_text(encoding="utf-8")
 )
 
-# (query, country hint) -> result, for recorded results changed on purpose:
-# the curated alias "mexico city" (2026-10-16) resolves Mexico City to
-# Ciudad de México when a country hint is given.
+# (query, country hint) -> result, for recorded results changed on purpose
+# (all 2026-10-16):
+# * the curated alias "mexico city" resolves Mexico City to Ciudad de México
+#   when a country hint is given;
+# * the country guard of resolve_adm1_code refuses only a name that is a
+#   country's code, name or alias, alone or among words the substring
+#   strategies ignore, so names with any other word resolve without a hint;
+#   it had refused "British Columbia" as British, "Western Australia" as
+#   Australia and the others as France or Mexico;
+# * resolve_country_code folds accents, so "México", the country's name in
+#   Spanish and the World Bank name of the State of México, and "Estado de
+#   México" need a hint as "Mexico" and "Estado de Mexico" always did.
 _AMENDED = {
     ("Mexico City", "MEX"): "MEX009",
     ("Mexico City", "Mexico"): "MEX009",
+    ("British Columbia", None): "CAN002",
+    ("Western Australia", None): "AUS011",
+    ("Ile-de-France", None): "FRA013",
+    ("Île-de-France", None): "FRA013",
+    ("Ciudad de Mexico", None): "MEX009",
+    ("Mexico City", None): "MEX009",
+    ("México", None): None,
+    ("Estado de México", None): None,
 }
 
 

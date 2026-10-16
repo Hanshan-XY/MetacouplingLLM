@@ -781,6 +781,20 @@ class TestAutoMapTrustsLLMAndUserFraming:
         # for any query mentioning the country "Mexico".
         assert advisor._user_query_mentions_adm1() is False
 
+    def test_user_query_region_containing_a_country_name_counts(self):
+        """A region whose name contains a country's is a region: until
+        2026-10-16 "New South Wales" was skipped as Wales, "New Mexico"
+        as Mexico."""
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = "Wool exports from New South Wales"
+        assert advisor._user_query_mentions_adm1() is True
+        advisor._original_query = "Groundwater use in New Mexico"
+        assert advisor._user_query_mentions_adm1() is True
+        advisor._original_query = "Wool exports from Australian farms"
+        assert advisor._user_query_mentions_adm1() is False
+
     def test_user_query_with_iso_adm1_code_returns_true(self):
         """ISO-style ADM1 codes ("MEX016") are recognised."""
         advisor = MetacouplingAssistant(

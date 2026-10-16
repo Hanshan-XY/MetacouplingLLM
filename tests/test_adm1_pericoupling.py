@@ -560,6 +560,125 @@ class TestResolveAdm1Code:
 
 
 # ---------------------------------------------------------------------------
+# Country names
+# ---------------------------------------------------------------------------
+
+
+class TestCountryGuard:
+    """Without a country hint, resolve_adm1_code refuses a name that IS a
+    country's ISO code, name or alias, alone or among words its substring
+    strategies ignore, and resolves one with any other word besides a
+    country's name.  Until 2026-10-16 it refused every name in which
+    resolve_country_code found a country: 52 of the 3,374 World Bank unit
+    names, some read as another country ("New South Wales" as the UK)."""
+
+    @staticmethod
+    def _units(predicate):
+        _ensure_loaded()
+        from metacouplingllm.knowledge.adm1_pericoupling import _adm1_metadata
+        return {
+            code: meta for code, meta in _adm1_metadata.items()
+            if predicate(meta["name"])
+        }
+
+    @pytest.mark.parametrize("name, code", [
+        ("New South Wales", "AUS004"),
+        ("Western Australia", "AUS011"),
+        ("British Columbia", "CAN002"),
+        ("Northern Ireland", "GBR003"),
+        ("East New Britain", "PNG004"),
+        ("West New Britain", "PNG020"),
+        ("Port Of Spain", "TTO007"),
+        ("New Jersey", "USA031"),
+        ("New Mexico", "USA032"),
+        ("Thai Binh", "VNM054"),
+        ("Thai Nguyen", "VNM055"),
+        ("Ile-de-France", "FRA013"),
+        ("Mexico City", "MEX009"),
+        ("Ciudad de Mexico", "MEX009"),
+    ])
+    def test_names_containing_a_country_name(self, name, code):
+        assert resolve_adm1_code(name) == code
+
+    def test_every_unit_name_containing_a_country_name(self):
+        """The 35 unit names in which resolve_country_code finds a country
+        without being one resolve to their own unit without a hint."""
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        units = self._units(
+            lambda name: resolve_country_code(name) is not None
+            and resolve_country_code(name, substring=False) is None
+        )
+        assert len(units) == 35
+        failed = [
+            (meta["name"], code, resolve_adm1_code(meta["name"]))
+            for code, meta in units.items()
+            if resolve_adm1_code(meta["name"]) != code
+        ]
+        assert not failed, failed
+
+    def test_every_unit_named_like_a_country_needs_the_hint(self):
+        """The 21 unit names that are a country's code, name or alias
+        ("Georgia", "Niger", "Wales", "Est" for Estonia's code, "México")
+        resolve only with a country hint."""
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        units = self._units(
+            lambda name: resolve_country_code(name, substring=False)
+            is not None
+        )
+        assert len(units) == 21
+        failed = [
+            (meta["name"], code)
+            for code, meta in units.items()
+            if resolve_adm1_code(meta["name"]) is not None
+            or resolve_adm1_code(meta["name"], country=meta["iso_a3"]) != code
+        ]
+        assert not failed, failed
+
+    def test_accented_country_names_need_the_hint(self):
+        """"México" and "Panamá", the World Bank names of the State of
+        México and Panamá province, are the countries' names in Spanish.
+        Like "Mexico" and "Panama" they now need a hint; until 2026-10-16
+        they resolved without one only because resolve_country_code did not
+        fold accents."""
+        assert resolve_adm1_code("Mexico") is None
+        assert resolve_adm1_code("México") is None
+        assert resolve_adm1_code("México", country="MEX") == "MEX015"
+        assert resolve_adm1_code("Panama") is None
+        assert resolve_adm1_code("Panamá") is None
+        assert resolve_adm1_code("Panamá", country="PAN") == "PAN011"
+
+    @pytest.mark.parametrize("name", [
+        "the Mexico", "of Mexico", "region of Mexico", "State of Mexico",
+        "Mexico State", "Estado de México", "and Georgia", "Georgia State",
+        "the Niger", "Niger State", "de Panama", "the Gambia",
+    ])
+    def test_country_name_among_ignored_words_needs_the_hint(self, name):
+        """The substring strategies ignore connector and administrative
+        words, so n-grams of text such as "region of Mexico" (from "the
+        Michoacán region of Mexico") would resolve to the State of México.
+        A country's name among such words is read as the country."""
+        assert resolve_adm1_code(name) is None
+
+    def test_country_name_among_ignored_words_with_the_hint(self):
+        assert resolve_adm1_code("State of Mexico", country="MEX") == "MEX015"
+        assert resolve_adm1_code("Estado de México", country="MEX") == "MEX015"
+        assert resolve_adm1_code("Georgia State", country="USA") == "USA011"
+        assert resolve_adm1_code("Niger State", country="NGA") == "NGA027"
+
+    def test_any_other_word_makes_a_region_name(self):
+        assert resolve_adm1_code("of New Mexico") == "USA032"
+        assert resolve_adm1_code("state of New Jersey") == "USA031"
+        assert resolve_adm1_code("Santiago de Cuba") == "CUB014"
+        assert resolve_adm1_code("Bosnia and Herzegovina") is None
+
+    def test_other_words_around_a_country_name(self):
+        assert resolve_adm1_code("Republic of Georgia") is None
+        assert resolve_adm1_code("Gulf of Mexico") is None
+        assert resolve_adm1_code("Northern Mexico") is None
+        assert resolve_adm1_code("Mexican avocado farms") is None
+
+
+# ---------------------------------------------------------------------------
 # Trailing administrative designators
 # ---------------------------------------------------------------------------
 
@@ -591,17 +710,9 @@ class TestTrailingDesignator:
     def test_reported_names_resolve(self, name, country, code):
         assert resolve_adm1_code(name, country=country) == code
 
-    @pytest.mark.parametrize(
-        "name, country, code",
-        [row for row in _REPORTED_NAMES if row[0] != "Mexico City"],
-    )
+    @pytest.mark.parametrize("name, country, code", _REPORTED_NAMES)
     def test_reported_names_resolve_without_hint(self, name, country, code):
         assert resolve_adm1_code(name) == code
-
-    def test_mexico_city_needs_the_hint(self):
-        """Without a hint, resolve_country_code finds 'Mexico' inside
-        'Mexico City' and the country guard returns None."""
-        assert resolve_adm1_code("Mexico City") is None
 
     def test_bare_names_keep_their_codes(self):
         assert resolve_adm1_code("Narok", country="KEN") == "KEN033"
@@ -777,9 +888,19 @@ _RECORDED_BEFORE_RETRY = [
 ]
 
 
+# (name, country hint) -> result, for recorded results changed on purpose:
+# since the country guard refuses only names that are a country's code, name
+# or alias (2026-10-16), Mexico City resolves without a hint (see
+# TestCountryGuard).
+_AMENDED_SINCE_RECORDING = {
+    ("Mexico City", None): "MEX009",
+}
+
+
 @pytest.mark.parametrize("name, country, code", _RECORDED_BEFORE_RETRY)
 def test_resolution_recorded_before_retry_unchanged(name, country, code):
-    assert resolve_adm1_code(name, country=country) == code
+    expected = _AMENDED_SINCE_RECORDING.get((name, country), code)
+    assert resolve_adm1_code(name, country=country) == expected
 
 
 class TestIsoCodeCoverage:
@@ -834,6 +955,40 @@ class TestIsoCodeCoverage:
         assert resolve_country_code("Romania") == "ROU"
         assert resolve_country_code("Timor-Leste") == "TLS"
         assert resolve_country_code("Kosovo") == "XKX"
+
+    def test_adm1_country_names_resolve(self):
+        """Every country name of the ADM1 data resolves to its units'
+        ISO code (get_adm1_info gives it as ``country_name``), except the
+        names listed: "Democratic Republic of Congo" gave COG and "D. P. R.
+        of Korea" KOR until 2026-10-16."""
+        from metacouplingllm.knowledge.countries import resolve_country_code
+        _ensure_loaded()
+        from metacouplingllm.knowledge.adm1_pericoupling import _adm1_metadata
+        pairs = {
+            (meta["country_name"], meta["iso_a3"])
+            for meta in _adm1_metadata.values()
+        }
+        assert len(pairs) == 200
+        expected = {
+            # French Guiana's units are labelled France and coded GUF.
+            ("France", "GUF"): "FRA",
+            # Spanish territories, coded ESP, not countries of their own.
+            ("Ceuta (Sp.)", "ESP"): None,
+            ("Melilla (Sp.)", "ESP"): None,
+            ("Peñón de Vélez de la Gomera (Sp.)", "ESP"): None,
+            # Also the name of the territory's one unit (MAF001), which
+            # resolve_adm1_code would refuse as a country's.
+            ("Saint-Martin (Fr.)", "MAF"): None,
+            # The alias "puerto rico" gives USA.
+            ("Puerto Rico (U.S.)", "PRI"): "USA",
+        }
+        assert expected.keys() <= pairs
+        wrong = [
+            (name, iso, got) for name, iso in sorted(pairs)
+            if (got := resolve_country_code(name))
+            != expected.get((name, iso), iso)
+        ]
+        assert not wrong, wrong
 
 
 class TestDeFactoBordersAdm1:
@@ -1214,21 +1369,19 @@ class TestAdm1AliasTable:
 
     def test_no_country_name_keys(self, rows):
         """No key is a country's ISO code, name or alias (rule G)."""
-        from metacouplingllm.knowledge.countries import (
-            ISO_ALPHA3_NAMES, _ALIASES,
-        )
-        names = {name.lower() for name in ISO_ALPHA3_NAMES.values()}
+        from metacouplingllm.knowledge.countries import resolve_country_code
         bad = [
             r["alias_key"] for r in rows
-            if r["alias_key"].upper() in ISO_ALPHA3_NAMES
-            or r["alias_key"] in _ALIASES or r["alias_key"] in names
+            if resolve_country_code(r["alias_key"], substring=False)
         ]
         assert not bad, f"Alias keys that are country names: {bad[:5]}"
 
-    def test_country_named_keys_need_a_hint(self, rows):
+    def test_country_named_keys_resolve_without_a_hint(self, rows):
         """Only four curated keys contain a country name or demonym, which
-        resolve_country_code finds inside them; the country guard then
-        returns None unless a country hint is given."""
+        resolve_country_code finds inside them.  They are not a country's
+        name, so they resolve with or without a country hint (until
+        2026-10-16 the country guard returned None for them without
+        one)."""
         from metacouplingllm.knowledge.countries import resolve_country_code
         by_key = {r["alias_key"]: r for r in rows}
         named = {k for k in by_key if resolve_country_code(k) is not None}
@@ -1239,7 +1392,7 @@ class TestAdm1AliasTable:
         for key in named:
             row = by_key[key]
             assert resolve_adm1_code(key, country=row["iso_a3"]) == row["code"]
-            assert resolve_adm1_code(key) is None
+            assert resolve_adm1_code(key) == row["code"]
 
     def test_no_u3_collision(self, rows):
         from metacouplingllm.knowledge.adm1_pericoupling import _get_adm1_name_index
@@ -1274,14 +1427,11 @@ class TestAdm1AliasTable:
         """PR #60's headline feature: a globally-unique alias resolves with NO
         country hint.  U2 guarantees every shipped key is globally unique, so
         each must resolve to its own code hint-free (Strategy 0 + no-hint
-        _pick_best_candidate), except the keys the country guard reads as a
-        country (test_country_named_keys_need_a_hint)."""
-        from metacouplingllm.knowledge.countries import resolve_country_code
+        _pick_best_candidate)."""
         failed = [
             (r["alias_key"], r["code"], resolve_adm1_code(r["alias_key"]))
             for r in rows
-            if resolve_country_code(r["alias_key"]) is None
-            and resolve_adm1_code(r["alias_key"]) != r["code"]
+            if resolve_adm1_code(r["alias_key"]) != r["code"]
         ]
         assert not failed, f"{len(failed)} no-hint resolutions failed; first 3: {failed[:3]}"
 

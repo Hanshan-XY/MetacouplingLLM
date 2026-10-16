@@ -51,12 +51,61 @@ file. The format is loosely based on
   "Libertador Gral. Bernardo O'Higgins"), and four spellings the World Bank
   names get wrong ("Lubelskie" for "Lubeiskie", "Małopolskie" for
   "Malopolske", "Arica y Parinacota" for "Arica y Painacota",
-  "Zachodniopomorskie" for "Zachodnio-Pomorskie"). An alias that contains a
-  country name ("Mexico City", "Lesser Poland") resolves only with a country
-  hint, because without one `resolve_country_code` reads the name as that
-  country. `scripts/validate_adm1_aliases.py` holds the curated list and
-  still reproduces the other 1,145 entries byte for byte. Tests +108 (suite
+  "Zachodniopomorskie" for "Zachodnio-Pomorskie").
+  `scripts/validate_adm1_aliases.py` holds the curated list and still
+  reproduces the other 1,145 entries byte for byte. Tests +108 (suite
   1,571).
+- **Region names that contain a country's name resolve without a country
+  hint: "New South Wales", "British Columbia", "Mexico City".** Without a
+  hint, `resolve_adm1_code` returned `None` for every name in which
+  `resolve_country_code` found a country, so 52 of the 3,374 regions did not
+  resolve under their own World Bank names, some read as another country:
+  "New South Wales" and "East New Britain" as the United Kingdom, "Northern
+  Ireland" as Ireland, "Port Of Spain" as Spain, "New Jersey" as Jersey,
+  "Thai Binh" as Thailand. It now refuses only a name that is a country's ISO
+  code, name or alias (what `resolve_country_code` tests with the new
+  `substring=False`), alone or among the connector and administrative words
+  its matcher ignores ("of Mexico", "State of Mexico", "Niger State");
+  without that last part, n-grams of running text such as "region of
+  Mexico" (from "the Michoacán region of Mexico") would resolve to the State
+  of México. The 33 names with another word besides a country's name
+  resolve to their own regions, as do the curated aliases "Mexico City",
+  "Lesser Poland", "Greater Poland" and "Magallanes and the Chilean
+  Antarctica"; the 19 that are a country's name ("Georgia", "Niger",
+  "Wales", "Est", which is Estonia's ISO code) still need the hint, and so
+  now do "México" and "Panamá" (next entry). A research description naming
+  such a region ("Wool exports from New South Wales") now counts as
+  subnational for the validator and the map. Of the 14,421 recorded
+  name-matching queries, eight give a different result, each listed with
+  its reason in the regression test: "British Columbia", "Western
+  Australia", "Ile-de-France", "Île-de-France", "Ciudad de Mexico" and
+  "Mexico City" resolve without a hint, and "México" and "Estado de México"
+  no longer do. Of the 124,013 phrases with a
+  country's name in them among the one- to four-word phrases and capitalised
+  word groups of the 421 corpus papers and the avocado run, 23 resolve
+  differently without a hint: 22 to the region they name (New Jersey,
+  Western Australia, New South Wales and others) and "México" to `None`.
+  The alias build still reproduces both tables byte for byte; its rule G
+  still drops the 64 generated aliases that contain a country's name.
+- **`resolve_country_code` ignores accents and reads the World Bank's
+  country names.** "México", "Perú", "Panamá", "Curaçao" and "Réunion"
+  returned `None`, as did "España", "Brasil", "Bangladeshi", "Kyrgyz
+  Republic", "Slovak Republic" and "Lao People's Democratic Republic", and
+  the World Bank's "Congo, Dem. Rep." and "Korea, Dem. People's Rep." gave
+  the Republic of the Congo and South Korea. Case, accents, curly
+  apostrophes and repeated spaces are now ignored, and a leading "the" when
+  the text is a whole name ("the Gambia"). New aliases add the two names in
+  the country's own language, "Bangladeshi", and the World Bank's names that
+  resolved to `None` or to another country. In its country list
+  (api.worldbank.org, read 2026-10-16) 12 of the 217 economies did, and 10
+  now resolve, among them "St. Lucia", "Virgin Islands (U.S.)" (read as the
+  United States) and "St. Martin (French part)" (as France); the other two
+  are the Channel Islands, which have no ISO code, and "Puerto Rico (US)",
+  which the existing alias "puerto rico" maps to the United States. In the
+  boundary data behind the ADM1 database, "Democratic Republic of Congo" and
+  "D. P. R. of Korea" gave COG and KOR, so for their regions web search
+  wrote the Republic of the Congo and South Korea into its queries. Tests
+  +77 with the previous entry (suite 1,648).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty

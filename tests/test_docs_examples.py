@@ -373,12 +373,24 @@ def _check_country_resolution(ns: dict[str, Any], out: str) -> None:
         "Mexican": "MEX",
         "Brazilian": "BRA",
         "Chinese": "CHN",
+        "México": "MEX",
+        "Brasil": "BRA",
+        "Congo, Dem. Rep.": "COD",
+        "Kyrgyz Republic": "KGZ",
         "Ethiopian coffee regions": "ETH",
+        "New South Wales": "GBR",
     }
     for query, expected in documented.items():
         assert resolve(query) == expected, (
             f"MANUAL.md §8 documents resolve_country_code({query!r}) "
             f"== {expected!r}, got {resolve(query)!r}"
+        )
+    whole_names_only = {"New South Wales": None, "the Gambia": "GMB"}
+    for query, expected in whole_names_only.items():
+        got = resolve(query, substring=False)
+        assert got == expected, (
+            f"MANUAL.md §8 documents resolve_country_code({query!r}, "
+            f"substring=False) == {expected!r}, got {got!r}"
         )
     get_name = ns["get_country_name"]
     assert get_name("MEX") == "Mexico"
