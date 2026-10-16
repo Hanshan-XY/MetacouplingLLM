@@ -224,7 +224,7 @@ The system prompt is constructed in six layers:
 1. **Role** -- Expert persona in metacoupling and sustainability science
 2. **Knowledge** -- Full framework definitions, 14 categories, coupling transformations
 3. **Methodology** -- Six-phase operationalization procedure (Liu, 2017)
-4. **Examples** -- The best keyword-matching published case studies (up to `max_examples`) from five bundled examples: Brazil-China soybean trade, red imported fire ant invasion, Beijing water supply, panda conservation / SDGs, Wolong Nature Reserve
+4. **Examples** -- The best keyword-matching case studies (up to `max_examples`) from five bundled examples, each summarising a paper in the literature corpus and laid out coupling-first like the analysis itself: Wolong Nature Reserve, South American food trade with China, global marine fishing, groundwater bottling and Michigan trout streams, and transatlantic wood pellets. A description that matches no keyword gets the first two
 5. **Output Format** -- Structured template for seven analysis sections
    (with a **Citation Rules sub-layer, 5b**: turn-scoped `[Tk:N]`/`[Tk:Wn]`
    citation mechanics and hallucination guardrails)
@@ -576,7 +576,7 @@ The same tables feed the optional LLM-assisted helpers (natural-language study s
 | ADM1 alias table (CSV) | 1,145 English exonyms / alternative spellings for 863 ADM1 regions in 136 countries (e.g. Bavaria→Bayern, Tuscany→Toscana), so `resolve_adm1_code` matches common English names; deterministically validated (see `data/PROVENANCE.md`) |
 | Water-only border files (CSV) | `water_separated_pairs.csv`: the 843 water-only pairs (824 ADM1 + 19 ADM0 roll-ups), each with a `has_bridge` fixed-crossing flag (ADM1: 388 with a crossing, 436 without), read by `coupling_standard`; `water_classification_pairs.csv`: the 824 ADM1 rows with their adjudication evidence |
 | Disputed-territory overlay and edge-correction files (CSV) | `disputed_overlay_pairs.csv`: 19 pairs (16 ADM1 + 3 ADM0), read by `de_facto_borders`; `sliver_corridor_relabel.csv` (11 rows), `land_gap_overlay_pairs.csv` (5 pairs) and `denylist_pairs.csv` (7 pairs): the reviewed corrections behind the ADM1 edge list (see `data/PROVENANCE.md`) |
-| Framework examples | Five curated case studies (soybean trade, red imported fire ant invasion, Beijing urban water, panda conservation, Wolong Nature Reserve); the best matches (`max_examples`, default 2) are injected into the prompt |
+| Framework examples | Five case studies from the literature corpus (Wolong Nature Reserve, South American food trade, global marine fishing, Michigan groundwater and trout streams, transatlantic wood pellets), laid out coupling-first; the best matches (`max_examples`, default 2) are injected into the prompt |
 
 *Counts above are as of v0.2.1.  Call `get_database_info()` for the live BibTeX count and `len(zipfile.ZipFile(pathlib.Path(metacouplingllm.__file__).parent / "data" / "Papers.zip").namelist())` (after `import zipfile, pathlib, metacouplingllm`) for the live paper count if the corpus drifts.*
 

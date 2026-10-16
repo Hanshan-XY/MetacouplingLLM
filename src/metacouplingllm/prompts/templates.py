@@ -159,8 +159,9 @@ the output — do not leave a placeholder header.\
 EXAMPLES_LAYER = """\
 ## REFERENCE EXAMPLES
 
-The following are published examples of the framework applied to real \
-studies. Use them as templates for how to structure your analysis, but \
+The following examples summarise published applications of the framework; \
+an "Adaptation" line notes where an example departs from its paper. Use \
+them as templates for how to structure your analysis, but \
 tailor your response to the researcher's specific study.
 
 {formatted_examples}\
