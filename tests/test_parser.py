@@ -884,3 +884,113 @@ class TestResearchGapListForms:
         text = "1. **Heading**\n- item"
         assert _extract_bullets(text) == ["item"]
         assert _extract_bullets(text, numbered=True) == ["**Heading**", "item"]
+
+
+# ---------------------------------------------------------------------------
+# A system's scope written in parentheses or after a dash.
+# ---------------------------------------------------------------------------
+
+
+_SCOPE_LABELS = [
+    pytest.param("{role} System ({scope})", id="paren"),
+    pytest.param("{role} System — {scope}", id="em-dash"),
+    pytest.param("{role} System – {scope}", id="en-dash"),
+    pytest.param("{role} System - {scope}", id="hyphen"),
+]
+
+_SCOPED_SYSTEMS = {
+    "pericoupling": [
+        {
+            "role": "sending",
+            "system_scope": "adjacent",
+            "name": "Thailand",
+            "human_subsystem": "Rice farmers, millers and border traders.",
+        },
+        {
+            "role": "receiving",
+            "system_scope": "adjacent",
+            "name": "Laos",
+            "human_subsystem": "Rice importers and consumers.",
+        },
+    ],
+    "telecoupling": [
+        {
+            "role": "sending",
+            "system_scope": "distant",
+            "name": "Thailand",
+            "geographic_scope": "Rice-exporting regions and seaports.",
+        },
+        {
+            "role": "receiving",
+            "system_scope": "distant rice importer",
+            "name": "Nigeria",
+            "geographic_scope": "Port cities and urban markets.",
+        },
+        {"role": "spillover", "name": "Vietnam"},
+    ],
+}
+
+
+def _response_with_scoped_systems(label: str) -> str:
+    """A short response whose pericoupling and telecoupling systems are
+    headed ``**<label>**: <name>``, *label* giving the role and scope."""
+
+    def heading(role: str, scope: str, name: str) -> str:
+        return f"**{label.format(role=role, scope=scope)}**: {name}"
+
+    return (
+        "### 1. Coupling Classification\n\n"
+        "Pericoupling and telecoupling.\n\n"
+        "### 3. Pericoupling Analysis\n\n"
+        "#### 3.1 Systems Identification\n\n"
+        f"{heading('Sending', 'adjacent', 'Thailand')}\n"
+        "- **Human subsystem**: Rice farmers, millers and border traders.\n\n"
+        f"{heading('Receiving', 'adjacent', 'Laos')}\n"
+        "- **Human subsystem**: Rice importers and consumers.\n\n"
+        "### 4. Telecoupling Analysis\n\n"
+        "#### 4.1 Systems Identification\n\n"
+        f"{heading('Sending', 'distant', 'Thailand')}\n"
+        "- **Geographic scope**: Rice-exporting regions and seaports.\n\n"
+        f"{heading('Receiving', 'distant rice importer', 'Nigeria')}\n"
+        "- **Geographic scope**: Port cities and urban markets.\n\n"
+        "**Spillover System**: Vietnam\n"
+    )
+
+
+class TestSystemScopeForms:
+    """A system's scope follows its role in parentheses or after a dash
+    (em dash, en dash or hyphen); every form yields the same systems,
+    with the whole qualifier as the scope."""
+
+    @pytest.mark.parametrize("label", _SCOPE_LABELS)
+    def test_each_heading_form_yields_the_systems(self, label):
+        result = parse_analysis(_response_with_scoped_systems(label))
+        assert result.pericoupling.systems == _SCOPED_SYSTEMS["pericoupling"]
+        assert result.telecoupling.systems == _SCOPED_SYSTEMS["telecoupling"]
+
+    @pytest.mark.parametrize("label", _SCOPE_LABELS)
+    def test_each_flat_bullet_form_yields_the_systems(self, label):
+        """The flat-bullet fallback ("- Sending System (distant): ...")
+        takes the same forms."""
+        from metacouplingllm.llm.parser import _parse_systems
+
+        text = "\n".join(
+            [
+                f"- {label.format(role='Sending', scope='distant')}: Thailand",
+                f"- {label.format(role='Receiving', scope='distant')}: Nigeria",
+                "- Spillover: Vietnam",
+            ]
+        )
+        assert _parse_systems(text) == [
+            {"role": "sending", "name": "Thailand", "system_scope": "distant"},
+            {"role": "receiving", "name": "Nigeria", "system_scope": "distant"},
+            {"role": "spillover", "name": "Vietnam"},
+        ]
+
+    def test_only_adjacent_or_distant_opens_a_dash_scope(self):
+        """After a dash, a scope starts with "adjacent" or "distant", so
+        a name after a dash is not read as a scope."""
+        from metacouplingllm.llm.parser import _parse_systems
+
+        assert _parse_systems("**Sending System — Thailand**: rice exporter") == []
+        assert _parse_systems("- Sending System — Thailand: rice exporter") == []

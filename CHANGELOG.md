@@ -36,6 +36,23 @@ file. The format is loosely based on
   as a numbered list; each now yields its 6 to 8 gaps, and the other 24 parse
   exactly as before. Tests +4 (suite 1,454; the 1,441 in REPRODUCING predated
   the nine tests #167 added).
+- **A system whose scope follows a dash is parsed.** `parse_analysis` read a
+  system's scope only in parentheses, as the output template writes it
+  (`**Receiving System (distant)**: Nigeria`), so a heading such as
+  `**Receiving System — distant**: Nigeria` was not read as one: the system was
+  lost, its lines dropped or, after another system's heading in the same block,
+  merged into that system, overwriting its fields. The full report and the
+  Markdown and Word exports left it out, the maps' sending, receiving and
+  adjacent country lists and the country-level pericoupling check against the
+  coupling database missed its countries, and its text was missing from the
+  scans of the parsed analysis (ADM1 resolution, `recommend_papers()`). System
+  headings, and the flat-bullet fallback, now also take a scope after an em
+  dash, en dash or hyphen when it starts with `adjacent` or `distant`; as in
+  parentheses, the whole qualifier is the scope (`distant coal importer`). Of
+  31 gpt-5.5 analyses saved on 2026-10-15, 4 wrote 18 such headings, each ahead
+  of any other system heading in its block; each of the 4 now gains its 3 to 6
+  systems, and everything else in the 31 parses exactly as before. Tests +9
+  (suite 1,463).
 
 ## [0.2.1] — 2026-10-12
 
