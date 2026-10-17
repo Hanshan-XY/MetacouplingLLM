@@ -506,6 +506,17 @@ class TestWorldBankAutoDownload:
             _get_world_geodataframe()
 
 
+# A system headed with a run-on adjacent qualifier.
+_RUN_ON_ADJACENT_RESPONSE = (
+    "### 1. Coupling Classification\n\n"
+    "Pericoupling.\n\n"
+    "### 3. Pericoupling Analysis\n\n"
+    "#### 3.1 Systems Identification\n\n"
+    "**Focal System**: United States Southwest\n\n"
+    "**Sending System (adjacent interaction)**: Mexico Border Trade\n"
+)
+
+
 class TestExtractCountriesFromAnalysis:
     """Test country extraction from ParsedAnalysis."""
 
@@ -578,6 +589,21 @@ class TestExtractCountriesFromAnalysis:
         result = _extract_countries_from_analysis(analysis)
         assert result["sending"] == "AUS"
         assert result["receiving"] is None
+
+    def test_run_on_adjacent_scope_is_adjacent(self):
+        """Until 2026-10-17 the parser kept "adjacent interaction" whole
+        as the scope, which this function compares with "adjacent", so
+        Mexico took the sending role."""
+        from metacouplingllm.llm.parser import parse_analysis
+        from metacouplingllm.visualization.worldmap import (
+            _extract_countries_from_analysis,
+        )
+
+        result = _extract_countries_from_analysis(
+            parse_analysis(_RUN_ON_ADJACENT_RESPONSE)
+        )
+        assert result["adjacent"] == "MEX"
+        assert result["sending"] is None
 
 
 class TestExtractAllAnalysisCountries:
@@ -721,6 +747,20 @@ class TestExtractAllAnalysisCountries:
         codes = set()
         _scan_text_for_countries("Interviews allowed us to map Can.", codes)
         assert codes == set()
+
+    def test_run_on_adjacent_scope_is_adjacent(self):
+        """Until 2026-10-17 "(adjacent interaction)" put Mexico in the
+        sending role (see TestExtractCountriesFromAnalysis)."""
+        from metacouplingllm.llm.parser import parse_analysis
+        from metacouplingllm.visualization.worldmap import (
+            _extract_all_analysis_countries,
+        )
+
+        result = _extract_all_analysis_countries(
+            parse_analysis(_RUN_ON_ADJACENT_RESPONSE)
+        )
+        assert result["adjacent"] == {"MEX"}
+        assert result["sending"] == set()
 
 
 class TestCollectAnalysisMapCountryCodes:

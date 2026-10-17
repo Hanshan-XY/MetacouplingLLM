@@ -515,7 +515,8 @@ p = result.parsed
 print(p.coupling_classification)
 print(list(p.iter_system_entries()))        # focal / sending / receiving / spillover system entries
 #   each a dict with role, name, human_subsystem, natural_subsystem, geographic_scope;
-#   sending / receiving entries also carry system_scope ("adjacent" or "distant")
+#   sending / receiving entries also carry system_scope ("adjacent" or "distant"),
+#   and system_scope_qualifier when the heading says more ("distant coal importer")
 print(list(p.iter_flow_entries()))          # flow dicts
 print(list(p.iter_agent_entries()))         # agent dicts
 print(list(p.iter_category_items("causes")))   # (coupling_type, category, item) triples

@@ -23,7 +23,12 @@ class AnalysisFormatter:
         else:
             label = role.replace("_", " ").title()
 
-        scope = entry.get("system_scope", "").strip().lower()
+        # The qualifier as written ("distant coal importer") when it
+        # says more than the scope word.
+        scope = (
+            entry.get("system_scope_qualifier")
+            or entry.get("system_scope", "")
+        ).strip().lower()
         if scope:
             label = f"{label} ({scope})"
         return label
@@ -51,6 +56,7 @@ class AnalysisFormatter:
                 "geographic_scope",
                 "description",
                 "system_scope",
+                "system_scope_qualifier",
             }
             for key, value in entry.items():
                 if key not in known and value:
