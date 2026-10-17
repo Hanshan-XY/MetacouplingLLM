@@ -1492,7 +1492,8 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
 Before these strategies, a name that is itself a country's ISO code, name or
 alias (`resolve_country_code` with `substring=False`: case, accents and a
 leading "the" ignored) returns `None` unless a country hint is given: the name
-is read as the country. `"Georgia"` is the country, not the US state, as are
+is read as the country. `"Georgia"` is the country, not the US state (unless a
+run reads it as the state; MANUAL §8, Country name resolution), as are
 `"Niger"`, `"Wales"`, `"México"`, and `"Est"`, which is Estonia's ISO code; 21
 of the 3,374 regions have such a name and resolve only with a hint. So does a
 country's name among the connector and administrative words that strategy 4

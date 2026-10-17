@@ -421,6 +421,12 @@ def _check_country_resolution(ns: dict[str, Any], out: str) -> None:
             f"{', capitals=True' if capitals else ''}) == {expected!r}, "
             f"got {got!r}"
         )
+    # A country's name that a region elsewhere also has (Georgia, the US
+    # state), read as a text reads it.
+    assert ns["readings"] == {"georgia": ("USA011", "USA")}
+    with ns["read_names_as_regions"](ns["readings"]):
+        assert resolve("Georgia") == "USA"
+    assert resolve("Georgia") == "GEO"
     get_name = ns["get_country_name"]
     assert get_name("MEX") == "Mexico"
     assert get_name("GBR") == "United Kingdom"

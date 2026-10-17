@@ -22,6 +22,8 @@ from metacouplingllm.knowledge.countries import (
     ISO_ALPHA3_NAMES,
     find_country_codes,
     get_country_name,
+    read_names_as_regions,
+    region_read_for,
     resolve_country_code,
 )
 from metacouplingllm.knowledge.literature import Paper
@@ -29,6 +31,7 @@ from metacouplingllm.knowledge.pericoupling import (
     PairCouplingType,
     lookup_pericoupling,
 )
+from metacouplingllm.knowledge.places import place_readings
 from metacouplingllm.llm.client import (
     AnthropicAdapter,
     GeminiAdapter,
@@ -1111,12 +1114,13 @@ class MetacouplingAssistant:
                         model=_wc.model,
                     )
                 web_search_metadata: dict[str, object] = {}
-                web_sources = search_web(
-                    query.strip(),
-                    max_results=self._web_search_max_results,
-                    backend=web_backend,
-                    metadata=web_search_metadata,
-                )
+                with read_names_as_regions(place_readings(query)):
+                    web_sources = search_web(
+                        query.strip(),
+                        max_results=self._web_search_max_results,
+                        backend=web_backend,
+                        metadata=web_search_metadata,
+                    )
                 backend_used = web_search_metadata.get("backend_used")
                 if backend_used:
                     fallback_from = web_search_metadata.get("fallback_from")
@@ -1477,12 +1481,13 @@ class MetacouplingAssistant:
                         model=_wc.model,
                     )
                 web_search_metadata: dict[str, object] = {}
-                self._last_web_results = search_web(
-                    research_description.strip(),
-                    max_results=self._web_search_max_results,
-                    backend=web_backend,
-                    metadata=web_search_metadata,
-                )
+                with read_names_as_regions(place_readings(research_description)):
+                    self._last_web_results = search_web(
+                        research_description.strip(),
+                        max_results=self._web_search_max_results,
+                        backend=web_backend,
+                        metadata=web_search_metadata,
+                    )
                 backend_used = web_search_metadata.get("backend_used")
                 if backend_used:
                     fallback_from = web_search_metadata.get("fallback_from")
@@ -1633,7 +1638,7 @@ class MetacouplingAssistant:
         self._history.append(Message(role="assistant", content=response.content))
         self._turn = next_turn
 
-        return self._build_result(response)
+        return self._build_result_reading_names(response)
 
     def refine(
         self,
@@ -1754,7 +1759,7 @@ class MetacouplingAssistant:
         self._history.append(Message(role="assistant", content=response.content))
         self._turn = next_turn
 
-        return self._build_result(response)
+        return self._build_result_reading_names(response)
 
     def reset(self) -> None:
         """Clear conversation history and pre-retrieval state."""
@@ -4785,6 +4790,10 @@ class MetacouplingAssistant:
         for word_group in re.findall(
             _CAPITALIZED_WORD_GROUP_RE, query
         ):
+            # A country's name read as a region elsewhere ("Georgia", the US
+            # state; :func:`read_names_as_regions`) names that region.
+            if region_read_for(word_group):
+                return True
             # Country mentions take precedence: if the word group is a
             # country's name, the user is framing at country scale (e.g.
             # "Mexico" the country, not the state).  ``substring=False``
@@ -4838,6 +4847,15 @@ class MetacouplingAssistant:
                 lines.append(f"      {model_summary[:200]}")
             lines.append("")
         return "\n".join(lines)
+
+    def _build_result_reading_names(self, response: LLMResponse) -> AnalysisResult:
+        """:meth:`_build_result`, reading a country's name that a region
+        elsewhere also has ("Georgia", the US state) as the research
+        description and the answer read it, for the validation, the report
+        and the map (:func:`~metacouplingllm.knowledge.places.place_readings`)."""
+        text = (self._original_query or "") + "\n" + response.content
+        with read_names_as_regions(place_readings(text)):
+            return self._build_result(response)
 
     def _build_result(self, response: LLMResponse) -> AnalysisResult:
         """Parse and format an LLM response into an AnalysisResult."""

@@ -607,6 +607,32 @@ file. The format is loosely based on
   focal one (Bogotá before Cundinamarca). Of the 73 descriptions about a
   country or another place, 33 get a regional hint (47 before), each for a
   region the text names. Tests +25 (suite 2,142).
+- **A country's name that a region elsewhere also has is read as the run
+  reads it, in the validation, the report and the maps.** The prompt hint
+  read "Georgia" as the US state where the description supported it, but
+  the rest of a run resolved each system name on its own, so "Georgia" was
+  always the country. For a description of broiler chicken production in
+  Georgia, United States, with an answer naming Georgia, Alabama, Iowa and
+  China, the country check took Georgia (GEO) as the focal country and
+  checked Georgia (GEO) ↔ China, the ADM1 check checked nothing, and a map
+  drawn from the analysis centred on the Caucasus. Inside a
+  `knowledge.countries.read_names_as_regions(readings)` block, each name in
+  *readings* now reads as a region elsewhere: `resolve_country_code` and
+  `find_country_codes` give the region's country, `resolve_adm1_code` the
+  region; outside a block nothing changes. `knowledge.places.place_readings`
+  gives those readings for a text by the hint's rule, and `read_places`,
+  which moved there from the prompt builder, the countries and regions the
+  text names. `MetacouplingAssistant` builds each result inside a block read
+  from the research description and the answer and runs web search inside
+  one read from the description, and `plot_analysis_map` called on its own
+  reads the analysis's text. In the example the country check now takes the
+  United States as the focal country, the ADM1 check takes Georgia (USA011),
+  with Alabama pericoupled and Iowa telecoupled, and the map's focal country
+  is the United States; a description of wine exports from Georgia to Russia
+  keeps the country. Built through `analyze()` with a stub client, the
+  reports of the 31 gpt-5.5 analyses saved on 2026-10-15 and of the
+  committed avocado run are byte-identical to main's: none names such a
+  country. Tests +14 (suite 2,156).
 
 ### Docs
 

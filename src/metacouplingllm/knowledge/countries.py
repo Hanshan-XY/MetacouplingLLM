@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 # ---------------------------------------------------------------------------
 # ISO alpha-3 code → canonical English name (covers all 244 ISO codes in the
@@ -715,6 +718,53 @@ def _normalize_country_text(text: str) -> str:
     return " ".join(folded.lower().split())
 
 
+# Country names read as regions elsewhere ("georgia" → ("USA011", "USA")),
+# by normalized name; ``None`` outside :func:`read_names_as_regions`.
+_names_read_as_regions: ContextVar[Mapping[str, tuple[str, str]] | None] = (
+    ContextVar("names_read_as_regions", default=None)
+)
+
+
+@contextmanager
+def read_names_as_regions(
+    readings: Mapping[str, tuple[str, str]],
+) -> Iterator[None]:
+    """Within the block, read each country name in *readings* as the region
+    it maps to.
+
+    *readings* maps a country's name, normalized (lowercase, accents folded),
+    to the ADM1 code and country of a region elsewhere that has the name, as
+    :func:`~metacouplingllm.knowledge.places.place_readings` gives them for a
+    text that reads the name so: ``{"georgia": ("USA011", "USA")}``.  Within
+    the block :func:`resolve_country_code` and :func:`find_country_codes`
+    give the region's country for the name ("Georgia" → ``"USA"``), and
+    :func:`~metacouplingllm.knowledge.adm1_pericoupling.resolve_adm1_code`
+    gives the region (``"USA011"``).  ``MetacouplingAssistant`` reads each
+    analysis inside such a block, with the readings of its research
+    description and answer.
+    """
+    token = _names_read_as_regions.set(dict(readings))
+    try:
+        yield
+    finally:
+        _names_read_as_regions.reset(token)
+
+
+def region_read_for(name: str) -> str | None:
+    """Return the ADM1 code of the region the current
+    :func:`read_names_as_regions` block reads *name* as, or ``None``."""
+    reading = (_names_read_as_regions.get() or {}).get(
+        _normalize_country_text(name)
+    )
+    return reading[0] if reading else None
+
+
+def reading_names_as_regions() -> bool:
+    """Return True inside a :func:`read_names_as_regions` block, even one
+    that reads no name as a region."""
+    return _names_read_as_regions.get() is not None
+
+
 _name_to_code: dict[str, str] | None = None
 
 
@@ -955,8 +1005,13 @@ def resolve_country_code(
     rev = _get_reverse_index()
     # Free text names a country by its code, or by "us", only in capitals.
     capitals = not free_text or _written_in_capitals(name_or_code)
+    # A name read as a region elsewhere names the region's country.
+    readings = _names_read_as_regions.get() or {}
 
     for key in dict.fromkeys((text, text.removeprefix("the "))):
+        if key in readings:
+            return readings[key][1]
+
         # 1. Exact code match
         key_upper = key.upper()
         if key_upper in ISO_ALPHA3_NAMES and capitals:
@@ -978,6 +1033,8 @@ def resolve_country_code(
     #    (e.g. "South Korea" before "Korea")
     places: list[tuple[int, int, frozenset[str]]] | None = None
     for name_lower, code in _get_sorted_all_names():
+        if name_lower in readings:
+            code = readings[name_lower][1]
         if not free_text:
             if _contains_standalone_country_term(text, name_lower):
                 return code
@@ -1145,7 +1202,9 @@ def _name_at(
                 continue  # the pronoun
             if capitals and not phrase[:1].isupper():
                 continue
-            return size, names[key], frozenset(), start, end
+            # A name read as a region elsewhere names the region's country.
+            code = (_names_read_as_regions.get() or {}).get(key, (None, names[key]))[1]
+            return size, code, frozenset(), start, end
         if size == 1 and _is_standalone_code(text, spans, i, phrase):
             return 1, phrase, frozenset(), start, end
     return None
