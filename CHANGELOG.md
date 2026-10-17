@@ -408,6 +408,17 @@ file. The format is loosely based on
   gives no region, and the run's callers of the country and region resolvers
   return what they did before this release's country changes. Tests +10
   (suite 1,888).
+- **The automatic map's text fallback follows the query's framing.** When the
+  map-data extraction fails or returns no focal country, `_generate_map`
+  reads the map from the analysis text, and its first attempt drew an ADM1
+  map whenever it could resolve a region there. A query about a country
+  ("Impact of avocado production and trade in Mexico on sustainability")
+  whose analysis gives the scope "Michoacán, Mexico" got a map of Michoacán,
+  while with map data the same query gets the country map. The attempt now
+  drops the region when the query names none, as the map-data path does and
+  as MANUAL §10 describes. A query that names a region ("Avocado production
+  in Michoacán, Mexico") still gets the ADM1 map, and so does a direct
+  `_generate_map` call made without a query. Tests +3 (suite 1,891).
 
 ### Docs
 

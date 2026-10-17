@@ -1010,6 +1010,110 @@ class TestAutoMapTrustsLLMAndUserFraming:
         assert "country_called" not in captured
         assert advisor._last_map_type == "adm1"
 
+    # --- Legacy path: no structured map data ----------------------------
+
+    def _make_parsed_without_map_data(self):
+        """An analysis whose text names Michoacán (MEX016), with no map
+        data, so ``_generate_map`` takes the text-extraction path."""
+        from ._helpers import make_parsed_analysis
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {
+                    "name": "Michoacán avocado sector",
+                    "geographic_scope": "Michoacán, Mexico",
+                },
+                "receiving": {
+                    "name": "United States",
+                    "geographic_scope": "United States",
+                },
+            },
+        )
+        parsed.map_data = None
+        return parsed
+
+    @staticmethod
+    def _stub_map_renderers(monkeypatch, captured):
+        def fake_country_map(parsed, **kwargs):
+            captured["country_called"] = True
+            return "country-figure"
+
+        def fake_adm1_map(adm1_code, **kwargs):
+            captured["adm1_called"] = True
+            captured["adm1_code"] = adm1_code
+            return "adm1-figure"
+
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map",
+            fake_country_map,
+        )
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.adm1_map.plot_focal_adm1_map",
+            fake_adm1_map,
+        )
+
+    def test_legacy_path_drops_adm1_when_query_is_country_scoped(
+        self, monkeypatch,
+    ):
+        """Without map data the text fallback finds Michoacán in the
+        analysis, but the user's query named only Mexico: the
+        country-level map is drawn, as on the primary path."""
+        captured: dict[str, object] = {}
+        self._stub_map_renderers(monkeypatch, captured)
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = (
+            "Impact of avocado production and trade in Mexico "
+            "on sustainability"
+        )
+        parsed = self._make_parsed_without_map_data()
+        assert (
+            MetacouplingAssistant._resolve_adm1_from_analysis(parsed)
+            == "MEX016"
+        )
+
+        result = advisor._generate_map(parsed)
+
+        assert result == "country-figure"
+        assert captured.get("country_called") is True
+        assert "adm1_called" not in captured
+        assert advisor._last_map_type == "country"
+
+    def test_legacy_path_keeps_adm1_when_query_names_a_state(
+        self, monkeypatch,
+    ):
+        captured: dict[str, object] = {}
+        self._stub_map_renderers(monkeypatch, captured)
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        advisor._original_query = "Avocado production in Michoacán, Mexico"
+
+        result = advisor._generate_map(self._make_parsed_without_map_data())
+
+        assert result == "adm1-figure"
+        assert captured.get("adm1_code") == "MEX016"
+        assert "country_called" not in captured
+        assert advisor._last_map_type == "adm1"
+
+    def test_legacy_path_keeps_adm1_when_original_query_is_unset(
+        self, monkeypatch,
+    ):
+        """Called without ``analyze()``, there is no user framing to
+        consult, so the region the analysis names is mapped."""
+        captured: dict[str, object] = {}
+        self._stub_map_renderers(monkeypatch, captured)
+        advisor = MetacouplingAssistant(
+            llm_client=MockLLMClient(), auto_map=True,
+        )
+        # NOTE: not calling analyze(); _original_query stays None.
+
+        result = advisor._generate_map(self._make_parsed_without_map_data())
+
+        assert result == "adm1-figure"
+        assert captured.get("adm1_code") == "MEX016"
+        assert advisor._last_map_type == "adm1"
+
 
 class TestEvidenceCoverageNote:
     """Tests for the §7 Evidence Coverage flow:
