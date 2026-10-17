@@ -113,6 +113,17 @@ _CAPITALIZED_WORD_GROUP_RE = (
     r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)*"
 )
 
+# Capitalised names for the country mentions of an analysis: capitalised
+# words joined by spaces and by the connectors of place names ("Gulf of
+# Mexico", "Port of Spain", "Democratic Republic of the Congo"), so that a
+# country's name inside a longer name reaches
+# ``resolve_country_code(..., free_text=True)`` with that name around it.
+_COUNTRY_MENTION_RE = (
+    r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+"
+    r"(?:(?:\s+(?:of|the|de|del|da|do|dos|das|du|la|el))*"
+    r"\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)*"
+)
+
 # Defensive ceiling on the number of web-search results included in the
 # structured map-extraction prompt.  This is independent of the user's
 # ``web_search_max_results`` setting -- that setting already caps
@@ -1914,7 +1925,7 @@ class MetacouplingAssistant:
             country_hint: str | None = None
             if len(parts) > 1:
                 country_hint = parts[-1]
-                hint_code = resolve_country_code(country_hint)
+                hint_code = resolve_country_code(country_hint, free_text=True)
                 if hint_code:
                     country_hint = hint_code
                 else:
@@ -1945,9 +1956,9 @@ class MetacouplingAssistant:
             combined = " ".join(parsed.iter_text_fragments())
             # Try to resolve country names found in the text
             for word_group in re.findall(
-                _CAPITALIZED_WORD_GROUP_RE, combined
+                _COUNTRY_MENTION_RE, combined
             ):
-                code = resolve_country_code(word_group)
+                code = resolve_country_code(word_group, free_text=True)
                 if code:
                     codes.add(code)
             # Also pick up explicit 3-letter ISO codes like "USA", "BRA".
@@ -2054,9 +2065,9 @@ class MetacouplingAssistant:
         country_mentions: set[str] = set()
         combined = " ".join(parsed.iter_text_fragments())
         for word_group in re.findall(
-            _CAPITALIZED_WORD_GROUP_RE, combined
+            _COUNTRY_MENTION_RE, combined
         ):
-            code = resolve_country_code(word_group)
+            code = resolve_country_code(word_group, free_text=True)
             if code:
                 country_mentions.add(code)
         # Explicit membership check — get_country_name() returns the
@@ -2088,7 +2099,7 @@ class MetacouplingAssistant:
             parts = [p.strip() for p in cleaned.split(",")]
             country_hint: str | None = None
             if len(parts) > 1:
-                hint_code = resolve_country_code(parts[-1])
+                hint_code = resolve_country_code(parts[-1], free_text=True)
                 if hint_code:
                     country_hint = hint_code
             for part in parts:
@@ -2293,7 +2304,7 @@ class MetacouplingAssistant:
                 candidate = re.sub(r"\([^)]*\)", "", chunk).strip().rstrip(".:")
                 if not candidate:
                     continue
-                code = resolve_country_code(candidate)
+                code = resolve_country_code(candidate, free_text=True)
                 if not code:
                     adm1 = resolve_adm1_code(candidate)
                     if adm1:
@@ -2434,7 +2445,7 @@ class MetacouplingAssistant:
                     normalised.append(simplified)
 
             for candidate in normalised:
-                code = resolve_country_code(candidate)
+                code = resolve_country_code(candidate, free_text=True)
                 if code:
                     return code
                 adm1 = resolve_adm1_code(candidate)
@@ -2864,9 +2875,9 @@ class MetacouplingAssistant:
 
         # Resolve country names found in the text
         for word_group in re.findall(
-            _CAPITALIZED_WORD_GROUP_RE, combined
+            _COUNTRY_MENTION_RE, combined
         ):
-            code = resolve_country_code(word_group)
+            code = resolve_country_code(word_group, free_text=True)
             if code:
                 mentioned_iso.add(code)
         # Pick up explicit 3-letter ISO codes (explicit membership
@@ -5493,7 +5504,7 @@ class MetacouplingAssistant:
             for key in ("name", "geographic_scope"):
                 value = sending_entry.get(key, "")
                 if value:
-                    code = resolve_country_code(value)
+                    code = resolve_country_code(value, free_text=True)
                     if code:
                         focal_code = code
                         break
@@ -5754,14 +5765,14 @@ class MetacouplingAssistant:
                     # Try the full value first (e.g. "Mexico"), then
                     # per-chunk on common delimiters (handles "Chile
                     # and Peru" via "and" split below).
-                    code = resolve_country_code(value)
+                    code = resolve_country_code(value, free_text=True)
                     if code is not None:
                         _record(code, role)
                     for chunk in re.split(r"[,;/()]+|\band\b", value):
                         chunk = chunk.strip()
                         if not chunk:
                             continue
-                        code = resolve_country_code(chunk)
+                        code = resolve_country_code(chunk, free_text=True)
                         if code is not None:
                             _record(code, role)
 

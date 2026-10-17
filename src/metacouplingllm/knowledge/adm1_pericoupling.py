@@ -870,6 +870,22 @@ def _get_spaced_alias_index() -> dict[str, list[tuple[str, str]]]:
     return _spaced_alias_index[1]
 
 
+def _region_names() -> dict[str, frozenset[str]]:
+    """Return every key of the name index and of the alias table, with the
+    countries of the regions it names.
+
+    ``resolve_country_code(..., free_text=True)`` takes from these the region
+    names that hold another country's name, such as "New South Wales", so
+    that free text naming the region does not name that country.
+    """
+    _ensure_loaded()
+    names: dict[str, set[str]] = {}
+    for index in (_get_adm1_name_index(), _adm1_aliases or {}):
+        for name, entries in index.items():
+            names.setdefault(name, set()).update(iso for _, iso in entries)
+    return {name: frozenset(isos) for name, isos in names.items()}
+
+
 # Letters NFKD cannot decompose (they are distinct letters, not
 # letter + combining mark), mapped to their conventional ASCII
 # transliterations so native-script queries such as "Łódź" or

@@ -1214,14 +1214,14 @@ def _extract_countries_from_analysis(
         # Try each text for a country match
         code: str | None = None
         for text in role_texts[role]:
-            code = resolve_country_code(text)
+            code = resolve_country_code(text, free_text=True)
             if code:
                 break
             # Scan sub-chunks
             for chunk in re.split(r"[,;/()]+", text):
                 chunk = chunk.strip()
                 if chunk:
-                    code = resolve_country_code(chunk)
+                    code = resolve_country_code(chunk, free_text=True)
                     if code:
                         break
             if code:
@@ -1318,7 +1318,7 @@ def _collect_analysis_map_country_codes(
 def _scan_text_for_countries(text: str, codes: set[str]) -> None:
     """Scan a text string for country names and add resolved codes to *codes*."""
     # Try the full text first
-    code = resolve_country_code(text)
+    code = resolve_country_code(text, free_text=True)
     if code:
         codes.add(code)
 
@@ -1327,7 +1327,7 @@ def _scan_text_for_countries(text: str, codes: set[str]) -> None:
         chunk = chunk.strip()
         if not chunk or len(chunk) < 3:
             continue
-        code = resolve_country_code(chunk)
+        code = resolve_country_code(chunk, free_text=True)
         if code:
             codes.add(code)
 
@@ -1336,7 +1336,7 @@ def _scan_text_for_countries(text: str, codes: set[str]) -> None:
     for chunk in re.split(r"\s+and\s+|\s+or\s+", text):
         chunk = chunk.strip().rstrip(".,;:")
         if chunk:
-            code = resolve_country_code(chunk)
+            code = resolve_country_code(chunk, free_text=True)
             if code:
                 codes.add(code)
 

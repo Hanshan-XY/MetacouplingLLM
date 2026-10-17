@@ -1593,6 +1593,56 @@ class TestResolveFlowsForMap:
         assert "United States" in direction or "USA" in direction
         assert "China" in direction
 
+    def test_region_named_after_another_country_resolves_to_its_own(self):
+        """"New South Wales" is Australian: until 2026-10-16 the chunk
+        read as Wales, an alias of the United Kingdom, before the ADM1
+        lookup was tried."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {"name": "New South Wales"},
+                "receiving": {"name": "Japan"},
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "New South Wales → Japan",
+                    "description": "Coal",
+                },
+            ],
+        )
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "AUS")
+        assert len(result) >= 1
+        direction = result[0]["direction"]
+        assert "Australia" in direction or "AUS" in direction
+        assert "Japan" in direction
+        assert all("United Kingdom" not in f["direction"] for f in result)
+
+    def test_continent_named_markets_get_no_arrow_to_the_us(self):
+        """The avocado run's "Central American receiving markets" read as
+        the United States ("american") until 2026-10-16."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {"name": "Mexico"},
+                "receiving": {"name": "Central American receiving markets"},
+            },
+            flows=[
+                {
+                    "category": "matter",
+                    "direction": "Mexico → Central American receiving markets",
+                    "description": "Avocado exports",
+                },
+            ],
+        )
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "MEX")
+        assert all(
+            "United States" not in f["direction"] and "USA" not in f["direction"]
+            for f in result
+        )
+
     def test_resolves_generic_receiving_reference(self):
         """'Receiving regions' should resolve to receiving system countries."""
         from metacouplingllm.llm.parser import ParsedAnalysis
@@ -2299,6 +2349,40 @@ class TestStructuredMapData:
             auto_map=False,
         )
         parsed = ParsedAnalysis(coupling_classification="A generic topic")
+
+        ref = advisor._build_adm1_reference_for_prompt(
+            parsed, get_adm1_codes_for_country, get_adm1_info,
+        )
+        assert ref == ""
+
+    def test_adm1_reference_skips_countries_named_inside_other_places(self):
+        """Until 2026-10-16 "Gulf of Mexico" listed Mexico's region codes
+        and "Latin American" those of the United States."""
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            get_adm1_codes_for_country,
+            get_adm1_info,
+        )
+        from metacouplingllm.llm.client import LLMResponse
+        from ._helpers import make_parsed_analysis
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content="ok")
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        parsed = make_parsed_analysis(
+            coupling_classification=(
+                "Shrimp trade from the Gulf of Mexico to Latin American "
+                "markets"
+            ),
+            systems={
+                "sending": {"name": "Shrimp fishery of the Gulf of Mexico"},
+                "receiving": {"name": "Latin American markets"},
+            },
+        )
 
         ref = advisor._build_adm1_reference_for_prompt(
             parsed, get_adm1_codes_for_country, get_adm1_info,
@@ -4466,6 +4550,49 @@ class TestValidateAdm1Pericoupling:
         assert (
             "Brazil (BRA) ↔ China (CHN): TELECOUPLED" in info["pair_results"]
         )
+
+    def test_focal_country_is_not_read_inside_a_region_name(self):
+        """Until 2026-10-16 the sending system "Coal mining in New South
+        Wales" made the United Kingdom the focal country ("wales")."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={
+                "sending": {
+                    "name": "Coal mining in New South Wales",
+                    "geographic_scope": "New South Wales, Australia",
+                },
+                "receiving": {"name": "Japan"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        assert info["focal_country"] == "Australia (AUS)"
+        assert (
+            "Australia (AUS) ↔ Japan (JPN): TELECOUPLED" in info["pair_results"]
+        )
+        assert "United Kingdom" not in info["pair_results"]
+
+    def test_roles_skip_countries_named_inside_other_places(self):
+        """"Latin American markets" named no country; until 2026-10-16 it
+        put the United States among the receiving systems."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {"name": "Brazil"},
+                "receiving": {
+                    "name": "Latin American markets",
+                    "geographic_scope": "Mexico and Guatemala",
+                },
+            },
+        )
+        roles = MetacouplingAssistant._extract_countries_with_roles(parsed)
+        assert roles == {"BRA": "sending", "MEX": "receiving", "GTM": "receiving"}
 
     def test_validator_skips_adm1_in_national_mode(self):
         """PR #44 (v3): the dispatcher skips the ADM1 sub-validator

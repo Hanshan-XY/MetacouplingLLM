@@ -593,6 +593,7 @@ class TestCountryGuard:
         ("New Mexico", "USA032"),
         ("Thai Binh", "VNM054"),
         ("Thai Nguyen", "VNM055"),
+        ("Lao Cai", "VNM038"),
         ("Ile-de-France", "FRA013"),
         ("Mexico City", "MEX009"),
         ("Ciudad de Mexico", "MEX009"),
@@ -601,14 +602,14 @@ class TestCountryGuard:
         assert resolve_adm1_code(name) == code
 
     def test_every_unit_name_containing_a_country_name(self):
-        """The 35 unit names in which resolve_country_code finds a country
+        """The 36 unit names in which resolve_country_code finds a country
         without being one resolve to their own unit without a hint."""
         from metacouplingllm.knowledge.countries import resolve_country_code
         units = self._units(
             lambda name: resolve_country_code(name) is not None
             and resolve_country_code(name, substring=False) is None
         )
-        assert len(units) == 35
+        assert len(units) == 36
         failed = [
             (meta["name"], code, resolve_adm1_code(meta["name"]))
             for code, meta in units.items()
@@ -1439,14 +1440,16 @@ class TestAdm1AliasTable:
         assert not bad, f"Alias keys that are country names: {bad[:5]}"
 
     def test_country_named_keys_resolve_without_a_hint(self, rows):
-        """42 keys contain a country name or demonym, which
+        """43 keys contain a country name or demonym, which
         resolve_country_code finds inside them: four curated ("mexico
-        city", "lesser poland") and the 38 generated ones rule G admitted
-        on 2026-10-16 ("upper austria", "inner mongolia").  None is a
-        country's name, so each resolves with or without a country hint."""
+        city", "lesser poland"), the 38 generated ones rule G admitted on
+        2026-10-16 ("upper austria", "inner mongolia"), and "lao kay", a
+        spelling of Vietnam's Lao Cai, which holds the adjective "lao".
+        None is a country's name, so each resolves with or without a
+        country hint."""
         from metacouplingllm.knowledge.countries import resolve_country_code
         named = [r for r in rows if resolve_country_code(r["alias_key"])]
-        assert len(named) == 42
+        assert len(named) == 43
         failed = [
             (r["alias_key"], r["code"]) for r in named
             if resolve_adm1_code(r["alias_key"], country=r["iso_a3"])

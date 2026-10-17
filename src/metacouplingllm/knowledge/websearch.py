@@ -1959,7 +1959,7 @@ def _detect_national_focus(query: str) -> str | None:
         cleaned = _strip_possessive(phrase)
         if not cleaned:
             continue
-        code = resolve_country_code(cleaned)
+        code = resolve_country_code(cleaned, free_text=True)
         if code:
             return get_country_name(code) or cleaned
 

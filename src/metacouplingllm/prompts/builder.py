@@ -379,7 +379,7 @@ class PromptBuilder:
         # (up to 4 words) to catch multi-word names like "United States".
         words = re.findall(r"[A-Za-z'']+(?:\s+[A-Za-z'']+){0,3}", research_context)
         for phrase in words:
-            code = resolve_country_code(phrase)
+            code = resolve_country_code(phrase, free_text=True)
             if code and code not in seen:
                 found_codes.append(code)
                 seen.add(code)

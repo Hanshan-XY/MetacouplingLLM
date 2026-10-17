@@ -197,6 +197,59 @@ file. The format is loosely based on
   name-matching queries, ten change, each listed in the regression test:
   eight words no longer resolve ("other", "Union", "federal") and "Ile de
   France" and "KwaZulu Natal" now do. Tests +30 (suite 1,689).
+- **Free text names a country only where it names the country: "New South
+  Wales" is not Wales, "South America" not the United States, "and" not
+  Andorra.** `resolve_country_code` returns the country of the longest name
+  or alias it finds in a text, so the callers that read countries out of
+  free text read a place named after a country as that country, and a word
+  that is a country code as that country. On the 421 papers of the RAG
+  corpus, read as each caller other than web search splits text, 162 to 182
+  papers per caller had the first kind of misread:
+  - continents: "South America" and "Latin American" as the United States;
+  - regions of other countries: "Inner Mongolia" as Mongolia in 30 papers,
+    "British Columbia", "New Mexico", "New England";
+  - seas and basins: "Indian Ocean", "Gulf of Mexico", "Congo Basin".
+
+  As web-search queries, 129 of the 421 paper titles took Andorra as their
+  national focus through the word "and", and 14 searched for a wrong
+  country's exports ("Andorra ... export destinations"). The pronoun "us"
+  read as the United States in 83 to 89 papers for each caller that reads
+  lower-case words.
+
+  The new `free_text=True` skips a country's name or alias found only inside
+  the name of another place. The other places are the ADM1 database's
+  region names and aliases that hold another country's name, and a list of
+  continents, seas, lakes, rivers, basins and regions. A code, and the alias
+  "us", count only when written in capitals. These callers now read with it:
+  - the country mentions of an analysis, which also join capitalised words
+    through connectors such as "of", "the" and "de", so "Gulf of Mexico"
+    reaches the resolver whole;
+  - the map's market and partner chunks, the focal-country pick, the system
+    roles, and the country after a comma in a region's name ("Sydney, New
+    South Wales") in `core`;
+  - the prompt's country hint, web search's national focus, and both world
+    map extractors.
+
+  New aliases cover names a shorter alias read as another country: "North
+  Korean" and "DPR Korea" (South Korea), "South Sudanese" (Sudan) and
+  "Guinea Bissau" (Guinea). "Lao" is added too: free text now reads the code
+  LAO only in capitals. With it, Vietnam's "Lao Cai" holds a country's name,
+  like "Thai Binh"; it still resolves to its own region with or without a
+  hint.
+
+  On the same papers, no chunk caller loses a correct reading, and the
+  country mentions' wrong countries summed over papers fall from 266 to 12.
+  In the committed avocado run, "Central American receiving markets" no
+  longer reads as the United States, and no output changes. Of the 14 title
+  queries, none now names a wrong country. Still read as countries:
+  - homonyms (Chad Wong, Panama disease, "Indian" for Indigenous peoples);
+  - acronyms written as codes (LCA);
+  - names that the prompt hint's and web search's four-word windows cut in
+    two, or whose place word the country mentions drop for lacking a
+    capital ("Congo basin").
+
+  The alias build still reproduces both alias tables byte for byte. Tests
+  +73 (suite 1,762).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty

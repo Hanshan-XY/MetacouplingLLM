@@ -559,6 +559,26 @@ class TestExtractCountriesFromAnalysis:
         assert result["sending"] is None
         assert result["receiving"] is None
 
+    def test_places_named_after_a_country_are_not_that_country(self):
+        """Until 2026-10-16 "Coal mines of New South Wales" gave the United
+        Kingdom ("wales") and "South American markets" the United States."""
+        from metacouplingllm.visualization.worldmap import (
+            _extract_countries_from_analysis,
+        )
+
+        analysis = make_parsed_analysis(
+            systems={
+                "sending": {
+                    "name": "Coal mines of New South Wales",
+                    "geographic_scope": "New South Wales, Australia",
+                },
+                "receiving": {"name": "South American markets"},
+            },
+        )
+        result = _extract_countries_from_analysis(analysis)
+        assert result["sending"] == "AUS"
+        assert result["receiving"] is None
+
 
 class TestExtractAllAnalysisCountries:
     """Test the multi-country extraction for analysis-based maps."""
@@ -650,6 +670,57 @@ class TestExtractAllAnalysisCountries:
         result = _extract_all_analysis_countries(analysis)
         assert "USA" in result["other"]
         assert "ARG" in result["other"]
+
+    def test_places_named_after_a_country_add_no_country(self):
+        """Until 2026-10-16 the Gulf of Mexico added Mexico to the map, the
+        Indian Ocean India and "Latin American markets" the United States."""
+        from metacouplingllm.visualization.worldmap import (
+            _extract_all_analysis_countries,
+        )
+
+        analysis = make_parsed_analysis(
+            systems={
+                "sending": {
+                    "name": "Louisiana shrimp fishery",
+                    "geographic_scope": "Gulf of Mexico coast of Louisiana",
+                },
+                "receiving": {"name": "Japan"},
+            },
+            flows=[
+                {
+                    "direction": "Louisiana → Japan",
+                    "category": "matter",
+                    "description": (
+                        "Shrimp from the Gulf of Mexico, shipped across the "
+                        "Indian Ocean"
+                    ),
+                },
+            ],
+            effects={
+                "socioeconomic": ["Prices fall in Latin American markets."],
+            },
+        )
+        result = _extract_all_analysis_countries(analysis)
+        assert "JPN" in result["receiving"]
+        found = set().union(*result.values())
+        assert not found & {"MEX", "IND", "USA"}
+
+    def test_scan_reads_codes_and_us_only_in_capitals(self):
+        """"us" (the pronoun) read as the United States and "Can" as
+        Canada's code until 2026-10-16."""
+        from metacouplingllm.visualization.worldmap import (
+            _scan_text_for_countries,
+        )
+
+        codes: set[str] = set()
+        _scan_text_for_countries(
+            "Data let us compare exports and imports of the US and Can.",
+            codes,
+        )
+        assert codes == {"USA"}
+        codes = set()
+        _scan_text_for_countries("Interviews allowed us to map Can.", codes)
+        assert codes == set()
 
 
 class TestCollectAnalysisMapCountryCodes:

@@ -7,6 +7,7 @@ import pytest
 from metacouplingllm.knowledge.websearch import (
     _DuckDuckGoLiteParser,
     _build_search_queries,
+    _detect_national_focus,
     _detect_subnational_focus,
     _extract_json_object,
     _resolve_ddg_url,
@@ -3594,6 +3595,21 @@ class TestSearchQueryExpansion:
         )
         assert "North Korea coal exports top destinations" in queries
         assert "South Korea coal exports top destinations" not in queries
+
+    def test_words_that_are_codes_give_no_national_focus(self):
+        """Until 2026-10-16 the one-word phrase "and" read as Andorra's
+        code, so a trade query naming no country searched for "Andorra
+        amphibian export destinations"."""
+        query = "The global amphibian trade and the spread of chytrid fungi"
+        assert _detect_national_focus(query) is None
+        assert _build_search_queries(query) == [query]
+        assert _detect_national_focus("How can virtual water trade help") is None
+
+    def test_pronoun_us_gives_no_national_focus(self):
+        assert _detect_national_focus("Help us map soybean trade") is None
+        assert _detect_national_focus(
+            "Soybean trade between the US and China"
+        ) == "United States"
 
     def test_search_web_merges_results_across_expanded_queries(self):
         def fake_single_query(query: str, max_results: int):

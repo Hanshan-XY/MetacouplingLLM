@@ -1241,10 +1241,41 @@ resolve_country_code("New South Wales")   # "GBR" (finds "Wales")
 resolve_country_code("New South Wales", substring=False)  # None
 resolve_country_code("the Gambia", substring=False)       # "GMB"
 
+# Free text: not a country's name inside another place's name,
+# codes and "US" only in capitals
+resolve_country_code("coal from New South Wales to Japan", free_text=True)  # "JPN"
+resolve_country_code("soy from South America", free_text=True)    # None
+resolve_country_code("the Gulf of Mexico", free_text=True)        # None
+resolve_country_code("Inner Mongolia, China", free_text=True)     # "CHN"
+resolve_country_code("and", free_text=True)                       # None (not Andorra)
+resolve_country_code("allowed us to map", free_text=True)         # None
+resolve_country_code("the US", free_text=True)                    # "USA"
+
 # Reverse: code → name
 get_country_name("MEX")  # "Mexico"
 get_country_name("GBR")  # "United Kingdom"
 ```
+
+The analysis pipeline reads countries out of free text, such as the
+research description, the analysis and web-search queries, with
+`free_text=True`. A place named after a country is not that country
+there. The names of other places come from two sources:
+
+- the ADM1 database's region names and aliases that hold another country's
+  name: New South Wales, Port of Spain, Thai Binh, Inner Mongolia;
+- a list of continents, seas, lakes, rivers, basins and regions named after
+  a country: South America, Latin American, the Gulf of Mexico, the Indian
+  Ocean, Lake Chad, the Congo Basin, the Korean Peninsula, New England.
+
+A place's own country still counts: "Western Australia" and "Mexico City"
+read as Australia and Mexico. Words that only look like codes do not:
+"and", "Can" and the pronoun "us". Two limits remain:
+
+- the free-text step finds a country's name, not its sense, so a person's
+  name ("Chad"), a disease ("Panama disease") or an acronym that is a code
+  ("LCA" for life-cycle assessment) still reads as a country;
+- the prompt hint's four-word windows and web search's four-word phrases
+  can cut a place's name before the resolver sees it.
 
 ---
 

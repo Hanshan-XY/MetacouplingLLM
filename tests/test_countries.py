@@ -213,6 +213,28 @@ class TestNewAliases:
         keys = [key.value for key in table.keys]
         assert sorted(k for k in set(keys) if keys.count(k) > 1) == []
 
+    @pytest.mark.parametrize("name, code, before", [
+        ("North Korean", "PRK", "KOR"),
+        ("DPR Korea", "PRK", "KOR"),
+        ("South Sudanese", "SSD", "SDN"),
+        ("Guinea Bissau", "GNB", "GIN"),
+    ])
+    def test_names_a_shorter_alias_read_as_another_country(
+        self, name, code, before,
+    ):
+        """The shorter alias inside gave *before*."""
+        assert resolve_country_code(name) == code
+        assert resolve_country_code(name, substring=False) == code
+
+    def test_lao(self):
+        """The adjective of Laos, which free text no longer reads through
+        the code LAO (codes count there only in capitals)."""
+        assert resolve_country_code("Lao") == "LAO"
+        assert resolve_country_code("Lao", free_text=True) == "LAO"
+        assert resolve_country_code(
+            "the Lao government", free_text=True
+        ) == "LAO"
+
 
 class TestWithoutSubstring:
     """``substring=False`` accepts only a whole code, name or alias."""
@@ -246,6 +268,133 @@ class TestWithoutSubstring:
         ) == "USA"
         assert resolve_country_code("the Mexico", substring=False) == "MEX"
         assert resolve_country_code("The Hague", substring=False) is None
+
+
+class TestFreeText:
+    """``free_text=True``: a passage of text, not a name."""
+
+    @pytest.mark.parametrize("text, found", [
+        # Region names of the ADM1 database
+        ("New South Wales", "GBR"),
+        ("Northern Ireland", "IRL"),
+        ("Port of Spain", "ESP"),
+        ("Port-of-Spain", "ESP"),
+        ("Thai Binh", "THA"),
+        ("Thái Bình province", "THA"),
+        ("New Mexico", "MEX"),
+        ("New Jersey", "JEY"),
+        ("British Columbia", "GBR"),
+        ("East New Britain", "GBR"),
+        ("Inner Mongolia", "MNG"),
+        ("East Azerbaijan", "AZE"),
+        ("Central Macedonia", "MKD"),
+        # Continents and world regions
+        ("South America", "USA"),
+        ("soy from South America", "USA"),
+        ("Latin American markets", "USA"),
+        ("Central American receiving markets", "USA"),
+        ("Indo-China", "CHN"),
+        ("the British Isles", "GBR"),
+        # Seas, lakes, basins, deltas, peninsulas
+        ("the Gulf of Mexico", "MEX"),
+        ("Indian Ocean islands", "IND"),
+        ("South China Sea", "CHN"),
+        ("the Sea of Japan", "JPN"),
+        ("Lake Chad basin", "TCD"),
+        ("pasture expansion in the Congo basin", "COG"),
+        ("Niger Delta", "NER"),
+        ("Inner Niger Delta", "NER"),
+        ("the Korean Peninsula", "KOR"),
+        ("New England states", "GBR"),
+    ])
+    def test_a_country_inside_another_places_name_does_not_count(
+        self, text, found,
+    ):
+        """*found* is what the text reads as without ``free_text``."""
+        assert resolve_country_code(text) == found
+        assert resolve_country_code(text, free_text=True) is None
+
+    @pytest.mark.parametrize("text, code", [
+        ("coal from New South Wales to Japan", "JPN"),
+        ("Mexico and New Mexico", "MEX"),
+        ("Mexico, Gulf of Mexico", "MEX"),
+        ("Inner Mongolia, China", "CHN"),
+        ("shrimp from the Gulf of Mexico to Japan", "JPN"),
+    ])
+    def test_other_countries_in_the_text_still_count(self, text, code):
+        assert resolve_country_code(text, free_text=True) == code
+
+    @pytest.mark.parametrize("text, code", [
+        ("Western Australia", "AUS"),
+        ("Mexico City", "MEX"),
+        ("Hong Kong SAR, China", "HKG"),
+        ("the Brazilian Amazon", "BRA"),
+        ("Niger Delta, Nigeria", "NGA"),
+    ])
+    def test_a_places_own_country_counts(self, text, code):
+        assert resolve_country_code(text, free_text=True) == code
+
+    @pytest.mark.parametrize("text, code", [
+        ("USA", "USA"),
+        ("the USA", "USA"),
+        ("MEX", "MEX"),
+        ("US exports", "USA"),
+        ("the US", "USA"),
+        ("U.S. corn", "USA"),
+    ])
+    def test_codes_and_us_in_capitals_count(self, text, code):
+        assert resolve_country_code(text, free_text=True) == code
+
+    @pytest.mark.parametrize("text, found", [
+        ("and", "AND"),
+        ("Can", "CAN"),
+        ("cod", "COD"),
+        ("mex", "MEX"),
+        ("us", "USA"),
+        ("allowed us to map", "USA"),
+        ("the Sea Around Us", "USA"),
+    ])
+    def test_codes_and_us_written_otherwise_do_not(self, text, found):
+        """A word that is a code ("and" is Andorra's), or the pronoun."""
+        assert resolve_country_code(text) == found
+        assert resolve_country_code(text, free_text=True) is None
+
+    def test_whole_names_still_resolve(self):
+        assert resolve_country_code("Mexico", free_text=True) == "MEX"
+        assert resolve_country_code("the Gambia", free_text=True) == "GMB"
+        assert resolve_country_code(
+            "Ethiopian coffee regions", free_text=True
+        ) == "ETH"
+        assert resolve_country_code(
+            "New South Wales", substring=False, free_text=True
+        ) is None
+
+    def test_other_place_names_are_written_as_lookups_compare_them(self):
+        """Each key holds a country's name or alias, normalized, with
+        spaces for hyphens; each reads as no country in free text."""
+        from metacouplingllm.knowledge.countries import (
+            _OTHER_PLACE_NAMES,
+            _place_key,
+        )
+
+        for key in _OTHER_PLACE_NAMES:
+            assert _place_key(_normalize_country_text(key)) == key
+            assert resolve_country_code(key) is not None, key
+            assert resolve_country_code(key, free_text=True) is None, key
+
+    def test_region_names_come_from_the_adm1_data(self):
+        """Region names and aliases that hold another country's name, with
+        the region's country; not those that are a country's name
+        ("Georgia") or hold only their own ("Western Australia")."""
+        from metacouplingllm.knowledge.countries import _get_other_places
+
+        _, owners = _get_other_places()
+        assert owners["new south wales"] == frozenset({"AUS"})
+        assert owners["port of spain"] == frozenset({"TTO"})
+        assert owners["thai binh"] == frozenset({"VNM"})
+        assert owners["inner mongolia"] == frozenset({"CHN"})
+        assert "georgia" not in owners
+        assert "western australia" not in owners
 
 
 class TestGetCountryName:

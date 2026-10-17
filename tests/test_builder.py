@@ -309,6 +309,23 @@ class TestBuildAdm1PericouplingHint:
         )
         assert hint is None
 
+    def test_words_that_are_codes_name_no_country(self):
+        """Until 2026-10-16 the window "and" (cut off by "2020") read as
+        Andorra's code, and the hint listed Andorra's neighbours."""
+        hint = PromptBuilder._build_coupling_hint(
+            "Soybean expansion between 2000 and 2020"
+        )
+        assert hint is None
+
+    def test_continent_names_no_country(self):
+        """"South America" read as the United States ("america")."""
+        hint = PromptBuilder._build_coupling_hint(
+            "Soybean trade: South America to China"
+        )
+        assert hint is not None
+        assert "China (CHN)" in hint
+        assert "United States" not in hint
+
 
 class TestFullLengthPassageSurvivesTruncation:
     """Regression guard: realistic chunks (up to ~2000 chars) should

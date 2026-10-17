@@ -392,6 +392,21 @@ def _check_country_resolution(ns: dict[str, Any], out: str) -> None:
             f"MANUAL.md §8 documents resolve_country_code({query!r}, "
             f"substring=False) == {expected!r}, got {got!r}"
         )
+    free_text = {
+        "coal from New South Wales to Japan": "JPN",
+        "soy from South America": None,
+        "the Gulf of Mexico": None,
+        "Inner Mongolia, China": "CHN",
+        "and": None,
+        "allowed us to map": None,
+        "the US": "USA",
+    }
+    for query, expected in free_text.items():
+        got = resolve(query, free_text=True)
+        assert got == expected, (
+            f"MANUAL.md §8 documents resolve_country_code({query!r}, "
+            f"free_text=True) == {expected!r}, got {got!r}"
+        )
     get_name = ns["get_country_name"]
     assert get_name("MEX") == "Mexico"
     assert get_name("GBR") == "United Kingdom"
