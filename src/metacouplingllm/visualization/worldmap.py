@@ -1372,7 +1372,8 @@ def plot_analysis_map(
         Which system role to treat as the focal country for coloring.
         Defaults to ``"sending"``.
     title:
-        Custom map title.  Defaults to ``"Metacoupling Analysis Map"``.
+        Custom map title.  Defaults to
+        ``"Metacoupling Analysis Map: {Country Name}"``.
     colors:
         Custom :class:`CouplingColors` instance.
     figsize:
@@ -1392,6 +1393,16 @@ def plot_analysis_map(
     extra_mentioned_countries:
         Optional validated country codes to color in addition to those
         extracted from the parsed analysis.
+    mentioned_countries_override, focal_code_override:
+        ISO alpha-3 codes, used as given, that replace the countries
+        found in *parsed_analysis*.  They work only together: when
+        *focal_code_override* is set and *mentioned_countries_override*
+        is not ``None``, the analysis is not scanned for countries, the
+        focal country is *focal_code_override*, and only the countries
+        in *mentioned_countries_override* are colored besides it (with
+        an empty set, only the focal country is); *focal_role* and
+        *extra_mentioned_countries* are then ignored.  The automatic
+        map (``auto_map=True``, MANUAL §10) passes both.
     flows:
         Optional pre-resolved flow list for arrow rendering. When omitted,
         raw ``parsed_analysis.flows`` are used.
