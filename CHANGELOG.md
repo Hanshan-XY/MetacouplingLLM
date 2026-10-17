@@ -55,7 +55,7 @@ file. The format is loosely based on
   "Zachodniopomorskie" for "Zachodnio-Pomorskie").
   `scripts/validate_adm1_aliases.py` holds the curated list and still
   reproduces the other 1,145 entries byte for byte. Tests +108 (suite
-  1,571).
+  1,623).
 - **Region names that contain a country's name resolve without a country
   hint: "New South Wales", "British Columbia", "Mexico City".** Without a
   hint, `resolve_adm1_code` returned `None` for every name in which
@@ -128,7 +128,7 @@ file. The format is loosely based on
   boundary data behind the ADM1 database, "Democratic Republic of Congo" and
   "D. P. R. of Korea" gave COG and KOR, so for their regions web search
   wrote the Republic of the Congo and South Korea into its queries. Tests
-  +78 with the two entries above (suite 1,649).
+  +78 with the two entries above (suite 1,701).
 - **"Puerto Rico" resolves to Puerto Rico, not the United States.** The
   alias table listed "puerto rico" twice, as PRI and further down as USA,
   and the later key wins, so `resolve_country_code` read Puerto Rico as the
@@ -162,7 +162,7 @@ file. The format is loosely based on
   and the names of three places the package has no code for: Antarctica
   gives `None`, British Indian Ocean Territory the United Kingdom and South
   Georgia and the South Sandwich Islands Georgia. Tests +10 with the
-  previous entry (suite 1,659).
+  previous entry (suite 1,711).
 - **A word that only begins a region's name no longer resolves to that
   region: "other" is not Other Territories, nor "Puerto" Puerto Plata.**
   Without a country hint, `resolve_adm1_code` took a single word that began
@@ -196,7 +196,7 @@ file. The format is loosely based on
   so Magallanes keeps its two curated ones. Of the 14,421 recorded
   name-matching queries, ten change, each listed in the regression test:
   eight words no longer resolve ("other", "Union", "federal") and "Ile de
-  France" and "KwaZulu Natal" now do. Tests +30 (suite 1,689).
+  France" and "KwaZulu Natal" now do. Tests +30 (suite 1,741).
 - **Free text names a country only where it names the country: "New South
   Wales" is not Wales, "South America" not the United States, "and" not
   Andorra.** `resolve_country_code` returns the country of the longest name
@@ -246,7 +246,7 @@ file. The format is loosely based on
   - acronyms written as codes (LCA).
 
   The alias build still reproduces both alias tables byte for byte. Tests
-  +73 (suite 1,762).
+  +73 (suite 1,814).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty
@@ -343,7 +343,7 @@ file. The format is loosely based on
     which the old alias read as the United States;
   - three added readings are a given name: "Germán" read as German.
 
-  Tests +29 (suite 1,791).
+  Tests +29 (suite 1,843).
 - **`find_country_codes` reads every country a text names; web search's
   national focus and an analysis's country mentions use it too.** The scan of
   the entry above moved to `knowledge/countries.py` as
@@ -385,7 +385,7 @@ file. The format is loosely based on
   fall from 10 to 6, all homonyms such as "Panama disease". The avocado run's
   mentions are unchanged.
 
-  Tests +35 (suite 1,826).
+  Tests +35 (suite 1,878).
 
 ### Docs
 
