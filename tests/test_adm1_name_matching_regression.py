@@ -20,6 +20,8 @@ the results to outputs recorded from the regular-expression implementation
 ``runs/avocado_2026-06-16_gpt-5.5_builtin-trace/turn1/05_llm_call_main_analysis.md``,
 copied so that re-running the trace harness, which writes to that folder,
 cannot change this test's input.
+
+Results changed on purpose since the recording are listed in ``_AMENDED``.
 """
 
 from __future__ import annotations
@@ -41,6 +43,45 @@ _DATA = Path(__file__).resolve().parent / "data"
 _GOLDEN = json.loads(
     (_DATA / "adm1_resolve_golden.json").read_text(encoding="utf-8")
 )
+
+# (query, country hint) -> result, for recorded results changed on purpose
+# (all 2026-10-16):
+# * the curated alias "mexico city" resolves Mexico City to Ciudad de México
+#   when a country hint is given;
+# * the country guard of resolve_adm1_code refuses only a name that is a
+#   country's code, name or alias, alone or among words the substring
+#   strategies ignore, so names with any other word resolve without a hint;
+#   it had refused "British Columbia" as British, "Western Australia" as
+#   Australia and the others as France or Mexico;
+# * resolve_country_code folds accents, so "México", the country's name in
+#   Spanish and the World Bank name of the State of México, and "Estado de
+#   México" need a hint as "Mexico" and "Estado de Mexico" always did;
+# * without a country hint, one word resolves only as a whole name, name
+#   variant or alias, not as part of a longer name ("other" was Other
+#   Territories, "Union" La Unión), and a name written with spaces for its
+#   hyphens matches ("KwaZulu Natal").
+_AMENDED = {
+    ("Mexico City", "MEX"): "MEX009",
+    ("Mexico City", "Mexico"): "MEX009",
+    ("British Columbia", None): "CAN002",
+    ("Western Australia", None): "AUS011",
+    ("Ile-de-France", None): "FRA013",
+    ("Île-de-France", None): "FRA013",
+    ("Ciudad de Mexico", None): "MEX009",
+    ("Mexico City", None): "MEX009",
+    ("México", None): None,
+    ("Estado de México", None): None,
+    ("River", None): None,
+    ("Union", None): None,
+    ("cross", None): None,
+    ("federal", None): None,
+    ("long", None): None,
+    ("other", None): None,
+    ("sector", None): None,
+    ("under", None): None,
+    ("Ile de France", None): "FRA013",
+    ("KwaZulu Natal", None): "ZAF004",
+}
 
 
 def _regex_phrase(haystack: str, needle: str) -> bool:
@@ -87,11 +128,12 @@ class TestRecordedOutputs:
 
     def test_resolve_adm1_code_unchanged(self):
         rows = _GOLDEN["resolve_adm1_code"]
+        assert set(_AMENDED) <= {(query, country) for query, country, _ in rows}
         changed = [
             (query, country, expected, got)
-            for query, country, expected in rows
+            for query, country, recorded in rows
             if (got := adm1.resolve_adm1_code(query, country=country))
-            != expected
+            != (expected := _AMENDED.get((query, country), recorded))
         ]
         assert not changed, (
             f"{len(changed)} of {len(rows)} results changed: {changed[:10]}"

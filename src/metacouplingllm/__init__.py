@@ -28,6 +28,7 @@ from metacouplingllm.core import (
 )
 from metacouplingllm.tracing import CallRecord, RunTrace
 from metacouplingllm.knowledge.countries import (
+    find_country_codes,
     get_country_name,
     resolve_country_code,
 )
@@ -214,6 +215,7 @@ __all__ = [
     "is_pericoupled",
     "get_pericoupled_neighbors",
     "resolve_country_code",
+    "find_country_codes",
     "get_country_name",
     # ADM1 (subnational) pericoupling
     "Adm1PairType",

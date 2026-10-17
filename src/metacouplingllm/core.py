@@ -20,6 +20,7 @@ from metacouplingllm.knowledge.citations import (
 )
 from metacouplingllm.knowledge.countries import (
     ISO_ALPHA3_NAMES,
+    find_country_codes,
     get_country_name,
     resolve_country_code,
 )
@@ -1914,12 +1915,18 @@ class MetacouplingAssistant:
             country_hint: str | None = None
             if len(parts) > 1:
                 country_hint = parts[-1]
-                hint_code = resolve_country_code(country_hint)
+                hint_code = resolve_country_code(country_hint, free_text=True)
                 if hint_code:
                     country_hint = hint_code
                 else:
                     country_hint = None
-            if _looks_like_direct_location(region):
+            # A first part that is just the hint's country ("Mexico,
+            # especially Michoacán ..., Mexico") names the country, not
+            # its namesake region (the State of México).
+            names_hint_country = country_hint is not None and (
+                resolve_country_code(region, substring=False) == country_hint
+            )
+            if _looks_like_direct_location(region) and not names_hint_country:
                 code = resolve_adm1_code(region, country=country_hint)
                 if code:
                     return code
@@ -1943,13 +1950,8 @@ class MetacouplingAssistant:
             """Collect ISO codes of all countries mentioned in the analysis."""
             codes: set[str] = set()
             combined = " ".join(parsed.iter_text_fragments())
-            # Try to resolve country names found in the text
-            for word_group in re.findall(
-                _CAPITALIZED_WORD_GROUP_RE, combined
-            ):
-                code = resolve_country_code(word_group)
-                if code:
-                    codes.add(code)
+            # Country names found in the text
+            codes.update(find_country_codes(combined, capitals=True))
             # Also pick up explicit 3-letter ISO codes like "USA", "BRA".
             # Membership check must be explicit: get_country_name()
             # returns the input code itself for unknown codes, so it is
@@ -2053,12 +2055,7 @@ class MetacouplingAssistant:
         # relevance guard.
         country_mentions: set[str] = set()
         combined = " ".join(parsed.iter_text_fragments())
-        for word_group in re.findall(
-            _CAPITALIZED_WORD_GROUP_RE, combined
-        ):
-            code = resolve_country_code(word_group)
-            if code:
-                country_mentions.add(code)
+        country_mentions.update(find_country_codes(combined, capitals=True))
         # Explicit membership check — get_country_name() returns the
         # input code itself for unknown codes (always truthy), which
         # would let acronyms like "GDP" defeat the relevance guard.
@@ -2088,7 +2085,7 @@ class MetacouplingAssistant:
             parts = [p.strip() for p in cleaned.split(",")]
             country_hint: str | None = None
             if len(parts) > 1:
-                hint_code = resolve_country_code(parts[-1])
+                hint_code = resolve_country_code(parts[-1], free_text=True)
                 if hint_code:
                     country_hint = hint_code
             for part in parts:
@@ -2293,7 +2290,7 @@ class MetacouplingAssistant:
                 candidate = re.sub(r"\([^)]*\)", "", chunk).strip().rstrip(".:")
                 if not candidate:
                     continue
-                code = resolve_country_code(candidate)
+                code = resolve_country_code(candidate, free_text=True)
                 if not code:
                     adm1 = resolve_adm1_code(candidate)
                     if adm1:
@@ -2434,7 +2431,7 @@ class MetacouplingAssistant:
                     normalised.append(simplified)
 
             for candidate in normalised:
-                code = resolve_country_code(candidate)
+                code = resolve_country_code(candidate, free_text=True)
                 if code:
                     return code
                 adm1 = resolve_adm1_code(candidate)
@@ -2862,13 +2859,8 @@ class MetacouplingAssistant:
         mentioned_iso: set[str] = set()
         combined = " ".join(parsed.iter_text_fragments())
 
-        # Resolve country names found in the text
-        for word_group in re.findall(
-            _CAPITALIZED_WORD_GROUP_RE, combined
-        ):
-            code = resolve_country_code(word_group)
-            if code:
-                mentioned_iso.add(code)
+        # Country names found in the text
+        mentioned_iso.update(find_country_codes(combined, capitals=True))
         # Pick up explicit 3-letter ISO codes (explicit membership
         # check — get_country_name() falls back to the input code, so
         # truthiness alone admits non-country acronyms like "USD").
@@ -4753,11 +4745,12 @@ class MetacouplingAssistant:
 
         Implementation: scan capitalised word groups in the query
         against the ADM1 database via ``resolve_adm1_code``.  Word
-        groups that also resolve to a country (e.g. "Mexico" -- both
-        a country and a Mexican state) are treated as country
+        groups that are a country's name, code or alias (e.g. "Mexico"
+        -- both a country and a Mexican state) are treated as country
         mentions and skipped, because users naming a country at the
-        top level are framing at country scale.  ISO-style codes
-        ("MEX016") are also recognised.
+        top level are framing at country scale; a region whose name
+        contains a country's ("New South Wales") still counts.
+        ISO-style codes ("MEX016") are also recognised.
         """
         query = (self._original_query or "").strip()
         if not query:
@@ -4776,10 +4769,11 @@ class MetacouplingAssistant:
         for word_group in re.findall(
             _CAPITALIZED_WORD_GROUP_RE, query
         ):
-            # Country mentions take precedence: if the word group
-            # resolves to a country, the user is framing at country
-            # scale (e.g. "Mexico" the country, not the state).
-            if resolve_country_code(word_group):
+            # Country mentions take precedence: if the word group is a
+            # country's name, the user is framing at country scale (e.g.
+            # "Mexico" the country, not the state).  ``substring=False``
+            # keeps "New South Wales" from counting as Wales.
+            if resolve_country_code(word_group, substring=False):
                 continue
             if resolve_adm1_code(word_group):
                 return True
@@ -5491,7 +5485,7 @@ class MetacouplingAssistant:
             for key in ("name", "geographic_scope"):
                 value = sending_entry.get(key, "")
                 if value:
-                    code = resolve_country_code(value)
+                    code = resolve_country_code(value, free_text=True)
                     if code:
                         focal_code = code
                         break
@@ -5752,14 +5746,14 @@ class MetacouplingAssistant:
                     # Try the full value first (e.g. "Mexico"), then
                     # per-chunk on common delimiters (handles "Chile
                     # and Peru" via "and" split below).
-                    code = resolve_country_code(value)
+                    code = resolve_country_code(value, free_text=True)
                     if code is not None:
                         _record(code, role)
                     for chunk in re.split(r"[,;/()]+|\band\b", value):
                         chunk = chunk.strip()
                         if not chunk:
                             continue
-                        code = resolve_country_code(chunk)
+                        code = resolve_country_code(chunk, free_text=True)
                         if code is not None:
                             _record(code, role)
 

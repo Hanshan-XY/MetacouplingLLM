@@ -23,6 +23,230 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **Region names written with their type resolve: "Narok County",
+  "Kagoshima Prefecture", "Rangpur Division".** `resolve_adm1_code` returned
+  `None` for many names as researchers write them, so adjacency validation
+  never engaged for those regions: with the country hint, "Narok County" gave
+  `None` while "Narok" gave `KEN033`, and "Rajshahi Division" resolved only
+  because the alias table happened to list it, while "Rangpur Division" did
+  not. When no strategy matches, the resolver now removes one trailing
+  designator and resolves the rest. Region, province, state and oblast count
+  in any country, as they already did after a canonical name; county,
+  prefecture, division, department, district, governorate and voivodeship
+  count only in the countries whose World Bank first-level units carry them,
+  so "Washington County" does not become the State of Washington, nor
+  "Khulna District" the Khulna Division. The result is refused when the rest
+  also names another unit of the same country ("Almaty Province": "Almaty"
+  is Almaty City) or matches several regions ("La Paz Department" without a
+  country). A name that resolved before is unchanged: of the 183,917
+  queries recorded before the change (each World Bank name and alias with
+  and without its country hint, alone and followed by a designator, and the
+  recorded name-matching queries), none of the 43,883 that resolved gives a
+  different code. The alias table gains 18 curated entries, each checked
+  against the source its basis cites (1,145 → 1,163 entries, 863 → 872
+  regions):
+  "Mexico City", "Silesian Voivodeship", "North-West District" (Ngamiland),
+  "Barisal", the English names of five more Polish voivodeships and two
+  Chilean regions, the full official names of three Chilean regions that the
+  World Bank names shorten ("Libertador General Bernardo O'Higgins" for
+  "Libertador Gral. Bernardo O'Higgins"), and four spellings the World Bank
+  names get wrong ("Lubelskie" for "Lubeiskie", "Małopolskie" for
+  "Malopolske", "Arica y Parinacota" for "Arica y Painacota",
+  "Zachodniopomorskie" for "Zachodnio-Pomorskie").
+  `scripts/validate_adm1_aliases.py` holds the curated list and still
+  reproduces the other 1,145 entries byte for byte. Tests +108 (suite
+  1,623).
+- **Region names that contain a country's name resolve without a country
+  hint: "New South Wales", "British Columbia", "Mexico City".** Without a
+  hint, `resolve_adm1_code` returned `None` for every name in which
+  `resolve_country_code` found a country, so 52 of the 3,374 regions did not
+  resolve under their own World Bank names, some read as another country:
+  "New South Wales" and "East New Britain" as the United Kingdom, "Northern
+  Ireland" as Ireland, "Port Of Spain" as Spain, "New Jersey" as Jersey,
+  "Thai Binh" as Thailand. It now refuses only a name that is a country's ISO
+  code, name or alias (what `resolve_country_code` tests with the new
+  `substring=False`), alone or among the connector and administrative words
+  its matcher ignores ("of Mexico", "State of Mexico", "Niger State");
+  without that last part, n-grams of running text such as "region of
+  Mexico" (from "the Michoacán region of Mexico") would resolve to the State
+  of México. The 33 names with another word besides a country's name
+  resolve to their own regions, as do the curated aliases "Mexico City",
+  "Lesser Poland", "Greater Poland" and "Magallanes and the Chilean
+  Antarctica"; the 19 that are a country's name ("Georgia", "Niger",
+  "Wales", "Est", which is Estonia's ISO code) still need the hint, and so
+  now do "México" and "Panamá" (next entry). A research description naming
+  such a region ("Wool exports from New South Wales") now counts as
+  subnational for the validator and the map. Of the 14,421 recorded
+  name-matching queries, eight give a different result, each listed with
+  its reason in the regression test: "British Columbia", "Western
+  Australia", "Ile-de-France", "Île-de-France", "Ciudad de Mexico" and
+  "Mexico City" resolve without a hint, and "México" and "Estado de México"
+  no longer do. Of the 124,013 phrases with a
+  country's name in them among the one- to four-word phrases and capitalised
+  word groups of the 421 corpus papers and the avocado run, 23 resolve
+  differently without a hint: 22 to the region they name (New Jersey,
+  Western Australia, New South Wales and others) and "México" to `None`.
+- **The alias table takes English names that contain a country's name:
+  "Upper Austria", "Inner Mongolia", "North Holland", "East Azerbaijan"
+  (1,163 → 1,201 entries, 872 → 897 regions, 136 → 138 countries).**
+  Validation rule G of `scripts/validate_adm1_aliases.py` dropped every
+  generated alias in which `resolve_country_code` found a country, 64 of
+  them, because the resolver read such names as the country without a hint
+  (entry above). It now drops only a key that is a country's code, name or
+  alias, 4 of them ("hong kong", "kuwait", "french guiana", "saint
+  martin"). Of the 50 aliases this admitted, each checked against
+  Wikipedia's lists of the countries' divisions and the units' own
+  articles, 38 ship and 12 went on the review denylist: the capital-city
+  namesakes "kuwait city", "luxembourg city" and "panama city"; "french
+  riviera", the coast of Provence-Alpes-Côte d'Azur; generic labels that
+  span several units, "northern", "eastern" and "western kazakhstan",
+  "north lebanon" (also Akkar), "south lebanon" (also Nabatieh) and
+  "southwest ethiopia" (the RAG corpus's "southwestern Ethiopia" studies lie
+  in Jimma Zone, Oromia); the former name "lower congo" (Bas-Congo, renamed
+  Kongo Central in 2015); and the calque "isle of france", once the name of
+  colonial Mauritius. Seven others are now redundant (rule R1): with the
+  country hint they resolve without an alias ("british columbia", "port of
+  spain"). Deduplication (rule D0) now keeps the curated record when a
+  generated alias has the same key and code, so "mexico city", "lesser
+  poland" and "greater poland", which the generation run had also
+  proposed, keep their cited sources in the audit table. The 14,421
+  recorded name-matching results are unchanged.
+- **`resolve_country_code` ignores accents and reads the World Bank's
+  country names.** "México", "Perú", "Panamá", "Curaçao" and "Réunion"
+  returned `None`, as did "España", "Brasil", "Bangladeshi", "Kyrgyz
+  Republic", "Slovak Republic" and "Lao People's Democratic Republic", and
+  the World Bank's "Congo, Dem. Rep." and "Korea, Dem. People's Rep." gave
+  the Republic of the Congo and South Korea. Case, accents, curly
+  apostrophes and repeated spaces are now ignored, and a leading "the" when
+  the text is a whole name ("the Gambia"). New aliases add the two names in
+  the country's own language, "Bangladeshi", and the World Bank's names that
+  resolved to `None` or to another country. In its country list
+  (api.worldbank.org, read 2026-10-16) 12 of the 217 economies did, and 11
+  now resolve, among them "St. Lucia", "Virgin Islands (U.S.)" (read as the
+  United States), "St. Martin (French part)" (as France) and "Puerto Rico
+  (US)" (next entry); the Channel Islands have no ISO code. In the
+  boundary data behind the ADM1 database, "Democratic Republic of Congo" and
+  "D. P. R. of Korea" gave COG and KOR, so for their regions web search
+  wrote the Republic of the Congo and South Korea into its queries. Tests
+  +78 with the two entries above (suite 1,701).
+- **"Puerto Rico" resolves to Puerto Rico, not the United States.** The
+  alias table listed "puerto rico" twice, as PRI and further down as USA,
+  and the later key wins, so `resolve_country_code` read Puerto Rico as the
+  United States, although the country pericoupling table, the ADM1 database
+  and the World Bank boundaries of both maps give it its own code, PRI. A
+  map with Puerto Rico as its focal country showed the United States, with
+  Canada and Mexico pericoupled, and arrows from Puerto Rico started in the
+  middle of the contiguous United States; `lookup_pericoupling` called
+  Puerto Rico and Mexico pericoupled, and the database hint for a research
+  description naming only Puerto Rico gave the United States as its focal
+  country, with Canada and Mexico as neighbours. With the country hint
+  "Puerto Rico", `resolve_adm1_code` found none of the island's eight regions
+  ("San Juan" gave `None`, "Montana" the US state), nor did the map's
+  region scan of an analysis about Puerto Rico, and web search named their
+  country the United States ("Ponce, United States"). "Puerto Rico", the
+  World Bank's "Puerto Rico (US)" and its boundary data's "Puerto Rico
+  (U.S.)" now resolve to PRI, which the pericoupling table gives no
+  pericoupled neighbour. A new test fails on a repeated alias key; the two
+  other repeats in the table gave the same code twice.
+- **ISO 3166 names written inverted resolve to their own country.** In
+  Debian's iso-codes data (the names pycountry gives) and Wikipedia's table
+  of ISO 3166-1, "Korea, Democratic People's Republic of" gave South Korea,
+  "Congo, The Democratic Republic of the" and "Congo, Democratic Republic
+  of the" the Republic of the Congo, "Virgin Islands, British" and "Virgin
+  Islands (British)" the United Kingdom, and "Virgin Islands, U.S." and the
+  official name "Virgin Islands of the United States" the United States,
+  each through a shorter name inside it. Seven aliases add them. Of the 433
+  names of the 249 entries in iso-codes (short, official and common), all
+  now give their own code except "Pitcairn" and the official names of
+  Gabon, Greece, Rwanda and Togo ("Gabonese Republic"), which give `None`,
+  and the names of three places the package has no code for: Antarctica
+  gives `None`, British Indian Ocean Territory the United Kingdom and South
+  Georgia and the South Sandwich Islands Georgia. Tests +10 with the
+  previous entry (suite 1,711).
+- **A word that only begins a region's name no longer resolves to that
+  region: "other" is not Other Territories, nor "Puerto" Puerto Plata.**
+  Without a country hint, `resolve_adm1_code` took a single word that began
+  a longer World Bank name, or that a slash or an accented letter set off
+  inside one, for that region. The prompt's ADM1 hint, web search and the
+  map's region scans try each word of a description on its own, so "How
+  does soybean trade between Brazil and China affect other countries?" got
+  Other Territories (Australia) as its focal region, "the European Union"
+  La Unión (El Salvador), "Federal subsidies" Distrito Federal (Brazil),
+  "the lower Mekong" Lower River (The Gambia), "Coffee exports from Puerto
+  Rico" Puerto Plata (Dominican Republic) and "San Juan, Puerto Rico" San
+  Juan/Laventille (Trinidad and Tobago), and web search wrote these regions
+  into its queries. Of the 51,848 distinct words, as written, of the 421
+  corpus papers, 648 resolved without a hint and 177 of them no longer do:
+  "other", "area", "under", "long", "cross", "sector", "River", parts of
+  longer names ("Minas", "Addis") and given names and surnames ("María",
+  "Khan", "John"). A single word now resolves without a hint only as a
+  whole name, name variant or alias; with a hint it may still begin a
+  longer name ("Badakhshan" with "TJK"). The short names that are a
+  region's own resolve through 48 new aliases ("Beijing", "Shanghai",
+  "Xinjiang", "Michoacan", "Veracruz", "Madrid", "Tbilisi"): rule R1 of the
+  alias build no longer drops as redundant a one-word key that the resolver
+  found only as the start of a longer name, which admitted 50 generated
+  aliases, and the common English words "northwest", "oriental" and "udon"
+  went on the review denylist; "Brussels" is curated. Names written with
+  spaces for their hyphens now match ("Schleswig Holstein", "Baden
+  Württemberg"), which text scans need, as they split words at hyphens;
+  seven aliases this makes redundant are gone ("dar es salaam"). The table
+  goes from 1,201 to 1,242 entries (897 → 920 regions, 138 → 140
+  countries), and rule C1 caps only a region's generated aliases at three,
+  so Magallanes keeps its two curated ones. Of the 14,421 recorded
+  name-matching queries, ten change, each listed in the regression test:
+  eight words no longer resolve ("other", "Union", "federal") and "Ile de
+  France" and "KwaZulu Natal" now do. Tests +30 (suite 1,741).
+- **Free text names a country only where it names the country: "New South
+  Wales" is not Wales, "South America" not the United States, "and" not
+  Andorra.** `resolve_country_code` returns the country of the longest name
+  or alias it finds in a text, so the callers that read countries out of
+  free text read a place named after a country as that country, and a word
+  that is a country code as that country. On the 421 papers of the RAG
+  corpus, read as each caller other than web search splits text, 162 to 182
+  papers per caller had the first kind of misread:
+  - continents: "South America" and "Latin American" as the United States;
+  - regions of other countries: "Inner Mongolia" as Mongolia in 30 papers,
+    "British Columbia", "New Mexico", "New England";
+  - seas and basins: "Indian Ocean", "Gulf of Mexico", "Congo Basin".
+
+  As web-search queries, 129 of the 421 paper titles took Andorra as their
+  national focus through the word "and", and 14 searched for a wrong
+  country's exports ("Andorra ... export destinations"). The pronoun "us"
+  read as the United States in 83 to 89 papers for each caller that reads
+  lower-case words.
+
+  The new `free_text=True` skips a country's name or alias found only inside
+  the name of another place. The other places are the ADM1 database's
+  region names and aliases that hold another country's name, and a list of
+  continents, seas, lakes, rivers, basins and regions. A code, and the alias
+  "us", count only when written in capitals. These callers now read with it:
+  - the map's market and partner chunks, the focal-country pick, the system
+    roles, and the country after a comma in a region's name ("Sydney, New
+    South Wales") in `core`;
+  - both world map extractors.
+
+  The country mentions of an analysis, the prompt's country hint and web
+  search's national focus read with `find_country_codes`, which applies the
+  same rules (see its entry below).
+
+  New aliases cover names a shorter alias read as another country: "North
+  Korean" and "DPR Korea" (South Korea), "South Sudanese" (Sudan) and
+  "Guinea Bissau" (Guinea). "Lao" is added too: free text now reads the code
+  LAO only in capitals. With it, Vietnam's "Lao Cai" holds a country's name,
+  like "Thai Binh"; it still resolves to its own region with or without a
+  hint.
+
+  On the same papers, no chunk caller loses a correct reading, and the
+  country mentions' wrong countries summed over papers fall from 266 to 12.
+  In the committed avocado run, "Central American receiving markets" no
+  longer reads as the United States, and no output changes. Of the 14 title
+  queries, none now names a wrong country. Still read as countries:
+  - homonyms (Chad Wong, Panama disease, "Indian" for Indigenous peoples);
+  - acronyms written as codes (LCA).
+
+  The alias build still reproduces both alias tables byte for byte. Tests
+  +73 (suite 1,814).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty
@@ -83,6 +307,107 @@ file. The format is loosely based on
   the signatures of the functions they wrap; tests compare the two and check
   that every keyword reaches the implementation unchanged through both
   wrappers. Tests +9 (suite 1,515).
+- **The pericoupling hint finds every country a research description names, in
+  the order it names them.** When no ADM1 region is found, the system prompt's
+  pericoupling lookup pairs the first country the description names (the focal
+  country) with each other one, or lists its neighbours when it is the only one
+  (`PromptBuilder._build_coupling_hint`). It read the description in
+  consecutive chunks of up to four words, one country per chunk, so a name
+  across two chunks was missed ("Coffee production in Costa Rica" gave no
+  hint), a second name in a chunk was dropped ("Mexico and Canada avocado
+  trade" gave Canada alone, as the focal country), names with a hyphen,
+  apostrophe or diacritic did not match (Guinea-Bissau gave Guinea), and a word
+  alone in its chunk could be read as an ISO code ("between 2000 and 2024" gave
+  Andorra). The scan now takes, at each word, the longest run of words that is
+  exactly a country's name or alias, then goes on after it: names are read
+  whole, without the shorter names inside them ("Papua New Guinea" gives no
+  Guinea), names such as "Côte d’Ivoire", Türkiye and "U.S." match, and
+  countries keep the order of first mention. "US" counts only in capitals, and
+  a three-letter code only in capitals and set apart by punctuation, as in
+  "(BRA)", so the pronoun "us", acronyms such as LCA and words such as "and"
+  are not read as countries. The scan is `find_country_codes` (next entry),
+  which also reads the names of other places, such as "South America", as no
+  country. On 200 research descriptions written for testing, 55 countries the
+  descriptions name are added and 31 misreads dropped: 13 words read as
+  codes, mostly "and", 14 regions of other countries such as British Columbia
+  and New Jersey. The first country found is the labelled focal country in
+  107 of the 196 labelled descriptions, against 101. On the 9,713
+  non-overlapping chunks of up to 250 words that the retrieval chunker cuts
+  from the 421 bundled papers:
+  - 495 countries the chunks name are added;
+  - 2,855 misreads are dropped: words read as codes 2,209 (mostly "and"),
+    continents 301, the pronoun "us" 164, regions of other countries 105,
+    seas and basins 45, and 31 cut names, homonyms and names without an
+    alias of their own;
+  - so are three acronyms LCA (Saint Lucia's code), and one Puerto Rico,
+    which the old alias read as the United States;
+  - three added readings are a given name: "Germán" read as German.
+
+  Tests +29 (suite 1,843).
+- **`find_country_codes` reads every country a text names; web search's
+  national focus and an analysis's country mentions use it too.** The scan of
+  the entry above moved to `knowledge/countries.py` as
+  `find_country_codes(text, *, capitals=False)`, exported from the package.
+  It applies the free-text rules of `resolve_country_code`:
+  - the name of another place uses up its words and names only the place's
+    own country: "South America", "the Gulf of Mexico", "New South Wales",
+    "the Congo basin" and the pau-brasil tree name none, "Inner Mongolia,
+    China" names China;
+  - names are compared as `resolve_country_code` compares them, so accents
+    fold ("México", "Perú");
+  - up to three punctuation marks may complete a name ("U.S.", "Virgin
+    Islands (U.S.)").
+
+  Scanned alone, each country name, alias and place name gives what
+  `resolve_country_code(..., free_text=True)` gives.
+
+  Web search's national focus is now the first country a query names. It
+  was read from four-word phrases of the query, then shorter ones down to
+  single words, which took:
+  - the longest name in the first phrase holding one ("Mexico and Canada
+    avocado trade" focused on Canada);
+  - pieces of other places' names ("Soybean exports from South America" on
+    the United States, "Salmon bound for British Columbia ports" on the
+    United Kingdom).
+
+  On the 200 research descriptions the focus is wrong for none, against 12,
+  and is the labelled focal country for 107 of 196, against 104. On the 421
+  paper titles as queries it is wrong for none, against 8.
+
+  An analysis's country mentions are read with `capitals=True`, a name
+  counting only where it starts with a capital letter. They serve the ADM1
+  relevance guard, the country set of the region scan and the ADM1 code list
+  of the map-extraction prompt. They were capitalised word groups, which a
+  lower-case word, a hyphen or an apostrophe ended: "Trinidad and Tobago",
+  "Côte d'Ivoire" and "Timor-Leste" named no country, "the Congo basin" named
+  the Republic of the Congo and "North-American" the United States. On the
+  421 papers, 92 countries the text names are added, and misread countries
+  fall from 10 to 6, all homonyms such as "Panama disease". The avocado run's
+  mentions are unchanged.
+
+  Tests +35 (suite 1,878).
+- **A system's scope that opens with its country's name reads as the
+  country, not as the country's namesake region.** To find a focal region in
+  an analysis, `_resolve_adm1_from_analysis` reads each system's scope as
+  "region, …, country", the last comma part giving the country hint. When
+  the first part was the hinted country itself, it resolved to the region of
+  that name: "Mexico, especially Michoacán and Jalisco, Mexico" gave the
+  State of México (MEX015), and scopes opening with Guatemala, Panama or
+  Luxembourg gave their namesake regions. Thirteen countries' names resolve
+  to one of their own regions when the country is the hint. The first part
+  is no longer read as a region when it is only the hinted country's name.
+  "Michoacán, Mexico", "State of Mexico, Mexico", "Panamá Province, Panama"
+  and "Georgia, United States" resolve as before; a namesake region written
+  by its bare name with its country ("Panamá, Panama") no longer does.
+
+  The committed avocado run's focal scope opens "Mexico, especially the
+  Michoacán Avocado Belt" and ends "while Data México reports … US$3.525
+  billion". That last part used to read as the United States (from "US$"),
+  so the scope gave no region; since `resolve_country_code` ignores accents
+  (above), it reads Mexico, which made the scope the State of México. It now
+  gives no region, and the run's callers of the country and region resolvers
+  return what they did before this release's country changes. Tests +10
+  (suite 1,888).
 
 ### Docs
 

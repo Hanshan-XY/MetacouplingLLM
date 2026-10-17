@@ -1159,21 +1159,55 @@ The same `coupling_standard` argument is accepted by the ADM1 functions
 `docs/METHODS_adjacency.md` §8, and `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
 `resolve_adm1_code` also consults a bundled **English-exonym alias table**
-(`data/adm1_aliases.csv`, 1,145 validated aliases for 863 regions across 136
+(`data/adm1_aliases.csv`, 1,242 validated aliases for 920 regions across 140
 countries) before its name/substring strategies, so common English
 names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
 (Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The
 table is additions-only and deterministically validated; a name that is
-ambiguous or denotes a different place (e.g. `"Mexico City"` vs the State of
-México) returns `None` rather than a confident wrong answer.  See
+ambiguous or denotes a different place (e.g. `"New Mexico"` with
+`country="MEX"`) returns `None` rather than a confident wrong answer.  See
 `data/PROVENANCE.md` for the generation and validation methodology.
+
+A name that is a country's ISO code, name or alias (`resolve_country_code`
+with `substring=False`, below) returns `None` unless `country` is given,
+because it is read as the country: `"Georgia"`, `"Niger"`, `"Wales"`,
+`"México"`, or `"Est"`, which is Estonia's ISO code.  The same holds when
+the name stands among connector or administrative words, which the matcher
+ignores (`"of Mexico"`, `"region of Mexico"`, `"State of Mexico"`, `"Niger
+State"`): pass `country` for these.  A name with any other word besides a
+country's name is a region's and resolves without `country`: `"New South
+Wales"` → `AUS004`, `"Mexico City"` → `MEX009`, `"Lesser Poland"` →
+`POL006`.
+
+Without `country`, a single word resolves only as a region's whole name, a
+variant of it or an alias (`"Beijing"` → `CHN002` and `"Michoacan"` →
+`MEX016` through the alias table), not as part of a longer name: `"other"`,
+`"Union"` and `"Puerto"` (of Puerto Rico) return `None` rather than Other
+Territories, La Unión or Puerto Plata.  The prompt hint, web search and the
+map try each word of a description on its own, which is where such matches
+came from.  With `country`, the word may still be part of a longer name of
+that country: `resolve_adm1_code("Badakhshan", country="TJK")` → `TJK001`.
+A name written with spaces for its hyphens matches the hyphenated name:
+`"Schleswig Holstein"` → `DEU015`.
+
+When no strategy matches a name, `resolve_adm1_code` removes one trailing
+administrative designator and resolves the rest: `"Narok County"` →
+`KEN033`, `"Kagoshima Prefecture"` → `JPN017`, `"Rangpur Division"` →
+`BGD007`.  Region, province, state and oblast are removed for any country.
+County, prefecture, division, department, district, governorate and
+voivodeship are removed only for countries whose first-level units carry
+them, so `"Washington County"` stays `None` rather than becoming the State of
+Washington.  The result is also refused when the rest names another unit of
+the same country (`"Almaty Province"`: `"Almaty"` is Almaty City, the
+province a separate unit) or matches several regions (`"La Paz Department"`
+without `country`).
 
 ### Country name resolution
 
 The package accepts country names in many formats:
 
 ```python
-from metacouplingllm import resolve_country_code, get_country_name
+from metacouplingllm import find_country_codes, get_country_name, resolve_country_code
 
 # ISO codes
 resolve_country_code("USA")         # "USA"
@@ -1193,13 +1227,67 @@ resolve_country_code("Mexican")     # "MEX"
 resolve_country_code("Brazilian")   # "BRA"
 resolve_country_code("Chinese")     # "CHN"
 
+# Accents, names in the country's own language, World Bank spellings
+resolve_country_code("México")            # "MEX"
+resolve_country_code("Brasil")            # "BRA"
+resolve_country_code("Congo, Dem. Rep.")  # "COD"
+resolve_country_code("Kyrgyz Republic")   # "KGZ"
+
 # Partial/substring matches
 resolve_country_code("Ethiopian coffee regions")  # "ETH"
+resolve_country_code("New South Wales")   # "GBR" (finds "Wales")
+
+# Whole names only
+resolve_country_code("New South Wales", substring=False)  # None
+resolve_country_code("the Gambia", substring=False)       # "GMB"
+
+# Free text: not a country's name inside another place's name,
+# codes and "US" only in capitals
+resolve_country_code("coal from New South Wales to Japan", free_text=True)  # "JPN"
+resolve_country_code("soy from South America", free_text=True)    # None
+resolve_country_code("the Gulf of Mexico", free_text=True)        # None
+resolve_country_code("Inner Mongolia, China", free_text=True)     # "CHN"
+resolve_country_code("and", free_text=True)                       # None (not Andorra)
+resolve_country_code("allowed us to map", free_text=True)         # None
+resolve_country_code("the US", free_text=True)                    # "USA"
+
+# Every country a passage names, in the order it names them
+find_country_codes("Mexico and Canada avocado trade")       # ["MEX", "CAN"]
+find_country_codes("Coffee from Costa Rica and Côte d'Ivoire")  # ["CRI", "CIV"]
+find_country_codes("Soy from South America to China")       # ["CHN"]
+find_country_codes("turkey and chile peppers from Chile", capitals=True)  # ["CHL"]
 
 # Reverse: code → name
 get_country_name("MEX")  # "Mexico"
 get_country_name("GBR")  # "United Kingdom"
 ```
+
+The analysis pipeline reads countries out of free text, such as the
+research description, the analysis and web-search queries:
+
+- the pericoupling hint, web search's national focus and the analysis's
+  country mentions read the whole text with `find_country_codes`, each
+  name whole wherever it falls, in the order the text names them (the
+  analysis with `capitals=True`, since its writer capitalises names);
+- the map's and the validator's readings of a system name, a flow or a
+  list of places use `resolve_country_code(..., free_text=True)`.
+
+Either way a place named after a country is not that country. The names
+of other places come from two sources:
+
+- the ADM1 database's region names and aliases that hold another country's
+  name: New South Wales, Port of Spain, Thai Binh, Inner Mongolia;
+- a list of continents, seas, lakes, rivers, basins and regions named after
+  a country: South America, Latin American, the Gulf of Mexico, the Indian
+  Ocean, Lake Chad, the Congo Basin, the Korean Peninsula, New England.
+
+A place's own country still counts: "Western Australia" and "Mexico City"
+read as Australia and Mexico. Words that only look like codes do not:
+"and", "Can" and the pronoun "us". Both find a country's name, not its
+sense, so a person's name ("Chad"), a disease ("Panama disease") or an
+acronym written as a code ("LCA" for life-cycle assessment, in parentheses)
+still reads as a country, and in a description written in lower case,
+"turkey" is Turkey.
 
 ---
 
@@ -1695,7 +1783,7 @@ Methods and properties:
 | `lookup_pericoupling(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `PericouplingResult` | Full lookup with pair type and codes. |
 | `is_pericoupled(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick check: True/False/None. |
 | `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All pericoupled ISO codes. |
-| `resolve_country_code(name_or_code)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3. |
+| `resolve_country_code(name_or_code, *, substring=True)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3; `substring=False` accepts only a whole code, name or alias. |
 | `get_country_name(code)` | `str` | ISO alpha-3 code to canonical English name. |
 
 `de_facto_borders` toggles the disputed-territory overlay;
@@ -1713,7 +1801,7 @@ water-only pairs — see §8 "Adjacency standards".
 | `get_adm1_codes_for_country(country)` | `set[str]` | All ADM1 codes inside the given country (name or ISO alpha-3). |
 | `get_adm1_info(adm1_code)` | `dict \| None` | Dict with keys `name` (canonical ADM1 name), `country_name`, `iso_a3` and `wb_region` (World Bank region code, e.g. `LCR`); `None` if the code is unknown. |
 | `get_adm1_country(adm1_code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
-| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` — and **English exonyms / alternative spellings** via a bundled alias table — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` — and **English exonyms / alternative spellings** via a bundled alias table — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016` — and a trailing administrative designator, removed when the full name does not resolve — `"Narok County"` → `KEN033`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
 | `get_adm1_aliases(adm1_code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
 
 ### Literature Functions
@@ -1919,9 +2007,10 @@ from the block in these cases:
 - **Country-scope query.** The subnational (ADM1) part of the validator
   runs only when the research description passed to `analyze()` names a
   subnational region: a capitalised region name that `resolve_adm1_code`
-  resolves and that is not also a country name, or an ADM1 code such as
-  `MEX016`. Adjacent capitalised words are read as one name, so write
-  `Michoacán, Mexico` rather than `Michoacán Mexico`. For any other
+  resolves and that is not itself a country's name (`New South Wales`
+  counts, `Mexico` does not), or an ADM1 code such as `MEX016`. Adjacent
+  capitalised words are read as one name, so write `Michoacán, Mexico`
+  rather than `Michoacán Mexico`. For any other
   (country-scope) query, mentioned regions of the focal country appear only
   on the `Core subnational regions:` line, never as pair lines, and regions
   of other countries are not listed.
@@ -1931,10 +2020,11 @@ from the block in these cases:
 - **Country not named.** When the analysis names other countries but not
   the region's own country, the region is dropped as a likely false match.
 - **Non-canonical names.** The DB uses official names (e.g.
-  `Michoacán de Ocampo`, not `Michoacan State`). Short or colloquial
+  `Michoacán de Ocampo`). Short or colloquial
   forms work via the substring / folded fallback (which also
   transliterates letters NFKD cannot decompose, e.g. `Łódź`,
-  `Đắk Lắk`), and many English
+  `Đắk Lắk`), a trailing designator is removed when the full name
+  fails (`Michoacan State`, `Narok County`), and many English
   exonyms resolve through the alias table, but truly different
   names (e.g. local short names not in the gazetteer or the alias table)
   won't.

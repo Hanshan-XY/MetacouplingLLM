@@ -7,6 +7,8 @@ import pytest
 from metacouplingllm.knowledge.websearch import (
     _DuckDuckGoLiteParser,
     _build_search_queries,
+    _detect_national_focus,
+    _detect_subnational_focus,
     _extract_json_object,
     _resolve_ddg_url,
     _search_stdlib,
@@ -3548,6 +3550,86 @@ class TestSearchQueryExpansion:
     def test_non_trade_prompt_keeps_raw_query(self):
         query = "My research examines Michigan water quality."
         assert _build_search_queries(query) == [query]
+
+    @pytest.mark.parametrize("query", [
+        "Wine exports of Georgia to Russia",
+        "Uranium exports of Niger to France",
+        "Lime exports from the arid region of Mexico",
+        "Banana exports from the province of Panama",
+    ])
+    def test_country_named_like_a_region_gives_no_subnational_focus(
+        self, query,
+    ):
+        """Georgia, Niger, Mexico and Panama also name first-level units (a
+        US state, a Nigerian state, the State of México, Panamá province);
+        phrases of the query such as "of Georgia" or "region of Mexico"
+        must not make it subnational."""
+        assert _detect_subnational_focus(query) == (None, None)
+
+    def test_word_that_only_begins_a_region_name_gives_no_focus(self):
+        """Until 2026-10-16 "Puerto" made the focus Puerto Plata, Dominican
+        Republic, and "other" Other Territories, Australia."""
+        queries = _build_search_queries(
+            "Coffee exports from Puerto Rico to the United States"
+        )
+        assert queries[0] == "Puerto Rico coffee export destinations"
+        assert _detect_subnational_focus(
+            "Soybean exports from Brazil to China and other markets"
+        ) == (None, None)
+
+    def test_country_of_a_region_named_as_the_world_bank_names_it(self):
+        """The ADM1 data names the Democratic Republic of the Congo
+        "Democratic Republic of Congo" and North Korea "D. P. R. of Korea";
+        until 2026-10-16 the queries named the Republic of the Congo and
+        South Korea instead."""
+        queries = _build_search_queries("Cobalt exports from Kinshasa to China")
+        assert (
+            "Democratic Republic of the Congo cobalt exports top destinations"
+            in queries
+        )
+        assert "Republic of the Congo cobalt exports top destinations" not in (
+            queries
+        )
+        queries = _build_search_queries(
+            "Coal exports from North Hamgyong to China"
+        )
+        assert "North Korea coal exports top destinations" in queries
+        assert "South Korea coal exports top destinations" not in queries
+
+    def test_words_that_are_codes_give_no_national_focus(self):
+        """Until 2026-10-16 the one-word phrase "and" read as Andorra's
+        code, so a trade query naming no country searched for "Andorra
+        amphibian export destinations"."""
+        query = "The global amphibian trade and the spread of chytrid fungi"
+        assert _detect_national_focus(query) is None
+        assert _build_search_queries(query) == [query]
+        assert _detect_national_focus("How can virtual water trade help") is None
+
+    def test_pronoun_us_gives_no_national_focus(self):
+        assert _detect_national_focus("Help us map soybean trade") is None
+        assert _detect_national_focus(
+            "Soybean trade between the US and China"
+        ) == "United States"
+
+    @pytest.mark.parametrize("query, focus", [
+        # The first country named, not the longest name in the first
+        # four-word phrase that holds one
+        ("Mexico and Canada avocado trade", "Mexico"),
+        ("China and Brazil soybean trade", "China"),
+        # Names longer than four words
+        ("Cobalt exports from the Democratic Republic of the Congo",
+         "Democratic Republic of the Congo"),
+        # A country inside another place's name, which a phrase or a word
+        # of the query cut off ("America", "British", "Wales")
+        ("Soybean exports from South America", None),
+        ("Salmon exports bound for British Columbia ports", None),
+        ("Coal exports from New South Wales to Japan", "Japan"),
+        ("Shrimp exports from the Gulf of Mexico to Japan", "Japan"),
+    ])
+    def test_national_focus_is_the_first_country_named(self, query, focus):
+        """Until 2026-10-16 the focus was read from four-word phrases of the
+        query, then shorter ones down to single words."""
+        assert _detect_national_focus(query) == focus
 
     def test_search_web_merges_results_across_expanded_queries(self):
         def fake_single_query(query: str, max_results: int):

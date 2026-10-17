@@ -19,8 +19,8 @@ from metacouplingllm.knowledge.adm1_pericoupling import (
 )
 from metacouplingllm.knowledge.countries import (
     ISO_ALPHA3_NAMES,
+    find_country_codes,
     get_country_name,
-    resolve_country_code,
 )
 from metacouplingllm.knowledge.examples import (
     format_example,
@@ -364,25 +364,18 @@ class PromptBuilder:
         country** (assumed to be the focal/sending country).  This
         avoids spurious pairs between receiving countries that the
         researcher did not intend to compare (e.g. USA ↔ Canada when
-        the study is about Mexico exporting to both).
+        the study is about Mexico exporting to both).  Countries are
+        detected in the order the text first names them (see
+        :func:`~metacouplingllm.knowledge.countries.find_country_codes`).
 
         Returns ``None`` when:
         - No country is detected, OR
         - A 1-country query's focal country has zero pericoupled
           neighbors (island nations like Australia, Japan, Cuba).
         """
-        # Detect country codes mentioned in the text.
-        found_codes: list[str] = []
-        seen: set[str] = set()
-
-        # Try to resolve each word-sequence.  We scan overlapping n-grams
-        # (up to 4 words) to catch multi-word names like "United States".
-        words = re.findall(r"[A-Za-z'']+(?:\s+[A-Za-z'']+){0,3}", research_context)
-        for phrase in words:
-            code = resolve_country_code(phrase)
-            if code and code not in seen:
-                found_codes.append(code)
-                seen.add(code)
+        # Detect country codes mentioned in the text, in the order the
+        # text first names them.
+        found_codes = find_country_codes(research_context)
 
         if len(found_codes) < 1:
             return None  # no country detected -> no hint

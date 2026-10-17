@@ -1434,10 +1434,12 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
 (`resolve_adm1_code`) through ordered strategies, each designed to fail to
 `None` rather than guess:
 
-1. **Alias table** (`data/adm1_aliases.csv`; 1,145 validated English exonyms /
-   alternative spellings for 863 regions across 136 countries, PR #60/#61) —
-   `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`. Additions-only,
-   deterministically validated, with a curated review denylist.
+1. **Alias table** (`data/adm1_aliases.csv`; 1,242 validated English exonyms /
+   alternative spellings for 920 regions across 140 countries: 1,223
+   LLM-generated, PR #60/#61, and 19 curated by hand from cited sources) —
+   `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`, `"Mexico City"` →
+   `MEX009`. Additions-only, deterministically validated, with a curated
+   review denylist.
 2. **Exact / normalized match** against the official WB names, tolerant of
    possessives, hyphens, and administrative suffixes.
 3. **Accent-folded fallback** (PR #45): lookup keys and queries are
@@ -1452,10 +1454,41 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
    must match whole name tokens, so `"york"` does not match `New York` and
    grammatically declined stems (`"Krāslava"` vs `Krāslavas novads`) do not
    stem-match — deliberate strictness; such cases are handled by adding an
-   alias-table entry, not by loosening the matcher.
+   alias-table entry, not by loosening the matcher. Without a country hint
+   a single word is not matched here at all, only as a whole name or alias
+   in strategies 1–3: the prompt hint, web search and the map try each word
+   of a description on its own, and the word that begins a longer name is
+   seldom that region (`"other"` is not Other Territories, nor `"Puerto"`
+   Puerto Plata). The alias table carries the short names that are
+   (`"Beijing"`, `"Michoacan"`).
+5. **Trailing designator**: when strategies 1–4 all fail, one trailing
+   administrative designator is removed and the rest resolved again
+   (`"Narok County"` → `KEN033`, `"Kagoshima Prefecture"` → `JPN017`).
+   Region, province, state and oblast count in any country, as they already
+   pad a canonical name in strategy 4; county, prefecture, division,
+   department, district, governorate and voivodeship count only in the
+   countries whose World Bank first-level units are of that kind, so a US
+   county, a Bangladeshi district or a Chinese prefecture does not resolve
+   to the first-level unit of the same name. The result is refused when the
+   rest also names another unit of the same country, whole or before an
+   administrative word (`"Almaty Province"`: `"Almaty"` is Almaty City,
+   `"almaty region"` the province).
+
+Before these strategies, a name that is itself a country's ISO code, name or
+alias (`resolve_country_code` with `substring=False`: case, accents and a
+leading "the" ignored) returns `None` unless a country hint is given: the name
+is read as the country. `"Georgia"` is the country, not the US state, as are
+`"Niger"`, `"Wales"`, `"México"`, and `"Est"`, which is Estonia's ISO code; 21
+of the 3,374 regions have such a name and resolve only with a hint. So does a
+country's name among the connector and administrative words that strategy 4
+ignores (`"State of Mexico"`, `"Niger State"`), which keeps n-grams of running
+text such as `"region of Mexico"` (from "the Michoacán region of Mexico") from
+resolving to the State of México. A name with any other word besides a
+country's name is a region's and needs no hint: `"New South Wales"` →
+`AUS004`, `"Mexico City"` → `MEX009`, `"Lesser Poland"` → `POL006`.
 
 Ambiguous names (several candidate regions, or a name denoting a different
-place, e.g. `"Mexico City"` vs the State of México) return `None`. Full usage
+place, e.g. `"New Mexico"` in Mexico) return `None`. Full usage
 documentation: `MANUAL.md` §8 and §12.
 
 ## 10. Source-relabel: fixing sliver-corridor artifacts at the source

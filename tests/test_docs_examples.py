@@ -373,12 +373,53 @@ def _check_country_resolution(ns: dict[str, Any], out: str) -> None:
         "Mexican": "MEX",
         "Brazilian": "BRA",
         "Chinese": "CHN",
+        "México": "MEX",
+        "Brasil": "BRA",
+        "Congo, Dem. Rep.": "COD",
+        "Kyrgyz Republic": "KGZ",
         "Ethiopian coffee regions": "ETH",
+        "New South Wales": "GBR",
     }
     for query, expected in documented.items():
         assert resolve(query) == expected, (
             f"MANUAL.md §8 documents resolve_country_code({query!r}) "
             f"== {expected!r}, got {resolve(query)!r}"
+        )
+    whole_names_only = {"New South Wales": None, "the Gambia": "GMB"}
+    for query, expected in whole_names_only.items():
+        got = resolve(query, substring=False)
+        assert got == expected, (
+            f"MANUAL.md §8 documents resolve_country_code({query!r}, "
+            f"substring=False) == {expected!r}, got {got!r}"
+        )
+    free_text = {
+        "coal from New South Wales to Japan": "JPN",
+        "soy from South America": None,
+        "the Gulf of Mexico": None,
+        "Inner Mongolia, China": "CHN",
+        "and": None,
+        "allowed us to map": None,
+        "the US": "USA",
+    }
+    for query, expected in free_text.items():
+        got = resolve(query, free_text=True)
+        assert got == expected, (
+            f"MANUAL.md §8 documents resolve_country_code({query!r}, "
+            f"free_text=True) == {expected!r}, got {got!r}"
+        )
+    find = ns["find_country_codes"]
+    passages = {
+        ("Mexico and Canada avocado trade", False): ["MEX", "CAN"],
+        ("Coffee from Costa Rica and Côte d'Ivoire", False): ["CRI", "CIV"],
+        ("Soy from South America to China", False): ["CHN"],
+        ("turkey and chile peppers from Chile", True): ["CHL"],
+    }
+    for (text, capitals), expected in passages.items():
+        got = find(text, capitals=capitals)
+        assert got == expected, (
+            f"MANUAL.md §8 documents find_country_codes({text!r}"
+            f"{', capitals=True' if capitals else ''}) == {expected!r}, "
+            f"got {got!r}"
         )
     get_name = ns["get_country_name"]
     assert get_name("MEX") == "Mexico"

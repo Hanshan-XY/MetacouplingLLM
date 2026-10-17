@@ -795,7 +795,8 @@ _adm1_name_index: dict[str, list[tuple[str, str]]] | None = None
 def _build_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
     """Build a reverse index from lowercase name → [(adm1_code, iso_a3), ...].
 
-    Also indexes suffix-stripped and slash-split variants.
+    Also indexes suffix-stripped and slash-split variants, and each name
+    with its hyphens written as spaces.
     """
     _ensure_loaded()
     assert _adm1_metadata is not None
@@ -827,6 +828,12 @@ def _build_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
                 if part and len(part) >= 2:
                     names_to_index.add(part)
 
+        # 4. Hyphens written as spaces ("schleswig holstein" for
+        #    "Schleswig-Holstein"): text scans split words at hyphens, and
+        #    the first word alone does not resolve (single-word guard of
+        #    ``_resolve_adm1_name``).
+        names_to_index |= {" ".join(_name_words(n)) for n in names_to_index}
+
         for n in names_to_index:
             index.setdefault(n, []).append(entry)
 
@@ -839,6 +846,44 @@ def _get_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
     if _adm1_name_index is None:
         _adm1_name_index = _build_adm1_name_index()
     return _adm1_name_index
+
+
+_spaced_alias_index: tuple[
+    object, dict[str, list[tuple[str, str]]]
+] | None = None
+
+
+def _get_spaced_alias_index() -> dict[str, list[tuple[str, str]]]:
+    """The alias table keyed by each key's words joined by single spaces, so
+    that a hyphenated alias also matches the name written, or split by a
+    text scan, at its hyphens ("baden wurttemberg" for the key
+    "baden-wurttemberg").  Rebuilt when the alias table is replaced.
+    """
+    global _spaced_alias_index
+    aliases = _adm1_aliases
+    if _spaced_alias_index is None or _spaced_alias_index[0] is not aliases:
+        spaced: dict[str, list[tuple[str, str]]] = {}
+        for key, entries in (aliases or {}).items():
+            bucket = spaced.setdefault(" ".join(_name_words(key)), [])
+            bucket.extend(e for e in entries if e not in bucket)
+        _spaced_alias_index = (aliases, spaced)
+    return _spaced_alias_index[1]
+
+
+def _region_names() -> dict[str, frozenset[str]]:
+    """Return every key of the name index and of the alias table, with the
+    countries of the regions it names.
+
+    ``resolve_country_code(..., free_text=True)`` takes from these the region
+    names that hold another country's name, such as "New South Wales", so
+    that free text naming the region does not name that country.
+    """
+    _ensure_loaded()
+    names: dict[str, set[str]] = {}
+    for index in (_get_adm1_name_index(), _adm1_aliases or {}):
+        for name, entries in index.items():
+            names.setdefault(name, set()).update(iso for _, iso in entries)
+    return {name: frozenset(isos) for name, isos in names.items()}
 
 
 # Letters NFKD cannot decompose (they are distinct letters, not
@@ -1010,6 +1055,163 @@ def _is_cross_country_folded_collision(name_lower: str) -> bool:
     return len({iso for _, iso in entries}) > 1
 
 
+def _names_a_country(name_lower: str) -> bool:
+    """Return ``True`` when ``name_lower`` is a country's ISO code, name or
+    alias (:func:`resolve_country_code` with ``substring=False``), alone or
+    among words the substring strategies ignore.
+
+    The country guard of ``resolve_adm1_code`` refuses such a name without a
+    country hint.  The ignored words (``_IGNORABLE_SUBSTRING_WORDS``:
+    connectors such as "of" and "the", and administrative words such as
+    "state" and "region") would otherwise let Direction A of
+    ``_substring_match`` resolve phrases from n-gram scans of text, such as
+    ``"region of Mexico"`` (from "the Michoacán region of Mexico") or ``"and
+    Georgia"``, to the State of México or the US state.  So ``"State of
+    Mexico"`` and ``"Niger State"`` need a hint too.  A name with any other
+    word besides a country's name is a region's: ``"New South Wales"``,
+    ``"Mexico City"``.
+    """
+    if resolve_country_code(name_lower, substring=False):
+        return True
+    words = name_lower.split()
+    rest = [w for w in words if w not in _IGNORABLE_SUBSTRING_WORDS]
+    return bool(rest) and len(rest) < len(words) and (
+        resolve_country_code(" ".join(rest), substring=False) is not None
+    )
+
+
+# Trailing administrative designators.  When no strategy matches a name,
+# ``resolve_adm1_code`` removes one trailing designator ("Narok County" ->
+# "Narok") and resolves the rest once more.  ``None`` accepts the result in
+# any country: region, province, state and oblast already pad a canonical
+# name without changing it (Direction A of ``_substring_match``), and the
+# retry extends that to aliases and to partial or accent-folded names.  The
+# other designators name first-level units in some countries and lower
+# levels elsewhere (US counties, French departments, Chinese prefectures,
+# Bangladeshi or Tanzanian districts), so the result must lie in a country
+# whose World Bank ADM1 units are of that kind, checked against each
+# country's unit names.  Former terms that are still common count: Peru's
+# departments, the divisions of Myanmar and The Gambia, and the districts of
+# Luxembourg and Timor-Leste.
+_TRAILING_DESIGNATORS: dict[str, frozenset[str] | None] = {
+    "region": None,
+    "province": None,
+    "state": None,
+    "oblast": None,
+    "county": frozenset({
+        "EST", "HRV", "HUN", "IRL", "ISL", "KEN", "LBR", "LTU", "NOR", "ROU",
+        "SWE",
+    }),
+    "prefecture": frozenset({"JPN"}),
+    "division": frozenset({"BGD", "FJI", "GMB", "MMR"}),
+    "department": frozenset({
+        "BEN", "BOL", "COG", "COL", "GTM", "HND", "HTI", "NIC", "PER", "PRY",
+        "SLV", "URY",
+    }),
+    "district": frozenset({
+        "ALB", "BLZ", "BRN", "BTN", "BWA", "CIV", "CYP", "ISR", "LBY", "LSO",
+        "LUX", "MUS", "PRT", "SRB", "SYC", "TLS", "UGA",
+    }),
+    "governorate": frozenset({
+        "EGY", "IRQ", "JOR", "KWT", "LBN", "OMN", "PSE", "SYR", "TUN", "YEM",
+    }),
+    "voivodeship": frozenset({"POL"}),
+    "voivodship": frozenset({"POL"}),
+}
+
+
+# Words that mark a name as an administrative unit's, for
+# ``_base_names_another_unit``: the designators above and the type words
+# that end World Bank names or aliases.
+_ADMIN_WORDS: frozenset[str] = frozenset(_TRAILING_DESIGNATORS) | frozenset({
+    "krai", "kray", "okrug", "republic", "rep.", "sheng", "zizhiqu",
+    "laen", "maakond", "novads",
+})
+
+_unit_name_heads: tuple[
+    object, dict[str, dict[tuple[str, ...], set[str]]]
+] | None = None
+
+
+def _get_unit_name_heads() -> dict[str, dict[tuple[str, ...], set[str]]]:
+    """Lazily build, per country, the codes that each word sequence names.
+
+    The sequences are the accent-folded words of every name-index key
+    (canonical name, suffix-stripped and slash-split variants) and alias
+    key, and of each such name's part before an administrative word
+    (``("moscow",)`` from the alias "moscow oblast").  Rebuilt when the
+    alias table is replaced.
+    """
+    global _unit_name_heads
+    aliases = _adm1_aliases
+    if _unit_name_heads is None or _unit_name_heads[0] is not aliases:
+        heads: dict[str, dict[tuple[str, ...], set[str]]] = {}
+        keyed = [*_get_adm1_name_index().items(), *(aliases or {}).items()]
+        for key, entries in keyed:
+            words = tuple(_name_words(_fold_diacritics(key)))
+            spans = [words] + [
+                words[:k] for k in range(1, len(words))
+                if words[k] in _ADMIN_WORDS
+            ]
+            for code, iso in entries:
+                by_words = heads.setdefault(iso, {})
+                for span in spans:
+                    by_words.setdefault(span, set()).add(code)
+        _unit_name_heads = (aliases, heads)
+    return _unit_name_heads[1]
+
+
+def _base_names_another_unit(base: str, code: str) -> bool:
+    """Whether ``base`` names a unit other than ``code`` in the same
+    country: the whole of that unit's name, or the part before an
+    administrative word.
+
+    The second case is a city and the region around it: "Almaty" alone
+    resolves to Almaty City (``KAZ004``), but "Almaty Province" means
+    Almatinskaya (``KAZ003``, alias "almaty region"), so the designator
+    retry refuses it.  A qualified name is not shared: "Pomeranian" does
+    not name West Pomeranian, nor "Nord" Nord-Est.
+    """
+    _ensure_loaded()
+    assert _adm1_country is not None
+    iso = _adm1_country.get(code)
+    words = tuple(_name_words(_fold_diacritics(base.strip().lower())))
+    if iso is None or not words:
+        return False
+    codes = _get_unit_name_heads().get(iso, {}).get(words, set())
+    return bool(codes - {code})
+
+
+def _resolve_without_designator(
+    name: str, country: str | None,
+) -> str | None:
+    """Resolve ``name`` after removing one trailing administrative designator.
+
+    The last step of :func:`resolve_adm1_code`, reached only when every
+    strategy has failed on the full name.  Returns ``None`` unless the name
+    ends, after at least one other word, in a designator of
+    ``_TRAILING_DESIGNATORS``; the rest resolves; the region lies in a
+    country whose first-level units carry that designator; and the rest
+    names no other unit of that country.
+    """
+    parts = name.strip().rsplit(None, 1)
+    if len(parts) != 2:
+        return None
+    base, designator = parts
+    designator = designator.lower()
+    if designator not in _TRAILING_DESIGNATORS:
+        return None
+    code = _resolve_adm1_name(base, country)
+    if code is None:
+        return None
+    countries = _TRAILING_DESIGNATORS[designator]
+    if countries is not None and get_adm1_country(code) not in countries:
+        return None
+    if _base_names_another_unit(base, code):
+        return None
+    return code
+
+
 def resolve_adm1_code(
     name: str,
     country: str | None = None,
@@ -1038,6 +1240,58 @@ def resolve_adm1_code(
        Ambiguity from folding is contained by reusing
        ``_pick_best_candidate`` (single ISO or matching country
        filter required).
+
+    When all four fail, one trailing administrative designator is
+    removed and the rest resolved again (see below).
+
+    Trailing designators
+    --------------------
+    Researchers often add the type of unit to its name: ``"Narok
+    County"``, ``"Kagoshima Prefecture"``, ``"Rangpur Division"``.  If the
+    full name does not resolve and its last word is ``region``,
+    ``province``, ``state``, ``oblast``, ``county``, ``prefecture``,
+    ``division``, ``department``, ``district``, ``governorate`` or
+    ``voivodeship`` (also ``voivodship``; any case), that word is removed
+    and the rest goes
+    through the four strategies once more.  A name that resolves as
+    written is never changed, and only one designator is removed.  The
+    result is kept only if
+
+    * the region's country uses that designator for its first-level units
+      (region, province, state and oblast count everywhere; the others are
+      listed by country in ``_TRAILING_DESIGNATORS``), so ``"Washington
+      County"`` does not become the State of Washington, nor ``"Khulna
+      District"`` the Khulna Division; and
+    * the rest names no other unit of the same country, so ``"Almaty
+      Province"`` does not become Almaty City.
+
+    A rest that matches several regions stays unresolved, as it does
+    without the designator.
+
+    Country names
+    -------------
+    A name that is itself a country's ISO code, name or alias (see
+    :func:`~metacouplingllm.knowledge.countries.resolve_country_code` with
+    ``substring=False``) returns ``None`` unless ``country`` is given:
+    ``"Georgia"`` is read as the country, not the US state, and ``"Niger"``
+    or ``"Wales"`` likewise.  So does such a name among connector and
+    administrative words, which the substring strategies ignore (``"of
+    Mexico"``, ``"State of Mexico"``, ``"Niger State"``).  A name with any
+    other word besides a country's name is resolved as a region: ``"New
+    South Wales"`` → ``AUS004``, ``"New Mexico"`` → ``USA032``, ``"Mexico
+    City"`` → ``MEX009``.
+
+    Single words
+    ------------
+    Without ``country``, a single word resolves only as a region's whole
+    name, a variant of it or an alias (``"Beijing"`` → ``CHN002`` through
+    the alias table), not as part of a longer name: ``"other"``, ``"Union"``
+    and ``"Puerto"`` return ``None``, not Other Territories, La Unión or
+    Puerto Plata.  Text scans try each word of a description on its own.
+    With ``country`` the word may still be part of a longer name of that
+    country (``"Badakhshan"`` with ``"TJK"``).  A name written with spaces
+    for its hyphens matches the hyphenated name: ``"Schleswig Holstein"`` →
+    ``DEU015``.
 
     Cross-country ambiguity
     -----------------------
@@ -1088,16 +1342,44 @@ def resolve_adm1_code(
 
     >>> resolve_adm1_code("Equateur", country="COD")    # hint disambiguates
     'COD013'
+
+    >>> resolve_adm1_code("Narok County", country="KEN")  # designator removed
+    'KEN033'
+
+    >>> resolve_adm1_code("Washington County", country="USA") is None
+    True
+    """
+    if not name or not name.strip():
+        return None
+    code = _resolve_adm1_name(name, country)
+    if code is None:
+        code = _resolve_without_designator(name, country)
+    return code
+
+
+def _resolve_adm1_name(
+    name: str, country: str | None, *, lone_word_substring: bool = False,
+) -> str | None:
+    """Strategies 0-3 of :func:`resolve_adm1_code` with its country,
+    folded-collision and single-word guards, without the
+    trailing-designator retry.
+
+    ``lone_word_substring=True`` lifts the single-word guard, so that a word
+    without a country hint may again match part of a longer name, as it did
+    before 2026-10-16; the alias build uses it to find the aliases that the
+    guard makes necessary.
     """
     if not name or not name.strip():
         return None
 
     name_lower = name.strip().lower()
 
-    # Skip if the name resolves as a country (e.g. "Ethiopia", "China")
-    # UNLESS a country filter is provided — that signals the caller knows
-    # this is a subnational region (e.g. "Georgia" in "USA").
-    if country is None and resolve_country_code(name_lower):
+    # Skip if the name IS a country's name (e.g. "Ethiopia", "China") UNLESS
+    # a country filter is provided — that signals the caller knows this is
+    # a subnational region (e.g. "Georgia" in "USA").  A name that only
+    # contains a country name ("New Mexico", "New South Wales") is a
+    # region's (see ``_names_a_country``).
+    if country is None and _names_a_country(name_lower):
         return None
 
     index = _get_adm1_name_index()
@@ -1122,6 +1404,22 @@ def resolve_adm1_code(
     if country_iso is None and _is_cross_country_folded_collision(name_lower):
         return None
 
+    # --- Single-word guard ---
+    # Without a country hint, one word resolves only as a whole name, name
+    # variant or alias (strategies 0, 1 and 3a), not as part of a longer
+    # name (strategies 2 and 3b).  Text scans try each word of a research
+    # description or query on its own, and the substring strategies took
+    # "other" for Other Territories, "union" for La Unión, "Puerto" (of
+    # Puerto Rico) for Puerto Plata and, at a word boundary they saw at a
+    # slash or an accented letter, "Juan" for San Juan/Laventille and "Kong"
+    # for Xékong.  With a hint the country is known, and the word may still
+    # name part of a longer name there ("Badakhshan", "TJK").
+    whole_only = (
+        country_iso is None
+        and not lone_word_substring
+        and len(_name_words(name_lower)) == 1
+    )
+
     # --- Strategy 0: English-exonym alias table (PR #60) ---
     # Keys in the CSV are pre-validated lowercase NFKD-folded forms.  Try
     # the raw lower form first; if different, also try the NFKD-folded form
@@ -1129,8 +1427,11 @@ def resolve_adm1_code(
     # respected via _pick_best_candidate (miss → fall through to 1-3).
     if _adm1_aliases:
         _folded_lower = _fold_diacritics(name_lower)
+        _spaced_aliases = _get_spaced_alias_index()
         for _alias_key in dict.fromkeys((name_lower, _folded_lower)):
-            _alias_entries = _adm1_aliases.get(_alias_key)
+            _alias_entries = _adm1_aliases.get(_alias_key) or (
+                _spaced_aliases.get(" ".join(_name_words(_alias_key)))
+            )
             if _alias_entries:
                 result = _pick_best_candidate(_alias_entries, country_iso)
                 if result:
@@ -1152,7 +1453,7 @@ def resolve_adm1_code(
     # >1 matches, fall through so the folded strategies still get a chance.
     # Only keys whose letter runs contain the query's, or are contained in
     # them, can match, so only those are tested (``_substring_candidates``).
-    if len(name_lower) >= 4:
+    if len(name_lower) >= 4 and not whole_only:
         matches: set[str] = set()
         for db_name, entries in _substring_candidates(name_lower, folded=False):
             if len(db_name) < 4:
@@ -1185,7 +1486,7 @@ def resolve_adm1_code(
                 return result
         # Strategy 3b: folded substring match (direction-aware + ambiguity
         # guard, same as Strategy 2).
-        if len(folded_query) >= 4:
+        if len(folded_query) >= 4 and not whole_only:
             matches = set()
             for db_name, entries in _substring_candidates(
                 folded_query, folded=True,
