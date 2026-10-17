@@ -862,7 +862,9 @@ Note compares coupling types, not individual partners: if the database
 shows a pericoupled pair but the classification does not mention
 pericoupling (or shows only telecoupled pairs but the classification
 does not mention telecoupling), the Note is printed as
-`Note (country): ...` and ends with "Consider revising."
+`Note (country): ...` and ends with "Consider revising." When the block
+lists no pair, for example because every partner country has the spillover
+role, the Note says that nothing was checked (§8).
 
 The `Core subnational regions:` sub-line appears only for
 national-scope queries (user named a country, not a state) and
@@ -1077,7 +1079,12 @@ ways:
    when a partner is pericoupled in the database but the classification
    does not mention pericoupling, or when all partners are telecoupled but
    it does not mention telecoupling; individual partner labels are not
-   checked.
+   checked. Otherwise the note says the classification is consistent with
+   the database. A check that looked up no pair notes that nothing was
+   checked instead: the country check when every partner country has the
+   spillover role, the subnational (ADM1) check when it finds no other
+   region outside the spillover role (§13 lists why a region can be
+   missed). The report prints such a note only when it lists no pair.
 
 Both steps work from one focal system rather than from every pair. Before
 the LLM call, that system is the first subnational region found in the

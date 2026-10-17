@@ -508,6 +508,41 @@ file. The format is loosely based on
   as MANUAL §10 describes. A query that names a region ("Avocado production
   in Michoacán, Mexico") still gets the ADM1 map, and so does a direct
   `_generate_map` call made without a query. Tests +3 (suite 1,891).
+- **A pericoupling validation note no longer calls the classification
+  consistent when its check classified no pair.** After each analysis the
+  country check and, when the research description names a subnational
+  region, the ADM1 check compare the classification (§1) with the pairs
+  they look up in the adjacency databases, and each writes a note. A check
+  that looked up no pair still noted that the classification was
+  consistent with its database. With Thailand as the sending system and
+  "Nigeria and China" as the spillover system, the country check skips
+  both partners, since spillover partners are not checked, and its note
+  read "LLM classification is consistent with the coupling database." An
+  analysis of acid rain from Ohio falling on Ontario that names Ontario
+  only in a system's name and scope, which the region scan skips, got two
+  notes that contradict each other under the default
+  `coupling_standard="moderate"`: the country check's "Ohio (USA036) ↔
+  Canada (CAN): TELECOUPLED … Consider revising." and the ADM1 check's
+  "LLM classification is consistent with the ADM1 pericoupling database.",
+  although it had classified no region (under `"lenient"` the two notes
+  agreed, and the ADM1 one was just as unchecked). A check that looked up
+  no pair now notes that nothing was checked: "No partner country was
+  checked against the coupling database (partners in the spillover role
+  are not checked)." or "No subnational region other than the focal region
+  was checked against the ADM1 pericoupling database." The report
+  (`result.formatted`) prints such a note only when it lists no pair, so it
+  never joins the line that calls the classification consistent with both
+  databases. The note of a check that looked up a pair is unchanged; MANUAL
+  §7 and §8 say when each note appears. On the 31 gpt-5.5 analyses saved on
+  2026-10-15 and the committed avocado run, each validated under the three
+  coupling standards and both `de_facto_borders` settings (192 reports),
+  every check that looked up a pair keeps its note and 180 validation
+  blocks are byte-identical. The other 12 come from the two analyses of
+  Indonesia's coal exports to China and India, whose ADM1 check finds no
+  region besides East Kalimantan: their Note now reads "LLM classification
+  is consistent with the coupling database." instead of claiming
+  consistency with "the coupling databases (country adjacency + ADM1
+  adjacency)". Tests +35 (suite 2,104).
 
 ### Docs
 
