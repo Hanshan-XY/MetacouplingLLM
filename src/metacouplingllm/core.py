@@ -4265,6 +4265,22 @@ class MetacouplingAssistant:
 
             # Legacy Attempt 1: Try subnational (ADM1) map
             adm1_code = self._resolve_adm1_from_analysis(parsed)
+            # Respect the user's framing, as the primary path does: when
+            # the original query named no ADM1 region, the country-level
+            # map below is drawn even if the analysis text names one.
+            if (
+                adm1_code
+                and self._original_query
+                and not self._user_query_mentions_adm1()
+            ):
+                if self._verbose:
+                    print(
+                        f"[MetacouplingAssistant] Analysis text names "
+                        f"ADM1 {adm1_code}, but the user's query did not "
+                        f"name an ADM1 region; rendering country-level "
+                        f"map instead."
+                    )
+                adm1_code = None
             if adm1_code:
                 try:
                     from metacouplingllm.visualization.adm1_map import (
