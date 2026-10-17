@@ -1094,7 +1094,10 @@ ways:
    checked instead: the country check when every partner country has the
    spillover role, the subnational (ADM1) check when it finds no other
    region outside the spillover role (§13 lists why a region can be
-   missed). The report prints such a note only when it lists no pair.
+   missed). The report prints such a note only when it lists no pair. The
+   validation reads a country's name that a region elsewhere also has, such
+   as Georgia, as the research description and the answer read it (Country
+   name resolution, below).
 
 Both steps work from one focal system rather than from every pair. Before
 the LLM call, that system is the first subnational region found in the
@@ -1194,7 +1197,9 @@ ignores (`"of Mexico"`, `"region of Mexico"`, `"State of Mexico"`, `"Niger
 State"`): pass `country` for these.  A name with any other word besides a
 country's name is a region's and resolves without `country`: `"New South
 Wales"` → `AUS004`, `"Mexico City"` → `MEX009`, `"Lesser Poland"` →
-`POL006`.
+`POL006`. Inside a `read_names_as_regions` block (Country name resolution,
+below), a name the block reads as a region resolves to it: `"Georgia"` →
+`USA011`.
 
 Without `country`, a single word resolves only as a region's whole name, a
 variant of it or an alias (`"Beijing"` → `CHN002` and `"Michoacan"` →
@@ -1288,6 +1293,16 @@ find_country_codes("Coffee from Costa Rica and Côte d'Ivoire")  # ["CRI", "CIV"
 find_country_codes("Soy from South America to China")       # ["CHN"]
 find_country_codes("turkey and chile peppers from Chile", capitals=True)  # ["CHL"]
 
+# A country's name that a region elsewhere also has, read as a text reads it
+from metacouplingllm.knowledge.countries import read_names_as_regions
+from metacouplingllm.knowledge.places import place_readings
+
+readings = place_readings("Peanut farms in Georgia, United States")
+# {"georgia": ("USA011", "USA")}
+with read_names_as_regions(readings):
+    resolve_country_code("Georgia")   # "USA"
+resolve_country_code("Georgia")       # "GEO"
+
 # Reverse: code → name
 get_country_name("MEX")  # "Mexico"
 get_country_name("GBR")  # "United Kingdom"
@@ -1319,6 +1334,18 @@ sense, so a person's name ("Chad"), a disease ("Panama disease") or an
 acronym written as a code ("LCA" for life-cycle assessment, in parentheses)
 still reads as a country, and in a description written in lower case,
 "turkey" is Turkey.
+
+A country's name that a region elsewhere also has, such as Georgia (a US
+state) or Gaza (a province of Mozambique), names the country unless the
+text reads it as the region, by the pericoupling hint's rule (Automatic
+integration, above; `place_readings` gives the readings). The assistant
+builds each result inside a `read_names_as_regions` block read from the
+research description and the answer, where `resolve_country_code`,
+`find_country_codes` and `resolve_adm1_code` give the region: in a study of
+Georgia, United States, the validation checks a system named "Georgia" as
+the US state and the automatic map draws it there. Web search reads the
+description so, and `plot_analysis_map(result.parsed)` the analysis's own
+text.
 
 ---
 

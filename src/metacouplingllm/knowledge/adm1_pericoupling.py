@@ -51,7 +51,10 @@ from importlib import resources
 from pathlib import Path
 import re
 
-from metacouplingllm.knowledge.countries import resolve_country_code
+from metacouplingllm.knowledge.countries import (
+    region_read_for,
+    resolve_country_code,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -1535,6 +1538,13 @@ def resolve_adm1_code(
     """
     if not name or not name.strip():
         return None
+    # A country's name read as a region elsewhere in the current
+    # read_names_as_regions block ("Georgia", the US state).
+    read = region_read_for(name)
+    if read and (
+        country is None or _resolve_country_filter(country) == get_adm1_country(read)
+    ):
+        return read
     code = _resolve_adm1_name(name, country)
     if code is None:
         code = _resolve_without_designator(name, country)

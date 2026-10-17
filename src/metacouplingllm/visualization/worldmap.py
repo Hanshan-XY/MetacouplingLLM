@@ -10,6 +10,7 @@ with ``pip install metacouplingllm[viz]``.
 
 from __future__ import annotations
 
+import functools
 import os
 import re
 import urllib.request
@@ -21,6 +22,8 @@ from typing import TYPE_CHECKING
 from metacouplingllm.knowledge.countries import (
     ISO_ALPHA3_NAMES,
     get_country_name,
+    read_names_as_regions,
+    reading_names_as_regions,
     resolve_country_code,
 )
 from metacouplingllm.knowledge.pericoupling import (
@@ -28,6 +31,7 @@ from metacouplingllm.knowledge.pericoupling import (
     get_pericoupled_neighbors,
     lookup_pericoupling,
 )
+from metacouplingllm.knowledge.places import place_readings
 
 if TYPE_CHECKING:
     import geopandas as gpd
@@ -1341,6 +1345,25 @@ def _scan_text_for_countries(text: str, codes: set[str]) -> None:
                 codes.add(code)
 
 
+def _reading_the_analysis_names(func):
+    """Run *func*, which draws a map from a parsed analysis, reading a
+    country's name that a region elsewhere also has ("Georgia", the US
+    state) as the analysis reads it, unless a
+    :func:`~metacouplingllm.knowledge.countries.read_names_as_regions` block
+    is in force, as it is for ``MetacouplingAssistant``'s automatic map."""
+
+    @functools.wraps(func)
+    def wrapper(parsed_analysis, *args, **kwargs):
+        if reading_names_as_regions():
+            return func(parsed_analysis, *args, **kwargs)
+        text = getattr(parsed_analysis, "raw_text", "") or ""
+        with read_names_as_regions(place_readings(text)):
+            return func(parsed_analysis, *args, **kwargs)
+
+    return wrapper
+
+
+@_reading_the_analysis_names
 def plot_analysis_map(
     parsed_analysis: ParsedAnalysis,
     *,
@@ -1361,7 +1384,11 @@ def plot_analysis_map(
 
     Extracts countries from the systems identified by the LLM, then colors
     the map based on their relationship to the focal country (determined
-    by *focal_role*).
+    by *focal_role*).  A country's name that a region elsewhere also has
+    ("Georgia", the US state) is read as the analysis reads it (see
+    :func:`~metacouplingllm.knowledge.places.place_readings`), or as the
+    research description and answer read it when ``MetacouplingAssistant``
+    draws the map.
 
     Parameters
     ----------
