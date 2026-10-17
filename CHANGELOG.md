@@ -70,6 +70,19 @@ file. The format is loosely based on
   the map classifications for every country (249, both country maps) and
   every ADM1 region (3,374) are byte-identical to before. Tests +43 (suite
   1,506).
+- **The `metacouplingllm.visualization` map functions take every keyword of
+  the functions they wrap.** These wrappers of `visualization.worldmap` and
+  `visualization.adm1_map` listed only some of their keywords and raised
+  `TypeError` on the rest: `adm0_shapefile` and `mentioned_countries` for
+  `plot_focal_country_map`; `adm0_shapefile`, `extra_mentioned_countries`,
+  `mentioned_countries_override`, `focal_code_override` and `flows` for
+  `plot_analysis_map`; `mentioned_countries`, `mentioned_adm1_codes` and
+  `flows` for `plot_focal_adm1_map`. The top-level `metacouplingllm.plot_*`
+  functions pass `**kwargs` through and were not affected, nor were MANUAL's
+  examples, which import those or the implementations. The wrappers now have
+  the signatures of the functions they wrap; tests compare the two and check
+  that every keyword reaches the implementation unchanged through both
+  wrappers. Tests +9 (suite 1,515).
 
 ## [0.2.1] — 2026-10-12
 
