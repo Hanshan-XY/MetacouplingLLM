@@ -76,6 +76,28 @@ def _normalize_system_scope(scope: str | None) -> str:
     return aliases.get(normalized, normalized)
 
 
+def _system_scope_fields(scope: str | None) -> dict[str, str]:
+    """Return the scope fields of a system's qualifier, e.g. "(distant)".
+
+    ``system_scope`` is the scope, "adjacent" or "distant"; ``core.py``
+    and the maps compare it with "adjacent".  A qualifier that starts
+    with one of the two words and says more ("distant coal importer")
+    takes that word as the scope and is also kept whole as
+    ``system_scope_qualifier``, which the report's system label shows.
+    A qualifier that starts with neither word is the scope as written.
+    """
+    normalized = _normalize_system_scope(scope)
+    if not normalized:
+        return {}
+    word_match = re.match(r"(adjacent|distant)\b", normalized)
+    if word_match and word_match.group(1) != normalized:
+        return {
+            "system_scope": word_match.group(1),
+            "system_scope_qualifier": normalized,
+        }
+    return {"system_scope": normalized}
+
+
 @dataclass
 class ParsedAnalysis:
     """Structured representation of a coupling-first analysis response."""
@@ -434,6 +456,103 @@ def _extract_bullets(text: str, *, numbered: bool = False) -> list[str]:
     return items
 
 
+# A label whose colon sits inside the bold (or italics), "**Label:** value",
+# at the start of a line or after a bullet, a heading marker or a bracketed
+# tag ("[Matter] **Brazil → China:** soybeans").  The opening asterisks touch
+# the label, so a "* " bullet is not read as italics.
+_COLON_INSIDE_EMPHASIS_RE = re.compile(
+    r"^(\s*(?:[-*•]\s+)?(?:#{1,6}\s*)?(?:\[[^\]]*\]\s*)?)"
+    r"(\*{1,2})(?=[^\s*])([^*:]+?)\s*:\s*\2(?!\*)"
+)
+
+
+def _move_colon_out_of_emphasis(line: str) -> str:
+    """Rewrite ``**Label:** value`` as ``**Label**: value``, so that a
+    label reads the same with its colon inside the bold or after it.
+
+    Only the label at the start of *line* moves; the parsers match their
+    label patterns against the result and keep free text as written.
+    """
+    return _COLON_INSIDE_EMPHASIS_RE.sub(r"\1\2\3\2:", line, count=1)
+
+
+# A horizontal rule ("---", "***", "═══") between paragraphs.
+_RULE_RE = re.compile(r"(?:[-*_=~─━═—–]\s*){3,}")
+# A paragraph that is only a bold label, e.g. "**Data gaps**" or "**Data gaps:**".
+_BOLD_LABEL_RE = re.compile(r"\*\*[^*]+\*\*[:.]?")
+
+
+def _strip_gap_number(text: str) -> str:
+    """Drop a number at the start of a bold label, as a list marker is
+    dropped: ``**1. Label**`` becomes ``**Label**`` and ``**1.** Label``
+    becomes ``Label``."""
+    text = re.sub(r"^\*\*\s*\d+[.)]\s*\*\*\s*", "", text)
+    return re.sub(r"^\*\*\s*\d+[.)]\s+", "**", text)
+
+
+def _extract_research_gaps(text: str) -> list[str]:
+    """Extract the items of §6 Research Gaps.
+
+    The gaps are the section's list items (dash, asterisk, • or
+    numbered).  A §6 without list items is read as paragraphs, so that
+    it is not dropped: each run of lines between blank lines is one
+    gap, its lines joined by spaces.  A paragraph that is only a label,
+    a bold line such as ``**1. Data gaps**`` or a Markdown heading,
+    opens the paragraph after it.  A number at the start of a bold
+    label is dropped, as a list marker is, and rules (``---``, ``═══``)
+    are skipped; a spaced rule such as ``- - -`` is not a list item.
+    """
+    items = _extract_bullets(
+        "\n".join(
+            line
+            for line in text.splitlines()
+            if not _RULE_RE.fullmatch(line.strip())
+        ),
+        numbered=True,
+    )
+    if items:
+        return items
+
+    # (text, is_label) for each paragraph, in order.
+    paragraphs: list[tuple[str, bool]] = []
+    lines: list[str] = []
+
+    def _close_paragraph() -> None:
+        if lines:
+            paragraphs.append((_strip_gap_number(" ".join(lines)), False))
+            lines.clear()
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or _RULE_RE.fullmatch(stripped):
+            _close_paragraph()
+            continue
+        heading_match = re.match(r"#{1,6}\s+(.*)", stripped)
+        if heading_match:
+            _close_paragraph()
+            heading = heading_match.group(1).rstrip("#").strip().strip("*").strip()
+            heading = re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", heading)
+            if heading:
+                paragraphs.append((f"**{heading}**", True))
+            continue
+        lines.append(stripped)
+    _close_paragraph()
+
+    gaps: list[str] = []
+    label = ""
+    for paragraph, is_label in paragraphs:
+        if is_label or _BOLD_LABEL_RE.fullmatch(paragraph):
+            if label:
+                gaps.append(label)
+            label = paragraph
+            continue
+        gaps.append(f"{label} {paragraph}" if label else paragraph)
+        label = ""
+    if label:
+        gaps.append(label)
+    return gaps
+
+
 def _extract_categorized_bullets(text: str) -> dict[str, list[str]]:
     """Extract bullets grouped under bold headings.
 
@@ -453,8 +572,9 @@ def _extract_categorized_bullets(text: str) -> dict[str, list[str]]:
             stripped,
         )
         if heading_match:
+            # The colon may sit inside the bold: "**Economic:**".
             current_category = _normalize_cause_effect_category(
-                heading_match.group(1)
+                heading_match.group(1).rstrip().rstrip(":")
             )
             continue
         if _BULLET_RE.match(stripped):
@@ -521,8 +641,12 @@ def _parse_systems(text: str) -> list[dict[str, str]]:
     A system's scope follows its role in parentheses ("Sending System
     (distant)") or after a dash ("Sending System — distant"; em dash,
     en dash or hyphen).  A dash scope must start with "adjacent" or
-    "distant"; in either form the whole qualifier is the scope
-    ("distant coal importer").
+    "distant".  In either form a qualifier that says more than that
+    word ("distant coal importer") gives its leading word as the scope
+    and is kept whole as ``system_scope_qualifier``
+    (``_system_scope_fields``).  A label's colon may follow the bold
+    ("**Focal System**: Michigan") or sit inside it ("**Focal System:**
+    Michigan"), in a system heading and in the lines under it.
     """
     role_label = r"(Focal|Adjacent|Sending|Receiving|Spillover)\s*(?:System)?"
     dash_scope = r"\s*[-—–]\s*((?:adjacent|distant)\b[^:*]*?)"
@@ -552,17 +676,19 @@ def _parse_systems(text: str) -> list[dict[str, str]]:
         if not stripped:
             continue
 
-        heading_match = system_heading_re.match(stripped)
+        heading_match = system_heading_re.match(
+            _move_colon_out_of_emphasis(stripped)
+        )
         if heading_match:
             _flush()
             found_heading = True
             role = _normalize_system_role(heading_match.group(1))
             current = {"role": role}
-            scope = _normalize_system_scope(
-                heading_match.group(2) or heading_match.group(3)
+            current.update(
+                _system_scope_fields(
+                    heading_match.group(2) or heading_match.group(3)
+                )
             )
-            if scope:
-                current["system_scope"] = scope
             name = heading_match.group(4).strip().rstrip("*").strip()
             if name:
                 current["name"] = name
@@ -572,7 +698,10 @@ def _parse_systems(text: str) -> list[dict[str, str]]:
             clean = _BULLET_RE.sub("", stripped).strip()
             if not clean:
                 continue
-            subfield_match = re.match(r"\*{0,2}([^:*]+)\*{0,2}\s*:\s*(.*)", clean)
+            subfield_match = re.match(
+                r"\*{0,2}([^:*]+)\*{0,2}\s*:\s*(.*)",
+                _move_colon_out_of_emphasis(clean),
+            )
             if subfield_match:
                 label = subfield_match.group(1).strip().lower()
                 value = subfield_match.group(2).strip()
@@ -593,7 +722,10 @@ def _parse_systems(text: str) -> list[dict[str, str]]:
 
     # Fallback: flat bullets such as "- Focal: Michigan"
     for item in _extract_bullets(text):
-        match = re.match(r"\*{0,2}([^:*]+)\*{0,2}\s*:\s*(.*)", item)
+        match = re.match(
+            r"\*{0,2}([^:*]+)\*{0,2}\s*:\s*(.*)",
+            _move_colon_out_of_emphasis(item),
+        )
         if not match:
             continue
         dash_match = dash_label_re.fullmatch(match.group(1).strip())
@@ -606,9 +738,7 @@ def _parse_systems(text: str) -> list[dict[str, str]]:
             scope_text = scope_match.group(1) if scope_match else None
         if role in {"focal", "adjacent", "sending", "receiving", "spillover"}:
             entry = {"role": role, "name": match.group(2).strip()}
-            scope = _normalize_system_scope(scope_text)
-            if scope:
-                entry["system_scope"] = scope
+            entry.update(_system_scope_fields(scope_text))
             systems.append(entry)
     return systems
 
@@ -709,9 +839,14 @@ def _detect_agent_level(text: str) -> str:
 
 
 def _parse_agents(text: str) -> list[dict[str, str]]:
-    """Parse agent bullets into structured dicts."""
+    """Parse agent bullets into structured dicts.
+
+    An agent's name may be bold with the colon inside the bold
+    (``[Individuals / households] **Farmers:** ...``).
+    """
     agents: list[dict[str, str]] = []
     for item in _extract_bullets(text):
+        item = _move_colon_out_of_emphasis(item)
         agent: dict[str, str] = {}
         bracket_match = re.match(r"\[([^\]]+)\]\s*(.*)", item)
         if bracket_match:
@@ -809,9 +944,13 @@ def _detect_direction(text: str) -> str:
 
 
 def _parse_multiline_flows(text: str) -> list[dict[str, str]]:
-    """Parse multi-line flow blocks under bold category headings."""
+    """Parse multi-line flow blocks under bold category headings.
+
+    A heading's colon and a ``Direction`` or ``Description`` label's colon
+    may sit inside the bold (``**Matter Flow:**``, ``**Direction:**``).
+    """
     flow_heading_re = re.compile(
-        r"(?:\d+\.?\s*)?\*{2}\s*(?:\d+\.?\s*)?([\w\s/]+?flows?)\s*\*{2}\s*:?\s*$",
+        r"(?:\d+\.?\s*)?\*{2}\s*(?:\d+\.?\s*)?([\w\s/]+?flows?)\s*:?\s*\*{2}\s*:?\s*$",
         re.IGNORECASE | re.MULTILINE,
     )
     headings = list(flow_heading_re.finditer(text))
@@ -833,11 +972,12 @@ def _parse_multiline_flows(text: str) -> list[dict[str, str]]:
             clean = _BULLET_RE.sub("", stripped).strip()
             if not clean:
                 continue
-            direction_match = re.match(r"\*{0,2}direction\*{0,2}\s*:\s*(.*)", clean, re.IGNORECASE)
+            labelled = _move_colon_out_of_emphasis(clean)
+            direction_match = re.match(r"\*{0,2}direction\*{0,2}\s*:\s*(.*)", labelled, re.IGNORECASE)
             if direction_match:
                 direction = direction_match.group(1).strip()
                 continue
-            description_match = re.match(r"\*{0,2}description\*{0,2}\s*:\s*(.*)", clean, re.IGNORECASE)
+            description_match = re.match(r"\*{0,2}description\*{0,2}\s*:\s*(.*)", labelled, re.IGNORECASE)
             if description_match:
                 description_parts.append(description_match.group(1).strip())
                 continue
@@ -950,7 +1090,9 @@ def _parse_flows(text: str) -> list[dict[str, str]]:
     flows: list[dict[str, str]] = []
     for item in _extract_bullets(text):
         flow: dict[str, str] = {}
-        bracket_match = re.match(r"\[([^\]]+)\]\s*([^:]+):\s*(.*)", item)
+        bracket_match = re.match(
+            r"\[([^\]]+)\]\s*([^:]+):\s*(.*)", _move_colon_out_of_emphasis(item)
+        )
         if bracket_match:
             flow["category"] = _detect_flow_category(bracket_match.group(1)) or bracket_match.group(1).strip().lower()
             flow["direction"] = bracket_match.group(2).strip()
@@ -958,9 +1100,13 @@ def _parse_flows(text: str) -> list[dict[str, str]]:
             flows.append(flow)
             continue
 
-        category_match = re.search(r"\*{0,2}category\*{0,2}\s*:\s*([^|*]+)", item, re.IGNORECASE)
-        direction_match = re.search(r"\*{0,2}direction\*{0,2}\s*:\s*([^|*]+)", item, re.IGNORECASE)
-        description_match = re.search(r"\*{0,2}description\*{0,2}\s*:\s*(.*)", item, re.IGNORECASE)
+        # The "Label: value" fields of "Category: ... | Direction: ... | ...".
+        fields = "|".join(
+            _move_colon_out_of_emphasis(field) for field in item.split("|")
+        )
+        category_match = re.search(r"\*{0,2}category\*{0,2}\s*:\s*([^|*]+)", fields, re.IGNORECASE)
+        direction_match = re.search(r"\*{0,2}direction\*{0,2}\s*:\s*([^|*]+)", fields, re.IGNORECASE)
+        description_match = re.search(r"\*{0,2}description\*{0,2}\s*:\s*(.*)", fields, re.IGNORECASE)
         if category_match:
             flow["category"] = _detect_flow_category(category_match.group(1)) or category_match.group(1).strip().lower()
         if direction_match:
@@ -1031,9 +1177,7 @@ def parse_analysis(response_text: str) -> ParsedAnalysis:
             if line.strip()
         ]
     if "research_gaps" in sections:
-        result.research_gaps = _extract_bullets(
-            sections["research_gaps"], numbered=True
-        )
+        result.research_gaps = _extract_research_gaps(sections["research_gaps"])
     if "evidence_coverage" in sections:
         # Plain prose section — preserve paragraph structure.  Strip
         # leading/trailing whitespace but keep internal newlines so

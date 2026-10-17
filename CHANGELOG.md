@@ -316,12 +316,56 @@ file. The format is loosely based on
   coupling database missed its countries, and its text was missing from the
   scans of the parsed analysis (ADM1 resolution, `recommend_papers()`). System
   headings, and the flat-bullet fallback, now also take a scope after an em
-  dash, en dash or hyphen when it starts with `adjacent` or `distant`; as in
-  parentheses, the whole qualifier is the scope (`distant coal importer`). Of
-  31 gpt-5.5 analyses saved on 2026-10-15, 4 wrote 18 such headings, each ahead
-  of any other system heading in its block; each of the 4 now gains its 3 to 6
-  systems, and everything else in the 31 parses exactly as before. Tests +9
-  (suite 1,463).
+  dash, en dash or hyphen when it starts with `adjacent` or `distant`, and read
+  it as a scope in parentheses is read. Of 31 gpt-5.5 analyses saved on
+  2026-10-15, 4 wrote 18 such headings, each ahead of any other system heading
+  in its block; each of the 4 now gains its 3 to 6 systems, and everything else
+  in the 31 parses exactly as before. Tests +9 (suite 1,463).
+- **A §6 Research Gaps written as paragraphs is parsed.** `parse_analysis`
+  took only §6's list items (dash, asterisk, `•` or numbered), so a §6 written
+  as plain paragraphs or as `**1. Label**` lines gave an empty
+  `research_gaps`: the full report and the Markdown and Word exports left §6
+  out without notice, and the scans of the analysis text (the maps' text-scan
+  fallback, ADM1 resolution, `recommend_papers()`) missed it. A §6 without
+  list items is now read as paragraphs: each paragraph is a gap, a paragraph
+  that is only a bold label or a heading opens the paragraph after it, a
+  number at the start of a bold label is dropped as a list marker is, and
+  rules (`---`, `═══`) are skipped. A §6 with list items still yields only
+  them, except that a spaced rule such as `- - -`, which read as a dash item,
+  no longer does. None of the 31 gpt-5.5 analyses saved on 2026-10-15 writes
+  §6 without list items, and all 31 yield the same gaps as before.
+- **A system scope that says more than "adjacent" or "distant" is read as
+  that word.** `parse_analysis` stored a qualifier such as `(adjacent
+  interaction)` whole as the system's `system_scope`, which `core.py` and the
+  maps compare with "adjacent", so a system headed `**Sending System (adjacent
+  interaction)**: Mexico` was not treated as adjacent: the maps put Mexico in
+  the sending role, and a flow from "neighboring producers" got no map arrow.
+  The scope is now the qualifier's leading "adjacent" or "distant", and a
+  qualifier that says more is kept whole as `system_scope_qualifier`, which
+  the report's system label shows as before (`Sending System (adjacent
+  interaction)`); a qualifier that starts with neither word ("regional", "not
+  adjacent") is the scope as written. Of the 31 saved analyses, 4 head 8
+  systems with such a qualifier, 7 distant (`distant coal importer`) and 1
+  adjacent (`adjacent interaction`); their scopes now read "distant" or
+  "adjacent", and their reports, exports, map roles, map arrows, coupling
+  checks and paper-search terms are unchanged (old/D12_r0's Mexico, the
+  adjacent case, was already adjacent on its maps through another system).
+- **A label with its colon inside the bold is parsed.** `**Focal System:**
+  Michigan` gave the system name `** Michigan`, and `- **Human subsystem:**
+  Farmers` under it the value `** Farmers`. A flow heading such as `**Matter
+  Flow:**` was not read as one, so its flow lost its category and split in
+  two, and `- **Direction:** Brazil → China` gave the direction `** Brazil →
+  China`. An agent written `[Individuals / households] **Farmers:** ...` got
+  the name `**Farmers` and a description starting with `**`, and a cause or
+  effect heading `**Economic:**` opened a category `economic:` apart from
+  `economic`. System headings and the lines under them, the flat-bullet
+  systems fallback, flow headings and their `Direction` and `Description`
+  lines, the one-line flow bullets (`[Matter] **Brazil → China:** ...`,
+  `**Category:** Matter | **Direction:** ...`), agents, and cause and effect
+  headings now read the same with the colon inside the bold as after it.
+  Free text keeps its colons as written, such as an effect item `**Mexico:**
+  ...`. None of the 31 saved analyses writes a colon inside the bold. Tests
+  +52 with the two entries above (suite 2,069).
 - **The adjacency settings reach the prompt hint and the maps.**
   `MetacouplingAssistant` passed `de_facto_borders` and `coupling_standard`
   only to the post-LLM validation; the pericoupling-database hint in the

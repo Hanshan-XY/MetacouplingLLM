@@ -845,20 +845,27 @@ _GAP_ITEMS = [
 ]
 
 
-def _response_with_gaps(markers: list[str]) -> str:
-    """A short response whose §6 lists ``_GAP_ITEMS`` behind *markers*,
-    one item per paragraph, closed by a ``---`` rule before §7."""
-    items = "\n\n".join(
-        f"{marker} {item}" for marker, item in zip(markers, _GAP_ITEMS)
-    )
+def _response_with_gap_section(body: str) -> str:
+    """A short response whose §6 is *body*, closed by a ``---`` rule
+    before §7."""
     return (
         "### 1. Coupling Classification\n\n"
         "Telecoupling.\n\n"
         "### 6. Research Gaps and Suggestions\n\n"
-        f"{items}\n\n"
+        f"{body}\n\n"
         "---\n\n"
         "### 7. Evidence Coverage\n\n"
         "Limited evidence on trade volumes.\n"
+    )
+
+
+def _response_with_gaps(markers: list[str]) -> str:
+    """A short response whose §6 lists ``_GAP_ITEMS`` behind *markers*,
+    one item per paragraph."""
+    return _response_with_gap_section(
+        "\n\n".join(
+            f"{marker} {item}" for marker, item in zip(markers, _GAP_ITEMS)
+        )
     )
 
 
@@ -884,6 +891,84 @@ class TestResearchGapListForms:
         text = "1. **Heading**\n- item"
         assert _extract_bullets(text) == ["item"]
         assert _extract_bullets(text, numbered=True) == ["**Heading**", "item"]
+
+
+_GAP_PARAGRAPHS = [
+    (
+        "Quantify soybean flows by destination and year",
+        "Export volumes and values are missing.",
+    ),
+    (
+        "Identify spillover systems",
+        "Competing exporters and transit ports are not named.",
+    ),
+]
+
+
+class TestResearchGapParagraphs:
+    """A §6 without list items is read as paragraphs, so it is not
+    dropped: each paragraph is a gap, and a bold label or a heading
+    opens the paragraph after it."""
+
+    def test_each_paragraph_is_a_gap(self):
+        """A paragraph's lines are joined.  Rules separate paragraphs,
+        and a spaced rule such as ``- - -`` is not read as a dash item."""
+        body = (
+            "Export volumes and values by destination\n"
+            "and year are missing.\n\n"
+            "- - -\n\n"
+            "Competing exporters and transit ports are not named.\n"
+            "═══════════════"
+        )
+        result = parse_analysis(_response_with_gap_section(body))
+        assert result.research_gaps == [
+            "Export volumes and values by destination and year are missing.",
+            "Competing exporters and transit ports are not named.",
+        ]
+
+    @pytest.mark.parametrize(
+        "template, expected",
+        [
+            ("**{n}. {label}**: {text}", "**{label}**: {text}"),
+            ("**{n}. {label}**\n{text}", "**{label}** {text}"),
+            ("**{n}. {label}**\n\n{text}", "**{label}** {text}"),
+            ("**{n}.** {label}: {text}", "{label}: {text}"),
+            ("#### 6.{n} {label}\n\n{text}", "**{label}** {text}"),
+        ],
+        ids=["label-line", "label-above", "label-blank-line", "bold-number",
+             "heading"],
+    )
+    def test_labels_open_their_paragraphs(self, template, expected):
+        """A number at the start of a bold label is dropped, as a list
+        marker is."""
+        body = "\n\n".join(
+            template.format(n=n, label=label, text=text)
+            for n, (label, text) in enumerate(_GAP_PARAGRAPHS, 1)
+        )
+        result = parse_analysis(_response_with_gap_section(body))
+        assert result.research_gaps == [
+            expected.format(label=label, text=text)
+            for label, text in _GAP_PARAGRAPHS
+        ]
+
+    def test_label_without_a_paragraph_is_a_gap(self):
+        body = "Export volumes and values are missing.\n\n**Spillover systems**"
+        result = parse_analysis(_response_with_gap_section(body))
+        assert result.research_gaps == [
+            "Export volumes and values are missing.",
+            "**Spillover systems**",
+        ]
+
+    def test_list_items_are_read_as_before(self):
+        """A §6 with list items yields only them: an opening or closing
+        paragraph is not a gap."""
+        body = (
+            "Three gaps stand out:\n\n"
+            + "\n".join(f"- {item}" for item in _GAP_ITEMS)
+            + "\n\nTogether they limit the analysis.\n\n═══════════════"
+        )
+        result = parse_analysis(_response_with_gap_section(body))
+        assert result.research_gaps == _GAP_ITEMS
 
 
 # ---------------------------------------------------------------------------
@@ -922,7 +1007,8 @@ _SCOPED_SYSTEMS = {
         },
         {
             "role": "receiving",
-            "system_scope": "distant rice importer",
+            "system_scope": "distant",
+            "system_scope_qualifier": "distant rice importer",
             "name": "Nigeria",
             "geographic_scope": "Port cities and urban markets.",
         },
@@ -959,8 +1045,9 @@ def _response_with_scoped_systems(label: str) -> str:
 
 class TestSystemScopeForms:
     """A system's scope follows its role in parentheses or after a dash
-    (em dash, en dash or hyphen); every form yields the same systems,
-    with the whole qualifier as the scope."""
+    (em dash, en dash or hyphen); every form yields the same systems.
+    A qualifier that says more than its scope word gives that word as
+    the scope and is kept whole as ``system_scope_qualifier``."""
 
     @pytest.mark.parametrize("label", _SCOPE_LABELS)
     def test_each_heading_form_yields_the_systems(self, label):
@@ -994,3 +1081,283 @@ class TestSystemScopeForms:
 
         assert _parse_systems("**Sending System — Thailand**: rice exporter") == []
         assert _parse_systems("- Sending System — Thailand: rice exporter") == []
+
+
+class TestScopeQualifiers:
+    """The scope is the qualifier's leading "adjacent" or "distant"
+    (``core.py`` and the maps compare it with "adjacent"); a qualifier
+    that says more is also kept whole for the report's system label."""
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "**Receiving System ({qualifier})**: Nigeria",
+            "- Receiving System ({qualifier}): Nigeria",
+        ],
+        ids=["heading", "flat-bullet"],
+    )
+    @pytest.mark.parametrize(
+        "qualifier, scope_fields",
+        [
+            ("distant", {"system_scope": "distant"}),
+            ("Adjacent", {"system_scope": "adjacent"}),
+            (
+                "adjacent interaction",
+                {
+                    "system_scope": "adjacent",
+                    "system_scope_qualifier": "adjacent interaction",
+                },
+            ),
+            (
+                "distant / capital-sending role",
+                {
+                    "system_scope": "distant",
+                    "system_scope_qualifier": "distant / capital-sending role",
+                },
+            ),
+            ("not adjacent", {"system_scope": "not adjacent"}),
+            ("regional", {"system_scope": "regional"}),
+        ],
+        ids=["distant", "capitalised", "adjacent-run-on", "distant-run-on",
+             "not-adjacent", "other"],
+    )
+    def test_leading_word_is_the_scope(self, line, qualifier, scope_fields):
+        from metacouplingllm.llm.parser import _parse_systems
+
+        assert _parse_systems(line.format(qualifier=qualifier)) == [
+            {"role": "receiving", "name": "Nigeria", **scope_fields}
+        ]
+
+
+# ---------------------------------------------------------------------------
+# A label's colon inside the bold: "**Focal System:** Michigan".
+# ---------------------------------------------------------------------------
+
+
+class TestColonInsideBold:
+    """A system label's colon may sit inside the bold, in a system
+    heading and in the lines under it, as well as after it."""
+
+    def test_headings_and_subsystem_lines(self):
+        result = parse_analysis(
+            "### 1. Coupling Classification\n\n"
+            "Intracoupling and telecoupling.\n\n"
+            "### 2. Intracoupling Analysis\n\n"
+            "#### 2.1 Systems Identification\n\n"
+            "**Focal System:** Michigan\n"
+            "- **Human subsystem:** Farmers and processors.\n"
+            "- **Natural subsystem:** Great Lakes watersheds.\n\n"
+            "### 4. Telecoupling Analysis\n\n"
+            "#### 4.1 Systems Identification\n\n"
+            "**Sending System (distant):** Michigan\n\n"
+            "**Receiving System — distant:** China\n"
+        )
+        assert result.intracoupling.systems == [
+            {
+                "role": "focal",
+                "name": "Michigan",
+                "human_subsystem": "Farmers and processors.",
+                "natural_subsystem": "Great Lakes watersheds.",
+            },
+        ]
+        assert result.telecoupling.systems == [
+            {"role": "sending", "system_scope": "distant", "name": "Michigan"},
+            {"role": "receiving", "system_scope": "distant", "name": "China"},
+        ]
+
+    def test_flat_bullets(self):
+        from metacouplingllm.llm.parser import _parse_systems
+
+        assert _parse_systems(
+            "- **Focal:** Michigan\n- **Receiving (distant):** China"
+        ) == [
+            {"role": "focal", "name": "Michigan"},
+            {"role": "receiving", "name": "China", "system_scope": "distant"},
+        ]
+
+    @pytest.mark.parametrize(
+        "text, expected",
+        [
+            ("**Focal System**: Michigan", {}),
+            ("Focal System: Michigan", {}),
+            ("#### Focal System: Michigan", {}),
+            (
+                "**Focal System**: Michigan\n- **Human subsystem**: Farmers",
+                {"human_subsystem": "Farmers"},
+            ),
+            (
+                "**Focal System**: Michigan\n"
+                "- Human subsystem: **Farmers** and processors",
+                {"human_subsystem": "**Farmers** and processors"},
+            ),
+            (
+                "**Focal System**: Michigan\n"
+                "* Human subsystem: *Farmers* and processors",
+                {"human_subsystem": "*Farmers* and processors"},
+            ),
+            ("- **Focal**: Michigan", {}),
+        ],
+        ids=["bold-label", "plain-label", "heading", "bold-subsystem",
+             "bold-value", "italic-value-asterisk-bullet", "flat-bullet"],
+    )
+    def test_colon_after_the_bold_parses_as_before(self, text, expected):
+        from metacouplingllm.llm.parser import _parse_systems
+
+        assert _parse_systems(text) == [
+            {"role": "focal", "name": "Michigan", **expected}
+        ]
+
+
+_COLON_FLOWS = [
+    {"category": "matter", "direction": "Brazil → China", "description": "Soybeans"},
+    {"category": "capital", "direction": "China → Brazil", "description": "Payments"},
+]
+
+
+class TestColonInsideBoldOutsideSystems:
+    """A flow heading, a flow's Direction and Description labels, an
+    agent's name and a cause or effect heading also read the same with
+    the colon inside the bold as after it.  The first case of each test
+    is the form the output template asks for."""
+
+    @pytest.mark.parametrize(
+        "heading, label",
+        [
+            ("**{category} Flow**", "**{label}**:"),
+            ("**{category} Flow:**", "**{label}**:"),
+            ("**{category} Flow**", "**{label}:**"),
+            ("{n}. **{category} Flow:**", "**{label}:**"),
+        ],
+        ids=["template", "heading", "labels", "numbered-heading-and-labels"],
+    )
+    def test_flow_blocks(self, heading, label):
+        from metacouplingllm.llm.parser import _parse_flows
+
+        text = "\n\n".join(
+            heading.format(n=n, category=flow["category"].title())
+            + f"\n- {label.format(label='Direction')} {flow['direction']}"
+            + f"\n- {label.format(label='Description')} {flow['description']}"
+            for n, flow in enumerate(_COLON_FLOWS, 1)
+        )
+        assert _parse_flows(text) == _COLON_FLOWS
+
+    @pytest.mark.parametrize(
+        "item, expected",
+        [
+            (
+                "[Matter] **Brazil → China**: Soybeans",
+                {"direction": "**Brazil → China**", "description": "Soybeans"},
+            ),
+            (
+                "[Matter] **Brazil → China:** Soybeans",
+                {"direction": "**Brazil → China**", "description": "Soybeans"},
+            ),
+            (
+                "**Category**: Matter | **Direction**: Brazil → China | "
+                "**Description**: Soybeans",
+                {"direction": "Brazil → China", "description": "Soybeans"},
+            ),
+            (
+                "**Category:** Matter | **Direction:** Brazil → China | "
+                "**Description:** Soybeans",
+                {"direction": "Brazil → China", "description": "Soybeans"},
+            ),
+        ],
+        ids=["bracketed", "bracketed-colon-inside", "fields",
+             "fields-colon-inside"],
+    )
+    def test_flow_bullets(self, item, expected):
+        from metacouplingllm.llm.parser import _parse_flows
+
+        assert _parse_flows(f"- {item}") == [{"category": "matter", **expected}]
+
+    @pytest.mark.parametrize(
+        "item, expected",
+        [
+            (
+                "[Individuals / households] **Farmers**: Grow soybeans.",
+                {"level": "individuals / households", "name": "**Farmers**"},
+            ),
+            (
+                "[Individuals / households] **Farmers:** Grow soybeans.",
+                {"level": "individuals / households", "name": "**Farmers**"},
+            ),
+            (
+                "**Farmers**: Grow soybeans.",
+                {"level": "individuals / households", "name": "**Farmers**"},
+            ),
+            (
+                "**Farmers:** Grow soybeans.",
+                {"level": "individuals / households", "name": "**Farmers**"},
+            ),
+        ],
+        ids=["tagged", "tagged-colon-inside", "untagged",
+             "untagged-colon-inside"],
+    )
+    def test_agents(self, item, expected):
+        from metacouplingllm.llm.parser import _parse_agents
+
+        assert _parse_agents(f"- {item}") == [
+            {"description": "Grow soybeans.", **expected}
+        ]
+
+    @pytest.mark.parametrize(
+        "heading",
+        [
+            "**{category}**",
+            "**{category}**:",
+            "**{category}** — prices and policies",
+            "**{category}:**",
+            "**{category}:** — prices and policies",
+        ],
+        ids=["bold", "colon-after", "dash", "colon-inside",
+             "colon-inside-dash"],
+    )
+    def test_cause_and_effect_headings(self, heading):
+        from metacouplingllm.llm.parser import _extract_categorized_bullets
+
+        text = "\n".join(
+            f"{heading.format(category=category)}\n- {item}"
+            for category, item in (
+                ("Economic", "Demand in China."),
+                ("Political / Institutional", "Trade policy."),
+            )
+        )
+        assert _extract_categorized_bullets(text) == {
+            "economic": ["Demand in China."],
+            "political / institutional": ["Trade policy."],
+        }
+
+    def test_free_text_keeps_its_colons(self):
+        """Only labels move their colon: an effect item, a flow's other
+        lines and an agent's role are kept as written."""
+        from metacouplingllm.llm.parser import (
+            _extract_categorized_bullets,
+            _parse_agents,
+            _parse_flows,
+        )
+
+        assert _extract_categorized_bullets(
+            "**Economic**\n- **Mexico:** Export revenue rises."
+        ) == {"economic": ["**Mexico:** Export revenue rises."]}
+        assert _parse_flows(
+            "**Matter Flow**\n"
+            "- **Direction**: Brazil → China\n"
+            "- **Note:** Volumes are uncertain."
+        ) == [
+            {
+                "category": "matter",
+                "direction": "Brazil → China",
+                "description": "**Note:** Volumes are uncertain.",
+            }
+        ]
+        assert _parse_agents(
+            "- [Firms / traders / corporations] Exporters: Ship **most:** "
+            "soybeans."
+        ) == [
+            {
+                "level": "firms / traders / corporations",
+                "name": "Exporters",
+                "description": "Ship **most:** soybeans.",
+            }
+        ]

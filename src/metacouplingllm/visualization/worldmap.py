@@ -1264,7 +1264,7 @@ def _extract_all_analysis_countries(
             if map_role not in role_codes:
                 map_role = "other"
             for key, value in entry.items():
-                if key in {"role", "system_scope"}:
+                if key in {"role", "system_scope", "system_scope_qualifier"}:
                     continue
                 if isinstance(value, str) and value:
                     _scan_text_for_countries(value, role_codes[map_role])

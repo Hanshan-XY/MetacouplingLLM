@@ -1815,6 +1815,29 @@ class TestResolveFlowsForMap:
             for f in result
         )
 
+    def test_neighbouring_reference_reads_a_run_on_adjacent_scope(self):
+        """"Neighboring producers" resolve to the system headed
+        "(adjacent interaction)".  Until 2026-10-17 its scope was the
+        whole qualifier, which this method compares with "adjacent", so
+        the flow got no arrow."""
+        from metacouplingllm.llm.parser import parse_analysis
+
+        parsed = parse_analysis(
+            "### 1. Coupling Classification\n\n"
+            "Pericoupling.\n\n"
+            "### 3. Pericoupling Analysis\n\n"
+            "#### 3.1 Systems Identification\n\n"
+            "**Focal System**: United States Southwest\n\n"
+            "**Sending System (adjacent interaction)**: Mexico Border Trade\n\n"
+            "#### 3.2 Flows Analysis\n\n"
+            "- [Matter] Neighboring producers → United States Southwest: "
+            "fresh produce\n"
+        )
+        result, _ = MetacouplingAssistant._resolve_flows_for_map(parsed, "USA")
+        assert [flow["direction"] for flow in result] == [
+            "Mexico → United States"
+        ]
+
     def test_resolves_generic_receiving_reference(self):
         """'Receiving regions' should resolve to receiving system countries."""
         from metacouplingllm.llm.parser import ParsedAnalysis

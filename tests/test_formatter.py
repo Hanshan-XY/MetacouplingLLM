@@ -1,6 +1,6 @@
 """Tests for output/formatter.py — human-readable formatting."""
 
-from metacouplingllm.llm.parser import ParsedAnalysis
+from metacouplingllm.llm.parser import ParsedAnalysis, parse_analysis
 from metacouplingllm.output.formatter import AnalysisFormatter
 
 from ._helpers import make_parsed_analysis
@@ -105,6 +105,34 @@ class TestFormatFull:
         assert "Sending" in text
         assert "Receiving" in text
         assert "Spillover" in text
+
+    def test_run_on_scope_label_keeps_the_qualifier(self):
+        """A system headed "(adjacent interaction)" keeps that label,
+        though its scope is "adjacent", and the qualifier is not listed
+        again under it."""
+        text = AnalysisFormatter.format_full(parse_analysis(
+            "### 1. Coupling Classification\n\n"
+            "Pericoupling.\n\n"
+            "### 3. Pericoupling Analysis\n\n"
+            "#### 3.1 Systems Identification\n\n"
+            "**Sending System (adjacent interaction)**: Mexico\n"
+        ))
+        assert "[Sending System (adjacent interaction)]" in text
+        assert "Qualifier" not in text
+
+    def test_research_gaps_written_as_paragraphs_are_shown(self):
+        """Until 2026-10-17 a §6 without list items parsed to no gaps,
+        and the report left §6 out."""
+        text = AnalysisFormatter.format_full(parse_analysis(
+            "### 1. Coupling Classification\n\n"
+            "Telecoupling.\n\n"
+            "### 6. Research Gaps and Suggestions\n\n"
+            "Export volumes by destination are missing.\n\n"
+            "Spillover systems are not identified.\n"
+        ))
+        assert "6. Research Gaps and Suggestions" in text
+        assert "  - Export volumes by destination are missing." in text
+        assert "  - Spillover systems are not identified." in text
 
 
 class TestFormatSummary:
