@@ -48,8 +48,9 @@ C1  Cap at 3 generated aliases per code (highest confidence first, then
 R1, O1 and X1 test a key against the name matcher that the alias table
 supplements: _resolve_adm1_name with the alias table cleared (strategies 1-3
 of resolve_adm1_code), not resolve_adm1_code itself, whose trailing-designator
-retry runs after the alias table.  An alias such as "rajshahi division"
-therefore stays in the table although the retry would also resolve it.
+retry and spelling-key comparison run after the alias table.  Aliases such as
+"rajshahi division" and "taita-taveta" therefore stay in the table although
+the retry or the spelling keys would also resolve them.
 
 The script stops with an error if any rule drops a curated alias.
 
@@ -284,6 +285,63 @@ _CURATED_ALIASES: tuple[dict[str, str], ...] = (
               "'officially the Brussels-Capital Region'); it had resolved as "
               "the start of the WB name until the single-word guard of "
               "2026-10-16."},
+    # Swedish counties by name alone.  The WB names keep the genitive of
+    # "X län" ("Hallands Laen") and spell out å, ä and ö, so "Halland" and
+    # the unaccented "Skane" did not match.  Stockholm is left out: in
+    # research text it is mostly the Stockholm Resilience Centre or
+    # Convention, not the county.
+    {"alias_display": "Halland", "code": "SWE005", "iso_a3": "SWE",
+     "basis": "Halland County without 'County' (Wikipedia, 'Counties of "
+              "Sweden'); WB name Hallands Laen."},
+    {"alias_display": "Kronoberg", "code": "SWE009", "iso_a3": "SWE",
+     "basis": "Kronoberg County without 'County' (Wikipedia, 'Counties of "
+              "Sweden'); WB name Kronobergs Laen."},
+    {"alias_display": "Jönköping", "code": "SWE007", "iso_a3": "SWE",
+     "basis": "Jönköping County without 'County' (Wikipedia, 'Counties of "
+              "Sweden'); WB name Joenkoepings Laen."},
+    {"alias_display": "Gävleborg", "code": "SWE003", "iso_a3": "SWE",
+     "basis": "Gävleborg County without 'County' (Wikipedia, 'Counties of "
+              "Sweden'); WB name Gaevleborgs Laen."},
+    {"alias_display": "Örebro", "code": "SWE011", "iso_a3": "SWE",
+     "basis": "Örebro County without 'County' (Wikipedia, 'Counties of "
+              "Sweden'); WB name Oerebro Laen."},
+    {"alias_display": "Skåne", "code": "SWE013", "iso_a3": "SWE",
+     "basis": "Skåne County without 'County' (Wikipedia, 'Counties of "
+              "Sweden'); WB name Skaane Laen."},
+    # The Danish names of the five Danish regions ("Region Midtjylland").
+    # The WB names are shorter English forms (Capital, Central Jutland, North
+    # Jutland, South Denmark, Zealand); the regions' English names are
+    # generated aliases.
+    {"alias_display": "Region Hovedstaden", "code": "DNK001", "iso_a3": "DNK",
+     "basis": "Danish name of the Capital Region of Denmark (Wikipedia, "
+              "'Regions of Denmark'); WB name Capital."},
+    {"alias_display": "Region Midtjylland", "code": "DNK002", "iso_a3": "DNK",
+     "basis": "Danish name of the Central Denmark Region (Wikipedia, "
+              "'Regions of Denmark'); WB name Central Jutland."},
+    {"alias_display": "Region Nordjylland", "code": "DNK003", "iso_a3": "DNK",
+     "basis": "Danish name of the North Denmark Region (Wikipedia, 'Regions "
+              "of Denmark'); WB name North Jutland."},
+    {"alias_display": "Region Syddanmark", "code": "DNK004", "iso_a3": "DNK",
+     "basis": "Danish name of the Region of Southern Denmark (Wikipedia, "
+              "'Regions of Denmark'); WB name South Denmark."},
+    # NFKD leaves "æ" as it is, so the folded key is given explicitly.
+    {"alias_display": "Region Sjælland", "alias_key": "region sjaelland",
+     "code": "DNK005", "iso_a3": "DNK",
+     "basis": "Danish name of Region Zealand (Wikipedia, 'Regions of "
+              "Denmark'); WB name Zealand."},
+    # Other official and English names the WB spells differently.
+    {"alias_display": "Fryslân", "code": "NLD003", "iso_a3": "NLD",
+     "basis": "Official name of the province, the West Frisian spelling the "
+              "provincial council adopted in 1996 (Wikipedia, 'Friesland'); "
+              "WB name Friesland."},
+    {"alias_display": "Hamadan", "code": "IRN011", "iso_a3": "IRN",
+     "basis": "English name of the province (Wikipedia, 'Provinces of "
+              "Iran'); WB name Hamedan."},
+    {"alias_display": "Khanty-Mansi Autonomous Okrug", "code": "RUS032",
+     "iso_a3": "RUS",
+     "basis": "English name of the okrug (Wikipedia, 'Khanty-Mansi "
+              "Autonomous Okrug': Khanty-Mansi Autonomous Okrug–Yugra); WB "
+              "name Khanty-mansyiskiy Okrug."},
 )
 
 

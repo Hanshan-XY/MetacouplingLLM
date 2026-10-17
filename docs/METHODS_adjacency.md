@@ -1434,9 +1434,9 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
 (`resolve_adm1_code`) through ordered strategies, each designed to fail to
 `None` rather than guess:
 
-1. **Alias table** (`data/adm1_aliases.csv`; 1,242 validated English exonyms /
-   alternative spellings for 920 regions across 140 countries: 1,223
-   LLM-generated, PR #60/#61, and 19 curated by hand from cited sources) —
+1. **Alias table** (`data/adm1_aliases.csv`; 1,256 validated English exonyms /
+   alternative spellings for 922 regions across 140 countries: 1,223
+   LLM-generated, PR #60/#61, and 33 curated by hand from cited sources) —
    `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`, `"Mexico City"` →
    `MEX009`. Additions-only, deterministically validated, with a curated
    review denylist.
@@ -1473,6 +1473,21 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
    rest also names another unit of the same country, whole or before an
    administrative word (`"Almaty Province"`: `"Almaty"` is Almaty City,
    `"almaty region"` the province).
+6. **Separators and spelled-out letters**: when strategies 1–5 all fail, the
+   name is compared with every name and alias by spelling key: accent-folded,
+   with the separators between words (spaces, hyphens, dashes) and
+   apostrophes (straight, curly, the grave accent, the letters ʻ to ʿ)
+   removed, and taken once as written and once with å, ä, ö, ø and ü spelled
+   out as aa, ae, oe, oe and ue, as the World Bank writes Swedish, Norwegian
+   and some German names (`"Trans-Nzoia"` → `KEN042`, World Bank `"Trans
+   Nzoia"`; `"Bío Bío"` → `"Biobio"`; `"Murang’a"` → `"Murang'a"`;
+   `"Skåne"` → `"Skaane Laen"`; `"Thüringen"` → `"Thueringen"`). Failing
+   that, strategy 5 is repeated with the rest compared the same way, when
+   strategies 1–4 do not resolve the rest (`"Trans-Nzoia County"`). A key
+   resolves only when it identifies exactly one region, in the hinted
+   country when a hint is given, so a key that several regions share stays
+   `None` (`"Nord Ouest"`: Haiti's Nord-Ouest and Cameroon's Nord - Ouest);
+   a name that strategies 1–5 resolve is never compared this way.
 
 Before these strategies, a name that is itself a country's ISO code, name or
 alias (`resolve_country_code` with `substring=False`: case, accents and a

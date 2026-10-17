@@ -218,12 +218,17 @@ thuringia,Thuringia,DEU016,DEU,Thueringen (Thüringen) is the German name; Thuri
 ali sabieh,Ali Sabieh,DJI001,DJI,"Ali Sabieh is the common English spelling used in many international sources, differing from the WB canonical 'Ali Sabeh'.",pretraining,high,False
 dikhil,Dikhil,DJI002,DJI,"Dikhil is a widely used alternative English romanization of the region, differing from the WB canonical 'Dilkhil'.",pretraining,high,False
 capital region of denmark,Capital Region of Denmark,DNK001,DNK,"The official English name for Region Hovedstaden is 'Capital Region of Denmark', widely used in English-language sources.",pretraining,high,False
+region hovedstaden,Region Hovedstaden,DNK001,DNK,"Danish name of the Capital Region of Denmark (Wikipedia, 'Regions of Denmark'); WB name Capital.",curated,high,False
 central denmark,Central Denmark,DNK002,DNK,"Region Midtjylland is commonly referred to in English as 'Central Denmark Region' or 'Central Denmark', an alternative to the WB form 'Central Jutland'.",pretraining,medium,False
 central denmark region,Central Denmark Region,DNK002,DNK,"The official English translation of Region Midtjylland is 'Central Denmark Region', used alongside the geographic name 'Central Jutland'.",pretraining,high,False
+region midtjylland,Region Midtjylland,DNK002,DNK,"Danish name of the Central Denmark Region (Wikipedia, 'Regions of Denmark'); WB name Central Jutland.",curated,high,False
 north denmark region,North Denmark Region,DNK003,DNK,"Region Nordjylland is officially translated as 'North Denmark Region' in English, an alternative to the WB form 'North Jutland'.",pretraining,high,False
 northern jutland,Northern Jutland,DNK003,DNK,"Region Nordjylland is also commonly referred to in English as 'Northern Jutland', a slight variation on the WB canonical 'North Jutland'.",pretraining,medium,False
+region nordjylland,Region Nordjylland,DNK003,DNK,"Danish name of the North Denmark Region (Wikipedia, 'Regions of Denmark'); WB name North Jutland.",curated,high,False
 region of southern denmark,Region of Southern Denmark,DNK004,DNK,"The official English name for Region Syddanmark is 'Region of Southern Denmark', used in many English-language official documents.",pretraining,high,False
+region syddanmark,Region Syddanmark,DNK004,DNK,"Danish name of the Region of Southern Denmark (Wikipedia, 'Regions of Denmark'); WB name South Denmark.",curated,high,False
 southern denmark,Southern Denmark,DNK004,DNK,"Region Syddanmark is widely referred to as 'Southern Denmark' in English, a common short form.",pretraining,high,False
+region sjaelland,Region Sjælland,DNK005,DNK,"Danish name of Region Zealand (Wikipedia, 'Regions of Denmark'); WB name Zealand.",curated,high,False
 national district,National District,DOM005,DOM,Distrito Nacional is the seat of Santo Domingo and is commonly referred to in English as the National District.,pretraining,high,False
 el seybo,El Seybo,DOM007,DOM,El Seybo is an alternative spelling of El Seibo used in some official Dominican and English-language sources.,pretraining,medium,False
 maria trinidad sanchez,Maria Trinidad Sanchez,DOM015,DOM,"The canonical WB name spells the last word as Sanches, but the correct and widely used spelling in English sources is Sanchez.",pretraining,high,False
@@ -412,6 +417,7 @@ chaharmahal and bakhtiari,Chaharmahal and Bakhtiari,IRN003,IRN,Standard English 
 east azerbaijan,East Azerbaijan,IRN004,IRN,English exonym using the standard English spelling 'Azerbaijan' instead of the Persian romanization 'Azarbayejan'.,pretraining,high,False
 isfahan,Isfahan,IRN005,IRN,"Widely used English/international spelling of the province and city name, more common than 'Esfahan' in English sources.",pretraining,high,False
 qazvin,Qazvin,IRN007,IRN,Standard English romanization of this province uses 'Qazvin' rather than 'Ghazvin'.,pretraining,high,False
+hamadan,Hamadan,IRN011,IRN,"English name of the province (Wikipedia, 'Provinces of Iran'); WB name Hamedan.",curated,high,False
 kohgiluyeh and boyer-ahmad,Kohgiluyeh and Boyer-Ahmad,IRN018,IRN,Standard English rendering uses 'and' and the full form 'Boyer-Ahmad' rather than the contracted 'boyerahma'.,pretraining,high,False
 kurdistan,Kurdistan,IRN019,IRN,"Common English name for this province, using the well-known English exonym 'Kurdistan' rather than the Persian romanization 'Kordestan'.",pretraining,high,False
 sistan and balochestan,Sistan and Balochestan,IRN024,IRN,"Alternative English romanization of Baluchestan as 'Balochestan', widely used in academic and journalistic sources.",pretraining,high,False
@@ -733,6 +739,7 @@ nasarawa,Nasarawa,NGA026,NGA,"The WB canonical name 'Nassarawa' uses a double-s 
 north caribbean coast autonomous region,North Caribbean Coast Autonomous Region,NIC014,NIC,The official English name used by the Nicaraguan government and international sources for Región Autónoma del Caribe Norte.,pretraining,high,False
 south caribbean coast autonomous region,South Caribbean Coast Autonomous Region,NIC015,NIC,The official English name used by the Nicaraguan government and international sources for Región Autónoma del Caribe Sur.,pretraining,high,False
 frisia,Frisia,NLD003,NLD,"Friesland is the Dutch province whose historical English exonym is Frisia, used in academic and historical contexts.",pretraining,medium,False
+fryslan,Fryslân,NLD003,NLD,"Official name of the province, the West Frisian spelling the provincial council adopted in 1996 (Wikipedia, 'Friesland'); WB name Friesland.",curated,high,False
 north brabant,North Brabant,NLD007,NLD,"Noord-brabant translates directly to North Brabant in English, the standard English-language name for this Dutch province.",pretraining,high,False
 north holland,North Holland,NLD008,NLD,"Noord-holland translates directly to North Holland in English, the standard English-language name for this Dutch province.",pretraining,high,False
 south holland,South Holland,NLD012,NLD,"Zuid-holland translates directly to South Holland in English, the standard English-language name for this Dutch province.",pretraining,high,False
@@ -871,6 +878,7 @@ republic of karelia,Republic of Karelia,RUS028,RUS,"Full standard English name f
 khabarovsk krai,Khabarovsk Krai,RUS030,RUS,"Standard English transliteration of Khabarovskiy Kray, using the English spelling 'Krai' instead of 'Kray'.",pretraining,high,False
 khakassia,Khakassia,RUS031,RUS,"Standard English exonym for Khakasiya Republic, used in English-language sources.",pretraining,high,False
 republic of khakassia,Republic of Khakassia,RUS031,RUS,Full standard English name for Khakasiya Rep.,pretraining,high,False
+khanty-mansi autonomous okrug,Khanty-Mansi Autonomous Okrug,RUS032,RUS,"English name of the okrug (Wikipedia, 'Khanty-Mansi Autonomous Okrug': Khanty-Mansi Autonomous Okrug–Yugra); WB name Khanty-mansyiskiy Okrug.",curated,high,False
 khanty-mansiysk autonomous okrug,Khanty-Mansiysk Autonomous Okrug,RUS032,RUS,"Standard English name for Khanty-Mansyiskiy Okrug, using the English form Khanty-Mansiysk.",pretraining,high,False
 yugra,Yugra,RUS032,RUS,"The official alternative name for the Khanty-Mansiysk Autonomous Okrug, widely used in English sources as Khanty-Mansiysk-Yugra.",pretraining,medium,False
 komi republic,Komi Republic,RUS034,RUS,"Standard English name for Komi Rep., reversing the Russian word order to English convention.",pretraining,high,False
@@ -1024,20 +1032,26 @@ zasavje,Zasavje,SVN012,SVN,Zasavska is the adjectival form; Zasavje is the noun 
 blekinge county,Blekinge County,SWE001,SWE,Swedish 'Laen' means 'County' in English; 'Blekinge County' is the standard English name for this Swedish county.,pretraining,high,False
 dalarna,Dalarna,SWE002,SWE,The region is widely referred to simply as 'Dalarna' in English-language sources.,pretraining,high,False
 dalarna county,Dalarna County,SWE002,SWE,The county is commonly known in English as 'Dalarna County'; 'Dalarnas' is the genitive form of 'Dalarna'.,pretraining,high,False
+gavleborg,Gävleborg,SWE003,SWE,"Gävleborg County without 'County' (Wikipedia, 'Counties of Sweden'); WB name Gaevleborgs Laen.",curated,high,False
 gavleborg county,Gavleborg County,SWE003,SWE,The ASCII-simplified English name for Gaevleborgs Laen; 'Gaevleborg' is an older romanization and 'ae' maps to 'a' in English usage.,pretraining,high,False
 gavleborgs county,Gavleborgs County,SWE003,SWE,English transliteration of Gaevleborgs Laen using simplified spelling without the ae digraph.,pretraining,medium,False
+halland,Halland,SWE005,SWE,"Halland County without 'County' (Wikipedia, 'Counties of Sweden'); WB name Hallands Laen.",curated,high,False
 halland county,Halland County,SWE005,SWE,Standard English name for Hallands Laen; 'Hallands' is genitive of 'Halland'.,pretraining,high,False
 jamtland,Jamtland,SWE006,SWE,The region is commonly referred to as 'Jamtland' in English without the county suffix.,pretraining,high,False
 jamtland county,Jamtland County,SWE006,SWE,English transliteration of Jaemtlands Laen; 'ae' is rendered as 'a' in English usage.,pretraining,high,False
+jonkoping,Jönköping,SWE007,SWE,"Jönköping County without 'County' (Wikipedia, 'Counties of Sweden'); WB name Joenkoepings Laen.",curated,high,False
 jonkoping county,Jonkoping County,SWE007,SWE,English transliteration of Joenkoepings Laen; 'oe' maps to 'o' in ASCII-simplified English usage.,pretraining,high,False
 kalmar county,Kalmar County,SWE008,SWE,Standard English name for Kalmar Laen; the region name is unchanged in English.,pretraining,high,False
+kronoberg,Kronoberg,SWE009,SWE,"Kronoberg County without 'County' (Wikipedia, 'Counties of Sweden'); WB name Kronobergs Laen.",curated,high,False
 kronoberg county,Kronoberg County,SWE009,SWE,Standard English name for Kronobergs Laen; 'Kronobergs' is the genitive form of 'Kronoberg'.,pretraining,high,False
 norrbotten,Norrbotten,SWE010,SWE,The region is widely referred to simply as 'Norrbotten' in English-language sources.,pretraining,high,False
 norrbotten county,Norrbotten County,SWE010,SWE,Standard English name for Norrbottens Laen; 'Norrbottens' is the genitive form of 'Norrbotten'.,pretraining,high,False
+orebro,Örebro,SWE011,SWE,"Örebro County without 'County' (Wikipedia, 'Counties of Sweden'); WB name Oerebro Laen.",curated,high,False
 orebro county,Orebro County,SWE011,SWE,English transliteration of Oerebro Laen; 'Oe' maps to 'O' in ASCII-simplified English usage.,pretraining,high,False
 ostergotland,Ostergotland,SWE012,SWE,The region is commonly referred to as 'Ostergotland' in English without the county suffix.,pretraining,high,False
 ostergotland county,Ostergotland County,SWE012,SWE,English transliteration of Oestergoetlands Laen; 'Oe' → 'O' and 'oe' → 'o' in simplified English usage.,pretraining,high,False
 scania,Scania,SWE013,SWE,"The traditional English/Latin exonym for the Swedish region Skane is 'Scania', widely used in historical and modern English texts.",pretraining,high,False
+skane,Skåne,SWE013,SWE,"Skåne County without 'County' (Wikipedia, 'Counties of Sweden'); WB name Skaane Laen.",curated,high,False
 skane county,Skane County,SWE013,SWE,English transliteration of Skaane Laen; 'Skaane' simplifies to 'Skane' in English usage.,pretraining,high,False
 sodermanland,Sodermanland,SWE014,SWE,The region is commonly referred to as 'Sodermanland' in English without the county suffix.,pretraining,high,False
 sodermanland county,Sodermanland County,SWE014,SWE,English transliteration of Soedermanlands Laen; 'Soe' maps to 'So' in ASCII-simplified English usage.,pretraining,high,False

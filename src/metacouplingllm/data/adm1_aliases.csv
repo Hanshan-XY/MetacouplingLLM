@@ -218,12 +218,17 @@ thuringia,Thuringia,DEU016,DEU
 ali sabieh,Ali Sabieh,DJI001,DJI
 dikhil,Dikhil,DJI002,DJI
 capital region of denmark,Capital Region of Denmark,DNK001,DNK
+region hovedstaden,Region Hovedstaden,DNK001,DNK
 central denmark,Central Denmark,DNK002,DNK
 central denmark region,Central Denmark Region,DNK002,DNK
+region midtjylland,Region Midtjylland,DNK002,DNK
 north denmark region,North Denmark Region,DNK003,DNK
 northern jutland,Northern Jutland,DNK003,DNK
+region nordjylland,Region Nordjylland,DNK003,DNK
 region of southern denmark,Region of Southern Denmark,DNK004,DNK
+region syddanmark,Region Syddanmark,DNK004,DNK
 southern denmark,Southern Denmark,DNK004,DNK
+region sjaelland,Region Sjælland,DNK005,DNK
 national district,National District,DOM005,DOM
 el seybo,El Seybo,DOM007,DOM
 maria trinidad sanchez,Maria Trinidad Sanchez,DOM015,DOM
@@ -412,6 +417,7 @@ chaharmahal and bakhtiari,Chaharmahal and Bakhtiari,IRN003,IRN
 east azerbaijan,East Azerbaijan,IRN004,IRN
 isfahan,Isfahan,IRN005,IRN
 qazvin,Qazvin,IRN007,IRN
+hamadan,Hamadan,IRN011,IRN
 kohgiluyeh and boyer-ahmad,Kohgiluyeh and Boyer-Ahmad,IRN018,IRN
 kurdistan,Kurdistan,IRN019,IRN
 sistan and balochestan,Sistan and Balochestan,IRN024,IRN
@@ -733,6 +739,7 @@ nasarawa,Nasarawa,NGA026,NGA
 north caribbean coast autonomous region,North Caribbean Coast Autonomous Region,NIC014,NIC
 south caribbean coast autonomous region,South Caribbean Coast Autonomous Region,NIC015,NIC
 frisia,Frisia,NLD003,NLD
+fryslan,Fryslân,NLD003,NLD
 north brabant,North Brabant,NLD007,NLD
 north holland,North Holland,NLD008,NLD
 south holland,South Holland,NLD012,NLD
@@ -871,6 +878,7 @@ republic of karelia,Republic of Karelia,RUS028,RUS
 khabarovsk krai,Khabarovsk Krai,RUS030,RUS
 khakassia,Khakassia,RUS031,RUS
 republic of khakassia,Republic of Khakassia,RUS031,RUS
+khanty-mansi autonomous okrug,Khanty-Mansi Autonomous Okrug,RUS032,RUS
 khanty-mansiysk autonomous okrug,Khanty-Mansiysk Autonomous Okrug,RUS032,RUS
 yugra,Yugra,RUS032,RUS
 komi republic,Komi Republic,RUS034,RUS
@@ -1024,20 +1032,26 @@ zasavje,Zasavje,SVN012,SVN
 blekinge county,Blekinge County,SWE001,SWE
 dalarna,Dalarna,SWE002,SWE
 dalarna county,Dalarna County,SWE002,SWE
+gavleborg,Gävleborg,SWE003,SWE
 gavleborg county,Gavleborg County,SWE003,SWE
 gavleborgs county,Gavleborgs County,SWE003,SWE
+halland,Halland,SWE005,SWE
 halland county,Halland County,SWE005,SWE
 jamtland,Jamtland,SWE006,SWE
 jamtland county,Jamtland County,SWE006,SWE
+jonkoping,Jönköping,SWE007,SWE
 jonkoping county,Jonkoping County,SWE007,SWE
 kalmar county,Kalmar County,SWE008,SWE
+kronoberg,Kronoberg,SWE009,SWE
 kronoberg county,Kronoberg County,SWE009,SWE
 norrbotten,Norrbotten,SWE010,SWE
 norrbotten county,Norrbotten County,SWE010,SWE
+orebro,Örebro,SWE011,SWE
 orebro county,Orebro County,SWE011,SWE
 ostergotland,Ostergotland,SWE012,SWE
 ostergotland county,Ostergotland County,SWE012,SWE
 scania,Scania,SWE013,SWE
+skane,Skåne,SWE013,SWE
 skane county,Skane County,SWE013,SWE
 sodermanland,Sodermanland,SWE014,SWE
 sodermanland county,Sodermanland County,SWE014,SWE

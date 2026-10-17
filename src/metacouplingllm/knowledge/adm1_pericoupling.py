@@ -1080,6 +1080,105 @@ def _names_a_country(name_lower: str) -> bool:
     )
 
 
+# Separators written interchangeably between the words of a name, or within
+# one: whitespace, the hyphen-minus, the Unicode hyphens and dashes (U+2010
+# to U+2015) and the minus sign, and the apostrophes that spellings of a name
+# keep, drop or write differently ("Murang'a", "Murang’a", "Muranga"): the
+# ASCII apostrophe, the grave accent (the World Bank's "San`a'"), the quotes
+# U+2018, U+2019 and U+201B, the letters U+02BB to U+02BF (ʻ ʼ ʽ ʾ ʿ, used in
+# transliteration for the 'okina, hamza and ayn) and the prime U+2032.  The
+# fold already turns the acute accent ´ into a space.
+_NAME_SEPARATORS_RE = re.compile(
+    r"[\s\-\u2010-\u2015\u2212'`\u2018\u2019\u201b\u02bb-\u02bf\u2032]+"
+)
+
+# Letters the World Bank spells out: å, ä, ö and ø in Swedish and Norwegian
+# names ("Skaane Laen" for Skåne län, "Moere Og Romsdal" for Møre og
+# Romsdal) and ü in German ones ("Thueringen").  The fold already writes æ
+# as ae.
+_SPELLED_OUT_LETTERS = str.maketrans({
+    "å": "aa", "ä": "ae", "ö": "oe", "ø": "oe", "ü": "ue",
+})
+
+
+def _spelling_keys(text: str) -> set[str]:
+    """Keys that are equal for names differing only in separators or in
+    spelled-out letters.
+
+    ``text`` is lowercased and accent-folded twice, as written and with å,
+    ä, ö, ø and ü first spelled out as aa, ae, oe, oe and ue; every run of
+    separators, apostrophes among them, is then removed.  "Skåne" gives
+    ``{"skane", "skaane"}``, the second also the key of the World Bank's
+    "Skaane"; "Trans-Nzoia", "Trans Nzoia" and "Trans–Nzoia" all give
+    ``{"transnzoia"}``; "Bío Bío" gives ``{"biobio"}``, the key of
+    "Biobio"; "Murang'a", "Murang’a" and "Muranga" give ``{"muranga"}``.
+    """
+    import unicodedata
+    lower = unicodedata.normalize("NFC", text.strip().lower())
+    keys = {
+        _NAME_SEPARATORS_RE.sub("", _fold_diacritics(form))
+        for form in (lower, lower.translate(_SPELLED_OUT_LETTERS))
+    }
+    keys.discard("")
+    return keys
+
+
+_adm1_spelling_index: tuple[
+    object, dict[str, set[tuple[str, str]]]
+] | None = None
+
+
+def _get_spelling_index() -> dict[str, set[tuple[str, str]]]:
+    """Lazily build the regions under each spelling key of every name-index
+    key (canonical name, suffix-stripped and slash-split variants) and alias
+    key.  Rebuilt when the alias table is replaced."""
+    global _adm1_spelling_index
+    _ensure_loaded()
+    aliases = _adm1_aliases
+    if _adm1_spelling_index is None or _adm1_spelling_index[0] is not aliases:
+        index: dict[str, set[tuple[str, str]]] = {}
+        keyed = [*_get_adm1_name_index().items(), *(aliases or {}).items()]
+        for key, entries in keyed:
+            for spelling in _spelling_keys(key):
+                index.setdefault(spelling, set()).update(entries)
+        _adm1_spelling_index = (aliases, index)
+    return _adm1_spelling_index[1]
+
+
+def _resolve_spelling_variant(
+    name: str, country: str | None,
+) -> str | None:
+    """Resolve ``name`` by its spelling keys (see ``_spelling_keys``).
+
+    Returns the one region that has a name-index key or alias with a
+    spelling key of ``name``, counting only regions of the hinted country
+    when a hint is given; ``None`` when no region or several have one.
+    Without a hint, a name that is a country's (``_names_a_country``) is
+    refused, as in strategies 0-3.
+    """
+    if not name or not name.strip():
+        return None
+    index = _get_spelling_index()
+    entries = {
+        entry for key in _spelling_keys(name) for entry in index.get(key, ())
+    }
+    if not entries:
+        return None
+    country_iso = (
+        _resolve_country_filter(country) if country is not None else None
+    )
+    codes = {
+        code for code, iso in entries
+        if country_iso is None or iso == country_iso
+    }
+    if len(codes) != 1:
+        return None
+    # Checked last because it looks the name up among the country names.
+    if country is None and _names_a_country(name.strip().lower()):
+        return None
+    return codes.pop()
+
+
 # Trailing administrative designators.  When no strategy matches a name,
 # ``resolve_adm1_code`` removes one trailing designator ("Narok County" ->
 # "Narok") and resolves the rest once more.  ``None`` accepts the result in
@@ -1161,7 +1260,45 @@ def _get_unit_name_heads() -> dict[str, dict[tuple[str, ...], set[str]]]:
     return _unit_name_heads[1]
 
 
-def _base_names_another_unit(base: str, code: str) -> bool:
+_unit_spelling_heads: tuple[
+    object, dict[str, dict[str, set[str]]]
+] | None = None
+
+
+def _get_unit_spelling_heads() -> dict[str, dict[str, set[str]]]:
+    """Lazily build, per country, the codes under each spelling key (see
+    ``_spelling_keys``) of the word sequences of ``_get_unit_name_heads``,
+    taken before accent folding so that their letters can be spelled out.
+    Rebuilt when the alias table is replaced.
+    """
+    global _unit_spelling_heads
+    _ensure_loaded()
+    aliases = _adm1_aliases
+    if _unit_spelling_heads is None or _unit_spelling_heads[0] is not aliases:
+        heads: dict[str, dict[str, set[str]]] = {}
+        keyed = [*_get_adm1_name_index().items(), *(aliases or {}).items()]
+        for key, entries in keyed:
+            words = _name_words(key)
+            spans = [words] + [
+                words[:k] for k in range(1, len(words))
+                if _fold_diacritics(words[k]) in _ADMIN_WORDS
+            ]
+            spellings = {
+                spelling
+                for span in spans
+                for spelling in _spelling_keys(" ".join(span))
+            }
+            for code, iso in entries:
+                by_key = heads.setdefault(iso, {})
+                for spelling in spellings:
+                    by_key.setdefault(spelling, set()).add(code)
+        _unit_spelling_heads = (aliases, heads)
+    return _unit_spelling_heads[1]
+
+
+def _base_names_another_unit(
+    base: str, code: str, respelled: bool = False,
+) -> bool:
     """Whether ``base`` names a unit other than ``code`` in the same
     country: the whole of that unit's name, or the part before an
     administrative word.
@@ -1171,28 +1308,43 @@ def _base_names_another_unit(base: str, code: str) -> bool:
     Almatinskaya (``KAZ003``, alias "almaty region"), so the designator
     retry refuses it.  A qualified name is not shared: "Pomeranian" does
     not name West Pomeranian, nor "Nord" Nord-Est.
+
+    With ``respelled`` (``base`` resolved by its spelling keys), names are
+    compared by spelling key rather than word by word, so a base names a
+    unit whose name differs from it only in separators or spelled-out
+    letters.
     """
     _ensure_loaded()
     assert _adm1_country is not None
     iso = _adm1_country.get(code)
-    words = tuple(_name_words(_fold_diacritics(base.strip().lower())))
-    if iso is None or not words:
+    if iso is None:
         return False
-    codes = _get_unit_name_heads().get(iso, {}).get(words, set())
+    if respelled:
+        by_key = _get_unit_spelling_heads().get(iso, {})
+        codes = set().union(
+            *(by_key.get(key, set()) for key in _spelling_keys(base))
+        )
+    else:
+        words = tuple(_name_words(_fold_diacritics(base.strip().lower())))
+        if not words:
+            return False
+        codes = _get_unit_name_heads().get(iso, {}).get(words, set())
     return bool(codes - {code})
 
 
 def _resolve_without_designator(
-    name: str, country: str | None,
+    name: str, country: str | None, respelled: bool = False,
 ) -> str | None:
     """Resolve ``name`` after removing one trailing administrative designator.
 
-    The last step of :func:`resolve_adm1_code`, reached only when every
-    strategy has failed on the full name.  Returns ``None`` unless the name
-    ends, after at least one other word, in a designator of
+    A step of :func:`resolve_adm1_code`, reached only when every strategy
+    has failed on the full name.  Returns ``None`` unless the name ends,
+    after at least one other word, in a designator of
     ``_TRAILING_DESIGNATORS``; the rest resolves; the region lies in a
     country whose first-level units carry that designator; and the rest
-    names no other unit of that country.
+    names no other unit of that country.  The rest is resolved by the
+    strategies or, with ``respelled``, by its spelling keys, and then only
+    when the strategies do not resolve it.
     """
     parts = name.strip().rsplit(None, 1)
     if len(parts) != 2:
@@ -1202,12 +1354,16 @@ def _resolve_without_designator(
     if designator not in _TRAILING_DESIGNATORS:
         return None
     code = _resolve_adm1_name(base, country)
+    if respelled:
+        if code is not None:
+            return None
+        code = _resolve_spelling_variant(base, country)
     if code is None:
         return None
     countries = _TRAILING_DESIGNATORS[designator]
     if countries is not None and get_adm1_country(code) not in countries:
         return None
-    if _base_names_another_unit(base, code):
+    if _base_names_another_unit(base, code, respelled):
         return None
     return code
 
@@ -1242,7 +1398,8 @@ def resolve_adm1_code(
        filter required).
 
     When all four fail, one trailing administrative designator is
-    removed and the rest resolved again (see below).
+    removed and the rest resolved again, and failing that the name is
+    matched regardless of separators and spelled-out letters (see below).
 
     Trailing designators
     --------------------
@@ -1292,6 +1449,27 @@ def resolve_adm1_code(
     country (``"Badakhshan"`` with ``"TJK"``).  A name written with spaces
     for its hyphens matches the hyphenated name: ``"Schleswig Holstein"`` →
     ``DEU015``.
+
+    Separators and spelled-out letters
+    ----------------------------------
+    Names are written with a hyphen, a dash, a space or nothing between
+    their words (``"Trans-Nzoia"`` for the World Bank's ``"Trans
+    Nzoia"``, ``"Bío Bío"`` for ``"Biobio"``), with a straight, curly or
+    no apostrophe (``"Murang’a"`` for ``"Murang'a"``), and the World Bank
+    spells out the å, ä, ö and ø of Swedish and Norwegian names and the ü
+    of German ones (``"Skaane Laen"``, ``"Moere Og Romsdal"``,
+    ``"Thueringen"``).  When neither the strategies nor the designator
+    retry resolve a name, it is compared with every name and alias by
+    spelling key: accent-folded, with separators (whitespace, hyphens,
+    dashes, apostrophes) removed, once as written and once with those
+    letters spelled out as aa, ae, oe, oe and ue (``_spelling_keys``).
+    Failing that, the designator retry is repeated with the rest compared
+    the same way, if the strategies do not resolve the rest, so
+    ``"Trans-Nzoia County"`` resolves too.  A spelling key resolves only
+    when exactly one region matches, in the hinted country when a hint is
+    given: ``"Nord Ouest"`` without a hint matches Haiti's Nord-Ouest and
+    Cameroon's Nord - Ouest and stays unresolved.  A name the strategies
+    or the designator retry resolve is never compared this way.
 
     Cross-country ambiguity
     -----------------------
@@ -1348,12 +1526,22 @@ def resolve_adm1_code(
 
     >>> resolve_adm1_code("Washington County", country="USA") is None
     True
+
+    >>> resolve_adm1_code("Trans-Nzoia", country="KEN")  # separators differ
+    'KEN042'
+
+    >>> resolve_adm1_code("Skåne")                       # WB "Skaane Laen"
+    'SWE013'
     """
     if not name or not name.strip():
         return None
     code = _resolve_adm1_name(name, country)
     if code is None:
         code = _resolve_without_designator(name, country)
+    if code is None:
+        code = _resolve_spelling_variant(name, country)
+    if code is None:
+        code = _resolve_without_designator(name, country, respelled=True)
     return code
 
 

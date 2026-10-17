@@ -197,6 +197,51 @@ file. The format is loosely based on
   name-matching queries, ten change, each listed in the regression test:
   eight words no longer resolve ("other", "Union", "federal") and "Ile de
   France" and "KwaZulu Natal" now do. Tests +30 (suite 1,741).
+- **Region names written with other separators, letters or apostrophes
+  resolve: "Trans-Nzoia", "Skåne", "Murang’a".** `resolve_adm1_code` returned
+  `None`, even with the country hint, for names that differ from a World Bank
+  name or alias only in how their words are joined or spelled: a hyphen, en
+  dash or nothing where the World Bank writes something else ("Trans-Nzoia"
+  for "Trans Nzoia", "Taita–Taveta", "Bío Bío" for "Biobio", Botswana's
+  "North-East District" for "North East"), a curly, other or no apostrophe
+  ("Murang’a" for "Murang'a", "Valle d’Aosta", "Hawkes Bay" for "Hawke's
+  Bay"), and the å, ä, ö, ø and ü that the World Bank spells out in Swedish,
+  Norwegian and some German names ("Skåne" for "Skaane Laen", "Thüringen" for
+  "Thueringen"). With the hint, the World Bank's multi-word names returned
+  `None` when written with hyphens in 769 of 1,038 cases, with en dashes in
+  1,209 of 1,211 and with no separator in 1,205 of 1,211, and its 57 names
+  with an apostrophe or grave accent in 266 of 280 variants written with ’, ‘,
+  ʼ, `` ` `` or none; all now resolve, except names that two units of a
+  country share. When neither the strategies nor the designator retry resolve
+  a name, the resolver compares it with every name and alias by a spelling key
+  that drops spaces, hyphens, dashes and apostrophes and takes those letters
+  both as written and spelled out; failing that, it repeats the designator
+  retry with the rest compared the same way ("Trans-Nzoia County"). A key must
+  identify one region, in the hinted country when a hint is given, so "Nord
+  Ouest" without a hint (Haiti's Nord-Ouest and Cameroon's "Nord - Ouest")
+  stays `None`, and without a hint a name that is a country's is refused as by
+  the strategies. On the 200 research descriptions of the MetacouplingChat
+  set, the prompt builder now finds the labelled focal region of "The cherry
+  boom in O'Higgins, Chile", where it found none; the other 199, the
+  subnational-scope check on all 200 and the validator's ADM1 and flow-map
+  results on 63 saved analyses are unchanged. A name that resolved before is
+  unchanged: of the 1,440,634 queries recorded on main before the change (each
+  World Bank name, name-index key, alias key and alias display with and
+  without its country hint, alone and followed by each designator; the
+  recorded name-matching queries; and 1,177,308 separator, spelled-letter and
+  apostrophe variants of the same names), none of the 213,720 that resolved
+  gives a different code. Of the 359,366 that now resolve, 359,356 are
+  variants resolving to the region they were made from, and the other 10, dash
+  and joined forms of "North West District", are Botswana's North-West
+  District. The alias table gains 14 curated entries, each checked against the
+  source its basis cites (now 1,256 entries for 922 regions): the Swedish
+  counties Halland, Kronoberg, Jönköping, Gävleborg, Örebro and Skåne by name
+  alone (the World Bank names keep the Swedish genitive, "Hallands Laen", and
+  spell out the letters, so the unaccented "Orebro" missed "Oerebro Laen";
+  Stockholm is left out because in research text it mostly means the Stockholm
+  Resilience Centre or Convention), the Danish names of the five Danish
+  regions ("Region Midtjylland"), "Fryslân", "Hamadan" and "Khanty-Mansi
+  Autonomous Okrug". Tests +126 (suite 2,017).
 - **Free text names a country only where it names the country: "New South
   Wales" is not Wales, "South America" not the United States, "and" not
   Andorra.** `resolve_country_code` returns the country of the longest name

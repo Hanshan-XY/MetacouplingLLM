@@ -22,6 +22,7 @@ from metacouplingllm.knowledge.adm1_pericoupling import (
     _adm1_country,
     _adm1_metadata,
     _resolve_adm1_name,
+    _spelling_keys,
 )
 
 
@@ -968,6 +969,329 @@ def test_resolution_recorded_before_retry_unchanged(name, country, code):
     assert resolve_adm1_code(name, country=country) == expected
 
 
+# ---------------------------------------------------------------------------
+# Separators and spelled-out letters
+# ---------------------------------------------------------------------------
+
+# Names that differ from a World Bank name or alias only in separators or in
+# å, ä, ö, ø and ü, reported returning None with the country hint (2026-10-16).
+# The name index's spaced hyphens resolve "Elgeyo Marakwet", "Tharaka Nithi"
+# and "South East District"; the spelling keys resolve the rest.
+_SPELLING_VARIANTS = [
+    ("Trans-Nzoia", "KEN", "KEN042"),          # WB "Trans Nzoia"
+    ("Elgeyo Marakwet", "KEN", "KEN005"),      # WB "Elgeyo-Marakwet"
+    ("Tharaka Nithi", "KEN", "KEN041"),        # WB "Tharaka-Nithi"
+    ("Taita–Taveta", "KEN", "KEN039"),         # WB "Taita Taveta"
+    ("North-East District", "BWA", "BWA008"),  # WB "North East"
+    ("South East District", "BWA", "BWA009"),  # WB "South-East"
+    ("Kuyavian–Pomeranian", "POL", "POL002"),  # alias "kuyavian-pomeranian"
+    ("Bío Bío", "CHL", "CHL006"),              # WB "Biobio"
+    ("Skåne", "SWE", "SWE013"),                # WB "Skaane Laen"
+]
+
+
+class TestSpellingVariants:
+    """A name that nothing else resolves is compared with the names and
+    aliases by spelling key: separators removed, and å, ä, ö, ø and ü
+    taken as written and as the World Bank spells them out."""
+
+    @pytest.mark.parametrize("name, country, code", _SPELLING_VARIANTS)
+    def test_reported_names_resolve(self, name, country, code):
+        assert resolve_adm1_code(name, country=country) == code
+
+    @pytest.mark.parametrize(
+        "name, country, code",
+        [row for row in _SPELLING_VARIANTS if row[1] != "BWA"],
+    )
+    def test_reported_names_resolve_without_hint(self, name, country, code):
+        assert resolve_adm1_code(name) == code
+
+    def test_north_east_needs_the_hint(self):
+        """'northeast' is also the key of the Northeast regions of North
+        Macedonia and Singapore."""
+        assert resolve_adm1_code("North-East District") is None
+
+    def test_spelling_keys(self):
+        assert _spelling_keys("Skåne") == {"skane", "skaane"}
+        assert _spelling_keys("Ska\u030ane") == {"skane", "skaane"}
+        assert _spelling_keys("Møre og Romsdal") == {
+            "moreogromsdal", "moereogromsdal",
+        }
+        assert _spelling_keys("Thüringen") == {"thuringen", "thueringen"}
+        assert (
+            _spelling_keys("Trans Nzoia") == _spelling_keys("TRANS-NZOIA")
+            == _spelling_keys("Trans – Nzoia") == {"transnzoia"}
+        )
+        assert _spelling_keys("Bío Bío") == {"biobio"}
+        assert _spelling_keys(" - ") == set()
+
+    def test_spelled_out_letters(self):
+        """The World Bank writes Swedish names with aa, ae and oe and
+        Thüringen as Thueringen; Estonian names keep their letters, and the
+        spelled-out form finds them too."""
+        assert resolve_adm1_code("Skåne län") == "SWE013"
+        assert resolve_adm1_code("Västra Götalands län") == "SWE021"
+        assert resolve_adm1_code("Jönköpings län") == "SWE007"
+        assert resolve_adm1_code("Thüringen") == "DEU016"
+        assert resolve_adm1_code("Jaerva", country="EST") == "EST005"
+
+    def test_with_a_designator(self):
+        assert resolve_adm1_code("Trans-Nzoia County") == "KEN042"
+        assert resolve_adm1_code("Elgeyo Marakwet County") == "KEN005"
+        assert resolve_adm1_code("Tharaka Nithi County") == "KEN041"
+        assert resolve_adm1_code("Kuyavian–Pomeranian Voivodeship") == "POL002"
+        assert resolve_adm1_code("Bío Bío Region") == "CHL006"
+        # The designator rules still apply: Kenya's units are counties.
+        assert resolve_adm1_code("Trans-Nzoia District", country="KEN") is None
+
+    def test_full_name_before_its_rest(self):
+        """The full name's spelling key is tried before the rest after the
+        designator: 'Savannas - Region' is the alias 'savannas region'
+        (Togo's Savanes), not 'savannas' (Côte d'Ivoire's Savanes)."""
+        assert resolve_adm1_code("Savannas Region") == "TGO005"
+        assert resolve_adm1_code("Savannas - Region") == "TGO005"
+        assert resolve_adm1_code("Savannas") == "CIV033"
+
+    def test_rest_naming_another_unit_refused(self, monkeypatch):
+        """The designator retry refuses a rest that also names another unit
+        before an administrative word, compared by spelling key when the
+        rest resolved by spelling: with an alias "trans nzoia region" for
+        Nakuru, "Trans–Nzoia County" is refused as "Almaty Province" is."""
+        import metacouplingllm.knowledge.adm1_pericoupling as mod
+        _ensure_loaded()
+        aliases = {
+            **mod._adm1_aliases, "trans nzoia region": [("KEN031", "KEN")],
+        }
+        monkeypatch.setattr(mod, "_adm1_aliases", aliases)
+        assert resolve_adm1_code("Trans–Nzoia", country="KEN") == "KEN042"
+        assert resolve_adm1_code("Trans–Nzoia County", country="KEN") is None
+
+    @pytest.mark.parametrize("separator", [" ", "-", "–", ""])
+    def test_every_unit_under_other_separators(self, separator):
+        """Every World Bank name of several words resolves, with the country
+        hint, when its words are joined by a space, a hyphen, an en dash or
+        nothing; names that two units of a country share (seven Anguillan
+        "Name Unknown", two Ghanaian "Greater Accra") match both units and
+        stay unresolved."""
+        import re
+        _ensure_loaded()
+        from metacouplingllm.knowledge.adm1_pericoupling import _adm1_metadata
+        by_name: dict[tuple[str, str], list[str]] = {}
+        for code, meta in _adm1_metadata.items():
+            key = (meta["name"].lower(), meta["iso_a3"])
+            by_name.setdefault(key, []).append(code)
+        tested = 0
+        failed = []
+        for (name, iso), codes in by_name.items():
+            words = [w for w in re.split(r"\s*[-–]\s*|\s+", name) if w]
+            variant = separator.join(words)
+            if len(words) < 2 or variant == name:
+                continue
+            tested += 1
+            got = resolve_adm1_code(variant, country=iso)
+            if got != (codes[0] if len(codes) == 1 else None):
+                failed.append((variant, iso, codes, got))
+        assert tested >= 200
+        assert not failed, failed[:10]
+
+    def test_ambiguous_key_stays_unresolved(self):
+        """'Nord Ouest' matches Haiti's Nord-Ouest and Cameroon's
+        'Nord - Ouest'."""
+        assert resolve_adm1_code("Nord Ouest") is None
+        assert resolve_adm1_code("Nord Ouest", country="HTI") == "HTI007"
+        assert resolve_adm1_code("Nord Ouest", country="CMR") == "CMR007"
+
+    @pytest.mark.parametrize("country_name", [
+        "Belize", "Djibouti", "French Guiana", "Georgia", "Guatemala",
+        "Luxembourg", "Mexico", "Niger", "Panama",
+    ])
+    def test_country_names_stay_unresolved(self, country_name):
+        """Each of these country names is the spelling key of exactly one
+        region (Mexico of México state, Georgia of the US state); without
+        a hint the name is read as the country, as by strategies 0-3."""
+        assert resolve_adm1_code(country_name) is None
+
+    @pytest.mark.parametrize("text, code", [
+        ("Groundwater use by flower farms in Skåne, southern Sweden",
+         "SWE013"),
+        ("Tea smallholders in Murang'a County supplying the Mombasa auction",
+         "KEN029"),
+        ("Wind power expansion in Thüringen and electricity flows to Bavaria",
+         "DEU016"),
+        ("Charcoal trade from Kyyivs'ka oblast to Kyiv", "UKR012"),
+    ])
+    def test_prompt_hint_finds_respelled_regions(self, text, code):
+        """The prompt builder takes the first name that resolves as the
+        focal region, trying the words of a phrase joined by spaces.  It
+        found none in the first and last descriptions, and took Mombasa and
+        Bavaria, named later, in the other two."""
+        from metacouplingllm.prompts.builder import PromptBuilder
+        hint = PromptBuilder._build_adm1_pericoupling_hint(text)
+        assert hint is not None and f"({code}," in hint
+
+
+# Names written with another apostrophe than the World Bank's, or with none,
+# that returned None with the country hint until apostrophes counted as
+# separators in the spelling keys (2026-10-16).
+_APOSTROPHE_VARIANTS = [
+    ("Murang’a", "KEN", "KEN029"),        # WB "Murang'a"
+    ("Valle d’Aosta", "ITA", "ITA019"),   # WB "Valle D'aosta"
+    ("O’Higgins", "CHL", "CHL008"),       # alias "o'higgins"
+    ("Mohale’s Hoek", "LSO", "LSO006"),   # WB "Mohale's Hoek"
+    ("Kyyivs’ka", "UKR", "UKR012"),       # WB "Kyyivs'ka"
+    ("Kyyivska", "UKR", "UKR012"),
+    ("P’yongan-bukto", "PRK", "PRK008"),  # WB "P'yongan-bukto"
+    ("Hawkes Bay", "NZL", "NZL06"),       # WB "Hawke's Bay"
+    ("Ḥāʾil", "SAU", "SAU009"),           # WB "Ḥā'il"; the hamza is U+02BE
+    ("N’Djamena", "TCD", "TCD022"),       # alias "n'djamena"
+]
+
+
+class TestApostrophes:
+    """Apostrophes are separators in the spelling keys: a name matches with
+    the World Bank's apostrophe, another one or none."""
+
+    @pytest.mark.parametrize("name, country, code", _APOSTROPHE_VARIANTS)
+    def test_reported_names_resolve(self, name, country, code):
+        assert resolve_adm1_code(name, country=country) == code
+
+    @pytest.mark.parametrize("name, country, code", _APOSTROPHE_VARIANTS)
+    def test_reported_names_resolve_without_hint(self, name, country, code):
+        assert resolve_adm1_code(name) == code
+
+    def test_spelling_keys(self):
+        for name in (
+            "Murang'a", "Murang’a", "Murang‘a", "Murangʼa", "Murang`a",
+            "Murang´a", "Muranga",
+        ):
+            assert _spelling_keys(name) == {"muranga"}, name
+        assert _spelling_keys("San`a'") == {"sana"}
+        assert _spelling_keys("Ḥāʾil") == _spelling_keys("Ḥā'il") == {"hail"}
+
+    @pytest.mark.parametrize("mark", ["’", "‘", "ʼ", "`", ""])
+    def test_every_unit_under_other_apostrophes(self, mark):
+        """Every World Bank name with an apostrophe (' or `) resolves, with
+        the country hint, when written with another apostrophe or none."""
+        _ensure_loaded()
+        from metacouplingllm.knowledge.adm1_pericoupling import _adm1_metadata
+        tested = 0
+        failed = []
+        for code, meta in _adm1_metadata.items():
+            variant = meta["name"].replace("'", mark).replace("`", mark)
+            if variant == meta["name"]:
+                continue
+            tested += 1
+            if resolve_adm1_code(variant, country=meta["iso_a3"]) != code:
+                failed.append((variant, code))
+        assert tested >= 50
+        assert not failed, failed[:10]
+
+    def test_designator_and_scanned_forms(self):
+        """The rest after a designator compares the same way, and so do the
+        words the text scanners join with spaces after splitting a name at
+        its apostrophe ("Murang a", "Valle d Aosta")."""
+        assert resolve_adm1_code("Murang’a County") == "KEN029"
+        assert resolve_adm1_code("Murang a") == "KEN029"
+        assert resolve_adm1_code("Valle d Aosta") == "ITA019"
+        assert resolve_adm1_code("Valle d Aosta Region") == "ITA019"
+
+    def test_possessives_stay_unresolved(self):
+        """Dropping the apostrophe of a possessive leaves a key no region
+        has."""
+        assert resolve_adm1_code("Michigan's") is None
+        assert resolve_adm1_code("Narok’s") is None
+
+
+# Outputs of resolve_adm1_code recorded on main aa636fd, before the spelling
+# keys: names that resolved, among them names whose spelling key other
+# regions share and names with an apostrophe, and names that did not resolve
+# and still do not.
+_RECORDED_BEFORE_SPELLING = [
+    ("Nord-Ouest", None, "HTI007"),
+    ("Sud-Ouest", None, "BFA013"),
+    ("North East", None, "BWA008"),
+    ("South East District", None, "BWA009"),
+    ("Name Unknown", "AIA", "AIA002"),
+    ("Greater Accra", "GHA", "GHA005"),
+    ("Kujawsko-Pomorskie", None, "POL002"),
+    ("Baden-Württemberg", None, "DEU001"),
+    ("Vest-Agder", None, "NOR018"),
+    ("Taita-Taveta", None, "KEN039"),
+    ("Elgeyo-Marakwet", None, "KEN005"),
+    ("Elgeyo Marakwet", None, "KEN005"),
+    ("Kuyavian-Pomeranian", None, "POL002"),
+    ("Biobio", None, "CHL006"),
+    ("Skane County", None, "SWE013"),
+    ("Vaestra Goetalands Laen", None, "SWE021"),
+    ("Thueringen", None, "DEU016"),
+    ("Møre og Romsdal", None, "NOR007"),
+    ("Järva maakond", None, "EST005"),
+    ("Jarva", None, "EST005"),
+    ("Bas-Sassandra", None, "CIV025"),
+    ("Kwa-Zulu Natal", None, "ZAF004"),
+    ("Dar es Salaam", None, "TZA002"),
+    ("Murang'a", None, "KEN029"),
+    ("Muranga", None, "KEN029"),
+    ("Mohales Hoek", None, "LSO006"),
+    ("Marib", None, "YEM015"),
+    ("Sanaa", None, "YEM018"),
+    ("San`a'", None, "YEM018"),
+    ("Sanaa City", None, "YEM019"),
+    ("St. George's", "GRD", "GRD004"),
+    ("Hawke's Bay", None, "NZL06"),
+    ("Nord Ouest", None, None),
+    ("North-East District", None, None),
+    ("Name-Unknown", "AIA", None),
+    ("Greater-Accra", "GHA", None),
+    ("Thuringen", None, None),
+    ("Trøndelag", "NOR", None),
+    ("Sassandra", None, None),
+    ("Mohale's", None, None),
+    ("Mexico", None, None),
+    ("Michigan's", None, None),
+]
+
+
+@pytest.mark.parametrize("name, country, code", _RECORDED_BEFORE_SPELLING)
+def test_resolution_recorded_before_spelling_unchanged(name, country, code):
+    assert resolve_adm1_code(name, country=country) == code
+
+
+# Names written as researchers write them that returned None until the
+# curated aliases added with the spelling keys (2026-10-16): Swedish counties
+# by name alone, the Danish regions' Danish names, and three more.
+_CURATED_NAMES = [
+    ("Halland", None, "SWE005"),
+    ("Jönköping", None, "SWE007"),
+    ("Jonkoping", None, "SWE007"),
+    ("Gävleborg", None, "SWE003"),
+    ("Kronoberg", None, "SWE009"),
+    ("Orebro", None, "SWE011"),
+    ("Skane", None, "SWE013"),
+    ("Region Hovedstaden", None, "DNK001"),
+    ("Region Midtjylland", None, "DNK002"),
+    ("Region Nordjylland", None, "DNK003"),
+    ("Region Syddanmark", None, "DNK004"),
+    ("Region Sjælland", None, "DNK005"),
+    ("Fryslân", None, "NLD003"),
+    ("Hamadan", None, "IRN011"),
+    ("Khanty-Mansi Autonomous Okrug", None, "RUS032"),
+]
+
+
+@pytest.mark.parametrize("name, country, code", _CURATED_NAMES)
+def test_curated_names_resolve(name, country, code):
+    assert resolve_adm1_code(name, country=country) == code
+
+
+def test_stockholm_alone_is_not_an_alias():
+    """"Stockholm" is left out of the aliases: in research text it is mostly
+    the Stockholm Resilience Centre or Convention, and the prompt builder
+    takes the first name that resolves as the focal region."""
+    assert resolve_adm1_code("Stockholm", country="SWE") is None
+    assert resolve_adm1_code("Stockholm County") == "SWE015"
+
+
 class TestIsoCodeCoverage:
     """PR #50 guard: every ISO-3 code used in the bundled pericoupling
     data must resolve via ``resolve_country_code``.  This prevents the
@@ -1600,12 +1924,12 @@ class TestAdm1AliasTable:
     def test_counts_match_docs(self, rows):
         """Headline provenance counts must match the shipped CSV so docs cannot
         drift (PR #61 — the original '67 countries / 886 regions' were wrong)."""
-        assert len(rows) == 1242
-        assert len({r["code"] for r in rows}) == 920
+        assert len(rows) == 1256
+        assert len({r["code"] for r in rows}) == 922
         assert len({r["iso_a3"] for r in rows}) == 140
 
     def test_curated_aliases_shipped(self, rows):
-        """The 19 curated aliases of 2026-10-16 are shipped and marked
+        """The 33 curated aliases of 2026-10-16 are shipped and marked
         'curated' in the audit table, the only rows so marked."""
         curated = {
             "mexico city": "MEX009", "silesian voivodeship": "POL012",
@@ -1620,6 +1944,14 @@ class TestAdm1AliasTable:
             "magallanes and the chilean antarctica": "CHL011",
             "magallanes y de la antartica chilena": "CHL011",
             "brussels": "BEL001",
+            "halland": "SWE005", "kronoberg": "SWE009",
+            "jonkoping": "SWE007", "gavleborg": "SWE003",
+            "orebro": "SWE011", "skane": "SWE013",
+            "region hovedstaden": "DNK001", "region midtjylland": "DNK002",
+            "region nordjylland": "DNK003", "region syddanmark": "DNK004",
+            "region sjaelland": "DNK005",
+            "fryslan": "NLD003", "hamadan": "IRN011",
+            "khanty-mansi autonomous okrug": "RUS032",
         }
         by_key = {r["alias_key"]: r["code"] for r in rows}
         assert {k: by_key.get(k) for k in curated} == curated
