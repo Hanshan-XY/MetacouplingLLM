@@ -84,6 +84,17 @@ file. The format is loosely based on
   that every keyword reaches the implementation unchanged through both
   wrappers. Tests +9 (suite 1,515).
 
+### Docs
+
+- **`plot_analysis_map`'s docstring documents `mentioned_countries_override`
+  and `focal_code_override`.** The two work only together: given both, the
+  map's focal country and colored countries are the ISO codes passed, used
+  as given, instead of those found in the parsed analysis, and `focal_role`
+  and `extra_mentioned_countries` are ignored; the automatic map passes both.
+  The docstring also gives the default title as
+  `"Metacoupling Analysis Map: {Country Name}"`, not
+  `"Metacoupling Analysis Map"`. No code change.
+
 ## [0.2.1] — 2026-10-12
 
 A maintenance release after the documentation audit of 0.2.0.
