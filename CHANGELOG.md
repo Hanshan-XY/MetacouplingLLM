@@ -310,6 +310,34 @@ file. The format is loosely based on
   the signatures of the functions they wrap; tests compare the two and check
   that every keyword reaches the implementation unchanged through both
   wrappers. Tests +9 (suite 1,515).
+- **The pericoupling hint finds every country a research description names, in
+  the order it names them.** When no ADM1 region is found, the system prompt's
+  pericoupling lookup pairs the first country the description names (the focal
+  country) with each other one, or lists its neighbours when it is the only one
+  (`PromptBuilder._build_coupling_hint`). It read the description in
+  consecutive chunks of up to four words, one country per chunk, so a name
+  across two chunks was missed ("Coffee production in Costa Rica" gave no
+  hint), a second name in a chunk was dropped ("Mexico and Canada avocado
+  trade" gave Canada alone, as the focal country), names with a hyphen,
+  apostrophe or diacritic did not match (Guinea-Bissau gave Guinea), and a word
+  alone in its chunk could be read as an ISO code ("between 2000 and 2024" gave
+  Andorra). The scan now takes, at each word, the longest run of words that is
+  exactly a country's name or alias, then goes on after it: names are read
+  whole, without the shorter names inside them ("Papua New Guinea" gives no
+  Guinea), names such as "Côte d’Ivoire", Türkiye and "U.S." match, and
+  countries keep the order of first mention. "US" counts only in capitals, and
+  a three-letter code only in capitals and set apart by punctuation, as in
+  "(BRA)", so the pronoun "us", acronyms such as LCA and words such as "and"
+  are not read as countries. On 200 research descriptions written for testing,
+  55 countries the descriptions name are added and 15 misreads dropped (11 of
+  them Andorra); 8 of the 26 descriptions that get this hint gain a country, in
+  one case the first named, which becomes the focal country. On the 9,713
+  non-overlapping chunks of up to 250 words that the retrieval chunker cuts
+  from the 421 bundled papers, 442 countries are added, each named in its
+  chunk except three where the word belongs to a region (the Congo Basin
+  twice, South America once), and 2,393 dropped, all misreads (Andorra 1,987,
+  the word "us" 170) except in three chunks that call Laos "Lao", which is not
+  an alias. Tests +29 (suite 1,791).
 
 ### Docs
 
