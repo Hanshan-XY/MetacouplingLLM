@@ -600,6 +600,74 @@ class TestResolveAdm1FromAnalysis:
         code = MetacouplingAssistant._resolve_adm1_from_analysis(parsed)
         assert code is None
 
+    @pytest.mark.parametrize(
+        "scope",
+        [
+            "Mexico, especially Michoacán and Jalisco, Mexico",
+            "Mexico, especially Michoacán and Jalisco, with exports "
+            "reported by Data México",
+            "Guatemala, mainly the western highlands of Guatemala",
+            "Panama, around the Panama Canal",
+            "Luxembourg, the Grand Duchy of Luxembourg",
+        ],
+    )
+    def test_scope_opening_with_its_country_is_not_the_namesake_region(
+        self, scope,
+    ):
+        """A scope whose first part is the country its last part names is
+        the country: "Mexico, ..., Mexico" is not the State of México."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {
+                    "name": "Producing regions",
+                    "geographic_scope": scope,
+                },
+            },
+        )
+        code = MetacouplingAssistant._resolve_adm1_from_analysis(parsed)
+        assert code is None
+
+    @pytest.mark.parametrize(
+        ("scope", "expected"),
+        [
+            ("Michoacán, Mexico", "MEX016"),
+            ("State of Mexico, Mexico", "MEX015"),
+            ("Panamá Province, Panama", "PAN011"),
+            ("Georgia, United States", "USA011"),
+        ],
+    )
+    def test_region_written_with_its_country_resolves(self, scope, expected):
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems={
+                "sending": {
+                    "name": "Producing regions",
+                    "geographic_scope": scope,
+                },
+            },
+        )
+        code = MetacouplingAssistant._resolve_adm1_from_analysis(parsed)
+        assert code == expected
+
+    def test_avocado_run_national_analysis_has_no_focal_region(self):
+        """The committed avocado run's focal scope opens "Mexico, especially
+        the Michoacán Avocado Belt ..." and its last part ("while Data
+        México reports ...") names Mexico: the country, not its namesake
+        region."""
+        from pathlib import Path
+
+        from metacouplingllm.llm.parser import parse_analysis
+
+        response = (
+            Path(__file__).parent / "data" / "avocado_main_analysis_response.md"
+        ).read_text(encoding="utf-8")
+        parsed = parse_analysis(response)
+        code = MetacouplingAssistant._resolve_adm1_from_analysis(parsed)
+        assert code is None
+
 
 class TestAutoMapDisabled:
     """Test that auto_map=False (default) produces no map."""

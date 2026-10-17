@@ -386,6 +386,28 @@ file. The format is loosely based on
   mentions are unchanged.
 
   Tests +35 (suite 1,878).
+- **A system's scope that opens with its country's name reads as the
+  country, not as the country's namesake region.** To find a focal region in
+  an analysis, `_resolve_adm1_from_analysis` reads each system's scope as
+  "region, …, country", the last comma part giving the country hint. When
+  the first part was the hinted country itself, it resolved to the region of
+  that name: "Mexico, especially Michoacán and Jalisco, Mexico" gave the
+  State of México (MEX015), and scopes opening with Guatemala, Panama or
+  Luxembourg gave their namesake regions. Thirteen countries' names resolve
+  to one of their own regions when the country is the hint. The first part
+  is no longer read as a region when it is only the hinted country's name.
+  "Michoacán, Mexico", "State of Mexico, Mexico", "Panamá Province, Panama"
+  and "Georgia, United States" resolve as before; a namesake region written
+  by its bare name with its country ("Panamá, Panama") no longer does.
+
+  The committed avocado run's focal scope opens "Mexico, especially the
+  Michoacán Avocado Belt" and ends "while Data México reports … US$3.525
+  billion". That last part used to read as the United States (from "US$"),
+  so the scope gave no region; since `resolve_country_code` ignores accents
+  (above), it reads Mexico, which made the scope the State of México. It now
+  gives no region, and the run's callers of the country and region resolvers
+  return what they did before this release's country changes. Tests +10
+  (suite 1,888).
 
 ### Docs
 

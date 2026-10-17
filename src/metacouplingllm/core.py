@@ -1920,7 +1920,13 @@ class MetacouplingAssistant:
                     country_hint = hint_code
                 else:
                     country_hint = None
-            if _looks_like_direct_location(region):
+            # A first part that is just the hint's country ("Mexico,
+            # especially Michoacán ..., Mexico") names the country, not
+            # its namesake region (the State of México).
+            names_hint_country = country_hint is not None and (
+                resolve_country_code(region, substring=False) == country_hint
+            )
+            if _looks_like_direct_location(region) and not names_hint_country:
                 code = resolve_adm1_code(region, country=country_hint)
                 if code:
                     return code
