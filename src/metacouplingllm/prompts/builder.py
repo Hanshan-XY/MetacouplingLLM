@@ -29,6 +29,7 @@ from metacouplingllm.knowledge.examples import (
 from metacouplingllm.knowledge.framework import get_framework_knowledge
 from metacouplingllm.knowledge.pericoupling import (
     PairCouplingType,
+    _check_standard,
     get_pericoupled_neighbors,
     lookup_pericoupling,
 )
@@ -72,10 +73,23 @@ class PromptBuilder:
     ----------
     max_examples:
         Maximum number of curated examples to include in the prompt.
+    de_facto_borders, coupling_standard:
+        Adjacency settings for the pericoupling-database hint, passed to
+        the country and ADM1 lookups (see
+        :func:`~metacouplingllm.knowledge.pericoupling.lookup_pericoupling`).
+        The defaults are the lookups' own.
     """
 
-    def __init__(self, max_examples: int = 2) -> None:
+    def __init__(
+        self,
+        max_examples: int = 2,
+        *,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
+    ) -> None:
         self._max_examples = max_examples
+        self._de_facto_borders = bool(de_facto_borders)
+        self._coupling_standard = _check_standard(coupling_standard)
 
     def build_system_prompt(
         self,
@@ -135,9 +149,17 @@ class PromptBuilder:
         # Pericoupling database hint (pre-LLM injection)
         # Try subnational (ADM1) hint first; fall back to country-level.
         if research_context:
-            hint = self._build_adm1_pericoupling_hint(research_context)
+            hint = self._build_adm1_pericoupling_hint(
+                research_context,
+                de_facto_borders=self._de_facto_borders,
+                coupling_standard=self._coupling_standard,
+            )
             if hint is None:
-                hint = self._build_coupling_hint(research_context)
+                hint = self._build_coupling_hint(
+                    research_context,
+                    de_facto_borders=self._de_facto_borders,
+                    coupling_standard=self._coupling_standard,
+                )
             if hint:
                 parts.append(hint)
 
@@ -303,7 +325,12 @@ class PromptBuilder:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_coupling_hint(research_context: str) -> str | None:
+    def _build_coupling_hint(
+        research_context: str,
+        *,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
+    ) -> str | None:
         """Scan research text for country names and build a country-pair
         classification hint.
 
@@ -322,6 +349,10 @@ class PromptBuilder:
         pericoupled partners.  Added to surface underexplored
         pericoupling angles for single-country queries that
         previously got no hint at all.
+
+        Both lookups use the given ``de_facto_borders`` and
+        ``coupling_standard`` (the assistant's adjacency settings), so
+        the hint agrees with the post-LLM validation.
 
         Framing is REFERENCE-ONLY, parallel to the ADM1 hint
         (PR #20, harmonized in PR #43): the LLM is told that
@@ -367,7 +398,12 @@ class PromptBuilder:
             # >=2 countries: per-pair classification lookup (unchanged).
             lines: list[str] = []
             for code_b in other_codes:
-                result = lookup_pericoupling(focal_code, code_b)
+                result = lookup_pericoupling(
+                    focal_code,
+                    code_b,
+                    de_facto_borders=de_facto_borders,
+                    coupling_standard=coupling_standard,
+                )
                 name_b = get_country_name(code_b)
                 if result.pair_type == PairCouplingType.PERICOUPLED:
                     lines.append(
@@ -389,7 +425,13 @@ class PromptBuilder:
             # pericoupled neighbors as REFERENCE context.  Island
             # nations with no neighbors yield None (no empty
             # "neighbors:" block).
-            neighbors = sorted(get_pericoupled_neighbors(focal_code))
+            neighbors = sorted(
+                get_pericoupled_neighbors(
+                    focal_code,
+                    de_facto_borders=de_facto_borders,
+                    coupling_standard=coupling_standard,
+                )
+            )
             if not neighbors:
                 return None
             neighbor_lines = [
@@ -420,16 +462,23 @@ class PromptBuilder:
         return header + body
 
     @staticmethod
-    def _build_adm1_pericoupling_hint(research_context: str) -> str | None:
+    def _build_adm1_pericoupling_hint(
+        research_context: str,
+        *,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
+    ) -> str | None:
         """Scan research text for ADM1 region names and build a subnational hint.
 
         Uses the same n-gram scanning approach as
         :meth:`_build_coupling_hint`, but resolves phrases against the
         ADM1 pericoupling database.  On the first successful match (the
         *focal region*), retrieves its domestic and cross-border neighbors
+        under the given ``de_facto_borders`` and ``coupling_standard``
         and formats them into a prompt section.
 
-        Returns ``None`` if no ADM1 region is found in the text.
+        Returns ``None`` if no ADM1 region is found in the text, or if
+        the focal region has no neighbor under those settings.
         """
         # Scan for ADM1 region names via sliding-window n-grams (up to 5
         # tokens, longest-first at each start position).  Strip possessive
@@ -454,8 +503,16 @@ class PromptBuilder:
         if not focal_info:
             return None
 
-        all_neighbors = get_adm1_neighbors(focal_code)
-        cross_border = get_cross_border_neighbors(focal_code)
+        all_neighbors = get_adm1_neighbors(
+            focal_code,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
+        )
+        cross_border = get_cross_border_neighbors(
+            focal_code,
+            de_facto_borders=de_facto_borders,
+            coupling_standard=coupling_standard,
+        )
         domestic = all_neighbors - cross_border
 
         # Build readable neighbor lists.

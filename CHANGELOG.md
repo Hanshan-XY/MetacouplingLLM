@@ -53,6 +53,23 @@ file. The format is loosely based on
   of any other system heading in its block; each of the 4 now gains its 3 to 6
   systems, and everything else in the 31 parses exactly as before. Tests +9
   (suite 1,463).
+- **The adjacency settings reach the prompt hint and the maps.**
+  `MetacouplingAssistant` passed `de_facto_borders` and `coupling_standard`
+  only to the post-LLM validation; the pericoupling-database hint in the
+  system prompt and the automatic map called the adjacency lookups with the
+  defaults, so with other settings the hint could contradict the validation.
+  With `coupling_standard="lenient"`, a description of acid rain from Ohio
+  falling on Ontario got a hint listing only Ohio's five US neighbours, while
+  the validation counted Ontario, across Lake Erie, as a cross-border
+  neighbour. `PromptBuilder`, `plot_focal_country_map`, `plot_analysis_map`
+  and `plot_focal_adm1_map` (and their `metacouplingllm.visualization`
+  wrappers) now take both settings as keyword arguments, and the assistant
+  passes its own to the hint, the map and the map's same-country flow arrows.
+  The defaults are the lookups' own: with them, the system prompt for each of
+  212 research descriptions (built directly and by a default assistant) and
+  the map classifications for every country (249, both country maps) and
+  every ADM1 region (3,374) are byte-identical to before. Tests +43 (suite
+  1,506).
 
 ## [0.2.1] — 2026-10-12
 

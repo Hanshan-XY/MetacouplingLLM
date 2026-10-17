@@ -35,6 +35,8 @@ def plot_focal_country_map(
     colors: CouplingColors | None = None,
     figsize: tuple[float, float] = (15, 8),
     custom_shapefile: str | Path | None = None,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
 ) -> matplotlib.figure.Figure:
     """Generate a world map colored by coupling type relative to a focal country.
 
@@ -53,6 +55,8 @@ def plot_focal_country_map(
         colors=colors,
         figsize=figsize,
         custom_shapefile=custom_shapefile,
+        de_facto_borders=de_facto_borders,
+        coupling_standard=coupling_standard,
     )
 
 
@@ -64,6 +68,8 @@ def plot_analysis_map(
     colors: CouplingColors | None = None,
     figsize: tuple[float, float] = (15, 8),
     custom_shapefile: str | Path | None = None,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
 ) -> matplotlib.figure.Figure:
     """Generate a world map from a parsed LLM analysis result.
 
@@ -81,6 +87,8 @@ def plot_analysis_map(
         colors=colors,
         figsize=figsize,
         custom_shapefile=custom_shapefile,
+        de_facto_borders=de_facto_borders,
+        coupling_standard=coupling_standard,
     )
 
 
@@ -92,6 +100,8 @@ def plot_focal_adm1_map(
     colors: Adm1CouplingColors | None = None,
     figsize: tuple[float, float] = (15, 8),
     zoom_to_focal: bool = False,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
 ) -> matplotlib.figure.Figure:
     """Generate a subnational (ADM1) map colored by coupling type.
 
@@ -111,4 +121,6 @@ def plot_focal_adm1_map(
         colors=colors,
         figsize=figsize,
         zoom_to_focal=zoom_to_focal,
+        de_facto_borders=de_facto_borders,
+        coupling_standard=coupling_standard,
     )
