@@ -1,5 +1,9 @@
 """Tests for prompts/builder.py — prompt assembly."""
 
+import re
+
+import pytest
+
 from metacouplingllm.prompts.builder import PromptBuilder
 
 
@@ -220,6 +224,127 @@ class TestBuildAdm1PericouplingHint:
         )
         assert hint is not None
         assert "**Schleswig-Holstein** (DEU015, Germany)" in hint
+
+    @staticmethod
+    def _focal(text: str) -> str | None:
+        hint = PromptBuilder._build_adm1_pericoupling_hint(text)
+        match = re.search(r"Focal subnational region detected: \*\*.+?\*\* \((\w+),", hint or "")
+        return match.group(1) if match else None
+
+    @pytest.mark.parametrize("text", [
+        # Until 2026-10-17 these gave Has (Albania), Zealand (Denmark),
+        # Sector Autonomo De Bissau, Provence-Alpes-Côte d'Azur, Delta
+        # (Nigeria) and Gulf (Papua New Guinea).
+        "Stony coral tissue loss disease has spread along the reef, and "
+        "forest loss inland",
+        "Rare-earth processing for New Zealand and Australia",
+        "Raw cashew nut exports from Guinea-Bissau to processors in India",
+        "Raw nuts shipped in from Côte d'Ivoire to factories in Vietnam",
+        "Safari tourism in the Okavango Delta, Botswana",
+        "The vaquita in the Upper Gulf of California, Mexico",
+    ])
+    def test_common_words_and_parts_of_other_names_give_no_hint(self, text):
+        assert self._focal(text) is None
+
+    @pytest.mark.parametrize("text, code", [
+        # A lake, a river or a bay named after a region, and a lone
+        # compass word, until 2026-10-17 the focal region: Tanganyika (DR
+        # Congo), Mary (Turkmenistan), Bay (Somalia), Southeast (North
+        # Macedonia).
+        ("Refugees from the Democratic Republic of the Congo cross Lake "
+         "Tanganyika to camps in Kigoma, Tanzania", "TZA010"),
+        ("Ore shipping from the Mary River mine and narwhal in Eclipse "
+         "Sound, Nunavut", "CAN008"),
+        ("Scallop farming in Mutsu Bay, Aomori, after China suspended "
+         "Japanese seafood imports", "JPN003"),
+        ("I study cruise tourism in Southeast Alaska, centred on Juneau",
+         "USA002"),
+    ])
+    def test_feature_names_and_compass_words_are_passed_over(self, text, code):
+        assert self._focal(text) == code
+
+    @pytest.mark.parametrize("text, code", [
+        # Names several countries' regions share, read in the countries the
+        # text names or those of its other regions; until 2026-10-17 the
+        # first gave Western Region (Bahrain) and the second Kerala.
+        ("At Elmina in Ghana's Central Region, canoes buy frozen bycatch; "
+         "trawlers also land in the Western Region", "GHA003"),
+        ("Punjab's rice is shipped to deficit states such as Kerala and "
+         "Maharashtra", "IND028"),
+    ])
+    def test_shared_names_are_read_in_the_texts_countries(self, text, code):
+        assert self._focal(text) == code
+
+    def test_namesake_of_a_region_in_an_unrelated_country_is_passed_over(self):
+        # Santa Rosa is a town in El Oro and a department of Guatemala, the
+        # focal region until 2026-10-17.
+        assert self._focal(
+            "Shrimp farms around Santa Rosa and the Jambelí archipelago in "
+            "El Oro sell to exporters shipping to China, and some cross into "
+            "Peru"
+        ) == "ECU007"
+
+    @pytest.mark.parametrize("text, code", [
+        # No region until 2026-10-17: "ớ" split the word.
+        ("Bình Phước is Vietnam's leading cashew-growing province", "VNM010"),
+        # A country's name inside a region's, followed by "'s".
+        ("Western Australia's western rock lobster fishery after China "
+         "halted imports", "AUS011"),
+    ])
+    def test_vietnamese_letters_and_possessive_country_names(self, text, code):
+        assert self._focal(text) == code
+
+    def test_first_region_with_another_from_its_country_is_the_focal(self):
+        # The text names Canada but not the United States; New York and
+        # Pennsylvania anchor Ohio, which comes first.
+        assert self._focal(
+            "Sulfur dioxide from Ohio's power plants, many of them along the "
+            "Ohio River, damaged lakes in New York's Adirondacks and in "
+            "Ontario, Canada, and in neighbouring Pennsylvania."
+        ) == "USA036"
+
+    def test_country_hint_replaces_a_false_region(self):
+        builder = PromptBuilder(max_examples=0)
+        prompt = builder.build_system_prompt(
+            research_context="Rare-earth processing for New Zealand and Australia"
+        )
+        assert "PERICOUPLING DATABASE LOOKUP" in prompt
+        assert "ADM1 ADJACENCY DATABASE" not in prompt
+
+    @pytest.mark.parametrize("text, code", [
+        # A country's name that a region elsewhere also has, read as the
+        # region where the text places it there; until 2026-10-17 the first
+        # two gave no region, the third Alabama and the fourth Maputo.
+        ("Peanut farms in Georgia, United States", "USA011"),
+        ("Coral disease along Florida's reef, whose visitors drive in from "
+         "Georgia", "USA010"),
+        ("Cotton from Georgia and Alabama", "USA011"),
+        ("Gaza and Maputo provinces adjoin South Africa", "MOZ003"),
+    ])
+    def test_country_name_read_as_a_region_where_the_text_places_it(
+        self, text, code,
+    ):
+        assert self._focal(text) == code
+
+    @pytest.mark.parametrize("text", [
+        "Wine exports from Georgia to Russia",
+        "Georgia and Armenia",
+        "Humanitarian aid to Gaza through Egypt",
+    ])
+    def test_country_name_stays_the_country_otherwise(self, text):
+        assert self._focal(text) is None
+
+    def test_country_hint_leaves_out_a_country_name_read_as_a_region(self):
+        florida = PromptBuilder._build_coupling_hint(
+            "Coral disease along Florida's reef, whose visitors drive in from "
+            "Georgia and Canada"
+        )
+        assert "Focal country detected: Canada (CAN)" in florida
+        assert "(GEO)" not in florida
+        wine = PromptBuilder._build_coupling_hint(
+            "Wine exports from Georgia to Russia"
+        )
+        assert "Focal country detected: Georgia (GEO)" in wine
 
     def test_system_prompt_includes_adm1_hint_for_michigan(self):
         builder = PromptBuilder(max_examples=0)
