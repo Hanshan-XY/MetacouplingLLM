@@ -1207,7 +1207,7 @@ without `country`).
 The package accepts country names in many formats:
 
 ```python
-from metacouplingllm import resolve_country_code, get_country_name
+from metacouplingllm import find_country_codes, get_country_name, resolve_country_code
 
 # ISO codes
 resolve_country_code("USA")         # "USA"
@@ -1251,15 +1251,29 @@ resolve_country_code("and", free_text=True)                       # None (not An
 resolve_country_code("allowed us to map", free_text=True)         # None
 resolve_country_code("the US", free_text=True)                    # "USA"
 
+# Every country a passage names, in the order it names them
+find_country_codes("Mexico and Canada avocado trade")       # ["MEX", "CAN"]
+find_country_codes("Coffee from Costa Rica and Côte d'Ivoire")  # ["CRI", "CIV"]
+find_country_codes("Soy from South America to China")       # ["CHN"]
+find_country_codes("turkey and chile peppers from Chile", capitals=True)  # ["CHL"]
+
 # Reverse: code → name
 get_country_name("MEX")  # "Mexico"
 get_country_name("GBR")  # "United Kingdom"
 ```
 
 The analysis pipeline reads countries out of free text, such as the
-research description, the analysis and web-search queries, with
-`free_text=True`. A place named after a country is not that country
-there. The names of other places come from two sources:
+research description, the analysis and web-search queries:
+
+- the pericoupling hint, web search's national focus and the analysis's
+  country mentions read the whole text with `find_country_codes`, each
+  name whole wherever it falls, in the order the text names them (the
+  analysis with `capitals=True`, since its writer capitalises names);
+- the map's and the validator's readings of a system name, a flow or a
+  list of places use `resolve_country_code(..., free_text=True)`.
+
+Either way a place named after a country is not that country. The names
+of other places come from two sources:
 
 - the ADM1 database's region names and aliases that hold another country's
   name: New South Wales, Port of Spain, Thai Binh, Inner Mongolia;
@@ -1269,13 +1283,11 @@ there. The names of other places come from two sources:
 
 A place's own country still counts: "Western Australia" and "Mexico City"
 read as Australia and Mexico. Words that only look like codes do not:
-"and", "Can" and the pronoun "us". Two limits remain:
-
-- the free-text step finds a country's name, not its sense, so a person's
-  name ("Chad"), a disease ("Panama disease") or an acronym that is a code
-  ("LCA" for life-cycle assessment) still reads as a country;
-- the prompt hint's four-word windows and web search's four-word phrases
-  can cut a place's name before the resolver sees it.
+"and", "Can" and the pronoun "us". Both find a country's name, not its
+sense, so a person's name ("Chad"), a disease ("Panama disease") or an
+acronym written as a code ("LCA" for life-cycle assessment, in parentheses)
+still reads as a country, and in a description written in lower case,
+"turkey" is Turkey.
 
 ---
 

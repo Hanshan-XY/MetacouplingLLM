@@ -3611,6 +3611,26 @@ class TestSearchQueryExpansion:
             "Soybean trade between the US and China"
         ) == "United States"
 
+    @pytest.mark.parametrize("query, focus", [
+        # The first country named, not the longest name in the first
+        # four-word phrase that holds one
+        ("Mexico and Canada avocado trade", "Mexico"),
+        ("China and Brazil soybean trade", "China"),
+        # Names longer than four words
+        ("Cobalt exports from the Democratic Republic of the Congo",
+         "Democratic Republic of the Congo"),
+        # A country inside another place's name, which a phrase or a word
+        # of the query cut off ("America", "British", "Wales")
+        ("Soybean exports from South America", None),
+        ("Salmon exports bound for British Columbia ports", None),
+        ("Coal exports from New South Wales to Japan", "Japan"),
+        ("Shrimp exports from the Gulf of Mexico to Japan", "Japan"),
+    ])
+    def test_national_focus_is_the_first_country_named(self, query, focus):
+        """Until 2026-10-16 the focus was read from four-word phrases of the
+        query, then shorter ones down to single words."""
+        assert _detect_national_focus(query) == focus
+
     def test_search_web_merges_results_across_expanded_queries(self):
         def fake_single_query(query: str, max_results: int):
             mapping = {

@@ -221,14 +221,14 @@ file. The format is loosely based on
   region names and aliases that hold another country's name, and a list of
   continents, seas, lakes, rivers, basins and regions. A code, and the alias
   "us", count only when written in capitals. These callers now read with it:
-  - the country mentions of an analysis, which also join capitalised words
-    through connectors such as "of", "the" and "de", so "Gulf of Mexico"
-    reaches the resolver whole;
   - the map's market and partner chunks, the focal-country pick, the system
     roles, and the country after a comma in a region's name ("Sydney, New
     South Wales") in `core`;
-  - the prompt's country hint, web search's national focus, and both world
-    map extractors.
+  - both world map extractors.
+
+  The country mentions of an analysis, the prompt's country hint and web
+  search's national focus read with `find_country_codes`, which applies the
+  same rules (see its entry below).
 
   New aliases cover names a shorter alias read as another country: "North
   Korean" and "DPR Korea" (South Korea), "South Sudanese" (Sudan) and
@@ -243,10 +243,7 @@ file. The format is loosely based on
   longer reads as the United States, and no output changes. Of the 14 title
   queries, none now names a wrong country. Still read as countries:
   - homonyms (Chad Wong, Panama disease, "Indian" for Indigenous peoples);
-  - acronyms written as codes (LCA);
-  - names that the prompt hint's and web search's four-word windows cut in
-    two, or whose place word the country mentions drop for lacking a
-    capital ("Congo basin").
+  - acronyms written as codes (LCA).
 
   The alias build still reproduces both alias tables byte for byte. Tests
   +73 (suite 1,762).
@@ -328,16 +325,67 @@ file. The format is loosely based on
   countries keep the order of first mention. "US" counts only in capitals, and
   a three-letter code only in capitals and set apart by punctuation, as in
   "(BRA)", so the pronoun "us", acronyms such as LCA and words such as "and"
-  are not read as countries. On 200 research descriptions written for testing,
-  55 countries the descriptions name are added and 15 misreads dropped (11 of
-  them Andorra); 8 of the 26 descriptions that get this hint gain a country, in
-  one case the first named, which becomes the focal country. On the 9,713
+  are not read as countries. The scan is `find_country_codes` (next entry),
+  which also reads the names of other places, such as "South America", as no
+  country. On 200 research descriptions written for testing, 55 countries the
+  descriptions name are added and 31 misreads dropped: 13 words read as
+  codes, mostly "and", 14 regions of other countries such as British Columbia
+  and New Jersey. The first country found is the labelled focal country in
+  107 of the 196 labelled descriptions, against 101. On the 9,713
   non-overlapping chunks of up to 250 words that the retrieval chunker cuts
-  from the 421 bundled papers, 442 countries are added, each named in its
-  chunk except three where the word belongs to a region (the Congo Basin
-  twice, South America once), and 2,393 dropped, all misreads (Andorra 1,987,
-  the word "us" 170) except in three chunks that call Laos "Lao", which is not
-  an alias. Tests +29 (suite 1,791).
+  from the 421 bundled papers:
+  - 495 countries the chunks name are added;
+  - 2,855 misreads are dropped: words read as codes 2,209 (mostly "and"),
+    continents 301, the pronoun "us" 164, regions of other countries 105,
+    seas and basins 45, and 31 cut names, homonyms and names without an
+    alias of their own;
+  - so are three acronyms LCA (Saint Lucia's code), and one Puerto Rico,
+    which the old alias read as the United States;
+  - three added readings are a given name: "Germán" read as German.
+
+  Tests +29 (suite 1,791).
+- **`find_country_codes` reads every country a text names; web search's
+  national focus and an analysis's country mentions use it too.** The scan of
+  the entry above moved to `knowledge/countries.py` as
+  `find_country_codes(text, *, capitals=False)`, exported from the package.
+  It applies the free-text rules of `resolve_country_code`:
+  - the name of another place uses up its words and names only the place's
+    own country: "South America", "the Gulf of Mexico", "New South Wales",
+    "the Congo basin" and the pau-brasil tree name none, "Inner Mongolia,
+    China" names China;
+  - names are compared as `resolve_country_code` compares them, so accents
+    fold ("México", "Perú");
+  - up to three punctuation marks may complete a name ("U.S.", "Virgin
+    Islands (U.S.)").
+
+  Scanned alone, each country name, alias and place name gives what
+  `resolve_country_code(..., free_text=True)` gives.
+
+  Web search's national focus is now the first country a query names. It
+  was read from four-word phrases of the query, then shorter ones down to
+  single words, which took:
+  - the longest name in the first phrase holding one ("Mexico and Canada
+    avocado trade" focused on Canada);
+  - pieces of other places' names ("Soybean exports from South America" on
+    the United States, "Salmon bound for British Columbia ports" on the
+    United Kingdom).
+
+  On the 200 research descriptions the focus is wrong for none, against 12,
+  and is the labelled focal country for 107 of 196, against 104. On the 421
+  paper titles as queries it is wrong for none, against 8.
+
+  An analysis's country mentions are read with `capitals=True`, a name
+  counting only where it starts with a capital letter. They serve the ADM1
+  relevance guard, the country set of the region scan and the ADM1 code list
+  of the map-extraction prompt. They were capitalised word groups, which a
+  lower-case word, a hyphen or an apostrophe ended: "Trinidad and Tobago",
+  "Côte d'Ivoire" and "Timor-Leste" named no country, "the Congo basin" named
+  the Republic of the Congo and "North-American" the United States. On the
+  421 papers, 92 countries the text names are added, and misread countries
+  fall from 10 to 6, all homonyms such as "Panama disease". The avocado run's
+  mentions are unchanged.
+
+  Tests +35 (suite 1,826).
 
 ### Docs
 

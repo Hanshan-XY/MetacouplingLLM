@@ -1,8 +1,6 @@
 """Tests for prompts/builder.py — prompt assembly."""
 
-import pytest
-
-from metacouplingllm.prompts.builder import PromptBuilder, _find_country_codes
+from metacouplingllm.prompts.builder import PromptBuilder
 
 
 class TestPromptBuilder:
@@ -362,80 +360,6 @@ class TestCouplingHintCountryScan:
         assert hint is not None
         assert "Focal country detected: Mexico (MEX)." in hint
         assert "Mexico (MEX) and Canada (CAN) are **telecoupled**" in hint
-
-    @pytest.mark.parametrize(
-        "text, codes",
-        [
-            ("Mexico and Canada avocado trade", ["MEX", "CAN"]),
-            ("Ghana's imports of Nigerian natural gas", ["GHA", "NGA"]),
-            ("Visitors from China, Japan and the United States",
-             ["CHN", "JPN", "USA"]),
-            ("Soybean exports from Brazil to China", ["BRA", "CHN"]),
-        ],
-    )
-    def test_countries_in_order_of_mention(self, text, codes):
-        assert _find_country_codes(text) == codes
-
-    @pytest.mark.parametrize(
-        "text, codes",
-        [
-            ("Logging in Papua New Guinea", ["PNG"]),
-            ("Refugees from South Sudan", ["SSD"]),
-            ("Oil from Equatorial Guinea", ["GNQ"]),
-            ("Cobalt from the Democratic Republic of the Congo", ["COD"]),
-            ("Cashew exports from Guinea-Bissau", ["GNB"]),
-            ("Sanctions on the Democratic People's Republic of Korea",
-             ["PRK"]),
-        ],
-    )
-    def test_name_holding_another_name_is_read_whole(self, text, codes):
-        assert _find_country_codes(text) == codes
-
-    @pytest.mark.parametrize(
-        "text, codes",
-        [
-            ("Cocoa exports from Côte d'Ivoire", ["CIV"]),
-            ("Cocoa exports from Côte d’Ivoire", ["CIV"]),
-            ("Hazelnut exports from Türkiye", ["TUR"]),
-            ("Coffee from Timor-Leste", ["TLS"]),
-            ("Natural gas from Trinidad and Tobago", ["TTO"]),
-            ("Costa Rica's coffee", ["CRI"]),
-            ("Coffee from Costa\nRica", ["CRI"]),
-            ("U.S. corn exports to Mexico", ["USA", "MEX"]),
-        ],
-    )
-    def test_name_with_punctuation_diacritics_or_line_break(self, text, codes):
-        assert _find_country_codes(text) == codes
-
-    @pytest.mark.parametrize(
-        "text, codes",
-        [
-            ("US corn exports to Mexico", ["USA", "MEX"]),
-            ("Soybean flows (BRA, CHN)", ["BRA", "CHN"]),
-        ],
-    )
-    def test_codes_written_as_codes_count(self, text, codes):
-        assert _find_country_codes(text) == codes
-
-    @pytest.mark.parametrize(
-        "text, codes",
-        [
-            # The old chunks read a lone "and" as Andorra's code.
-            ("Forest cover in Kenya between 2000 and 2024", ["KEN"]),
-            # The pronoun, which the old chunks read as the US.
-            ("This study helps us understand Brazil's soybean exports",
-             ["BRA"]),
-            # An acronym within a run of words (Saint Lucia's code).
-            ("An LCA of soybean production in Brazil", ["BRA"]),
-            # A code word in capitals within a run of words.
-            ("TRADE AND ENVIRONMENT IN KENYA", ["KEN"]),
-            # Code words inside place names (Suriname, South Korea).
-            ("Smoke over Lebel-sur-Quévillon", []),
-            ("Ebola in Nzérékoré", []),
-        ],
-    )
-    def test_words_that_only_look_like_codes_do_not_count(self, text, codes):
-        assert _find_country_codes(text) == codes
 
 
 class TestFullLengthPassageSurvivesTruncation:

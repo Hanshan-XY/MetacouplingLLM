@@ -20,6 +20,7 @@ from metacouplingllm.knowledge.citations import (
 )
 from metacouplingllm.knowledge.countries import (
     ISO_ALPHA3_NAMES,
+    find_country_codes,
     get_country_name,
     resolve_country_code,
 )
@@ -111,17 +112,6 @@ _LOW_PRIORITY_SYSTEM_FIELDS: tuple[str, ...] = (
 # / German region names with diacritics.
 _CAPITALIZED_WORD_GROUP_RE = (
     r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)*"
-)
-
-# Capitalised names for the country mentions of an analysis: capitalised
-# words joined by spaces and by the connectors of place names ("Gulf of
-# Mexico", "Port of Spain", "Democratic Republic of the Congo"), so that a
-# country's name inside a longer name reaches
-# ``resolve_country_code(..., free_text=True)`` with that name around it.
-_COUNTRY_MENTION_RE = (
-    r"[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+"
-    r"(?:(?:\s+(?:of|the|de|del|da|do|dos|das|du|la|el))*"
-    r"\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)*"
 )
 
 # Defensive ceiling on the number of web-search results included in the
@@ -1954,13 +1944,8 @@ class MetacouplingAssistant:
             """Collect ISO codes of all countries mentioned in the analysis."""
             codes: set[str] = set()
             combined = " ".join(parsed.iter_text_fragments())
-            # Try to resolve country names found in the text
-            for word_group in re.findall(
-                _COUNTRY_MENTION_RE, combined
-            ):
-                code = resolve_country_code(word_group, free_text=True)
-                if code:
-                    codes.add(code)
+            # Country names found in the text
+            codes.update(find_country_codes(combined, capitals=True))
             # Also pick up explicit 3-letter ISO codes like "USA", "BRA".
             # Membership check must be explicit: get_country_name()
             # returns the input code itself for unknown codes, so it is
@@ -2064,12 +2049,7 @@ class MetacouplingAssistant:
         # relevance guard.
         country_mentions: set[str] = set()
         combined = " ".join(parsed.iter_text_fragments())
-        for word_group in re.findall(
-            _COUNTRY_MENTION_RE, combined
-        ):
-            code = resolve_country_code(word_group, free_text=True)
-            if code:
-                country_mentions.add(code)
+        country_mentions.update(find_country_codes(combined, capitals=True))
         # Explicit membership check — get_country_name() returns the
         # input code itself for unknown codes (always truthy), which
         # would let acronyms like "GDP" defeat the relevance guard.
@@ -2873,13 +2853,8 @@ class MetacouplingAssistant:
         mentioned_iso: set[str] = set()
         combined = " ".join(parsed.iter_text_fragments())
 
-        # Resolve country names found in the text
-        for word_group in re.findall(
-            _COUNTRY_MENTION_RE, combined
-        ):
-            code = resolve_country_code(word_group, free_text=True)
-            if code:
-                mentioned_iso.add(code)
+        # Country names found in the text
+        mentioned_iso.update(find_country_codes(combined, capitals=True))
         # Pick up explicit 3-letter ISO codes (explicit membership
         # check — get_country_name() falls back to the input code, so
         # truthiness alone admits non-country acronyms like "USD").

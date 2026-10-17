@@ -18,11 +18,9 @@ from metacouplingllm.knowledge.adm1_pericoupling import (
     resolve_adm1_code,
 )
 from metacouplingllm.knowledge.countries import (
-    _ALIASES,
-    _normalize_country_text,
     ISO_ALPHA3_NAMES,
+    find_country_codes,
     get_country_name,
-    resolve_country_code,
 )
 from metacouplingllm.knowledge.examples import (
     format_example,
@@ -368,7 +366,7 @@ class PromptBuilder:
         researcher did not intend to compare (e.g. USA ↔ Canada when
         the study is about Mexico exporting to both).  Countries are
         detected in the order the text first names them (see
-        :func:`_find_country_codes`).
+        :func:`~metacouplingllm.knowledge.countries.find_country_codes`).
 
         Returns ``None`` when:
         - No country is detected, OR
@@ -377,7 +375,7 @@ class PromptBuilder:
         """
         # Detect country codes mentioned in the text, in the order the
         # text first names them.
-        found_codes = _find_country_codes(research_context)
+        found_codes = find_country_codes(research_context)
 
         if len(found_codes) < 1:
             return None  # no country detected -> no hint
@@ -560,119 +558,6 @@ class PromptBuilder:
             "These adjacency relationships are provided for reference only.\n\n"
         )
         return header + "\n\n".join(lines)
-
-
-# ----------------------------------------------------------------------
-# Country names in a research description (coupling hint)
-# ----------------------------------------------------------------------
-
-# A word: a run of letters, Latin letters with diacritics included
-# ("Côte", "Türkiye"), with any apostrophe that stands between two
-# letters ("d'Ivoire", "People's", "Brazil’s").
-_WORD_RE = re.compile(r"[A-Za-zÀ-ÖØ-öø-ɏ]+(?:['’][A-Za-zÀ-ÖØ-öø-ɏ]+)*")
-
-# The lowercase country names and aliases that ``resolve_country_code``
-# matches exactly, and the most words any of them has; built on first use.
-_country_names: frozenset[str] | None = None
-_country_name_max_words = 0
-
-
-def _get_country_names() -> tuple[frozenset[str], int]:
-    """Return the lowercase country names and aliases, and their most words."""
-    global _country_names, _country_name_max_words
-    if _country_names is None:
-        names = {
-            _normalize_country_text(name) for name in ISO_ALPHA3_NAMES.values()
-        }
-        names.update(_ALIASES)
-        _country_name_max_words = max(
-            len(_WORD_RE.findall(name)) for name in names
-        )
-        _country_names = frozenset(names)
-    return _country_names, _country_name_max_words
-
-
-def _find_country_codes(text: str) -> list[str]:
-    """Return the codes of the countries *text* names, in order of first mention.
-
-    At each word the scan tries the longest run of words, up to the
-    longest country name, that is exactly a country's name or alias, and
-    after a match goes on from the word that follows it.  A name is read
-    whole wherever it falls: "Coffee production in Costa Rica" gives CRI,
-    "Mexico and Canada" gives MEX and then CAN, and "Papua New Guinea"
-    gives PNG without a GIN for "Guinea".  A run of words is the text
-    from its first word to its last, each stretch of whitespace read as
-    one space, so names written with a hyphen, comma or apostrophe match
-    ("Guinea-Bissau", "Côte d’Ivoire"); a possessive "'s" is dropped
-    ("Costa Rica's"), and a period after the last word is kept when that
-    makes a name ("U.S.").  The code is ``resolve_country_code``'s for
-    the name.
-
-    Two kinds of word count only in capitals:
-
-    - "US"; "us" is the pronoun ("helps us understand").
-    - A three-letter ISO code ("BRA"), and only when it stands apart
-      from other words, with punctuation or the text's edge on both
-      sides, as in "(BRA)" or "BRA–CHN".  Within a run of words a code
-      is more often an acronym (LCA, life cycle assessment, is Saint
-      Lucia's code), and in small letters a word ("and", "can", "per").
-    """
-    names, max_words = _get_country_names()
-    spans = [m.span() for m in _WORD_RE.finditer(text)]
-    found: list[str] = []
-    i = 0
-    while i < len(spans):
-        match = _country_name_at(text, spans, i, names, max_words)
-        if match is None:
-            i += 1
-            continue
-        code, size = match
-        if code not in found:
-            found.append(code)
-        i += size
-    return found
-
-
-def _country_name_at(
-    text: str,
-    spans: list[tuple[int, int]],
-    i: int,
-    names: frozenset[str],
-    max_words: int,
-) -> tuple[str, int] | None:
-    """Return the code and word count of the longest country name at word *i*."""
-    for size in range(min(max_words, len(spans) - i), 0, -1):
-        start, end = spans[i][0], spans[i + size - 1][1]
-        phrase = " ".join(text[start:end].replace("’", "'").split())
-        key = _normalize_country_text(phrase)
-        if key.endswith("'s") and key not in names:
-            phrase = phrase[:-2]
-        elif text[end:end + 1] == "." and f"{key}." in names:
-            phrase += "."
-        key = _normalize_country_text(phrase)
-        if key in names:
-            if key == "us" and phrase != "US":
-                continue  # the pronoun
-        elif size > 1 or not _is_standalone_code(text, spans, i, phrase):
-            continue
-        code = resolve_country_code(phrase)
-        if code:
-            return code, size
-    return None
-
-
-def _is_standalone_code(
-    text: str,
-    spans: list[tuple[int, int]],
-    i: int,
-    word: str,
-) -> bool:
-    """Return True when *word*, word *i* of *text*, is an ISO code standing apart."""
-    if not (len(word) == 3 and word.isupper() and word in ISO_ALPHA3_NAMES):
-        return False
-    before = text[spans[i - 1][1]:spans[i][0]] if i > 0 else ""
-    after = text[spans[i][1]:spans[i + 1][0]] if i + 1 < len(spans) else ""
-    return not before.isspace() and not after.isspace()
 
 
 # ----------------------------------------------------------------------

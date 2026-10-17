@@ -2389,6 +2389,43 @@ class TestStructuredMapData:
         )
         assert ref == ""
 
+    def test_adm1_reference_reads_names_whole(self):
+        """Until 2026-10-16 the country mentions were capitalised word
+        groups, which a lower-case word, a hyphen or an apostrophe ended:
+        "Trinidad and Tobago" and "Côte d'Ivoire" named no country, and "the
+        Congo basin" named the Republic of the Congo."""
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            get_adm1_codes_for_country,
+            get_adm1_info,
+        )
+        from metacouplingllm.llm.client import LLMResponse
+        from ._helpers import make_parsed_analysis
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content="ok")
+
+        advisor = MetacouplingAssistant(
+            llm_client=MockClient(),
+            auto_map=False,
+        )
+        parsed = make_parsed_analysis(
+            coupling_classification=(
+                "Cocoa from Côte d'Ivoire and natural gas from Trinidad and "
+                "Tobago, shipped past the Congo basin"
+            ),
+            systems={
+                "sending": {"name": "Cocoa farms"},
+                "receiving": {"name": "Gas terminals"},
+            },
+        )
+        ref = advisor._build_adm1_reference_for_prompt(
+            parsed, get_adm1_codes_for_country, get_adm1_info,
+        )
+        assert "CIV0" in ref
+        assert "TTO0" in ref
+        assert "COG0" not in ref
+
     def test_invalid_adm1_from_llm_falls_back_to_regex_resolver(self):
         """When the LLM returns an invalid ADM1 code, fall back to the
         regex resolver which correctly identifies Mato Grosso as BRA011.

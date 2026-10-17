@@ -7,6 +7,7 @@ from metacouplingllm.knowledge.countries import (
     _ALIASES,
     _normalize_country_text,
     expand_supranational,
+    find_country_codes,
     get_country_name,
     resolve_country_code,
     supranational_display_name,
@@ -306,6 +307,8 @@ class TestFreeText:
         ("Inner Niger Delta", "NER"),
         ("the Korean Peninsula", "KOR"),
         ("New England states", "GBR"),
+        # Not a place: the Brazilwood tree
+        ("the pau-brasil tree", "BRA"),
     ])
     def test_a_country_inside_another_places_name_does_not_count(
         self, text, found,
@@ -395,6 +398,173 @@ class TestFreeText:
         assert owners["inner mongolia"] == frozenset({"CHN"})
         assert "georgia" not in owners
         assert "western australia" not in owners
+
+
+class TestFindCountryCodes:
+    """``find_country_codes`` reads each country name whole, wherever it
+    falls in the text, and keeps the order in which the text names them."""
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            ("Mexico and Canada avocado trade", ["MEX", "CAN"]),
+            ("Ghana's imports of Nigerian natural gas", ["GHA", "NGA"]),
+            ("Visitors from China, Japan and the United States",
+             ["CHN", "JPN", "USA"]),
+            ("Soybean exports from Brazil to China", ["BRA", "CHN"]),
+        ],
+    )
+    def test_countries_in_order_of_mention(self, text, codes):
+        assert find_country_codes(text) == codes
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            ("Logging in Papua New Guinea", ["PNG"]),
+            ("Refugees from South Sudan", ["SSD"]),
+            ("Oil from Equatorial Guinea", ["GNQ"]),
+            ("Cobalt from the Democratic Republic of the Congo", ["COD"]),
+            ("Cashew exports from Guinea-Bissau", ["GNB"]),
+            ("Sanctions on the Democratic People's Republic of Korea",
+             ["PRK"]),
+        ],
+    )
+    def test_name_holding_another_name_is_read_whole(self, text, codes):
+        assert find_country_codes(text) == codes
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            ("Cocoa exports from Côte d'Ivoire", ["CIV"]),
+            ("Cocoa exports from Côte d’Ivoire", ["CIV"]),
+            ("Hazelnut exports from Türkiye", ["TUR"]),
+            ("Coffee from Timor-Leste", ["TLS"]),
+            ("Natural gas from Trinidad and Tobago", ["TTO"]),
+            ("Costa Rica's coffee", ["CRI"]),
+            ("Coffee from Costa\nRica", ["CRI"]),
+            ("U.S. corn exports to Mexico", ["USA", "MEX"]),
+        ],
+    )
+    def test_name_with_punctuation_diacritics_or_line_break(self, text, codes):
+        assert find_country_codes(text) == codes
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            ("US corn exports to Mexico", ["USA", "MEX"]),
+            ("Soybean flows (BRA, CHN)", ["BRA", "CHN"]),
+        ],
+    )
+    def test_codes_written_as_codes_count(self, text, codes):
+        assert find_country_codes(text) == codes
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            # The old chunks read a lone "and" as Andorra's code.
+            ("Forest cover in Kenya between 2000 and 2024", ["KEN"]),
+            # The pronoun, which the old chunks read as the US.
+            ("This study helps us understand Brazil's soybean exports",
+             ["BRA"]),
+            # An acronym within a run of words (Saint Lucia's code).
+            ("An LCA of soybean production in Brazil", ["BRA"]),
+            # A code word in capitals within a run of words.
+            ("TRADE AND ENVIRONMENT IN KENYA", ["KEN"]),
+            # Code words inside place names (Suriname, South Korea).
+            ("Smoke over Lebel-sur-Quévillon", []),
+            ("Ebola in Nzérékoré", []),
+        ],
+    )
+    def test_words_that_only_look_like_codes_do_not_count(self, text, codes):
+        assert find_country_codes(text) == codes
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            # Continents, seas and basins named after a country
+            ("Soybean exports from South America to China", ["CHN"]),
+            ("Latin American and North-American markets", []),
+            ("Shrimp from the Gulf of Mexico to Japan", ["JPN"]),
+            ("pasture expansion in the Congo basin and Rwanda", ["RWA"]),
+            ("Fishing in the Indian Ocean", []),
+            ("Venezuela and Congo Basin", ["VEN"]),
+            # Regions of another country, from the ADM1 database
+            ("Coal from New South Wales to Japan", ["JPN"]),
+            ("Salmon bound for British Columbia ports", []),
+            ("Port-of-Spain and Port of Spain", []),
+            ("Grasslands of Inner Mongolia", []),
+        ],
+    )
+    def test_a_country_inside_another_places_name_does_not_count(
+        self, text, codes,
+    ):
+        assert find_country_codes(text) == codes
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            ("Inner Mongolia, China", ["CHN"]),
+            ("Hong Kong SAR, China", ["HKG"]),
+            ("Mexico City and Western Australia", ["MEX", "AUS"]),
+            ("Floods in the Inner Niger Delta, Mali", ["MLI"]),
+            ("Port of Spain shipping to Spain", ["ESP"]),
+            ("Tea from Lao Cai to Laos", ["LAO"]),
+            ("Gibraltar (U.K.)", ["GIB"]),
+        ],
+    )
+    def test_a_places_own_country_counts(self, text, codes):
+        assert find_country_codes(text) == codes
+
+    @pytest.mark.parametrize(
+        "text, codes",
+        [
+            ("Exports to the Virgin Islands (U.S.)", ["VIR"]),
+            ("St. Martin (French part)", ["MAF"]),
+            ("Congo, Dem. Rep. and Brazil", ["COD", "BRA"]),
+            ("U.S.A. and Canada", ["USA", "CAN"]),
+        ],
+    )
+    def test_punctuation_after_the_last_word_completes_a_name(
+        self, text, codes,
+    ):
+        assert find_country_codes(text) == codes
+
+    def test_brazilwood_is_not_brazil(self):
+        """"pau-brasil", the tree, holds "brasil"."""
+        assert find_country_codes("Logging of the pau-brasil tree") == []
+
+    def test_each_name_reads_as_resolve_country_code_reads_it(self):
+        """Every country name, alias and name of another place, scanned
+        alone, gives what ``resolve_country_code(..., free_text=True)``
+        gives."""
+        from metacouplingllm.knowledge.countries import _get_text_scan_tables
+
+        names, places, _ = _get_text_scan_tables()
+        differ = []
+        for name in [*names, *places]:
+            code = resolve_country_code(name, free_text=True)
+            if find_country_codes(name) != ([code] if code else []):
+                differ.append(name)
+        assert differ == []
+
+    def test_accents_are_folded(self):
+        assert find_country_codes("México y Guatemala") == ["MEX", "GTM"]
+        assert find_country_codes("Exportaciones de Perú") == ["PER"]
+
+    def test_lao(self):
+        assert find_country_codes(
+            "Lao PDR and the Lao government"
+        ) == ["LAO"]
+
+    def test_capitals_reads_only_capitalised_names(self):
+        """For text whose writer capitalises names (an analysis)."""
+        text = "turkey and chile peppers from Chile"
+        assert find_country_codes(text) == ["TUR", "CHL"]
+        assert find_country_codes(text, capitals=True) == ["CHL"]
+        # The names of other places count in any case.
+        assert find_country_codes(
+            "the Congo basin", capitals=True
+        ) == []
 
 
 class TestGetCountryName:

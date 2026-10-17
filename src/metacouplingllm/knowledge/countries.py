@@ -595,6 +595,8 @@ _OTHER_PLACE_NAMES: dict[str, tuple[str, ...]] = {
     "mongolia plateau": (),
     "new england": ("USA",),
     "south georgia": (),
+    # Not a place: the Brazilwood tree, after which Brazil is named
+    "pau brasil": (),
 }
 
 
@@ -991,6 +993,174 @@ def resolve_country_code(
             return code
 
     return None
+
+
+def find_country_codes(text: str, *, capitals: bool = False) -> list[str]:
+    """Return the codes of the countries *text* names, in order of first mention.
+
+    At each word the scan tries the longest run of words that is exactly a
+    country's name or alias, or the name of another place named after a
+    country, and after a match goes on from the word that follows it.  A
+    name is read whole wherever it falls: "Coffee production in Costa Rica"
+    gives CRI, "Mexico and Canada" gives MEX and then CAN, and "Papua New
+    Guinea" gives PNG without a GIN for "Guinea".  The name of another place
+    (the places of ``resolve_country_code(..., free_text=True)``) names no
+    country but its own: "soy from South America to China" gives CHN alone,
+    "Inner Mongolia, China" CHN, "Hong Kong SAR, China" HKG.  Words are
+    compared as ``resolve_country_code`` compares them, so names written with
+    accents, a hyphen, comma or apostrophe match ("México", "Guinea-Bissau",
+    "Côte d’Ivoire"); a possessive "'s" is dropped ("Costa Rica's"), and a
+    period after the last word is kept when that makes a name ("U.S.").
+
+    Two kinds of word count only in capitals:
+
+    - "US"; "us" is the pronoun ("helps us understand").
+    - A three-letter ISO code ("BRA"), and only when it stands apart from
+      other words, with punctuation or the text's edge on both sides, as in
+      "(BRA)" or "BRA–CHN".  Within a run of words a code is more often an
+      acronym (LCA, life cycle assessment, is Saint Lucia's code), and in
+      small letters a word ("and", "can", "per").
+
+    Parameters
+    ----------
+    text:
+        A passage of text: a research description, an analysis.
+    capitals:
+        ``True`` reads a country's name only where it starts with a
+        capital letter, for text whose writer capitalises names (an
+        analysis): "turkey" and "chile peppers" then name no country.  The
+        names of other places are recognised in any case ("the Congo
+        basin").
+
+    Returns
+    -------
+    The ISO alpha-3 codes, each once, in the order the text first names
+    them.
+    """
+    found: list[str] = []
+    for code, _, _ in _country_mentions(text, capitals=capitals):
+        if code not in found:
+            found.append(code)
+    return found
+
+
+# A word: a run of letters, Latin letters with diacritics included ("Côte",
+# "Türkiye"), with any apostrophe that stands between two letters
+# ("d'Ivoire", "People's", "Brazil’s").
+_WORD_RE = re.compile(r"[A-Za-zÀ-ÖØ-öø-ɏ]+(?:['’][A-Za-zÀ-ÖØ-öø-ɏ]+)*")
+
+# The country names and aliases by normalized text, the names of other places
+# named after a country with the countries each lies in, and the most words
+# any of them has (lazily built).
+_text_scan_tables: (
+    tuple[dict[str, str], dict[str, frozenset[str]], int] | None
+) = None
+
+
+def _get_text_scan_tables() -> tuple[
+    dict[str, str], dict[str, frozenset[str]], int
+]:
+    """Return the tables :func:`find_country_codes` reads."""
+    global _text_scan_tables
+    if _text_scan_tables is None:
+        names = dict(_get_reverse_index())
+        names.update(_ALIASES)
+        _, places = _get_other_places()
+        max_words = max(
+            len(_WORD_RE.findall(key)) for key in [*names, *places]
+        )
+        _text_scan_tables = (names, places, max_words)
+    return _text_scan_tables
+
+
+def _country_mentions(
+    text: str, *, capitals: bool = False, places: bool = True,
+) -> list[tuple[str, int, int]]:
+    """Return ``(code, start, end)`` for each country *text* names, from left
+    to right (:func:`find_country_codes`).  With ``places=False`` the names
+    of other places are not looked for."""
+    names, other_places, max_words = _get_text_scan_tables()
+    spans = [m.span() for m in _WORD_RE.finditer(text)]
+    mentions: list[tuple[str, int, int]] = []
+    i = 0
+    while i < len(spans):
+        match = _name_at(
+            text, spans, i, names, other_places if places else {},
+            max_words, capitals,
+        )
+        if match is None:
+            i += 1
+            continue
+        size, code, own, start, end = match
+        if code is not None:
+            mentions.append((code, start, end))
+        else:
+            # Another place's name: only its own countries' names count.
+            mentions.extend(
+                (inner, start + a, start + b)
+                for inner, a, b in _country_mentions(
+                    text[start:end], capitals=capitals, places=False,
+                )
+                if inner in own
+            )
+        i += size
+    return mentions
+
+
+def _name_at(
+    text: str,
+    spans: list[tuple[int, int]],
+    i: int,
+    names: dict[str, str],
+    places: dict[str, frozenset[str]],
+    max_words: int,
+    capitals: bool,
+) -> tuple[int, str | None, frozenset[str], int, int] | None:
+    """Return ``(words, code, countries, start, end)`` for the longest name at
+    word *i* of *text*: a country's (*code*), or another place's (*code*
+    ``None``, *countries* the ones it lies in)."""
+    for size in range(min(max_words, len(spans) - i), 0, -1):
+        start, end = spans[i][0], spans[i + size - 1][1]
+        phrase = " ".join(text[start:end].split())
+        key = _normalize_country_text(phrase)
+        if key.endswith("'s") and key not in names and (
+            _place_key(key) not in places
+        ):
+            phrase, key = phrase[:-2], key[:-2]
+        else:
+            # Punctuation after the last word may complete a name: "U.S.",
+            # "Virgin Islands (U.S.)".
+            for n in range(3, 0, -1):
+                tail = text[end:end + n]
+                if len(tail) < n or any(c.isalnum() or c.isspace() for c in tail):
+                    continue
+                longer = _normalize_country_text(phrase + tail)
+                if longer in names or _place_key(longer) in places:
+                    phrase, key, end = phrase + tail, longer, end + n
+                    break
+        if _place_key(key) in places:
+            return size, None, places[_place_key(key)], start, end
+        if key in names:
+            if key == "us" and phrase != "US":
+                continue  # the pronoun
+            if capitals and not phrase[:1].isupper():
+                continue
+            return size, names[key], frozenset(), start, end
+        if size == 1 and _is_standalone_code(text, spans, i, phrase):
+            return 1, phrase, frozenset(), start, end
+    return None
+
+
+def _is_standalone_code(
+    text: str, spans: list[tuple[int, int]], i: int, word: str,
+) -> bool:
+    """Return True when *word*, word *i* of *text*, is an ISO code standing
+    apart: in capitals, with punctuation or the text's edge on both sides."""
+    if not (len(word) == 3 and word.isupper() and word in ISO_ALPHA3_NAMES):
+        return False
+    before = text[spans[i - 1][1]:spans[i][0]] if i > 0 else ""
+    after = text[spans[i][1]:spans[i + 1][0]] if i + 1 < len(spans) else ""
+    return not before.isspace() and not after.isspace()
 
 
 def get_country_name(code: str) -> str:

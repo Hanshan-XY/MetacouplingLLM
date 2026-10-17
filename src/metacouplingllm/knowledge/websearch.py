@@ -1943,25 +1943,26 @@ def _has_trade_intent(query: str) -> bool:
 
 
 def _detect_national_focus(query: str) -> str | None:
-    """Extract a country name from the query when no subnational region found.
+    """Return the name of the first country the query names, for a query
+    with no subnational region.
 
-    E.g., ``"corn production and exports in USA"`` → ``"United States"``.
+    E.g., ``"corn production and exports in USA"`` → ``"United States"``,
+    ``"Mexico and Canada avocado trade"`` → ``"Mexico"``.  The query is read
+    with :func:`~metacouplingllm.knowledge.countries.find_country_codes`, so
+    a country's name inside another place's name ("soybean exports from
+    South America") names no country.
     """
     try:
         from metacouplingllm.knowledge.countries import (
+            find_country_codes,
             get_country_name,
-            resolve_country_code,
         )
     except Exception:
         return None
 
-    for phrase in _extract_query_phrases(query):
-        cleaned = _strip_possessive(phrase)
-        if not cleaned:
-            continue
-        code = resolve_country_code(cleaned, free_text=True)
-        if code:
-            return get_country_name(code) or cleaned
+    codes = find_country_codes(query)
+    if codes:
+        return get_country_name(codes[0])
 
     return None
 
