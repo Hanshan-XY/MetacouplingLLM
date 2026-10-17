@@ -1065,7 +1065,17 @@ ways:
    (`de_facto_borders`, `coupling_standard`; §5). If the
    research description names a subnational region that resolves to a World
    Bank ADM1 code (for example "Michigan"), the hint lists that region's
-   same-country and cross-border neighbors from the ADM1 database.
+   same-country and cross-border neighbors from the ADM1 database. A name
+   counts only where the description writes it as one: capitalised, not part
+   of a country's name ("Zealand" in New Zealand) or of a lake's, river's or
+   bay's ("Lake Tanganyika", "Ohio River"), and, for a lone compass or
+   feature word such as "Bay" or "West", only when the description names the
+   region's country. When it names several regions, the hint takes the first
+   whose country the description names, another of the regions shares, or
+   borders one of those. A country's name that a region elsewhere also has,
+   such as Georgia (a US state) or Gaza (a province of Mozambique), is read
+   as the region only where the rest of the description supports that more,
+   as in "Georgia, United States" or Georgia beside Alabama.
    Otherwise, if it names countries, the hint gives the database verdict
    (pericoupled or telecoupled) for each pair formed by the first-named
    country and each other named country; when only one country is named, it

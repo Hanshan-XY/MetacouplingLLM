@@ -568,6 +568,45 @@ file. The format is loosely based on
   flow under the 5 seeds that read it as matter; none of the 16 distinct
   flow headings names two categories through such words alone. Tests +13
   (suite 2,117).
+- **The prompt's ADM1 hint names a region the description writes, not one
+  that a common word or another place's name happens to match.**
+  `PromptBuilder._build_adm1_pericoupling_hint` took as the focal region the
+  first run of up to five words that `resolve_adm1_code` resolved, in any
+  case and without a country, and listed that region's neighbours. Common
+  words, pieces of country names and the names of lakes, rivers and bays
+  matched regions elsewhere: "has" gave Has (Albania), "forest" Forest
+  (Guernsey), "New Zealand" Zealand (Denmark), "Guinea-Bissau" the Sector
+  Autonomo De Bissau, "Mutsu Bay" Bay (Somalia), "Okavango Delta" Delta
+  (Nigeria), "Lake Tanganyika" Tanganyika province (DR Congo), "Mary River
+  mine" Mary (Turkmenistan) and "Southeast Alaska" Southeast (North
+  Macedonia); Ghana's "Western Region" gave Bahrain's, and a town, "Santa
+  Rosa", in a description of Ecuador gave Guatemala's department. As the
+  ADM1 hint takes the place of the country hint, such a match also dropped
+  the country-pair reference. A run of words now names a region only when it
+  is written as a name (capitalised, with lower-case connectors such as "do"
+  or "es" inside and a unit word such as "oblast" at the end), is not part of
+  a country's name or of a feature's ("Ohio River", "Lake Tanganyika", "Gulf
+  of California"), and, for a lone compass or feature word ("Bay", "West",
+  "Delta"), when the text names the region's country. A name several regions
+  share is read in the countries the text names, then in those of the other
+  regions it names ("Central Region" in Ghana, "Punjab" beside Kerala), and
+  Vietnamese letters are read ("Bình Phước"). The focal region is the first
+  one named whose country the text names, another named region shares, or
+  borders one of those, so a region of an unrelated country, usually a
+  namesake, is passed over. A country's name that a region elsewhere also
+  has is read as the one the rest of the text supports more: "Georgia" is the
+  US state in "Georgia, United States" or beside Alabama or Florida (which
+  Uruguay also has), and the country beside Tbilisi, Russia or Armenia;
+  "Gaza" is Mozambique's province beside Maputo and Palestine beside Egypt. A
+  tie keeps the country, and the country hint leaves out a name read as a
+  region: until now "Georgia, United States" got the hint for the country
+  Georgia. On 200 research descriptions with known focal units, the hint
+  names the right region for 116 of the 127 about a province (99 before), a
+  wrong one for 9 (26) and none for 2 (2), England and Scotland, which are
+  read as the United Kingdom; the 9 are regions the text names before its
+  focal one (Bogotá before Cundinamarca). Of the 73 descriptions about a
+  country or another place, 33 get a regional hint (47 before), each for a
+  region the text names. Tests +25 (suite 2,142).
 
 ### Docs
 

@@ -1121,10 +1121,10 @@ class TestSpellingVariants:
         ("Charcoal trade from Kyyivs'ka oblast to Kyiv", "UKR012"),
     ])
     def test_prompt_hint_finds_respelled_regions(self, text, code):
-        """The prompt builder takes the first name that resolves as the
-        focal region, trying the words of a phrase joined by spaces.  It
-        found none in the first and last descriptions, and took Mombasa and
-        Bavaria, named later, in the other two."""
+        """The prompt builder reads region names by trying the words of a
+        phrase joined by spaces, and its focal region is the first one named
+        here.  It found none in the first and last descriptions, and took
+        Mombasa and Bavaria, named later, in the other two."""
         from metacouplingllm.prompts.builder import PromptBuilder
         hint = PromptBuilder._build_adm1_pericoupling_hint(text)
         assert hint is not None and f"({code}," in hint
