@@ -1159,7 +1159,7 @@ The same `coupling_standard` argument is accepted by the ADM1 functions
 `docs/METHODS_adjacency.md` §8, and `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
 `resolve_adm1_code` also consults a bundled **English-exonym alias table**
-(`data/adm1_aliases.csv`, 1,242 validated aliases for 920 regions across 140
+(`data/adm1_aliases.csv`, 1,256 validated aliases for 922 regions across 140
 countries) before its name/substring strategies, so common English
 names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
 (Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The
@@ -1201,6 +1201,20 @@ Washington.  The result is also refused when the rest names another unit of
 the same country (`"Almaty Province"`: `"Almaty"` is Almaty City, the
 province a separate unit) or matches several regions (`"La Paz Department"`
 without `country`).
+
+When that fails too, the name is compared with every name and alias
+regardless of separators and of the letters the World Bank spells out.
+Hyphens, dashes and spaces between words are ignored, so `"Trans-Nzoia"` →
+`KEN042` (World Bank `"Trans Nzoia"`), `"Taita–Taveta"` → `KEN039` and
+`"Bío Bío"` → `CHL006` (`"Biobio"`), and so are apostrophes, straight, curly
+or left out: `"Murang’a"` → `KEN029` (`"Murang'a"`), `"Valle d’Aosta"` →
+`ITA019`, `"Hawkes Bay"` → `NZL06`; å, ä, ö, ø and ü also match the World
+Bank's aa, ae, oe and ue, so `"Skåne"` → `SWE013` (`"Skaane Laen"`) and
+`"Thüringen"` → `DEU016` (`"Thueringen"`).  The designator retry then
+compares the rest the same way (`"Trans-Nzoia County"`).  A name that
+resolves as written keeps its code, and a spelling that several regions share
+gives `None`: `"Nord Ouest"` without `country` matches Haiti's Nord-Ouest and
+Cameroon's Nord - Ouest.
 
 ### Country name resolution
 
@@ -1801,7 +1815,7 @@ water-only pairs — see §8 "Adjacency standards".
 | `get_adm1_codes_for_country(country)` | `set[str]` | All ADM1 codes inside the given country (name or ISO alpha-3). |
 | `get_adm1_info(adm1_code)` | `dict \| None` | Dict with keys `name` (canonical ADM1 name), `country_name`, `iso_a3` and `wb_region` (World Bank region code, e.g. `LCR`); `None` if the code is unknown. |
 | `get_adm1_country(adm1_code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |
-| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` — and **English exonyms / alternative spellings** via a bundled alias table — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016` — and a trailing administrative designator, removed when the full name does not resolve — `"Narok County"` → `KEN033`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
+| `resolve_adm1_code(name, country=None)` | `str \| None` | Resolve a region name to its ADM1 code. Handles unaccented forms and native-script letters NFKD cannot decompose — `"Łódź"` → `POL003`, `"Đắk Lắk"` → `VNM016` — and **English exonyms / alternative spellings** via a bundled alias table — e.g. `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016` — and a trailing administrative designator, removed when the full name does not resolve — `"Narok County"` → `KEN033` — and, when nothing else matches, names that differ from a World Bank name or alias only in hyphens, dashes, spaces and apostrophes or in å/ä/ö/ø/ü spelled out — `"Trans-Nzoia"` → `KEN042`, `"Murang’a"` → `KEN029`, `"Skåne"` → `SWE013`; possessives and hyphenated compounds are stripped/split by the validator's text cleaner before resolution. Returns `None` rather than guessing when a name is ambiguous or padded with a meaningful extra word. |
 | `get_adm1_aliases(adm1_code)` | `list[str]` | English-exonym alias keys recorded for an ADM1 region (e.g. `"DEU002"` → `["bavaria"]`); empty list if none. |
 
 ### Literature Functions
@@ -1997,12 +2011,14 @@ detected.
 The validator can only show regions whose name `resolve_adm1_code` can
 match against the bundled ADM1 database. Recognition covers unaccented
 forms (`Michoacan` → `Michoacán de Ocampo`), possessives (`Michoacán's`),
-hyphenated compounds (`Michoacán-Jalisco`) and English exonyms through the
-alias table (`Bavaria` → `Bayern`, `Tuscany` → `Toscana`). When the
-research description names a subnational region, LLM-mentioned ADM1
-partners are emitted as `pair_results` lines, which the formatter buckets
-into the COUPLING DATABASE VALIDATION block. A region can still be missing
-from the block in these cases:
+hyphenated compounds (`Michoacán-Jalisco`), names written with other
+separators, apostrophes or letters than the World Bank's (`Trans-Nzoia` →
+`Trans Nzoia`, `Murang’a` → `Murang'a`, `Skåne` → `Skaane Laen`) and English
+exonyms through the alias table (`Bavaria` → `Bayern`, `Tuscany` →
+`Toscana`). When the research description names a subnational region,
+LLM-mentioned ADM1 partners are emitted as `pair_results` lines, which the
+formatter buckets into the COUPLING DATABASE VALIDATION block. A region can
+still be missing from the block in these cases:
 
 - **Country-scope query.** The subnational (ADM1) part of the validator
   runs only when the research description passed to `analyze()` names a
@@ -2024,7 +2040,9 @@ from the block in these cases:
   forms work via the substring / folded fallback (which also
   transliterates letters NFKD cannot decompose, e.g. `Łódź`,
   `Đắk Lắk`), a trailing designator is removed when the full name
-  fails (`Michoacan State`, `Narok County`), and many English
+  fails (`Michoacan State`, `Narok County`), hyphens, dashes, spaces,
+  apostrophes and the World Bank's aa/ae/oe spellings are ignored when
+  nothing else matches (`Trans-Nzoia`, `Murang’a`, `Skåne`), and many English
   exonyms resolve through the alias table, but truly different
   names (e.g. local short names not in the gazetteer or the alias table)
   won't.
