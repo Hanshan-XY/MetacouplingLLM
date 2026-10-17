@@ -543,6 +543,31 @@ file. The format is loosely based on
   is consistent with the coupling database." instead of claiming
   consistency with "the coupling databases (country adjacency + ADM1
   adjacency)". Tests +35 (suite 2,104).
+- **A flow whose heading names two categories gets the same category in
+  every run.** `parse_analysis` reads a flow's category from its heading
+  (`**Matter Flow**`), its bracket tag (`[Matter]`), its `category:` field
+  or, failing those, the bullet itself. The six category names were kept in
+  a set and the first one found in the set's order won, so when the text
+  named two, the category depended on the hash seed, which Python draws
+  anew for each process unless `PYTHONHASHSEED` is set. In one of the 31
+  gpt-5.5 analyses saved on 2026-10-15 (Germany's electricity imports from
+  France and Poland and LNG from the USA), the flow headed
+  `**Energy and Matter Flow**` was energy under 11 of 16 seeds and matter
+  under the other 5. The category labels the flow in the report
+  (`[Energy]`), files it under the Markdown and Word exports' per-category
+  Flows subsections, colours its arrow on maps drawn from the parsed flows
+  and enters the map-extraction prompt. A category's own name now counts
+  before a word that only suggests one (goods, money, power …), and among
+  several the one the text names first wins: "Energy and Matter Flow" is
+  energy, "Matter and Energy Flow" matter. Among the words that only
+  suggest a category, the first named also wins where the alias table's
+  order decided before ("Labour and money" was capital and is now people).
+  On the 31 analyses and the committed avocado run (531 flows, all under
+  bold headings), each parsed under 16 seeds, every parse is now the same
+  under all 16 and matches the old parse field for field, except that one
+  flow under the 5 seeds that read it as matter; none of the 16 distinct
+  flow headings names two categories through such words alone. Tests +13
+  (suite 2,117).
 
 ### Docs
 
