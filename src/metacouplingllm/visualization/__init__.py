@@ -13,6 +13,11 @@ Three map functions are provided:
   result (:class:`~metacouplingllm.llm.parser.ParsedAnalysis`).
 - :func:`plot_focal_adm1_map` — color subnational (ADM1) regions by
   coupling type relative to a focal ADM1 region.
+
+Each takes the same arguments as the function it wraps in
+:mod:`~metacouplingllm.visualization.worldmap` or
+:mod:`~metacouplingllm.visualization.adm1_map`, which it imports only
+when called.
 """
 
 from __future__ import annotations
@@ -35,6 +40,8 @@ def plot_focal_country_map(
     colors: CouplingColors | None = None,
     figsize: tuple[float, float] = (15, 8),
     custom_shapefile: str | Path | None = None,
+    adm0_shapefile: str | Path | None = None,
+    mentioned_countries: set[str] | None = None,
     de_facto_borders: bool = True,
     coupling_standard: str = "moderate",
 ) -> matplotlib.figure.Figure:
@@ -55,6 +62,8 @@ def plot_focal_country_map(
         colors=colors,
         figsize=figsize,
         custom_shapefile=custom_shapefile,
+        adm0_shapefile=adm0_shapefile,
+        mentioned_countries=mentioned_countries,
         de_facto_borders=de_facto_borders,
         coupling_standard=coupling_standard,
     )
@@ -68,6 +77,11 @@ def plot_analysis_map(
     colors: CouplingColors | None = None,
     figsize: tuple[float, float] = (15, 8),
     custom_shapefile: str | Path | None = None,
+    adm0_shapefile: str | Path | None = None,
+    extra_mentioned_countries: set[str] | None = None,
+    mentioned_countries_override: set[str] | None = None,
+    focal_code_override: str | None = None,
+    flows: list[dict[str, str]] | None = None,
     de_facto_borders: bool = True,
     coupling_standard: str = "moderate",
 ) -> matplotlib.figure.Figure:
@@ -87,6 +101,11 @@ def plot_analysis_map(
         colors=colors,
         figsize=figsize,
         custom_shapefile=custom_shapefile,
+        adm0_shapefile=adm0_shapefile,
+        extra_mentioned_countries=extra_mentioned_countries,
+        mentioned_countries_override=mentioned_countries_override,
+        focal_code_override=focal_code_override,
+        flows=flows,
         de_facto_borders=de_facto_borders,
         coupling_standard=coupling_standard,
     )
@@ -100,6 +119,9 @@ def plot_focal_adm1_map(
     colors: Adm1CouplingColors | None = None,
     figsize: tuple[float, float] = (15, 8),
     zoom_to_focal: bool = False,
+    mentioned_countries: set[str] | None = None,
+    mentioned_adm1_codes: set[str] | None = None,
+    flows: list[dict[str, str]] | None = None,
     de_facto_borders: bool = True,
     coupling_standard: str = "moderate",
 ) -> matplotlib.figure.Figure:
@@ -121,6 +143,9 @@ def plot_focal_adm1_map(
         colors=colors,
         figsize=figsize,
         zoom_to_focal=zoom_to_focal,
+        mentioned_countries=mentioned_countries,
+        mentioned_adm1_codes=mentioned_adm1_codes,
+        flows=flows,
         de_facto_borders=de_facto_borders,
         coupling_standard=coupling_standard,
     )
