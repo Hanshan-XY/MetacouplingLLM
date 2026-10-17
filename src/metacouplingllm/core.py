@@ -5348,7 +5348,17 @@ class MetacouplingAssistant:
 
         if parsed.coupling_classification:
             llm_class = parsed.coupling_classification.lower()
-            if has_peri and "pericoupl" not in llm_class:
+            if not adm1_pair_lines:
+                # No region was classified (the scan found none
+                # besides the focal one, or only spillover ones), so
+                # there is nothing to compare the classification
+                # with: say so instead of reporting it consistent.
+                peri_info["note"] = (
+                    "No subnational region other than the focal "
+                    "region was checked against the ADM1 "
+                    "pericoupling database."
+                )
+            elif has_peri and "pericoupl" not in llm_class:
                 peri_info["note"] = (
                     "The ADM1 pericoupling database indicates at "
                     "least one mentioned subnational region is "
@@ -5700,7 +5710,17 @@ class MetacouplingAssistant:
             has_peri = any(": PERICOUPLED" in p for p in pair_lines)
             has_tele = any(": TELECOUPLED" in p for p in pair_lines)
 
-            if has_peri and "pericoupl" not in llm_class:
+            if not pair_lines:
+                # Every partner was skipped (in practice, all in the
+                # spillover role), so there is nothing to compare the
+                # classification with: say so instead of reporting
+                # it consistent.
+                info["note"] = (
+                    "No partner country was checked against the "
+                    "coupling database (partners in the spillover "
+                    "role are not checked)."
+                )
+            elif has_peri and "pericoupl" not in llm_class:
                 info["note"] = (
                     "The coupling database indicates at least one "
                     "pericoupled country pair, but the LLM classified "

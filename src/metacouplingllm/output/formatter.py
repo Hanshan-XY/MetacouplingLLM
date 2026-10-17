@@ -313,26 +313,39 @@ class AnalysisFormatter:
             # notes agree on consistency, collapse to one summary
             # line; otherwise surface each note separately so
             # disagreement signals aren't hidden by the merge.
-            notes: list[tuple[str, str]] = []
-            if country_info and country_info.get("note"):
-                notes.append(("country", country_info["note"]))
-            if adm1_info and adm1_info.get("note"):
-                notes.append(("subnational", adm1_info["note"]))
+            #
+            # A validator that classified no pair (no pair_results)
+            # notes only that nothing was checked.  Such a note is
+            # shown only when no validator with a note classified a
+            # pair, and it never joins the consistency summary.
+            notes: list[tuple[str, str, bool]] = []
+            for scope, info_dict in (
+                ("country", country_info),
+                ("subnational", adm1_info),
+            ):
+                if info_dict and info_dict.get("note"):
+                    notes.append((
+                        scope,
+                        info_dict["note"],
+                        bool(info_dict.get("pair_results")),
+                    ))
+            if any(classified for _, _, classified in notes):
+                notes = [n for n in notes if n[2]]
             if notes:
                 all_consistent = all(
                     "consider revising" not in n.lower()
-                    for _, n in notes
+                    for _, n, _ in notes
                 )
-                if all_consistent and len(notes) > 1:
+                if all_consistent and len(notes) == 1:
+                    parts.append(f"  Note: {notes[0][1]}")
+                elif all_consistent and all(c for _, _, c in notes):
                     parts.append(
                         "  Note: LLM classification is consistent with the "
                         "coupling databases (country adjacency + ADM1 "
                         "adjacency)."
                     )
-                elif all_consistent:
-                    parts.append(f"  Note: {notes[0][1]}")
                 else:
-                    for scope, note_text in notes:
+                    for scope, note_text, _ in notes:
                         parts.append(f"  Note ({scope}): {note_text}")
                 parts.append("")
 
