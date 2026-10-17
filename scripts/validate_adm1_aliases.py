@@ -25,7 +25,10 @@ DR  Drop curated manual-review rejections (_REVIEW_DENYLIST): semantic scope
     rule G admitted when it stopped dropping keys that contain a country
     name (2026-10-16).
 R1  Drop if resolve_adm1_code(key, country=iso) already returns the same code
-    (redundant — the existing resolver already handles it).
+    (redundant — the existing resolver already handles it), unless the key
+    is one word that the resolver found without a hint only as part of a
+    longer name ("beijing" in "Beijing Shi"), which its single-word guard
+    refuses since 2026-10-16.
 O1  If the resolver (with hint) returns a DIFFERENT non-None code → mark as
     override; exclude from the shipped CSV, list in the audit for review.
 X1  Drop if resolve_adm1_code(key) with NO hint returns a different non-None
@@ -39,7 +42,8 @@ U3  Drop if key matches an existing canonical index entry for a different code
     (would shadow a real region name).
 D0  Deduplicate identical (code, alias_key) pairs from parallel generation;
     a curated record wins over a generated one.
-C1  Cap at 3 aliases per code (highest confidence first, then alphabetical).
+C1  Cap at 3 generated aliases per code (highest confidence first, then
+    alphabetical); curated aliases always ship.
 
 R1, O1 and X1 test a key against the name matcher that the alias table
 supplements: _resolve_adm1_name with the alias table cleared (strategies 1-3
@@ -184,13 +188,25 @@ _REVIEW_DENYLIST: frozenset[tuple[str, str]] = frozenset({
     ("lower congo", "COD002"),
     # over-literal calque, and the name of colonial Mauritius (1715-1810)
     ("isle of france", "FRA013"),
+    # Second review of 2026-10-16.  Since resolve_adm1_code stopped taking
+    # one word without a country hint as part of a longer name, R1 admits
+    # the 50 generated one-word aliases that had resolved only that way
+    # ("beijing" for Beijing Shi, "michoacan" for Michoacán de Ocampo).
+    # Three are common English words that a text scan would mostly misread:
+    # "northwest" (72 times in the RAG corpus, 47 of them lowercase; it had
+    # given Canada's Northwest Territories), "oriental" and "udon" (the
+    # noodle).
+    ("northwest", "HTI007"),
+    ("oriental", "MAR006"),
+    ("udon", "THA072"),
 })
 
 # ---------------------------------------------------------------------------
 # Curated aliases, added on 2026-10-16 after the generation run
 # ---------------------------------------------------------------------------
 # English names, and local spellings the World Bank names abbreviate or
-# misspell, that researchers write and the resolver did not match.  Each name
+# misspell, that researchers write and the resolver did not match, or matched
+# only as the start of a longer name ("Brussels").  Each name
 # was checked against the source quoted in its basis.  "Mexico City", "Lesser
 # Poland", "Greater Poland" and "Magallanes and the Chilean Antarctica"
 # contain a country name or demonym but are not one, so rule G keeps them.
@@ -263,6 +279,11 @@ _CURATED_ALIASES: tuple[dict[str, str], ...] = (
      "basis": "Official Spanish name of the Región de Magallanes y de la "
               "Antártica Chilena (Wikipedia, 'Regions of Chile'); the WB "
               "name drops 'de la'."},
+    {"alias_display": "Brussels", "code": "BEL001", "iso_a3": "BEL",
+     "basis": "English name of the region (Wikipedia, 'Brussels': "
+              "'officially the Brussels-Capital Region'); it had resolved as "
+              "the start of the WB name until the single-word guard of "
+              "2026-10-16."},
 )
 
 
@@ -363,9 +384,16 @@ def main(argv: list[str] | None = None) -> None:
             drop_counts["DR_review_denylist"] += 1
             continue
 
-        # R1 / O1
+        # R1 / O1.  A one-word key that the matcher found without a hint only
+        # as part of a longer name ("beijing" in "Beijing Shi") is not
+        # redundant: its single-word guard now refuses that, so without a
+        # hint the alias is what resolves the word.
         resolved = _resolve_adm1_name(key, iso)
-        if resolved == code:
+        needed_without_hint = (
+            _resolve_adm1_name(key, None) != code
+            and _resolve_adm1_name(key, None, lone_word_substring=True) == code
+        )
+        if resolved == code and not needed_without_hint:
             drop_counts["R1_redundant"] += 1
             continue
         override = False
@@ -461,7 +489,8 @@ def main(argv: list[str] | None = None) -> None:
     print(f"  After D0 (dedup same code+key): {len(records)}")
 
     # ---------------------------------------------------------------------------
-    # C1: cap at 3 per code (high > medium; pretraining > uncertain; alphabetical)
+    # C1: cap at 3 generated aliases per code (high > medium; pretraining >
+    # uncertain; alphabetical)
     # ---------------------------------------------------------------------------
     def _sort_key(r: dict) -> tuple:
         conf_order = {"high": 0, "medium": 1}.get(r["confidence"], 2)
@@ -476,9 +505,13 @@ def main(argv: list[str] | None = None) -> None:
     final_audit: list[dict] = []
     for code_key, recs in by_code.items():
         recs_sorted = sorted(recs, key=_sort_key)
-        # Split overrides out (audit-only, never shipped)
+        # Split overrides out (audit-only, never shipped).  Curated aliases
+        # were checked by hand and always ship; the cap limits the
+        # generated ones.
         non_override = [r for r in recs_sorted if not r["override"]]
-        shipped = non_override[:3]
+        shipped = [r for r in non_override if r["source"] == "curated"] + [
+            r for r in non_override if r["source"] != "curated"
+        ][:3]
         final_shipped.extend(shipped)
         # Audit includes everything (overrides flagged)
         final_audit.extend(recs_sorted)

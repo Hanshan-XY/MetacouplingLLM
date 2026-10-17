@@ -55,7 +55,11 @@ _GOLDEN = json.loads(
 #   Australia and the others as France or Mexico;
 # * resolve_country_code folds accents, so "México", the country's name in
 #   Spanish and the World Bank name of the State of México, and "Estado de
-#   México" need a hint as "Mexico" and "Estado de Mexico" always did.
+#   México" need a hint as "Mexico" and "Estado de Mexico" always did;
+# * without a country hint, one word resolves only as a whole name, name
+#   variant or alias, not as part of a longer name ("other" was Other
+#   Territories, "Union" La Unión), and a name written with spaces for its
+#   hyphens matches ("KwaZulu Natal").
 _AMENDED = {
     ("Mexico City", "MEX"): "MEX009",
     ("Mexico City", "Mexico"): "MEX009",
@@ -67,6 +71,16 @@ _AMENDED = {
     ("Mexico City", None): "MEX009",
     ("México", None): None,
     ("Estado de México", None): None,
+    ("River", None): None,
+    ("Union", None): None,
+    ("cross", None): None,
+    ("federal", None): None,
+    ("long", None): None,
+    ("other", None): None,
+    ("sector", None): None,
+    ("under", None): None,
+    ("Ile de France", None): "FRA013",
+    ("KwaZulu Natal", None): "ZAF004",
 }
 
 

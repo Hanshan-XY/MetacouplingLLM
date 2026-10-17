@@ -163,6 +163,40 @@ file. The format is loosely based on
   gives `None`, British Indian Ocean Territory the United Kingdom and South
   Georgia and the South Sandwich Islands Georgia. Tests +10 with the
   previous entry (suite 1,659).
+- **A word that only begins a region's name no longer resolves to that
+  region: "other" is not Other Territories, nor "Puerto" Puerto Plata.**
+  Without a country hint, `resolve_adm1_code` took a single word that began
+  a longer World Bank name, or that a slash or an accented letter set off
+  inside one, for that region. The prompt's ADM1 hint, web search and the
+  map's region scans try each word of a description on its own, so "How
+  does soybean trade between Brazil and China affect other countries?" got
+  Other Territories (Australia) as its focal region, "the European Union"
+  La Unión (El Salvador), "Federal subsidies" Distrito Federal (Brazil),
+  "the lower Mekong" Lower River (The Gambia), "Coffee exports from Puerto
+  Rico" Puerto Plata (Dominican Republic) and "San Juan, Puerto Rico" San
+  Juan/Laventille (Trinidad and Tobago), and web search wrote these regions
+  into its queries. Of the 51,848 distinct words, as written, of the 421
+  corpus papers, 648 resolved without a hint and 177 of them no longer do:
+  "other", "area", "under", "long", "cross", "sector", "River", parts of
+  longer names ("Minas", "Addis") and given names and surnames ("María",
+  "Khan", "John"). A single word now resolves without a hint only as a
+  whole name, name variant or alias; with a hint it may still begin a
+  longer name ("Badakhshan" with "TJK"). The short names that are a
+  region's own resolve through 48 new aliases ("Beijing", "Shanghai",
+  "Xinjiang", "Michoacan", "Veracruz", "Madrid", "Tbilisi"): rule R1 of the
+  alias build no longer drops as redundant a one-word key that the resolver
+  found only as the start of a longer name, which admitted 50 generated
+  aliases, and the common English words "northwest", "oriental" and "udon"
+  went on the review denylist; "Brussels" is curated. Names written with
+  spaces for their hyphens now match ("Schleswig Holstein", "Baden
+  Württemberg"), which text scans need, as they split words at hyphens;
+  seven aliases this makes redundant are gone ("dar es salaam"). The table
+  goes from 1,201 to 1,242 entries (897 → 920 regions, 138 → 140
+  countries), and rule C1 caps only a region's generated aliases at three,
+  so Magallanes keeps its two curated ones. Of the 14,421 recorded
+  name-matching queries, ten change, each listed in the regression test:
+  eight words no longer resolve ("other", "Union", "federal") and "Ile de
+  France" and "KwaZulu Natal" now do. Tests +30 (suite 1,689).
 - **A §6 Research Gaps written as a numbered list is parsed.**
   `parse_analysis` read §6 with the bullet extractor, which takes only dash,
   asterisk and `•` items, so a §6 written as `1. **Label**: ...` gave an empty

@@ -200,6 +200,27 @@ class TestBuildAdm1PericouplingHint:
         )
         assert hint is None
 
+    def test_word_that_only_begins_a_region_name_gives_no_hint(self):
+        """Until 2026-10-16 these gave Other Territories (Australia), La
+        Unión (El Salvador), Puerto Plata (Dominican Republic) and Lower
+        River (The Gambia)."""
+        for text in (
+            "How does soybean trade between Brazil and China affect other "
+            "countries?",
+            "Impacts of the European Union deforestation regulation on "
+            "Indonesian palm oil exports",
+            "Coffee exports from Puerto Rico to the United States",
+            "Rice trade on the lower Mekong river",
+        ):
+            assert PromptBuilder._build_adm1_pericoupling_hint(text) is None
+
+    def test_hyphenated_region_split_into_words_is_found(self):
+        hint = PromptBuilder._build_adm1_pericoupling_hint(
+            "Pig exports from Schleswig-Holstein to Denmark"
+        )
+        assert hint is not None
+        assert "**Schleswig-Holstein** (DEU015, Germany)" in hint
+
     def test_system_prompt_includes_adm1_hint_for_michigan(self):
         builder = PromptBuilder(max_examples=0)
         prompt = builder.build_system_prompt(

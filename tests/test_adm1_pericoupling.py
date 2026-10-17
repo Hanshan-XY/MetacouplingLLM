@@ -678,6 +678,70 @@ class TestCountryGuard:
         assert resolve_adm1_code("Mexican avocado farms") is None
 
 
+class TestSingleWordGuard:
+    """Without a country hint, one word resolves only as a whole name, name
+    variant or alias.  Until 2026-10-16 the substring strategies took it as
+    the start of a longer name, or as a part bounded by a slash or an
+    accented letter, and the prompt hint, web search and the map, which try
+    each word of a description on its own, read "other countries" as Other
+    Territories."""
+
+    @pytest.mark.parametrize("word, was", [
+        ("other", "AUS006"),    # Other Territories
+        ("Union", "SLV007"),    # La Unión
+        ("federal", "BRA007"),  # Distrito Federal
+        ("lower", "GMB005"),    # Lower River
+        ("long", "VNM039"),     # Long An
+        ("Puerto", "DOM021"),   # Puerto Plata
+        ("Juan", "TTO011"),     # San Juan/Laventille, at the slash
+        ("Kong", "LAO017"),     # Xékong, at the accented letter
+        ("como", "CIV026"),     # Comoé
+    ])
+    def test_word_that_only_begins_a_name_needs_a_hint(self, word, was):
+        assert resolve_adm1_code(word) is None
+        assert _resolve_adm1_name(word, None, lone_word_substring=True) == was
+
+    def test_with_a_hint_the_word_may_begin_a_longer_name(self):
+        assert resolve_adm1_code("Badakhshan", country="TJK") == "TJK001"
+        assert resolve_adm1_code("Badakhshan") == "AFG001"
+        assert resolve_adm1_code("Puerto", country="DOM") == "DOM021"
+
+    @pytest.mark.parametrize("word, code", [
+        ("Beijing", "CHN002"),
+        ("Shanghai", "CHN024"),
+        ("Xinjiang", "CHN028"),
+        ("Michoacan", "MEX016"),
+        ("Michoacán", "MEX016"),
+        ("Veracruz", "MEX030"),
+        ("Madrid", "ESP011"),
+        ("Magallanes", "CHL011"),
+        ("Tbilisi", "GEO012"),
+    ])
+    def test_short_names_resolve_through_the_alias_table(self, word, code):
+        assert resolve_adm1_code(word) == code
+
+    def test_common_words_kept_out_of_the_alias_table(self):
+        for word in ("northwest", "oriental", "udon"):
+            assert resolve_adm1_code(word) is None
+        assert resolve_adm1_code("Udon Thani") == "THA072"
+
+    @pytest.mark.parametrize("name, code", [
+        ("Schleswig Holstein", "DEU015"),
+        ("Emilia Romagna", "ITA005"),
+        ("KwaZulu Natal", "ZAF004"),
+        ("Ile de France", "FRA013"),
+        # Aliases written with hyphens
+        ("Baden Württemberg", "DEU001"),
+        ("North Rhine Westphalia", "DEU010"),
+    ])
+    def test_spaces_for_hyphens(self, name, code):
+        assert resolve_adm1_code(name) == code
+
+    def test_a_designator_does_not_let_the_word_through(self):
+        assert resolve_adm1_code("Puerto Province") is None
+        assert resolve_adm1_code("Magallanes Region") == "CHL011"
+
+
 # ---------------------------------------------------------------------------
 # Trailing administrative designators
 # ---------------------------------------------------------------------------
@@ -1446,11 +1510,24 @@ class TestAdm1AliasTable:
                     bad.append(r["alias_key"])
         assert not bad, f"Alias keys shadow canonical names for different codes: {bad[:5]}"
 
-    def test_at_most_3_per_code(self, rows):
+    def test_at_most_3_generated_per_code(self, rows):
+        """Rule C1 caps a code's generated aliases at 3; curated ones always
+        ship (Magallanes has two of each)."""
         from collections import Counter
-        counts = Counter(r["code"] for r in rows)
+        audit = Path(__file__).parent.parent / "docs" / "adm1_aliases_audit.csv"
+        with open(audit, newline="", encoding="utf-8-sig") as fh:
+            curated = {
+                (r["alias_key"], r["code"]) for r in csv.DictReader(fh)
+                if r["source"] == "curated"
+            }
+        counts = Counter(
+            r["code"] for r in rows
+            if (r["alias_key"], r["code"]) not in curated
+        )
         violations = [(code, n) for code, n in counts.items() if n > 3]
-        assert not violations, f"More than 3 aliases for code(s): {violations[:5]}"
+        assert not violations, (
+            f"More than 3 generated aliases for code(s): {violations[:5]}"
+        )
 
     def test_round_trip_all_rows(self, rows):
         """Every shipped alias must resolve back to its code under the country hint."""
@@ -1520,12 +1597,12 @@ class TestAdm1AliasTable:
     def test_counts_match_docs(self, rows):
         """Headline provenance counts must match the shipped CSV so docs cannot
         drift (PR #61 — the original '67 countries / 886 regions' were wrong)."""
-        assert len(rows) == 1201
-        assert len({r["code"] for r in rows}) == 897
-        assert len({r["iso_a3"] for r in rows}) == 138
+        assert len(rows) == 1242
+        assert len({r["code"] for r in rows}) == 920
+        assert len({r["iso_a3"] for r in rows}) == 140
 
     def test_curated_aliases_shipped(self, rows):
-        """The 18 curated aliases of 2026-10-16 are shipped and marked
+        """The 19 curated aliases of 2026-10-16 are shipped and marked
         'curated' in the audit table, the only rows so marked."""
         curated = {
             "mexico city": "MEX009", "silesian voivodeship": "POL012",
@@ -1539,6 +1616,7 @@ class TestAdm1AliasTable:
             "aysen del general carlos ibanez del campo": "CHL001",
             "magallanes and the chilean antarctica": "CHL011",
             "magallanes y de la antartica chilena": "CHL011",
+            "brussels": "BEL001",
         }
         by_key = {r["alias_key"]: r["code"] for r in rows}
         assert {k: by_key.get(k) for k in curated} == curated

@@ -1159,7 +1159,7 @@ The same `coupling_standard` argument is accepted by the ADM1 functions
 `docs/METHODS_adjacency.md` §8, and `docs/BRIDGE_CLASSIFICATION_METHODOLOGY.md`.
 
 `resolve_adm1_code` also consults a bundled **English-exonym alias table**
-(`data/adm1_aliases.csv`, 1,201 validated aliases for 897 regions across 138
+(`data/adm1_aliases.csv`, 1,242 validated aliases for 920 regions across 140
 countries) before its name/substring strategies, so common English
 names resolve without the exact World Bank spelling — `"Bavaria"` → `DEU002`
 (Bayern), `"Tuscany"` → `ITA016` (Toscana), `"Andalusia"` → `ESP002`.  The
@@ -1178,6 +1178,17 @@ State"`): pass `country` for these.  A name with any other word besides a
 country's name is a region's and resolves without `country`: `"New South
 Wales"` → `AUS004`, `"Mexico City"` → `MEX009`, `"Lesser Poland"` →
 `POL006`.
+
+Without `country`, a single word resolves only as a region's whole name, a
+variant of it or an alias (`"Beijing"` → `CHN002` and `"Michoacan"` →
+`MEX016` through the alias table), not as part of a longer name: `"other"`,
+`"Union"` and `"Puerto"` (of Puerto Rico) return `None` rather than Other
+Territories, La Unión or Puerto Plata.  The prompt hint, web search and the
+map try each word of a description on its own, which is where such matches
+came from.  With `country`, the word may still be part of a longer name of
+that country: `resolve_adm1_code("Badakhshan", country="TJK")` → `TJK001`.
+A name written with spaces for its hyphens matches the hyphenated name:
+`"Schleswig Holstein"` → `DEU015`.
 
 When no strategy matches a name, `resolve_adm1_code` removes one trailing
 administrative designator and resolves the rest: `"Narok County"` →

@@ -1434,9 +1434,9 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
 (`resolve_adm1_code`) through ordered strategies, each designed to fail to
 `None` rather than guess:
 
-1. **Alias table** (`data/adm1_aliases.csv`; 1,201 validated English exonyms /
-   alternative spellings for 897 regions across 138 countries: 1,183
-   LLM-generated, PR #60/#61, and 18 curated by hand from cited sources) —
+1. **Alias table** (`data/adm1_aliases.csv`; 1,242 validated English exonyms /
+   alternative spellings for 920 regions across 140 countries: 1,223
+   LLM-generated, PR #60/#61, and 19 curated by hand from cited sources) —
    `"Bavaria"` → `DEU002`, `"Tuscany"` → `ITA016`, `"Mexico City"` →
    `MEX009`. Additions-only, deterministically validated, with a curated
    review denylist.
@@ -1454,7 +1454,13 @@ runtime lookup layer resolves free-text region names to World Bank ADM1 codes
    must match whole name tokens, so `"york"` does not match `New York` and
    grammatically declined stems (`"Krāslava"` vs `Krāslavas novads`) do not
    stem-match — deliberate strictness; such cases are handled by adding an
-   alias-table entry, not by loosening the matcher.
+   alias-table entry, not by loosening the matcher. Without a country hint
+   a single word is not matched here at all, only as a whole name or alias
+   in strategies 1–3: the prompt hint, web search and the map try each word
+   of a description on its own, and the word that begins a longer name is
+   seldom that region (`"other"` is not Other Territories, nor `"Puerto"`
+   Puerto Plata). The alias table carries the short names that are
+   (`"Beijing"`, `"Michoacan"`).
 5. **Trailing designator**: when strategies 1–4 all fail, one trailing
    administrative designator is removed and the rest resolved again
    (`"Narok County"` → `KEN033`, `"Kagoshima Prefecture"` → `JPN017`).

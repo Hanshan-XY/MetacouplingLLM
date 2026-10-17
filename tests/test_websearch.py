@@ -3565,6 +3565,17 @@ class TestSearchQueryExpansion:
         must not make it subnational."""
         assert _detect_subnational_focus(query) == (None, None)
 
+    def test_word_that_only_begins_a_region_name_gives_no_focus(self):
+        """Until 2026-10-16 "Puerto" made the focus Puerto Plata, Dominican
+        Republic, and "other" Other Territories, Australia."""
+        queries = _build_search_queries(
+            "Coffee exports from Puerto Rico to the United States"
+        )
+        assert queries[0] == "Puerto Rico coffee export destinations"
+        assert _detect_subnational_focus(
+            "Soybean exports from Brazil to China and other markets"
+        ) == (None, None)
+
     def test_country_of_a_region_named_as_the_world_bank_names_it(self):
         """The ADM1 data names the Democratic Republic of the Congo
         "Democratic Republic of Congo" and North Korea "D. P. R. of Korea";

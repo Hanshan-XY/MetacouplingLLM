@@ -795,7 +795,8 @@ _adm1_name_index: dict[str, list[tuple[str, str]]] | None = None
 def _build_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
     """Build a reverse index from lowercase name → [(adm1_code, iso_a3), ...].
 
-    Also indexes suffix-stripped and slash-split variants.
+    Also indexes suffix-stripped and slash-split variants, and each name
+    with its hyphens written as spaces.
     """
     _ensure_loaded()
     assert _adm1_metadata is not None
@@ -827,6 +828,12 @@ def _build_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
                 if part and len(part) >= 2:
                     names_to_index.add(part)
 
+        # 4. Hyphens written as spaces ("schleswig holstein" for
+        #    "Schleswig-Holstein"): text scans split words at hyphens, and
+        #    the first word alone does not resolve (single-word guard of
+        #    ``_resolve_adm1_name``).
+        names_to_index |= {" ".join(_name_words(n)) for n in names_to_index}
+
         for n in names_to_index:
             index.setdefault(n, []).append(entry)
 
@@ -839,6 +846,28 @@ def _get_adm1_name_index() -> dict[str, list[tuple[str, str]]]:
     if _adm1_name_index is None:
         _adm1_name_index = _build_adm1_name_index()
     return _adm1_name_index
+
+
+_spaced_alias_index: tuple[
+    object, dict[str, list[tuple[str, str]]]
+] | None = None
+
+
+def _get_spaced_alias_index() -> dict[str, list[tuple[str, str]]]:
+    """The alias table keyed by each key's words joined by single spaces, so
+    that a hyphenated alias also matches the name written, or split by a
+    text scan, at its hyphens ("baden wurttemberg" for the key
+    "baden-wurttemberg").  Rebuilt when the alias table is replaced.
+    """
+    global _spaced_alias_index
+    aliases = _adm1_aliases
+    if _spaced_alias_index is None or _spaced_alias_index[0] is not aliases:
+        spaced: dict[str, list[tuple[str, str]]] = {}
+        for key, entries in (aliases or {}).items():
+            bucket = spaced.setdefault(" ".join(_name_words(key)), [])
+            bucket.extend(e for e in entries if e not in bucket)
+        _spaced_alias_index = (aliases, spaced)
+    return _spaced_alias_index[1]
 
 
 # Letters NFKD cannot decompose (they are distinct letters, not
@@ -1236,6 +1265,18 @@ def resolve_adm1_code(
     South Wales"`` → ``AUS004``, ``"New Mexico"`` → ``USA032``, ``"Mexico
     City"`` → ``MEX009``.
 
+    Single words
+    ------------
+    Without ``country``, a single word resolves only as a region's whole
+    name, a variant of it or an alias (``"Beijing"`` → ``CHN002`` through
+    the alias table), not as part of a longer name: ``"other"``, ``"Union"``
+    and ``"Puerto"`` return ``None``, not Other Territories, La Unión or
+    Puerto Plata.  Text scans try each word of a description on its own.
+    With ``country`` the word may still be part of a longer name of that
+    country (``"Badakhshan"`` with ``"TJK"``).  A name written with spaces
+    for its hyphens matches the hyphenated name: ``"Schleswig Holstein"`` →
+    ``DEU015``.
+
     Cross-country ambiguity
     -----------------------
     If the query is an *unaccented* name whose accent-folded spelling is
@@ -1300,9 +1341,18 @@ def resolve_adm1_code(
     return code
 
 
-def _resolve_adm1_name(name: str, country: str | None) -> str | None:
-    """Strategies 0-3 of :func:`resolve_adm1_code` with its country and
-    folded-collision guards, without the trailing-designator retry."""
+def _resolve_adm1_name(
+    name: str, country: str | None, *, lone_word_substring: bool = False,
+) -> str | None:
+    """Strategies 0-3 of :func:`resolve_adm1_code` with its country,
+    folded-collision and single-word guards, without the
+    trailing-designator retry.
+
+    ``lone_word_substring=True`` lifts the single-word guard, so that a word
+    without a country hint may again match part of a longer name, as it did
+    before 2026-10-16; the alias build uses it to find the aliases that the
+    guard makes necessary.
+    """
     if not name or not name.strip():
         return None
 
@@ -1338,6 +1388,22 @@ def _resolve_adm1_name(name: str, country: str | None) -> str | None:
     if country_iso is None and _is_cross_country_folded_collision(name_lower):
         return None
 
+    # --- Single-word guard ---
+    # Without a country hint, one word resolves only as a whole name, name
+    # variant or alias (strategies 0, 1 and 3a), not as part of a longer
+    # name (strategies 2 and 3b).  Text scans try each word of a research
+    # description or query on its own, and the substring strategies took
+    # "other" for Other Territories, "union" for La Unión, "Puerto" (of
+    # Puerto Rico) for Puerto Plata and, at a word boundary they saw at a
+    # slash or an accented letter, "Juan" for San Juan/Laventille and "Kong"
+    # for Xékong.  With a hint the country is known, and the word may still
+    # name part of a longer name there ("Badakhshan", "TJK").
+    whole_only = (
+        country_iso is None
+        and not lone_word_substring
+        and len(_name_words(name_lower)) == 1
+    )
+
     # --- Strategy 0: English-exonym alias table (PR #60) ---
     # Keys in the CSV are pre-validated lowercase NFKD-folded forms.  Try
     # the raw lower form first; if different, also try the NFKD-folded form
@@ -1345,8 +1411,11 @@ def _resolve_adm1_name(name: str, country: str | None) -> str | None:
     # respected via _pick_best_candidate (miss → fall through to 1-3).
     if _adm1_aliases:
         _folded_lower = _fold_diacritics(name_lower)
+        _spaced_aliases = _get_spaced_alias_index()
         for _alias_key in dict.fromkeys((name_lower, _folded_lower)):
-            _alias_entries = _adm1_aliases.get(_alias_key)
+            _alias_entries = _adm1_aliases.get(_alias_key) or (
+                _spaced_aliases.get(" ".join(_name_words(_alias_key)))
+            )
             if _alias_entries:
                 result = _pick_best_candidate(_alias_entries, country_iso)
                 if result:
@@ -1368,7 +1437,7 @@ def _resolve_adm1_name(name: str, country: str | None) -> str | None:
     # >1 matches, fall through so the folded strategies still get a chance.
     # Only keys whose letter runs contain the query's, or are contained in
     # them, can match, so only those are tested (``_substring_candidates``).
-    if len(name_lower) >= 4:
+    if len(name_lower) >= 4 and not whole_only:
         matches: set[str] = set()
         for db_name, entries in _substring_candidates(name_lower, folded=False):
             if len(db_name) < 4:
@@ -1401,7 +1470,7 @@ def _resolve_adm1_name(name: str, country: str | None) -> str | None:
                 return result
         # Strategy 3b: folded substring match (direction-aware + ambiguity
         # guard, same as Strategy 2).
-        if len(folded_query) >= 4:
+        if len(folded_query) >= 4 and not whole_only:
             matches = set()
             for db_name, entries in _substring_candidates(
                 folded_query, folded=True,
