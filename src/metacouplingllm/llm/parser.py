@@ -910,15 +910,22 @@ _FLOW_CATEGORY_ALIASES: dict[str, str] = {
 
 
 def _detect_flow_category(text: str) -> str:
-    """Detect a canonical flow category in a string."""
+    """Detect a canonical flow category in a string.
+
+    A category's own name counts before a word that only suggests one
+    (``_FLOW_CATEGORY_ALIASES``).  When the text names several, the one
+    it names first wins, so "Energy and Matter Flow" is energy and
+    "Matter and Energy Flow" is matter.
+    """
     lowered = text.lower()
-    for category in _FLOW_CATEGORIES:
-        if category in lowered:
-            return category
-    for alias, canonical in _FLOW_CATEGORY_ALIASES.items():
-        if alias in lowered:
-            return canonical
-    return ""
+    found = [(lowered.find(c), c) for c in _FLOW_CATEGORIES if c in lowered]
+    if not found:
+        found = [
+            (lowered.find(alias), canonical)
+            for alias, canonical in _FLOW_CATEGORY_ALIASES.items()
+            if alias in lowered
+        ]
+    return min(found)[1] if found else ""
 
 
 def _detect_direction(text: str) -> str:

@@ -1361,3 +1361,101 @@ class TestColonInsideBoldOutsideSystems:
                 "description": "Ship **most:** soybeans.",
             }
         ]
+
+
+# Two flows whose headings name the same two categories in either order.
+_TWO_CATEGORY_FLOWS = """\
+### 1. Coupling Classification
+Telecoupling between the United States and Germany.
+
+### 4. Telecoupling Analysis
+#### 4.2 Flows Analysis
+**Energy and Matter Flow**
+- **Direction**: United States -> Germany
+- **Description**: Liquefied natural gas burned for power and heat.
+
+**Matter and Energy Flow**
+- **Direction**: Germany -> United States
+- **Description**: Machinery whose manufacture embodies energy.
+"""
+
+# Prints the flow categories of the analysis read from stdin.
+_PRINT_FLOW_CATEGORIES = (
+    "import json, sys\n"
+    "from metacouplingllm.llm.parser import parse_analysis\n"
+    "parsed = parse_analysis(sys.stdin.read())\n"
+    "print(json.dumps([f.get('category', '') for f in parsed.iter_flow_entries()]))\n"
+)
+
+
+class TestFlowCategoryOrder:
+    """A flow named with several categories takes the one named first; a
+    category's own name counts before a word that only suggests one.  The
+    categories were a set, and the first one found in its iteration order
+    won, so the result changed with the hash seed."""
+
+    @pytest.mark.parametrize(
+        ("text", "category"),
+        [
+            ("Energy and Matter Flow", "energy"),
+            ("Matter and Energy Flow", "matter"),
+            ("Information / Capital", "information"),
+            ("Capital / Information", "capital"),
+            ("People and Organisms", "people"),
+            ("Organisms and People", "organisms"),
+            # A category's own name before an alias that comes first.
+            ("Financial information flow", "information"),
+            ("Power and matter flow", "matter"),
+            # Aliases only: the first named.
+            ("Labour and money", "people"),
+            ("Money and labour", "capital"),
+            ("Climatic / Atmospheric Flow", ""),
+        ],
+    )
+    def test_first_named_category(self, text, category):
+        from metacouplingllm.llm.parser import _detect_flow_category
+
+        assert _detect_flow_category(text) == category
+
+    def test_two_category_headings(self):
+        result = parse_analysis(_TWO_CATEGORY_FLOWS)
+        assert [f["category"] for f in result.telecoupling.flows] == [
+            "energy",
+            "matter",
+        ]
+
+    def test_categories_do_not_depend_on_the_hash_seed(self):
+        """Parse under fixed hash seeds, each in its own interpreter that
+        imports the same package as this test."""
+        import json
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        import metacouplingllm
+
+        package_root = str(Path(metacouplingllm.__file__).resolve().parents[1])
+        children = []
+        for seed in range(8):
+            env = dict(os.environ)
+            env["PYTHONHASHSEED"] = str(seed)
+            env["PYTHONPATH"] = os.pathsep.join(
+                p for p in (package_root, env.get("PYTHONPATH")) if p
+            )
+            child = subprocess.Popen(
+                [sys.executable, "-c", _PRINT_FLOW_CATEGORIES],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+                text=True,
+                encoding="utf-8",
+            )
+            children.append((seed, child))
+        results = {}
+        for seed, child in children:
+            out, err = child.communicate(_TWO_CATEGORY_FLOWS, timeout=120)
+            assert child.returncode == 0, err
+            results[seed] = json.loads(out)
+        assert results == {seed: ["energy", "matter"] for seed in range(8)}
