@@ -145,7 +145,8 @@ turn it off.
   `lookup_adm1_pericoupling`, ...) with two policy options:
   `de_facto_borders` (disputed areas; default `True`) and `coupling_standard`
   (water-only borders: `"stringent"`, `"moderate"` (default) or `"lenient"`),
-  also accepted by `MetacouplingAssistant` for its validation
+  also accepted by the map functions and by `MetacouplingAssistant` for its
+  prompt hint, validation and automatic map
 - Automated map generation at both country and subnational (ADM1) levels
   (`plot_focal_country_map`, `plot_analysis_map`, `plot_focal_adm1_map`)
 - Scholar-ready Markdown + Word export (`result.abstract`,

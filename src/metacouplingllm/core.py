@@ -808,12 +808,13 @@ class MetacouplingAssistant:
         web_structured_max_targets: int = 6,
         rag_min_score: float | None = None,
         coupling_analysis: bool = True,
-        # Pericoupling-validation policy toggles, threaded into the
-        # post-analysis validators.  ``de_facto_borders=True`` folds disputed
-        # land into its de-facto administrator (vs the strict WB standard
-        # layer); ``coupling_standard`` (``"stringent"``/``"moderate"``/
-        # ``"lenient"``) controls how water-only borders are treated.  Defaults
-        # match the underlying lookup defaults.
+        # Adjacency settings, threaded into every adjacency lookup the
+        # assistant makes: the pre-LLM pericoupling hint, the post-analysis
+        # validators and the automatic map.  ``de_facto_borders=True`` folds
+        # disputed land into its de-facto administrator (vs the strict WB
+        # standard layer); ``coupling_standard`` (``"stringent"``/
+        # ``"moderate"``/``"lenient"``) controls how water-only borders are
+        # treated.  Defaults match the underlying lookup defaults.
         de_facto_borders: bool = True,
         coupling_standard: str = "moderate",
         # PR #31: opt out of the dedicated abstract LLM call.  Defaults
@@ -891,7 +892,11 @@ class MetacouplingAssistant:
         # and risking divergence when the renderer's ADM1 attempt
         # silently falls through to a country-level map.
         self._last_map_type: str | None = None
-        self._prompt_builder = PromptBuilder(max_examples=max_examples)
+        self._prompt_builder = PromptBuilder(
+            max_examples=max_examples,
+            de_facto_borders=self._de_facto_borders,
+            coupling_standard=self._coupling_standard,
+        )
         self._formatter = AnalysisFormatter()
 
         # Pre-retrieval RAG state. Set in analyze() / refine().
@@ -2697,6 +2702,9 @@ class MetacouplingAssistant:
         parsed: ParsedAnalysis,
         focal_adm1: str,
         focal_country: str,
+        *,
+        de_facto_borders: bool = True,
+        coupling_standard: str = "moderate",
     ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Resolve mixed ADM1/country flow arrows for ADM1 maps.
 
@@ -2705,7 +2713,8 @@ class MetacouplingAssistant:
 
         International or cross-country flows remain country-level arrows.
         Same-country nearby flows involving adjacent ADM1 neighbors are
-        emitted as ADM1-to-ADM1 arrows so they can be visualized locally.
+        emitted as ADM1-to-ADM1 arrows so they can be visualized locally;
+        adjacency follows ``de_facto_borders`` and ``coupling_standard``.
         """
         from metacouplingllm.knowledge.adm1_pericoupling import (
             get_adm1_country,
@@ -2722,7 +2731,11 @@ class MetacouplingAssistant:
         focal_name = focal_info["name"] if focal_info else focal_adm1
         domestic_neighbors = sorted(
             code
-            for code in get_adm1_neighbors(focal_adm1)
+            for code in get_adm1_neighbors(
+                focal_adm1,
+                de_facto_borders=de_facto_borders,
+                coupling_standard=coupling_standard,
+            )
             if get_adm1_country(code) == focal_country
         )
         neighbor_name_to_code = {
@@ -4210,6 +4223,8 @@ class MetacouplingAssistant:
                             # legacy coloring of all DB neighbors".
                             mentioned_adm1_codes=mentioned_adm1_set,
                             flows=map_flows if map_flows else None,
+                            de_facto_borders=self._de_facto_borders,
+                            coupling_standard=self._coupling_standard,
                         )
                         self._last_map_type = "adm1"
                         return fig
@@ -4238,6 +4253,8 @@ class MetacouplingAssistant:
                     focal_code_override=focal_code,
                     mentioned_countries_override=mentioned,
                     flows=map_flows if map_flows else None,
+                    de_facto_borders=self._de_facto_borders,
+                    coupling_standard=self._coupling_standard,
                 )
                 self._last_map_type = "country"
                 return fig
@@ -4291,6 +4308,8 @@ class MetacouplingAssistant:
                         map_flows_legacy, flow_warnings = (
                             self._resolve_flows_for_adm1_map(
                                 parsed, adm1_code, focal_country,
+                                de_facto_borders=self._de_facto_borders,
+                                coupling_standard=self._coupling_standard,
                             )
                         )
                         self._last_flow_parse_warnings = list(flow_warnings)
@@ -4329,6 +4348,8 @@ class MetacouplingAssistant:
                         flows=(
                             map_flows_legacy if map_flows_legacy else None
                         ),
+                        de_facto_borders=self._de_facto_borders,
+                        coupling_standard=self._coupling_standard,
                     )
                     self._last_map_type = "adm1"
                     return fig
@@ -4411,6 +4432,8 @@ class MetacouplingAssistant:
                 flows=(
                     map_flows_legacy if map_flows_legacy else None
                 ),
+                de_facto_borders=self._de_facto_borders,
+                coupling_standard=self._coupling_standard,
             )
             self._last_map_type = "country"
             return fig

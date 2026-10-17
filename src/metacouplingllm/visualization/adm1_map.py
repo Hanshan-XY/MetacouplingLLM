@@ -729,6 +729,8 @@ def plot_focal_adm1_map(
     mentioned_countries: set[str] | None = None,
     mentioned_adm1_codes: set[str] | None = None,
     flows: list[dict[str, str]] | None = None,
+    de_facto_borders: bool = True,
+    coupling_standard: str = "moderate",
 ) -> matplotlib.figure.Figure:
     """Generate a subnational map colored by coupling type relative to a focal ADM1 region.
 
@@ -782,6 +784,9 @@ def plot_focal_adm1_map(
         When provided, curved arrows are drawn on the map showing the
         direction of each flow between countries and, for nearby
         same-country flows, between ADM1 regions.
+    de_facto_borders, coupling_standard:
+        Forwarded to the neighbor lookup (see
+        :func:`metacouplingllm.knowledge.adm1_pericoupling.get_adm1_neighbors`).
 
     Returns
     -------
@@ -827,7 +832,11 @@ def plot_focal_adm1_map(
         )
 
     # Get neighbors from the database
-    neighbor_codes = get_adm1_neighbors(focal_adm1)
+    neighbor_codes = get_adm1_neighbors(
+        focal_adm1,
+        de_facto_borders=de_facto_borders,
+        coupling_standard=coupling_standard,
+    )
 
     # Load ADM1 shapefile
     world = _get_adm1_geodataframe(shapefile=shapefile)

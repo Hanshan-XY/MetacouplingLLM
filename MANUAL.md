@@ -411,10 +411,10 @@ advisor = MetacouplingAssistant(
     recommend_papers=False,    # Auto-append literature recommendations
     max_recommendations=5,     # Number of papers to recommend
     rag_top_k=8,               # passages retrieved per query
-    de_facto_borders=True,     # Pericoupling validation: fold disputed land
-                               #   into its de-facto administrator (vs strict WB)
+    de_facto_borders=True,     # Adjacency (hint, validation, map): fold disputed
+                               #   land into its de-facto administrator (vs strict WB)
     coupling_standard="moderate",  # "stringent"/"moderate"/"lenient" — how
-                               #   water-only borders are treated in validation
+                               #   water-only borders count as adjacency
     generate_abstract=True,    # One extra model call per analyze()/refine() to write
                                #   result.abstract; False skips it
     trace=None,                # Write a run-trace folder per analyze()/refine():
@@ -424,19 +424,21 @@ advisor = MetacouplingAssistant(
 )
 ```
 
-`de_facto_borders` and `coupling_standard` set the policy the **pericoupling
-validation block** uses when it cross-checks the LLM's coupling claims against
-the bundled adjacency databases (§8). They mirror the same-named arguments on
-the standalone lookup functions: `coupling_standard="stringent"` drops every
-water-only border (so a river-only neighbour validates as *telecoupled* rather
-than *pericoupled*), `"lenient"` keeps them all, and `de_facto_borders=False`
-uses the strict World Bank standard layer instead of the de-facto view. Defaults
+`de_facto_borders` and `coupling_standard` set the adjacency policy for every
+use the assistant makes of the bundled adjacency databases (§8): the pre-LLM
+pericoupling hint in the system prompt, the **pericoupling validation block**
+that cross-checks the LLM's coupling claims, and the automatic map
+(`auto_map=True`, §10). They mirror the same-named arguments on the standalone
+lookup functions: `coupling_standard="stringent"` drops every water-only border
+(so a river-only neighbour validates as *telecoupled* rather than
+*pericoupled*), `"lenient"` keeps them all, and `de_facto_borders=False` uses
+the strict World Bank standard layer instead of the de-facto view. Defaults
 (`True` / `"moderate"`) match the database defaults; see §8 for the full
-semantics.
-
-The pre-LLM pericoupling hint placed in the system prompt (§8, step 1) always
-uses the defaults (`True` / `"moderate"`); with other settings it can disagree
-with the validation block.
+semantics. Because the hint and the validation block use the same settings,
+they agree on adjacency: Ohio and Ontario, for example, meet only across Lake
+Erie, which has no fixed crossing, so with `coupling_standard="lenient"` both
+list Ontario as a cross-border neighbour of Ohio, and with the default neither
+does.
 
 ### Run tracing (`trace`, `trace_dir`)
 
@@ -1057,7 +1059,8 @@ ways:
 
 1. **Pre-LLM hint injection** — At most one reference-only hint is added to
    the system prompt (it says that adjacency alone does not prove a
-   coupling), always computed with the default adjacency settings. If the
+   coupling), computed with the assistant's adjacency settings
+   (`de_facto_borders`, `coupling_standard`; §5). If the
    research description names a subnational region that resolves to a World
    Bank ADM1 code (for example "Michigan"), the hint lists that region's
    same-country and cross-border neighbors from the ADM1 database.
@@ -1133,9 +1136,9 @@ toggles (defaults shown):
   one still under construction); a finished bridge on a politically closed
   border still counts.
 
-The same two settings can be passed to `MetacouplingAssistant` (§5); there
-they govern only the post-LLM validation block — the pre-LLM hint and the
-maps always use the defaults.
+`MetacouplingAssistant` (§5) and the map functions (§10) take the same two
+settings; the assistant applies them to the pre-LLM hint, the post-LLM
+validation block and the automatic map.
 
 ```python
 # Romania <-> Moldova share only rivers, the Prut and a short Danube reach (bridges exist):
@@ -1330,9 +1333,10 @@ effects (spillover systems included), and colors web-extraction targets only
 if you pass them as `extra_mentioned_countries=`. If the map-data
 extraction fails or returns no focal country, `result.map` falls back to
 that same text scan.
-Map adjacency always uses the package defaults
-(`de_facto_borders=True`, `coupling_standard="moderate"`; see §8) —
-the plot functions don't currently expose those knobs.
+Map adjacency follows the two adjacency settings of §8: the plot functions
+take `de_facto_borders` and `coupling_standard` as keyword arguments
+(defaults `True` / `"moderate"`), and the automatic map uses the assistant's
+settings (§5).
 
 ### Database-only map (no LLM needed)
 
@@ -1353,6 +1357,10 @@ fig = plot_focal_country_map("Brazil", title="Brazil: Coupling Classification")
 
 # With custom figure size
 fig = plot_focal_country_map("USA", figsize=(20, 10))
+
+# Under another adjacency standard (§8): Romania, which borders Moldova
+# only along rivers, shows as telecoupled
+fig = plot_focal_country_map("Moldova", coupling_standard="stringent")
 ```
 
 ### Analysis-based map (from LLM output)
@@ -1619,8 +1627,8 @@ parameter except `llm_client` is optional.
 | `web_structured_max_targets` | `6` | Cap on web-extracted receiving and spillover targets (§14). |
 | `rag_min_score` | `None` | Minimum retrieval score; `None` applies a floor for the active backend (0.60 for embeddings, 0.01 for TF-IDF). |
 | `coupling_analysis` | `True` | `False` switches to RAG-only Q&A, which returns a `RAGResult` (§5). |
-| `de_facto_borders` | `True` | Disputed-territory setting of the pericoupling validation (§8). |
-| `coupling_standard` | `"moderate"` | Water-only-border setting of the pericoupling validation (§8). |
+| `de_facto_borders` | `True` | Disputed-territory setting of the adjacency lookups: the prompt hint, the pericoupling validation and the automatic map (§8). |
+| `coupling_standard` | `"moderate"` | Water-only-border setting of the adjacency lookups: the prompt hint, the pericoupling validation and the automatic map (§8). |
 | `generate_abstract` | `True` | One extra model call per result to write `result.abstract`; `False` skips it. |
 | `trace` | `None` | Write a run-trace folder per `analyze()` / `refine()`: `None` = on unless `METACOUPLINGLLM_DISABLE_TRACE=1`, `True` / `False` force it (§5). |
 | `trace_dir` | `None` | Where trace folders are written (default `runs/<utc>_<slug>/`). |
