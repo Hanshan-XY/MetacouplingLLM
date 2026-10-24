@@ -722,6 +722,132 @@ class TestAnthropicAdapter:
         )
         assert captured_kwargs["temperature"] == 0.3
 
+    def test_skips_temperature_for_claude_4_7_and_later(self):
+        """Claude 4.7 and later take only the default sampling: omit it."""
+
+        captured_kwargs: dict[str, object] = {}
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        class FakeUsage:
+            input_tokens = 10
+            output_tokens = 5
+
+        class FakeResponse:
+            content = [FakeTextBlock("OK")]
+            usage = FakeUsage()
+
+        class FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                captured_kwargs.update(kwargs)
+                return FakeResponse()
+
+        class FakeAnthropic:
+            messages = FakeMessages()
+
+        for model in ("claude-opus-4-8", "claude-sonnet-5-5", "claude-opus-5-5"):
+            captured_kwargs.clear()
+            adapter = AnthropicAdapter(FakeAnthropic(), model=model)
+            adapter.chat([Message(role="user", content="Hi")], temperature=0.7)
+            assert captured_kwargs["model"] == model
+            assert "temperature" not in captured_kwargs
+
+    def test_default_model_is_claude_sonnet_5_5(self):
+        """The default model is current, and it takes no temperature."""
+
+        captured_kwargs: dict[str, object] = {}
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        class FakeUsage:
+            input_tokens = 10
+            output_tokens = 5
+
+        class FakeResponse:
+            content = [FakeTextBlock("OK")]
+            usage = FakeUsage()
+
+        class FakeMessages:
+            @staticmethod
+            def create(**kwargs):
+                captured_kwargs.update(kwargs)
+                return FakeResponse()
+
+        class FakeAnthropic:
+            messages = FakeMessages()
+
+        adapter = AnthropicAdapter(FakeAnthropic())
+        assert adapter.model == "claude-sonnet-5-5"
+        adapter.chat([Message(role="user", content="Hi")], temperature=0.3)
+        assert captured_kwargs["model"] == "claude-sonnet-5-5"
+        assert "temperature" not in captured_kwargs
+
+    def test_skips_temperature_when_the_sdk_does_not_take_it(self):
+        """anthropic 2.x's messages.create has no temperature parameter."""
+
+        captured_kwargs: dict[str, object] = {}
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        class FakeUsage:
+            input_tokens = 10
+            output_tokens = 5
+
+        class FakeResponse:
+            content = [FakeTextBlock("OK")]
+            usage = FakeUsage()
+
+        class FakeMessages:
+            @staticmethod
+            def create(*, model, messages, max_tokens, system=None):
+                captured_kwargs.update(model=model, max_tokens=max_tokens)
+                return FakeResponse()
+
+        class FakeAnthropic:
+            messages = FakeMessages()
+
+        adapter = AnthropicAdapter(FakeAnthropic(), model="claude-sonnet-4-6")
+        result = adapter.chat([Message(role="user", content="Hi")], temperature=0.3)
+        assert result.content == "OK"
+        assert captured_kwargs == {"model": "claude-sonnet-4-6", "max_tokens": 4096}
+
+    def test_sends_temperature_when_the_sdk_names_it(self):
+        """An SDK whose messages.create names temperature still gets it."""
+
+        captured_kwargs: dict[str, object] = {}
+
+        class FakeTextBlock:
+            def __init__(self, text):
+                self.text = text
+
+        class FakeUsage:
+            input_tokens = 10
+            output_tokens = 5
+
+        class FakeResponse:
+            content = [FakeTextBlock("OK")]
+            usage = FakeUsage()
+
+        class FakeMessages:
+            @staticmethod
+            def create(*, model, messages, max_tokens, temperature=1.0, system=None):
+                captured_kwargs.update(model=model, temperature=temperature)
+                return FakeResponse()
+
+        class FakeAnthropic:
+            messages = FakeMessages()
+
+        adapter = AnthropicAdapter(FakeAnthropic(), model="claude-sonnet-4-6")
+        adapter.chat([Message(role="user", content="Hi")], temperature=0.3)
+        assert captured_kwargs["temperature"] == 0.3
+
     def test_retries_without_temperature_on_deprecated_error(self):
         """If an unknown model rejects temperature at runtime, retry without."""
 

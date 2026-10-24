@@ -20,6 +20,11 @@ file. The format is loosely based on
   they model, give each system's role per flow, and use the template's
   cross-coupling vocabulary; tests check that every source paper is in the
   bundled corpus and that country pericouplings match the adjacency data.
+- **`AnthropicAdapter`'s default model is `claude-sonnet-5-5`.** The old
+  default, `claude-sonnet-4-20250514`, reached its end-of-life on
+  2026-06-15 according to the anthropic SDK's deprecation table, so an
+  adapter built without `model=` called a retired model. The MANUAL and
+  INTRODUCTION examples name the new default.
 
 ### Fixed
 
@@ -633,6 +638,23 @@ file. The format is loosely based on
   reports of the 31 gpt-5.5 analyses saved on 2026-10-15 and of the
   committed avocado run are byte-identical to main's: none names such a
   country. Tests +14 (suite 2,156).
+- **The Claude adapter works with anthropic 2.x.** anthropic 2.0.0
+  (2026-10-21) targets API version 2026-10-21, which removed `temperature`,
+  `top_p` and `top_k`: a request that sends one gets a 400 on every model,
+  and the SDK's `messages.create` and `messages.stream` no longer take them.
+  `AnthropicAdapter` sent `temperature` for every model but
+  `claude-opus-4-7`, so with anthropic 2.x every `chat` call raised
+  `TypeError`. The adapter now sends `temperature` only when the installed
+  SDK's `messages.create` takes it, and never for Claude 4.7 and later
+  models, which accept only the default under the older API version as
+  well (`claude-opus-4-8` and the Claude 5 models join `claude-opus-4-7`).
+  With anthropic 2.x a Claude request samples at the API's defaults
+  (temperature 1.0), so `temperature=` has no effect on Claude. The
+  web-search backend never sent `temperature` and was not affected. The
+  other Anthropic tests use stand-in clients, so none of them noticed; new
+  tests drive the adapter and the web-search backend through the installed
+  SDK over a mock HTTP transport (no network, no key), and they fail on the
+  old adapter with anthropic 2.3.0. Tests +10 (suite 2,166).
 
 ### Docs
 
