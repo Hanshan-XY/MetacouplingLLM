@@ -7,6 +7,7 @@ plus ready-made adapters for OpenAI and Anthropic APIs.
 
 from __future__ import annotations
 
+import inspect
 import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
@@ -337,16 +338,25 @@ class AnthropicAdapter:
     client:
         An ``anthropic.Anthropic`` instance (or compatible).
     model:
-        Model identifier (e.g., ``"claude-sonnet-4-20250514"``).
+        Model identifier (e.g., ``"claude-sonnet-5-5"``).
     """
 
-    # Models that reject the ``temperature`` parameter (Opus 4.7 removed
-    # it along with top_p / top_k). When the configured model is in this
+    # Models that reject the ``temperature`` parameter: Claude 4.7 and
+    # later accept only the default sampling parameters (Opus 4.7 removed
+    # them along with top_p / top_k). When the configured model is in this
     # set, we omit ``temperature`` from the request upfront. As a safety
     # net for unknown future models, we also catch the
     # "temperature is deprecated" error and retry once without it.
     _MODELS_WITHOUT_TEMPERATURE: frozenset[str] = frozenset({
         "claude-opus-4-7",
+        "claude-opus-4-8",
+        "claude-fable-5",
+        "claude-fable-5-1",
+        "claude-haiku-5-5",
+        "claude-opus-5",
+        "claude-opus-5-5",
+        "claude-sonnet-5",
+        "claude-sonnet-5-5",
     })
 
     # When ``max_tokens`` exceeds this threshold, switch to streaming via
@@ -360,7 +370,7 @@ class AnthropicAdapter:
     def __init__(
         self,
         client: Any,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-sonnet-5-5",
         extended_thinking: dict[str, object] | None = None,
     ) -> None:
         self._client = client
@@ -446,8 +456,12 @@ class AnthropicAdapter:
             "messages": conversation,
             "max_tokens": effective_max,
         }
-        # Skip temperature for models that have removed it (Opus 4.7+).
-        if self._model not in self._MODELS_WITHOUT_TEMPERATURE:
+        # Skip temperature for models that have removed it (Claude 4.7+)
+        # and for SDKs that no longer take it (anthropic 2.x).
+        if (
+            self._model not in self._MODELS_WITHOUT_TEMPERATURE
+            and self._sdk_takes_temperature()
+        ):
             request_kwargs["temperature"] = temperature
         if system_text:
             request_kwargs["system"] = system_text
@@ -540,6 +554,24 @@ class AnthropicAdapter:
         """
         text = str(exc).lower()
         return "temperature" in text and "deprecated" in text
+
+    def _sdk_takes_temperature(self) -> bool:
+        """Whether the wrapped client's ``messages.create`` takes ``temperature``.
+
+        anthropic 2.x targets API version 2026-10-21, which removed
+        ``temperature``, ``top_p`` and ``top_k`` (a request that sends one
+        gets a 400 on every model), and its ``messages.create`` and
+        ``messages.stream`` no longer take them. A ``create`` that takes
+        ``**kwargs`` (test stand-ins, compatible wrappers), or whose
+        signature can't be read, counts as taking it.
+        """
+        try:
+            params = inspect.signature(self._client.messages.create).parameters
+        except (AttributeError, TypeError, ValueError):
+            return True
+        return "temperature" in params or any(
+            p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
+        )
 
     def _issue_request(self, kwargs: dict[str, Any]) -> Any:
         """Issue a single API request, switching to streaming for large

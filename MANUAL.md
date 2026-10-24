@@ -288,7 +288,7 @@ from anthropic import Anthropic
 from metacouplingllm import MetacouplingAssistant, AnthropicAdapter
 
 client = Anthropic(api_key="sk-ant-your-api-key-here")
-adapter = AnthropicAdapter(client, model="claude-sonnet-4-20250514")
+adapter = AnthropicAdapter(client, model="claude-sonnet-5-5")
 advisor = MetacouplingAssistant(adapter)
 ```
 
@@ -400,8 +400,10 @@ print(result.formatted)
 advisor = MetacouplingAssistant(
     adapter,
     temperature=0.7,          # Creativity (0.0=deterministic, 1.0=creative);
-                              #   ignored by gpt-5* models (always run at 1) and
-                              #   claude-opus-4-7; main analysis call only
+                              #   ignored by gpt-5* models (always run at 1), by
+                              #   Claude 4.7 and later models, and by every Claude
+                              #   model with anthropic>=2 (API version 2026-10-21
+                              #   has no temperature); main analysis call only
     max_tokens=None,           # Response length limit (None = the provider's default);
                                #   AnthropicAdapter sends 4096 because the Anthropic API
                                #   requires a limit, which can cut a long report short —
@@ -1817,7 +1819,7 @@ Methods and properties:
 | Class | Description |
 |---|---|
 | `OpenAIAdapter(client, model="gpt-4o")` | Wraps an `openai.OpenAI` instance. |
-| `AnthropicAdapter(client, model="claude-sonnet-4-20250514", extended_thinking=None)` | Wraps an `anthropic.Anthropic` instance; `extended_thinking` (e.g. `{"type": "enabled", "budget_tokens": 10000}`) is forwarded as the `thinking` request parameter and is not sent when `None`. |
+| `AnthropicAdapter(client, model="claude-sonnet-5-5", extended_thinking=None)` | Wraps an `anthropic.Anthropic` instance; `extended_thinking` (e.g. `{"type": "enabled", "budget_tokens": 10000}`) is forwarded as the `thinking` request parameter and is not sent when `None`. |
 | `GeminiAdapter(client, model="gemini-2.5-flash")` | Wraps a `google.genai.Client` instance. |
 | `GrokAdapter(client, model="grok-3")` | Wraps an `openai.OpenAI` instance pointed at `https://api.x.ai/v1`. |
 | `LLMClient` | Protocol — implement `chat()` for custom LLM providers. |

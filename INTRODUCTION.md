@@ -341,7 +341,7 @@ from metacouplingllm import (
 # openai.OpenAI(...), anthropic.Anthropic(...), google.genai.Client(...), and for Grok
 # an openai.OpenAI(...) created with base_url="https://api.x.ai/v1"
 OpenAIAdapter(openai_client, model="gpt-4o")
-AnthropicAdapter(anthropic_client, model="claude-sonnet-4-20250514")
+AnthropicAdapter(anthropic_client, model="claude-sonnet-5-5")
 GeminiAdapter(genai_client, model="gemini-2.5-flash")
 GrokAdapter(xai_client, model="grok-3")     # OpenAI-protocol-compatible
 
