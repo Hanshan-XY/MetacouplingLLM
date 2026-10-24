@@ -1403,7 +1403,8 @@ class TestBundledCorpusPaperKeys:
     """
 
     @pytest.fixture(scope="class")
-    def engine(self):
+    @classmethod
+    def engine(cls):
         from metacouplingllm.knowledge.rag import _extract_bundled_papers
 
         engine = RAGEngine(

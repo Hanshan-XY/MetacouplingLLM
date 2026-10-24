@@ -47,7 +47,8 @@ class TestManifest:
 
 class TestGeometry:
     @pytest.fixture(scope="class")
-    def relabeled(self):
+    @classmethod
+    def relabeled(cls):
         gpkg = _gpkg()
         if gpkg is None:
             pytest.skip("WB Admin-1 GeoPackage not available")

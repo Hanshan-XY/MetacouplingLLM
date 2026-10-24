@@ -1736,12 +1736,14 @@ class TestAdm1AliasTable:
     """Data-integrity tests over the shipped adm1_aliases.csv."""
 
     @pytest.fixture(scope="class")
-    def rows(self):
+    @classmethod
+    def rows(cls):
         with open(_ALIAS_CSV, newline="", encoding="utf-8-sig") as fh:
             return list(csv.DictReader(fh))
 
     @pytest.fixture(scope="class")
-    def adm1_meta(self):
+    @classmethod
+    def adm1_meta(cls):
         from metacouplingllm.knowledge.adm1_pericoupling import _load_adm1_data
         _, _, _, meta = _load_adm1_data()
         return meta
