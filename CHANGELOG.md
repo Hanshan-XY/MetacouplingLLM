@@ -655,6 +655,22 @@ file. The format is loosely based on
   tests drive the adapter and the web-search backend through the installed
   SDK over a mock HTTP transport (no network, no key), and they fail on the
   old adapter with anthropic 2.3.0. Tests +10 (suite 2,166).
+- **Two copies of the package no longer clash over the paper cache.**
+  Every copy on a machine (a checkout, a worktree, an installed wheel)
+  extracts the bundled `Papers.zip` into `<tempdir>/metacoupling_rag_cache`.
+  The extraction counted as current only while its stamp matched the zip's
+  mtime, and each copy's zip has its own, so a second copy deleted the
+  folder and extracted it again in place, under any copy reading it. In a
+  fresh venv run beside a test suite, the RAG engine found 324 of the 421
+  papers (8,193 chunks), so the precomputed embeddings no longer matched
+  and it fell back to TF-IDF. The extraction now goes to a folder named
+  after the zip's SHA-256, so copies whose zips have the same contents
+  share it and a different zip gets its own; a new extraction is written
+  to a private staging folder and renamed into place only when complete,
+  and when another process gets there first, its folder is used. A folder
+  that has lost files is replaced, not repaired in place. The `Papers`
+  folder and stamp of earlier versions are left alone, so an older install
+  keeps working beside a new one. Tests +6 (suite 2,172).
 
 ### Docs
 
