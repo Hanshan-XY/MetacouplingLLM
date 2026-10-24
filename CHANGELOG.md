@@ -7,6 +7,56 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-10-24
+
+A maintenance release: the Claude adapter works with anthropic 2.x, two
+copies of the package no longer clash over the paper cache, place names are
+read as texts write them, analyses are parsed in more of the forms models
+write, and the adjacency settings reach the prompt and the maps. No
+documented API is removed or renamed; `AnthropicAdapter`'s default model is
+now `claude-sonnet-5-5`.
+
+Highlights:
+
+- **The Claude adapter works with anthropic 2.x**: anthropic 2.0.0
+  (2026-10-21) targets API version 2026-10-21, which has no `temperature`,
+  so on a fresh install every `AnthropicAdapter` call raised `TypeError`
+  except with `claude-opus-4-7` (0.2.1 too). The adapter now sends
+  `temperature` only to SDKs and models that take it (not anthropic 2.x,
+  not Claude 4.7 and later), and its default model is `claude-sonnet-5-5`;
+  the old default reached its end-of-life on 2026-06-15. New tests run the
+  adapter and Claude web search through the installed SDK.
+- **The paper cache is safe across installs**: two copies of the package
+  on one machine (a checkout and a venv, say) re-extracted the bundled
+  papers over each other, so a copy reading them could see part of the
+  corpus and fall back to TF-IDF. Each corpus now has its own folder, named
+  after the zip's contents and filled before it is put in place.
+- **Framework examples checked against the corpus**: the five bundled
+  examples were replaced; each now summarises one paper in the literature
+  corpus, is laid out coupling-first and gives each system's role per flow.
+  The constants of the four retired cases (`SOYBEAN_TRADE`, `PANDA_SDGS`,
+  `RIFA_INVASION`, `BEIJING_WATER`) are gone from
+  `metacouplingllm.knowledge.examples`.
+- **Country and region names read as texts write them**: region names with
+  their type ("Narok County"), with a country's name inside ("New South
+  Wales") or with other separators, letters or apostrophes resolve; free
+  text no longer finds Wales in "New South Wales" or Andorra in "and"; the
+  ADM1 alias table grows from 1,145 to 1,256 entries (863 → 922 regions,
+  136 → 140 countries); `find_country_codes` is exported from the package.
+- **The adjacency settings reach the prompt and the maps**:
+  `de_facto_borders` and `coupling_standard` now also apply to the
+  pericoupling hint in the system prompt and to the maps, and the
+  `metacouplingllm.visualization` map functions take every keyword of the
+  functions they wrap.
+- **Parsing**: a §6 Research Gaps written as a numbered list or as
+  paragraphs, a system scope after a dash and a colon inside a bold label
+  are parsed, and a flow whose heading names two categories gets the same
+  category in every run.
+- **Validation and hints**: a validation note calls the classification
+  consistent only when its check classified a pair; the prompt's ADM1 hint
+  names a region the description writes; the automatic map's text fallback
+  follows the query's framing.
+
 ### Changed
 
 - **The five bundled framework examples were replaced.** Each now summarises
