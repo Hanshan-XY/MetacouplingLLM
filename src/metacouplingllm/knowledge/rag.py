@@ -45,9 +45,14 @@ _BUNDLED_ZIP = Path(__file__).parent / ".." / "data" / "Papers.zip"
 def _extract_bundled_papers(verbose: bool = False) -> Path:
     """Extract the bundled ``data/Papers.zip`` to a cache directory.
 
-    Returns the path to the extracted ``Papers/`` directory.  If the
-    files have already been extracted (same zip mtime), the cached
-    version is reused.
+    Returns the path to the extracted ``Papers/`` directory.  Every copy
+    of the package on the machine (checkouts, worktrees, installed
+    wheels) shares ``<tempdir>/metacoupling_rag_cache``, so the
+    extraction goes to a folder named after the zip's SHA-256: a copy
+    whose zip has the same contents reuses it, whatever the file's
+    mtime, and a different zip gets a folder of its own.  A new
+    extraction is written to a private staging folder and renamed into
+    place only when complete, so no reader sees a half-written folder.
     """
     import shutil
     import tempfile
@@ -57,48 +62,61 @@ def _extract_bundled_papers(verbose: bool = False) -> Path:
     if not zip_path.exists():
         return Path("__nonexistent__")
 
-    # Use a stable cache directory based on the package location
     cache_root = Path(tempfile.gettempdir()) / "metacoupling_rag_cache"
-    papers_dir = cache_root / "Papers"
-    stamp_file = cache_root / ".extracted_stamp"
+    digest = hashlib.sha256()
+    with zip_path.open("rb") as fh:
+        for block in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(block)
+    target = cache_root / digest.hexdigest()[:16]
+    papers_dir = target / "Papers"
 
-    # Check if already extracted and up-to-date
-    zip_mtime = zip_path.stat().st_mtime
-    if papers_dir.is_dir() and stamp_file.exists():
-        try:
-            cached_mtime = float(stamp_file.read_text().strip())
-            if cached_mtime == zip_mtime:
-                with zipfile.ZipFile(zip_path, "r") as zf:
-                    expected_files = {
-                        Path(name).name
-                        for name in zf.namelist()
-                        if name.startswith("Papers/") and name.endswith(".md")
-                    }
-                extracted_files = {
-                    path.name for path in papers_dir.glob("*.md")
-                }
-                if expected_files == extracted_files:
-                    if verbose:
-                        print(
-                            f"[RAG] Using cached bundled papers: {papers_dir}"
-                        )
-                    return papers_dir
-                if verbose:
-                    print("[RAG] Refreshing bundled papers cache: file list changed.")
-        except (ValueError, OSError):
-            pass
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        expected_files = {
+            Path(name).name
+            for name in zf.namelist()
+            if name.startswith("Papers/") and name.endswith(".md")
+        }
 
-    # Extract
+    def _complete(folder: Path) -> bool:
+        return folder.is_dir() and {
+            path.name for path in folder.glob("*.md")
+        } == expected_files
+
+    if _complete(papers_dir):
+        if verbose:
+            print(f"[RAG] Using cached bundled papers: {papers_dir}")
+        return papers_dir
+
     if verbose:
-        print(f"[RAG] Extracting bundled Papers.zip → {cache_root}")
+        if target.exists():
+            print("[RAG] Refreshing bundled papers cache: file list changed.")
+        print(f"[RAG] Extracting bundled Papers.zip → {target}")
 
     cache_root.mkdir(parents=True, exist_ok=True)
-    if papers_dir.exists():
-        shutil.rmtree(papers_dir, ignore_errors=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=cache_root))
     with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall(cache_root)
+        zf.extractall(staging)
 
-    stamp_file.write_text(str(zip_mtime))
+    # A folder that has lost files (removed by hand, say) can't be fixed in
+    # place without exposing readers to it: move it aside.  A complete
+    # folder is never moved, and one still in use stays where it is.
+    if target.exists() and not _complete(papers_dir):
+        aside = Path(tempfile.mkdtemp(prefix=f".{target.name}-old-", dir=cache_root))
+        try:
+            target.rename(aside / "old")
+        except OSError:
+            pass
+        shutil.rmtree(aside, ignore_errors=True)
+
+    try:
+        staging.rename(target)
+    except OSError:
+        if _complete(papers_dir):
+            # Another process put its extraction in place first.
+            shutil.rmtree(staging, ignore_errors=True)
+        else:
+            # The old folder could not be moved: use this extraction as is.
+            papers_dir = staging / "Papers"
 
     if verbose:
         md_count = sum(1 for f in papers_dir.iterdir() if f.suffix == ".md")

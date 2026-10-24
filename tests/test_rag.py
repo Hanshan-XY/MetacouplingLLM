@@ -1485,6 +1485,149 @@ class TestBundledCorpusPaperKeys:
 # ---------------------------------------------------------------------------
 
 
+class TestBundledPapersCache:
+    """The extracted bundled papers are shared safely across installs.
+
+    Every copy of the package on a machine (checkouts, worktrees,
+    installed wheels) extracts ``data/Papers.zip`` under one temp folder,
+    and each copy's zip has its own mtime.  The extraction is keyed by the
+    zip's contents and renamed into place only when complete, so copies
+    that differ only in mtime share it, a different zip never overwrites
+    it, and no reader sees a half-written folder.  The tests point the
+    cache and the zip at ``tmp_path``; the real cache is not touched.
+    """
+
+    FILES = {"A - 2020 - One.md": "# One", "B - 2021 - Two.md": "# Two"}
+
+    @staticmethod
+    def _zip(path, files):
+        import zipfile
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(path, "w") as zf:
+            for name, text in files.items():
+                zf.writestr(f"Papers/{name}", text)
+        return path
+
+    @staticmethod
+    def _key(path):
+        import hashlib
+
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+    @staticmethod
+    def _names(folder):
+        return sorted(path.name for path in folder.glob("*.md"))
+
+    @staticmethod
+    def _extract(monkeypatch, zip_path):
+        import metacouplingllm.knowledge.rag as rag
+
+        monkeypatch.setattr(rag, "_BUNDLED_ZIP", zip_path)
+        return rag._extract_bundled_papers(verbose=False)
+
+    @pytest.fixture
+    def root(self, monkeypatch, tmp_path):
+        """The cache root, with the temp dir redirected under tmp_path."""
+        temp = tmp_path / "temp"
+        temp.mkdir()
+        monkeypatch.setattr(tempfile, "gettempdir", lambda: str(temp))
+        return temp / "metacoupling_rag_cache"
+
+    def test_zips_that_differ_only_in_mtime_share_one_extraction(
+        self, root, tmp_path, monkeypatch,
+    ):
+        import zipfile
+
+        checkout = self._zip(tmp_path / "checkout" / "Papers.zip", self.FILES)
+        wheel = tmp_path / "venv" / "Papers.zip"
+        wheel.parent.mkdir()
+        wheel.write_bytes(checkout.read_bytes())
+        os.utime(wheel, (1_000_000_000, 1_000_000_000))
+        extractions = []
+        real_extractall = zipfile.ZipFile.extractall
+
+        def counting_extractall(self, *args, **kwargs):
+            extractions.append(args)
+            return real_extractall(self, *args, **kwargs)
+
+        monkeypatch.setattr(zipfile.ZipFile, "extractall", counting_extractall)
+        first = self._extract(monkeypatch, checkout)
+        second = self._extract(monkeypatch, wheel)
+        assert first == second == root / self._key(checkout) / "Papers"
+        assert self._names(first) == sorted(self.FILES)
+        assert len(extractions) == 1
+
+    def test_a_different_zip_gets_its_own_folder(self, root, tmp_path, monkeypatch):
+        old = self._extract(
+            monkeypatch, self._zip(tmp_path / "old" / "Papers.zip", self.FILES),
+        )
+        new_files = {**self.FILES, "C - 2022 - Three.md": "# Three"}
+        new = self._extract(
+            monkeypatch, self._zip(tmp_path / "new" / "Papers.zip", new_files),
+        )
+        assert new != old
+        assert self._names(new) == sorted(new_files)
+        assert self._names(old) == sorted(self.FILES)
+
+    def test_a_partial_extraction_is_not_used(self, root, tmp_path, monkeypatch):
+        zip_path = self._zip(tmp_path / "pkg" / "Papers.zip", self.FILES)
+        partial = root / f".{self._key(zip_path)}-killed" / "Papers"
+        partial.mkdir(parents=True)
+        (partial / "A - 2020 - One.md").write_text("# One", encoding="utf-8")
+        papers = self._extract(monkeypatch, zip_path)
+        assert papers == root / self._key(zip_path) / "Papers"
+        assert self._names(papers) == sorted(self.FILES)
+
+    def test_a_folder_that_lost_files_is_replaced(self, root, tmp_path, monkeypatch):
+        zip_path = self._zip(tmp_path / "pkg" / "Papers.zip", self.FILES)
+        papers = self._extract(monkeypatch, zip_path)
+        (papers / "B - 2021 - Two.md").unlink()
+        again = self._extract(monkeypatch, zip_path)
+        assert again == papers
+        assert self._names(again) == sorted(self.FILES)
+        assert [p.name for p in root.iterdir()] == [self._key(zip_path)]
+
+    def test_an_extraction_another_process_finished_first_is_used(
+        self, root, tmp_path, monkeypatch,
+    ):
+        import pathlib
+        import zipfile
+
+        zip_path = self._zip(tmp_path / "pkg" / "Papers.zip", self.FILES)
+        target = root / self._key(zip_path)
+        real_rename = pathlib.Path.rename
+
+        def rename(self, dest):
+            if pathlib.Path(dest) == target and not target.exists():
+                # Another process renames its complete extraction into place first.
+                with zipfile.ZipFile(zip_path) as zf:
+                    zf.extractall(root / ".other")
+                real_rename(root / ".other", target)
+            return real_rename(self, dest)
+
+        monkeypatch.setattr(pathlib.Path, "rename", rename)
+        papers = self._extract(monkeypatch, zip_path)
+        assert papers == target / "Papers"
+        assert self._names(papers) == sorted(self.FILES)
+        assert [p.name for p in root.iterdir()] == [target.name]
+
+    def test_the_layout_of_earlier_versions_is_left_alone(
+        self, root, tmp_path, monkeypatch,
+    ):
+        (root / "Papers").mkdir(parents=True)
+        (root / "Papers" / "Old - 2019 - Old.md").write_text("# Old", encoding="utf-8")
+        (root / ".extracted_stamp").write_text("123.0", encoding="utf-8")
+        papers = self._extract(
+            monkeypatch, self._zip(tmp_path / "pkg" / "Papers.zip", self.FILES),
+        )
+        assert papers.parent.parent == root
+        assert papers.parent.name != "Papers"
+        old = (root / "Papers" / "Old - 2019 - Old.md").read_text(encoding="utf-8")
+        assert old == "# Old"
+        assert (root / ".extracted_stamp").read_text(encoding="utf-8") == "123.0"
+
+
 class TestMultiChunkPerPaper:
     """Tests for the ``max_chunks_per_paper`` cap on
     :meth:`EmbeddingRetriever.query`, :meth:`TfIdfIndex.query`, and
