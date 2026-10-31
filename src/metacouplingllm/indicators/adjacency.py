@@ -61,7 +61,7 @@ def build_adjacency(
     destination_col: str = "destination_id",
     flag_col: str = "adjacent",
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> "pd.DataFrame":
     """Fill an ``adjacent`` column (1 / 0) from the bundled pericoupling DB.
 

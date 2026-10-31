@@ -1494,12 +1494,12 @@ class TestCouplingStandardAdm1:
             "COD007", "COG002", coupling_standard="stringent"
         ) is False
 
-    def test_default_standard_is_moderate(self):
+    def test_default_standard_is_lenient(self):
         from metacouplingllm.knowledge.adm1_pericoupling import (
             is_adm1_pericoupled,
         )
-        # No coupling_standard argument == moderate.
-        assert is_adm1_pericoupled("COD007", "COG002") is False
+        # No coupling_standard argument == lenient: every border counts.
+        assert is_adm1_pericoupled("COD007", "COG002") is True
 
     def test_bridge_pair_kept_under_moderate_dropped_under_stringent(self):
         # CHN011 <-> RUS005 across the Amur: a fixed crossing exists.  (The

@@ -369,8 +369,8 @@ is_adm1_pericoupled("ROU008", "ROU039",
 
 Two orthogonal toggles select the view: `de_facto_borders` (default `True`;
 `False` removes the 16 ADM1 / 3 ADM0 disputed-overlay pairs) and
-`coupling_standard` (`"lenient"` keeps every water border; `"moderate"`,
-the default, keeps water-only pairs only when a completed fixed crossing (road
+`coupling_standard` (`"lenient"`, the default, keeps every water border;
+`"moderate"` keeps water-only pairs only when a completed fixed crossing (road
 or rail bridge, causeway, dam-top road or tunnel) links the two units — a
 crossing on a closed border or a disused line with its track in place counts,
 one under construction does not; `"stringent"` drops all water-only pairs).

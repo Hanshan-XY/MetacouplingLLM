@@ -43,7 +43,7 @@ def plot_focal_country_map(
     adm0_shapefile: str | Path | None = None,
     mentioned_countries: set[str] | None = None,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> matplotlib.figure.Figure:
     """Generate a world map colored by coupling type relative to a focal country.
 
@@ -83,7 +83,7 @@ def plot_analysis_map(
     focal_code_override: str | None = None,
     flows: list[dict[str, str]] | None = None,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> matplotlib.figure.Figure:
     """Generate a world map from a parsed LLM analysis result.
 
@@ -123,7 +123,7 @@ def plot_focal_adm1_map(
     mentioned_adm1_codes: set[str] | None = None,
     flows: list[dict[str, str]] | None = None,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> matplotlib.figure.Figure:
     """Generate a subnational (ADM1) map colored by coupling type.
 

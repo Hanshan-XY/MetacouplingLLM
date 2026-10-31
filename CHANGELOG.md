@@ -7,6 +7,24 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Changed
+
+- **The default `coupling_standard` is `"lenient"`: every administrative
+  border counts as adjacency.** Units that meet only across a river or lake
+  are now pericoupled under the default settings whether or not a bridge
+  links them, so the default views are the full databases: 8,462 ADM1 pairs
+  and 326 country pairs (8,026 and 321 under the former `"moderate"`
+  default). Whether a fixed crossing exists does not reflect how connected
+  the two sides of a river or lake are, so the crossing rule is no longer
+  applied by default. `"moderate"` (a water-only pair needs a completed fixed
+  crossing) and `"stringent"` (no water-only pair counts) are unchanged; pass
+  either to `MetacouplingAssistant`, `PromptBuilder`, the lookups, the map
+  functions or `build_adjacency`. Kinshasa and Brazzaville, DR Congo and the
+  Central African Republic, and Ohio and Ontario across Lake Erie are now
+  pericoupled by default, so the prompt hint, the validation block and the
+  automatic map treat them as neighbours. Tests follow the new default
+  (suite 2,172).
+
 ## [0.2.2] — 2026-10-24
 
 A maintenance release: the Claude adapter works with anthropic 2.x, two

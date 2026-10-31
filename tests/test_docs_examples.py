@@ -356,8 +356,8 @@ def _check_pericoupling_standalone(ns: dict[str, Any], out: str) -> None:
         is_pericoupled("Romania", "Moldova", coupling_standard="stringent")
         is False
     )
-    assert is_pericoupled("COD", "CAF") is False
-    assert is_pericoupled("COD", "CAF", coupling_standard="lenient") is True
+    assert is_pericoupled("COD", "CAF") is True
+    assert is_pericoupled("COD", "CAF", coupling_standard="moderate") is False
 
 
 def _check_country_resolution(ns: dict[str, Any], out: str) -> None:
