@@ -446,7 +446,7 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
   `docs/METHODS_adjacency.md`).
 - **Water-separated pairs (`coupling_standard`).** 824 ADM1 pairs (and 19
   rolled-up ADM0 country pairs) share **only** a river/lake border with no land
-  segment. The runtime loaders accept `coupling_standard` (default `"moderate"`),
+  segment. The runtime loaders accept `coupling_standard` (default `"lenient"`),
   orthogonal to `de_facto_borders`: `lenient` keeps all water borders; `moderate`
   keeps a pair only if a fixed crossing **open to traffic** links the two units;
   `stringent` drops every water-only pair — uniformly for **river and lake**

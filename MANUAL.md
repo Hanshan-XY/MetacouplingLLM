@@ -415,7 +415,7 @@ advisor = MetacouplingAssistant(
     rag_top_k=8,               # passages retrieved per query
     de_facto_borders=True,     # Adjacency (hint, validation, map): fold disputed
                                #   land into its de-facto administrator (vs strict WB)
-    coupling_standard="moderate",  # "stringent"/"moderate"/"lenient" — how
+    coupling_standard="lenient",   # "stringent"/"moderate"/"lenient" — how
                                #   water-only borders count as adjacency
     generate_abstract=True,    # One extra model call per analyze()/refine() to write
                                #   result.abstract; False skips it
@@ -433,13 +433,14 @@ that cross-checks the LLM's coupling claims, and the automatic map
 (`auto_map=True`, §10). They mirror the same-named arguments on the standalone
 lookup functions: `coupling_standard="stringent"` drops every water-only border
 (so a river-only neighbour validates as *telecoupled* rather than
-*pericoupled*), `"lenient"` keeps them all, and `de_facto_borders=False` uses
-the strict World Bank standard layer instead of the de-facto view. Defaults
-(`True` / `"moderate"`) match the database defaults; see §8 for the full
+*pericoupled*), `"moderate"` keeps one only where a fixed crossing links the
+two units, and `de_facto_borders=False` uses the strict World Bank standard
+layer instead of the de-facto view. Defaults (`True` / `"lenient"`: every
+border counts, land or water) match the database defaults; see §8 for the full
 semantics. Because the hint and the validation block use the same settings,
 they agree on adjacency: Ohio and Ontario, for example, meet only across Lake
-Erie, which has no fixed crossing, so with `coupling_standard="lenient"` both
-list Ontario as a cross-border neighbour of Ohio, and with the default neither
+Erie, which has no fixed crossing, so with the default both list Ontario as a
+cross-border neighbour of Ohio, and with `coupling_standard="moderate"` neither
 does.
 
 ### Run tracing (`trace`, `trace_dir`)
@@ -1045,9 +1046,9 @@ The package includes a curated country-pair database with 326 adjacent
 pairs (the `lenient` view with `de_facto_borders=True`: 323 pairs that touch
 in the World Bank standard layer plus 3 de-facto pairs across disputed
 land); under the default adjacency settings (`de_facto_borders=True`,
-`coupling_standard="moderate"`) **321** of them are exposed as pericoupled
+`coupling_standard="lenient"`) all **326** are exposed as pericoupled
 (geographically adjacent) — the moderate standard drops 5 water-only pairs
-with no fixed crossing, and the stringent standard leaves 307.
+with no fixed crossing, leaving 321, and the stringent standard leaves 307.
 All other pairs are telecoupled (geographically distant). Based on
 current ISO 3166-1 alpha-3 country codes (World Bank Official
 Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`). A second,
@@ -1150,13 +1151,15 @@ toggles (defaults shown):
   it (so China–Pakistan, Israel–Syria and Morocco–Mauritania are adjacent);
   this represents de-facto connectivity and takes no position on
   sovereignty; pass `False` for the strict WB standard-layer view.
-- **`coupling_standard="moderate"`** — for pairs that share **only** a
-  river/lake border, `moderate` keeps a pair only if a completed fixed
-  crossing links the two units, `stringent` drops every water-only pair, and
-  `lenient` keeps all. A completed fixed crossing is a road or rail bridge,
-  causeway, dam-top road or tunnel (not a ferry, ford or footbridge, and not
-  one still under construction); a finished bridge on a politically closed
-  border still counts.
+- **`coupling_standard="lenient"`** — for pairs that share **only** a
+  river/lake border, `lenient` keeps all, so every administrative border
+  counts; `moderate` keeps a pair only if a completed fixed crossing links
+  the two units, and `stringent` drops every water-only pair. A completed
+  fixed crossing is a road or rail bridge, causeway, dam-top road or tunnel
+  (not a ferry, ford or footbridge, and not one still under construction); a
+  finished bridge on a politically closed border still counts. The default
+  keeps every border because whether a fixed crossing exists does not
+  reflect how connected the two sides of a river or lake are.
 
 `MetacouplingAssistant` (§5) and the map functions (§10) take the same two
 settings; the assistant applies them to the pre-LLM hint, the post-LLM
@@ -1164,15 +1167,15 @@ validation block and the automatic map.
 
 ```python
 # Romania <-> Moldova share only rivers, the Prut and a short Danube reach (bridges exist):
-is_pericoupled("Romania", "Moldova")                                # True  (moderate default)
+is_pericoupled("Romania", "Moldova")                                # True  (lenient default)
 is_pericoupled("Romania", "Moldova", coupling_standard="stringent") # False (water-only)
 # DR Congo <-> Central African Republic share only rivers, no bridge:
-is_pericoupled("COD", "CAF")                                        # False (moderate default)
-is_pericoupled("COD", "CAF", coupling_standard="lenient")           # True
+is_pericoupled("COD", "CAF")                                        # True  (lenient default)
+is_pericoupled("COD", "CAF", coupling_standard="moderate")          # False
 # Lakes follow the same logic — DR Congo <-> Tanzania meet only across
 # Lake Tanganyika (no fixed crossing):
-is_pericoupled("COD", "TZA")                                        # False (moderate default)
-is_pericoupled("COD", "TZA", coupling_standard="lenient")           # True
+is_pericoupled("COD", "TZA")                                        # True  (lenient default)
+is_pericoupled("COD", "TZA", coupling_standard="moderate")          # False
 ```
 
 The same `coupling_standard` argument is accepted by the ADM1 functions
@@ -1483,7 +1486,7 @@ extraction fails or returns no focal country, `result.map` falls back to
 that same text scan.
 Map adjacency follows the two adjacency settings of §8: the plot functions
 take `de_facto_borders` and `coupling_standard` as keyword arguments
-(defaults `True` / `"moderate"`), and the automatic map uses the assistant's
+(defaults `True` / `"lenient"`), and the automatic map uses the assistant's
 settings (§5).
 
 ### Database-only map (no LLM needed)
@@ -1776,7 +1779,7 @@ parameter except `llm_client` is optional.
 | `rag_min_score` | `None` | Minimum retrieval score; `None` applies a floor for the active backend (0.60 for embeddings, 0.01 for TF-IDF). |
 | `coupling_analysis` | `True` | `False` switches to RAG-only Q&A, which returns a `RAGResult` (§5). |
 | `de_facto_borders` | `True` | Disputed-territory setting of the adjacency lookups: the prompt hint, the pericoupling validation and the automatic map (§8). |
-| `coupling_standard` | `"moderate"` | Water-only-border setting of the adjacency lookups: the prompt hint, the pericoupling validation and the automatic map (§8). |
+| `coupling_standard` | `"lenient"` | Water-only-border setting of the adjacency lookups: the prompt hint, the pericoupling validation and the automatic map (§8). |
 | `generate_abstract` | `True` | One extra model call per result to write `result.abstract`; `False` skips it. |
 | `trace` | `None` | Write a run-trace folder per `analyze()` / `refine()`: `None` = on unless `METACOUPLINGLLM_DISABLE_TRACE=1`, `True` / `False` force it (§5). |
 | `trace_dir` | `None` | Where trace folders are written (default `runs/<utc>_<slug>/`). |
@@ -1840,9 +1843,9 @@ Methods and properties:
 
 | Function | Returns | Description |
 |---|---|---|
-| `lookup_pericoupling(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `PericouplingResult` | Full lookup with pair type and codes. |
-| `is_pericoupled(country_a, country_b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick check: True/False/None. |
-| `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All pericoupled ISO codes. |
+| `lookup_pericoupling(country_a, country_b, de_facto_borders=True, coupling_standard="lenient")` | `PericouplingResult` | Full lookup with pair type and codes. |
+| `is_pericoupled(country_a, country_b, de_facto_borders=True, coupling_standard="lenient")` | `bool \| None` | Quick check: True/False/None. |
+| `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="lenient")` | `set[str]` | All pericoupled ISO codes. |
 | `resolve_country_code(name_or_code, *, substring=True)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3; `substring=False` accepts only a whole code, name or alias. |
 | `get_country_name(code)` | `str` | ISO alpha-3 code to canonical English name. |
 
@@ -1854,10 +1857,10 @@ water-only pairs — see §8 "Adjacency standards".
 
 | Function | Returns | Description |
 |---|---|---|
-| `lookup_adm1_pericoupling(adm1_a, adm1_b, de_facto_borders=True, coupling_standard="moderate")` | `Adm1PericouplingResult` | Full ADM1 lookup with pair type. |
-| `is_adm1_pericoupled(adm1_a, adm1_b, de_facto_borders=True, coupling_standard="moderate")` | `bool \| None` | Quick adjacency check at the ADM1 scale. |
-| `get_adm1_neighbors(adm1_code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | All ADM1 neighbors (domestic + cross-border). |
-| `get_cross_border_neighbors(adm1_code, de_facto_borders=True, coupling_standard="moderate")` | `set[str]` | ADM1 neighbors in other countries only. |
+| `lookup_adm1_pericoupling(adm1_a, adm1_b, de_facto_borders=True, coupling_standard="lenient")` | `Adm1PericouplingResult` | Full ADM1 lookup with pair type. |
+| `is_adm1_pericoupled(adm1_a, adm1_b, de_facto_borders=True, coupling_standard="lenient")` | `bool \| None` | Quick adjacency check at the ADM1 scale. |
+| `get_adm1_neighbors(adm1_code, de_facto_borders=True, coupling_standard="lenient")` | `set[str]` | All ADM1 neighbors (domestic + cross-border). |
+| `get_cross_border_neighbors(adm1_code, de_facto_borders=True, coupling_standard="lenient")` | `set[str]` | ADM1 neighbors in other countries only. |
 | `get_adm1_codes_for_country(country)` | `set[str]` | All ADM1 codes inside the given country (name or ISO alpha-3). |
 | `get_adm1_info(adm1_code)` | `dict \| None` | Dict with keys `name` (canonical ADM1 name), `country_name`, `iso_a3` and `wb_region` (World Bank region code, e.g. `LCR`); `None` if the code is unknown. |
 | `get_adm1_country(adm1_code)` | `str \| None` | ISO alpha-3 country of the ADM1 region. |

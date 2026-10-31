@@ -124,7 +124,9 @@ class TestAdm1HintFollowsSettings:
     def test_stringent_drops_ohio_river_neighbors(self):
         """Kentucky and West Virginia lie across the Ohio River, which is
         bridged: listed under "moderate", not under "stringent"."""
-        moderate = PromptBuilder._build_adm1_pericoupling_hint(OHIO_ACID_RAIN)
+        moderate = PromptBuilder._build_adm1_pericoupling_hint(
+            OHIO_ACID_RAIN, coupling_standard="moderate",
+        )
         stringent = PromptBuilder._build_adm1_pericoupling_hint(
             OHIO_ACID_RAIN, coupling_standard="stringent",
         )
@@ -146,11 +148,11 @@ class TestAdm1HintFollowsSettings:
 
     def test_system_prompt_uses_the_builder_settings(self):
         lenient = PromptBuilder(max_examples=0, coupling_standard="lenient")
-        default = PromptBuilder(max_examples=0)
+        moderate = PromptBuilder(max_examples=0, coupling_standard="moderate")
         assert ONTARIO in lenient.build_system_prompt(
             research_context=OHIO_ACID_RAIN,
         )
-        assert ONTARIO not in default.build_system_prompt(
+        assert ONTARIO not in moderate.build_system_prompt(
             research_context=OHIO_ACID_RAIN,
         )
 
@@ -192,7 +194,9 @@ class TestCountryHintFollowsSettings:
 
     def test_neighbor_list_follows_standard(self):
         """A one-country description lists that country's neighbors."""
-        moderate = PromptBuilder._build_coupling_hint("Mining in Moldova")
+        moderate = PromptBuilder._build_coupling_hint(
+            "Mining in Moldova", coupling_standard="moderate",
+        )
         stringent = PromptBuilder._build_coupling_hint(
             "Mining in Moldova", coupling_standard="stringent",
         )
@@ -213,7 +217,7 @@ class TestCountryHintFollowsSettings:
 
 
 class TestDefaultSettingsLeavePromptUnchanged:
-    def test_default_ohio_hint_lists_only_the_us_neighbors(self):
+    def test_default_ohio_hint_lists_ontario(self):
         hint = PromptBuilder._build_adm1_pericoupling_hint(OHIO_ACID_RAIN)
         assert hint is not None
         assert hint.endswith(
@@ -222,9 +226,11 @@ class TestDefaultSettingsLeavePromptUnchanged:
             "- Kentucky (USA018, United States of America)\n"
             "- Michigan (USA023, United States of America)\n"
             "- Pennsylvania (USA039, United States of America)\n"
-            "- West Virginia (USA049, United States of America)"
+            "- West Virginia (USA049, United States of America)\n"
+            "\n"
+            "**Cross-border (pericoupled) neighbors:**\n"
+            "- Ontario (CAN009, Canada)"
         )
-        assert "Cross-border" not in hint
 
     @pytest.mark.parametrize(
         "description",
@@ -233,7 +239,7 @@ class TestDefaultSettingsLeavePromptUnchanged:
     def test_builder_defaults_are_the_lookup_defaults(self, description):
         default = PromptBuilder(max_examples=2)
         explicit = PromptBuilder(
-            max_examples=2, de_facto_borders=True, coupling_standard="moderate",
+            max_examples=2, de_facto_borders=True, coupling_standard="lenient",
         )
         assert default.build_system_prompt(
             research_context=description,
@@ -262,7 +268,9 @@ class TestAssistantPromptFollowsSettings:
         assert ONTARIO in _system_prompt(
             mock_llm_client, OHIO_ACID_RAIN, coupling_standard="lenient",
         )
-        assert ONTARIO not in _system_prompt(mock_llm_client, OHIO_ACID_RAIN)
+        assert ONTARIO not in _system_prompt(
+            mock_llm_client, OHIO_ACID_RAIN, coupling_standard="moderate",
+        )
 
     def test_stringent_assistant_country_hint(self, mock_llm_client):
         prompt = _system_prompt(
@@ -306,7 +314,7 @@ class TestAssistantPromptFollowsSettings:
 # Maps
 # ---------------------------------------------------------------------------
 
-SETTINGS = {"de_facto_borders": False, "coupling_standard": "lenient"}
+SETTINGS = {"de_facto_borders": False, "coupling_standard": "moderate"}
 
 
 @pytest.fixture
@@ -372,7 +380,7 @@ class TestAssistantMapsFollowSettings:
         (kind, kwargs), = map_calls
         assert kind == "adm1"
         assert kwargs["de_facto_borders"] is False
-        assert kwargs["coupling_standard"] == "lenient"
+        assert kwargs["coupling_standard"] == "moderate"
 
     def test_structured_country_map(self, map_calls):
         advisor = MetacouplingAssistant(
@@ -390,7 +398,7 @@ class TestAssistantMapsFollowSettings:
         (kind, kwargs), = map_calls
         assert kind == "country"
         assert kwargs["de_facto_borders"] is False
-        assert kwargs["coupling_standard"] == "lenient"
+        assert kwargs["coupling_standard"] == "moderate"
 
     def test_text_scan_adm1_map(self, map_calls):
         """Without map data the map falls back to a text scan."""
@@ -401,7 +409,7 @@ class TestAssistantMapsFollowSettings:
         (kind, kwargs), = map_calls
         assert kind == "adm1"
         assert kwargs["de_facto_borders"] is False
-        assert kwargs["coupling_standard"] == "lenient"
+        assert kwargs["coupling_standard"] == "moderate"
 
     def test_text_scan_country_map(self, map_calls):
         advisor = MetacouplingAssistant(
@@ -411,7 +419,7 @@ class TestAssistantMapsFollowSettings:
         (kind, kwargs), = map_calls
         assert kind == "country"
         assert kwargs["de_facto_borders"] is False
-        assert kwargs["coupling_standard"] == "lenient"
+        assert kwargs["coupling_standard"] == "moderate"
 
     @pytest.mark.parametrize(
         "standard, arrow", [("moderate", True), ("stringent", False)],
@@ -558,4 +566,4 @@ class TestMapFunctionsFollowSettings:
         assert set(captured) == {"country", "analysis", "adm1"}
         for kwargs in captured.values():
             assert kwargs["de_facto_borders"] is False
-            assert kwargs["coupling_standard"] == "lenient"
+            assert kwargs["coupling_standard"] == "moderate"

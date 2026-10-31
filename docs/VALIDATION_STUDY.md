@@ -91,7 +91,7 @@ estimates above are computed on the *pre-fix* verdicts, as preregistered):
 
 Net count effect at the time of the corrections (2026-07-14; the shipped
 database now has 8,462 ADM1 edges and 824 water-only ADM1 pairs, 388 with a
-fixed crossing and 436 without, and 8,026 ADM1 pairs under the default moderate
+fixed crossing and 436 without, and 8,026 ADM1 pairs under the moderate
 standard): water-only total unchanged at **698**; bridge split
 319/379 → **320/378**; ADM1 moderate 8,087 → **8,088** (`CHANGELOG.md` re-bases
 this to 8,088 → 8,089 after the 2026-07-19 Balzers–Planken restore);

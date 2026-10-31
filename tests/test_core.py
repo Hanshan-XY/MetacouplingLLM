@@ -2155,8 +2155,12 @@ class TestResolveFlowsForMap:
 
         assert domestic
         assert all(flow.get("is_bidirectional") for flow in domestic)
+        # Under the default lenient standard Illinois and Minnesota, across
+        # Lakes Michigan and Superior, are neighbors too.
         assert {flow["target_adm1"] for flow in domestic} == {
+            "USA014",
             "USA015",
+            "USA024",
             "USA036",
             "USA050",
         }

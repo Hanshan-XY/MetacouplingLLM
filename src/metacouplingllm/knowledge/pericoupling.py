@@ -198,7 +198,7 @@ def _water_dropped_adm0(coupling_standard: str) -> frozenset[frozenset[str]]:
 
 
 def _get_pairs(
-    de_facto_borders: bool = True, coupling_standard: str = "moderate"
+    de_facto_borders: bool = True, coupling_standard: str = "lenient"
 ) -> frozenset[frozenset[str]]:
     """Lazily load and cache the pericoupled pairs for a given view.
 
@@ -210,9 +210,10 @@ def _get_pairs(
         ``False`` subtracts the disputed-territory overlay.  See
         ``data/disputed_overlay_pairs.csv`` and ``data/PROVENANCE.md``.
     coupling_standard:
-        ``"moderate"`` (default) drops water-only country pairs with no open
-        fixed crossing; ``"stringent"`` drops every water-only pair;
-        ``"lenient"`` keeps all.  See ``data/water_separated_pairs.csv``.
+        ``"lenient"`` (default) keeps every border, land or water;
+        ``"moderate"`` drops water-only country pairs with no open fixed
+        crossing; ``"stringent"`` drops every water-only pair.  See
+        ``data/water_separated_pairs.csv``.
     """
     global _pericoupled_pairs, _disputed_overlay_adm0
     global _water_all_adm0, _water_nobridge_adm0
@@ -244,7 +245,7 @@ def lookup_pericoupling(
     country_a: str,
     country_b: str,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> PericouplingResult:
     """Look up whether two countries are pericoupled or telecoupled.
 
@@ -312,7 +313,7 @@ def lookup_pericoupling(
 def get_pericoupled_neighbors(
     country: str,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> set[str]:
     """Return the set of ISO alpha-3 codes pericoupled with a country.
 
@@ -348,7 +349,7 @@ def is_pericoupled(
     country_a: str,
     country_b: str,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> bool | None:
     """Convenience function for quick pericoupling checks.
 

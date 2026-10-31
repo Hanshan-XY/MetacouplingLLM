@@ -820,7 +820,7 @@ class MetacouplingAssistant:
         # ``"moderate"``/``"lenient"``) controls how water-only borders are
         # treated.  Defaults match the underlying lookup defaults.
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
         # PR #31: opt out of the dedicated abstract LLM call.  Defaults
         # to True so scholars get ``result.abstract`` for free; set to
         # False in unit tests / batch jobs that need to count calls
@@ -2706,7 +2706,7 @@ class MetacouplingAssistant:
         focal_country: str,
         *,
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
     ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """Resolve mixed ADM1/country flow arrows for ADM1 maps.
 
@@ -5243,7 +5243,7 @@ class MetacouplingAssistant:
         parsed: ParsedAnalysis,
         *,
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
     ) -> bool:
         """Try to validate at the ADM1 (subnational) level.
 
@@ -5416,7 +5416,7 @@ class MetacouplingAssistant:
         *,
         national_mode: bool = False,
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
     ) -> None:
         """Run ADM1 (subnational) and country-level validations.
 
@@ -5474,7 +5474,7 @@ class MetacouplingAssistant:
         *,
         national_mode: bool = False,
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
     ) -> None:
         """Country-level pericoupling validation.
 

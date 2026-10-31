@@ -375,7 +375,7 @@ def lookup_adm1_pericoupling(
     adm1_a: str,
     adm1_b: str,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> Adm1PericouplingResult:
     """Look up whether two ADM1 regions are pericoupled or telecoupled.
 
@@ -452,7 +452,7 @@ def lookup_adm1_pericoupling(
 def get_adm1_neighbors(
     adm1_code: str,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> set[str]:
     """Return all ADM1 codes adjacent to the given region.
 
@@ -489,7 +489,7 @@ def get_adm1_neighbors(
 def get_cross_border_neighbors(
     adm1_code: str,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> set[str]:
     """Return ADM1 codes adjacent to the given region in *different* countries.
 
@@ -629,7 +629,7 @@ def is_adm1_pericoupled(
     adm1_a: str,
     adm1_b: str,
     de_facto_borders: bool = True,
-    coupling_standard: str = "moderate",
+    coupling_standard: str = "lenient",
 ) -> bool | None:
     """Convenience function for quick ADM1 pericoupling checks.
 

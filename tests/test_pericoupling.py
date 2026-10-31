@@ -188,10 +188,10 @@ class TestCouplingStandardAdm0:
             is_pericoupled("COD", "CAF", coupling_standard="stringent") is False
         )
 
-    def test_default_standard_is_moderate(self):
-        # No coupling_standard argument == moderate.
-        assert is_pericoupled("COD", "CAF") is False
-        assert is_pericoupled("GUY", "SUR") is False
+    def test_default_standard_is_lenient(self):
+        # No coupling_standard argument == lenient: every border counts.
+        assert is_pericoupled("COD", "CAF") is True
+        assert is_pericoupled("GUY", "SUR") is True
 
     def test_bridge_country_pair_kept_under_moderate(self):
         # Romania <-> Moldova: water border with fixed crossings.

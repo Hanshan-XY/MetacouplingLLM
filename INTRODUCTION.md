@@ -297,11 +297,11 @@ Two geographic adjacency databases validate LLM coupling classifications:
 | Database | Scope | Coverage |
 |---|---|---|
 | Country-level | Countries and territories | Full global (ISO alpha-3) |
-| ADM1 (subnational) | First-level administrative regions | 3,374 regions, 8,462 shared-border pairs (8,026 under the default `moderate` coupling standard), 196 countries |
+| ADM1 (subnational) | First-level administrative regions | 3,374 regions, 8,462 shared-border pairs (8,026 under the `moderate` coupling standard), 196 countries |
 
 Functions: `is_pericoupled()`, `get_pericoupled_neighbors()`, `lookup_adm1_pericoupling()`, etc.
 
-Both levels accept two orthogonal toggles: **`de_facto_borders`** (default `True`; fold disputed land into its de-facto administrator, vs the strict WB standard layer) and **`coupling_standard`** (`stringent` / `moderate` / `lenient`, default `moderate`) — for pairs sharing **only** a river/lake border, `moderate` requires a completed fixed crossing (road or railway bridge, causeway, dam-top road or tunnel; ferries and crossings under construction do not count, while a finished bridge on a politically closed border or a disused railway bridge with its track in place does), `stringent` drops all water-only pairs, and `lenient` keeps them.  Each fixed-crossing flag was adjudicated by the same two-model design as the water-only status (an OpenStreetMap screen, GPT-5.6 Sol research, Sonnet-5 adversarial judgment, a location test and maintainer map rulings); see `docs/METHODS_adjacency.md` §8.
+Both levels accept two orthogonal toggles: **`de_facto_borders`** (default `True`; fold disputed land into its de-facto administrator, vs the strict WB standard layer) and **`coupling_standard`** (`stringent` / `moderate` / `lenient`, default `lenient`) — for pairs sharing **only** a river/lake border, `lenient` keeps them, so by default every administrative border counts; `moderate` requires a completed fixed crossing (road or railway bridge, causeway, dam-top road or tunnel; ferries and crossings under construction do not count, while a finished bridge on a politically closed border or a disused railway bridge with its track in place does), and `stringent` drops all water-only pairs.  Each fixed-crossing flag was adjudicated by the same two-model design as the water-only status (an OpenStreetMap screen, GPT-5.6 Sol research, Sonnet-5 adversarial judgment, a location test and maintainer map rulings); see `docs/METHODS_adjacency.md` §8.
 
 `MetacouplingAssistant` takes the same two settings and applies them to every adjacency lookup it makes: the pericoupling-database hint in the system prompt, the validation block and the automatic map. The three map functions accept them as well.
 

@@ -144,7 +144,7 @@ turn it off.
   (`lookup_pericoupling`, `is_pericoupled`, `get_pericoupled_neighbors`,
   `lookup_adm1_pericoupling`, ...) with two policy options:
   `de_facto_borders` (disputed areas; default `True`) and `coupling_standard`
-  (water-only borders: `"stringent"`, `"moderate"` (default) or `"lenient"`),
+  (water-only borders: `"stringent"`, `"moderate"` or `"lenient"` (default)),
   also accepted by the map functions and by `MetacouplingAssistant` for its
   prompt hint, validation and automatic map
 - Automated map generation at both country and subnational (ADM1) levels

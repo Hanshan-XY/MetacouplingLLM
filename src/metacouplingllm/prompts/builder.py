@@ -114,7 +114,7 @@ class PromptBuilder:
         max_examples: int = 2,
         *,
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
     ) -> None:
         self._max_examples = max_examples
         self._de_facto_borders = bool(de_facto_borders)
@@ -358,7 +358,7 @@ class PromptBuilder:
         research_context: str,
         *,
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
     ) -> str | None:
         """Scan research text for country names and build a country-pair
         classification hint.
@@ -490,7 +490,7 @@ class PromptBuilder:
         research_context: str,
         *,
         de_facto_borders: bool = True,
-        coupling_standard: str = "moderate",
+        coupling_standard: str = "lenient",
     ) -> str | None:
         """Scan research text for ADM1 region names and build a subnational hint.
 

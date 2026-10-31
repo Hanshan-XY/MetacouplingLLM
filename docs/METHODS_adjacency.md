@@ -72,8 +72,8 @@ Every pipeline step appears in **execution order**, and each row shows the edge 
 | **S3** + water borders between non-touching units | 8,438 → 8,464 | 798 → 824 | +26 edges with their water rows (`adds_edge`; 23 river / 3 lake; 7 with a fixed crossing; tier A), nominated by the corridor census (§8) and adjudicated |
 | **S4** + land-gap borders (four *discovered* by the S1 tolerance-band audit, §2.4/§4; one after the corridor census, §8) | 8,464 → 8,469 | 824 → 824 | +4 genuine sub-tolerance land borders (Egypt–Libya 0.4 m … a domestic Anguilla pair) and Samukh↔Yevlakh, whose World Bank polygons meet only at a point (a land and reservoir border of about 15 km; maintainer map ruling 2026-09-27); no water rows |
 | **S4** − denylist of reviewed non-adjacent contacts | 8,469 → 8,462 | 824 → 824 | `data/denylist_pairs.csv`, 7 contacts found in the water adjudication not to be borders (register `docs/FUTURE_EDGE_AUDITS.md` #7, #8, #11–#14, #16): Grand Gedeh↔Rivercess (a quadripoint stretched into a 1.12 km cardinal-leg connector, a World Bank shape signature) and Apure↔Amazonas (a 2.35 km mid-river seam contradicted by Amazonas' territorial-division law), maintainer decisions 2026-07-18; the Kasba Lake four-corners point CAN003↔CAN006, a point contact on the Lake Edward boundary COD009↔UGA102 and a diagonal non-adjacency in Lake Victoria TZA016↔UGA040, whose World Bank arcs are stable across tolerances and which rest on the maintainer's official-map check (2026-07-25); and, on the same basis, Franche-Comté↔Bern FRA011↔CHE006, a 0.82 km contact on the Doubs at Biaufond that official maps show as a corner where the two units come close without meeting (2026-09-29); and La Paz↔Callao BOL004↔PER007, a 62 km contact inside Lake Titicaca with a World Bank polygon named Callao whose largest part is a mislabelled fragment of the Puno region, ruled not adjacent by the maintainer (2026-10-04, `ua1`) |
-| **shipped (lenient)** | **8,462** | 824 | 3,374 regions, 196 countries — every edge kept |
-| moderate (default) | **8,026** | −436 | 8,462 − 436 water-only pairs with no fixed crossing |
+| **shipped (lenient, default)** | **8,462** | 824 | 3,374 regions, 196 countries — every edge kept |
+| moderate | **8,026** | −436 | 8,462 − 436 water-only pairs with no fixed crossing |
 | stringent | **7,638** | −824 | 8,462 − all 824 water-only pairs |
 
 **What Stage 1 changed vs a naïve build (add/remove reasons):** removed 4
@@ -618,14 +618,19 @@ edge.
 
 A subset of cross-border pairs share **only** a river or lake border — no land
 segment. Whether such a pair counts as "pericoupled" depends on the question
-being asked, so the loaders expose a `coupling_standard` (default `"moderate"`),
+being asked, so the loaders expose a `coupling_standard` (default `"lenient"`),
 orthogonal to `de_facto_borders`:
 
 | standard | a water-only pair is pericoupled iff… |
 |---|---|
-| `lenient` | always (any shared water counts — the prior behaviour) |
-| `moderate` *(default)* | a **fixed crossing open to traffic** links the two units |
+| `lenient` *(default)* | always (any shared water counts) |
+| `moderate` | a **fixed crossing open to traffic** links the two units |
 | `stringent` | never (water never counts) |
+
+The default counts every administrative border: whether a fixed crossing
+exists does not reflect how connected the two sides of a river or lake are,
+so the crossing rule is offered as the `moderate` option rather than applied
+by default.
 
 **Data.** Since 2026-07-25 each row also carries two **structured provenance**
 columns appended after `note` — `adjudication` (the process class; uniformly
@@ -670,10 +675,10 @@ the 13 river rows of the 5 km/10 km widening re-screens (ru1 fold,
 2026-07-22) and the Skadar lake row of the 1–100 km lake band (lg1 fold,
 2026-07-23) — all independently re-nominated by the current screens
 (whole-graph attributability 824/824). Under
-the default, ADM1 pericoupled edges fall 8,462 → **8,026** and ADM0 country
+`moderate`, ADM1 pericoupled edges fall 8,462 → **8,026** and ADM0 country
 pairs 326 → **321** (the hydro-water rows' GUF↔SUR roll-up — the Maroni
 system, ferry only — joins COD↔TZA, CAF↔COD, NGA↔TCD across Lake Chad,
-and the roll-up GUY↔SUR — the ferry-only Corentyne — as default-view
+and the roll-up GUY↔SUR — the ferry-only Corentyne — as moderate-view
 subtractions; the 14 bridged roll-ups, BEN↔NER and MWI↔TZA among them, move only
 stringent; the stringent view ships at **307**).
 
