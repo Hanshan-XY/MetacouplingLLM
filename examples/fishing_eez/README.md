@@ -19,7 +19,7 @@ borders on land and at sea (`maritime_adjacency=True`):
 
 Carlson et al. sorted the same flows into their Type 1 (own), Type 2 (adjacent
 nation) and Type 3 (distant nation) tables. The database gives the same label to
-**97.4%** of their adjacent and distant flows, by count and by catch
+**97.3%** of their adjacent and distant flows, holding **97.4%** of their catch
 (see *Comparison with Carlson et al.'s labels* below).
 
 ## What it reproduces (verified)
@@ -29,7 +29,7 @@ and:
 
 - **280 EEZs**, of which **276** are assigned to a region (**99.53%** of catch);
 - **269 EEZs** with distant catch, whose unweighted mean equivalent number of
-  distant fishing countries (`ENP_T`) is **3.15**, against **17.59** nominal ones;
+  distant fishing countries (`ENP_T`) is **3.15**, against **17.60** nominal ones;
 - total reconstructed catch **5.733 Bt**, own + adjacent share **88.4%**.
 
 **Table 5 — catch-weighted regional means** (weight = `F_total`), spot-check rows
@@ -141,16 +141,16 @@ do not. Partners are countries, so `ENP_T` counts distant fishing countries.
 ### Comparison with Carlson et al.'s labels
 
 `outputs/carlson_comparison.csv` cross-tabulates the two labels. Of Carlson's
-5,486 adjacent and distant flows, 5,341 (97.4%, holding 97.4% of their catch)
+5,486 adjacent and distant flows, 5,339 (97.3%, holding 97.4% of their catch)
 keep their label:
 
-- **Distant → adjacent**, 115 flows, 24.6 Mt: Russian catch off the United
+- **Distant → adjacent**, 115 flows, 24.5 Mt: Russian catch off the United
   States' coasts (8.8 Mt; the country borders Russia through Alaska), South Korean
   catch in Russia's Far East (6.4 Mt; the two zones meet along a median line),
   Faroese catch in British, Icelandic and Norwegian waters (4.9 Mt; Carlson labels
   the reverse flows adjacent), Taiwanese catch in the waters of countries that
   border China (3.2 Mt), and 95 small flows (1.3 Mt).
-- **Adjacent → distant**, 24 flows, 6.7 Mt: mostly catch between Indonesia and
+- **Adjacent → distant**, 26 flows, 6.7 Mt: mostly catch between Indonesia and
   China or Taiwan, as Marine Regions records no boundary between China's and
   Indonesia's zones.
 - **Adjacent or distant → intracoupled**, 6 flows, 5.7 Mt: Taiwan and China,

@@ -289,7 +289,7 @@ municipal consolidation postdates the WB layer's 119-novadi representation).
 | `pericoupled_adm1_edge_list.csv` | 8,462 edges · 3,374 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the reviewed edges of Stages 3 and 4 below) |
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
-| `maritime_adjacency_pairs.csv` | 392 country pairs · 194 ADM0 units | Country pairs whose waters share a maritime boundary (Marine Regions, version 12), read by `maritime_adjacency`; built by `scripts/build_maritime_adjacency.py` (see *Maritime boundaries* below) |
+| `maritime_adjacency_pairs.csv` | 387 country pairs · 194 ADM0 units | Country pairs whose waters share a maritime boundary (Marine Regions, version 12), read by `maritime_adjacency`; built by `scripts/build_maritime_adjacency.py` (see *Maritime boundaries* below) |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 16 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
 | `water_separated_pairs.csv` | 824 ADM1 + 19 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter, composed by Stage 3 from `water_classification_pairs.csv` (798 on a shared edge + 26 between non-touching units; see *Water-separated pairs* below) |
 | `sliver_corridor_relabel.csv` | 10 host polygons | Reviewed source-relabel manifest: WB sliver-corridor artifacts reassigned to their true owner units before contiguity. |
@@ -426,7 +426,10 @@ writing when the table would change. Rules (rationale and results:
 3. A territory counts as a unit of the ADM0 database: its own ISO 3166-1
    code where Marine Regions gives one and the database has it as a unit
    (Greenland, the Faroe Islands, Réunion), else the country that holds it
-   (Alaska, Hawaii, the Azores).
+   (Alaska, Hawaii, the Azores). A claim coded by its claimant's country
+   counts as the unit of that country the World Bank layer draws the claimed
+   island in (`WB_CLAIM_UNITS`: France's claims at Tromelin and at Matthew
+   and Hunter Islands, `ATF` and `NCL`).
 4. A World Bank disputed tract counts as the administrator the land database
    assigns it (`_NDLSA_TRACT_ADMIN`): the Falkland Islands, South Georgia and
    the South Sandwich Islands and the Chagos Archipelago as `GBR`, Western
@@ -440,10 +443,10 @@ Columns: `code_a`, `name_a`, `code_b`, `name_b` (the ISO alpha-3 codes of two
 ADM0 units, in alphabetical order, and their names), `line_types` (the types
 of the lines and areas that join the pair), `boundary_km` (the summed length
 Marine Regions records for the lines between the two countries' own
-territories; 0 for the 22 pairs joined only through a shared area) and
-`disputed_only`. The table holds 392 pairs among 194 units; 130 of them are
-also land pairs, and the other 262 take the default country view from 326 to
-588 pairs (583 with `de_facto_borders=False`). It follows the lines of
+territories; 0 for the 18 pairs joined only through a shared area) and
+`disputed_only`. The table holds 387 pairs among 194 units; 130 of them are
+also land pairs, and the other 257 take the default country view from 326 to
+583 pairs (578 with `de_facto_borders=False`). It follows the lines of
 version 12 as Marine Regions records them, unsettled and unilaterally claimed
 ones included, and takes no position on any of them.
 

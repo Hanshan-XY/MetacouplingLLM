@@ -387,7 +387,7 @@ only), adds the pairs of the maritime table (§8).
 
 ## 8. The optional maritime table (country level)
 
-`src/metacouplingllm/data/maritime_adjacency_pairs.csv` (392 country pairs,
+`src/metacouplingllm/data/maritime_adjacency_pairs.csv` (387 country pairs,
 read by `maritime_adjacency=True`) is built from two attribute tables of the
 Marine Regions Maritime Boundaries Geodatabase, version 12, which ship in
 `build_data/marine_regions/` (about 0.5 MB; CC BY 4.0, with the attribution
@@ -405,7 +405,7 @@ python scripts/build_maritime_adjacency.py --check
 (Full hashes: `data/PROVENANCE.md` → "Sources (pinned)".) The build reads
 the two files by default, refuses a file that does not match its pin, checks
 that every country code is a unit of the ADM0 database, and with `--check`
-prints `392 country pairs (3 only through disputed waters); unchanged` and
+prints `387 country pairs (3 only through disputed waters); unchanged` and
 exits 0 on an untouched checkout (2 if the table would change);
 `tests/test_maritime_adjacency.py` runs the same check. `.gitattributes`
 turns off line-ending conversion for the two files, so their bytes, and the

@@ -27,10 +27,12 @@ ASM,American Samoa,TKL,Tokelau,Connection line; Treaty,592.9,False
 ASM,American Samoa,TON,Tonga,Median line,121.2,False
 ASM,American Samoa,WSM,Samoa,Median line,785.2,False
 ATF,French Southern Territories,HMD,Heard Island and McDonald Islands,Treaty,707.6,False
-ATF,French Southern Territories,MDG,Madagascar,Median line; Overlapping claim area; Unsettled median line (land),1325.1,False
+ATF,French Southern Territories,MDG,Madagascar,Connection line; Median line; Overlapping claim area; Unsettled median line (land),1325.1,False
 ATF,French Southern Territories,MOZ,Mozambique,Median line,1439.9,False
+ATF,French Southern Territories,MUS,Mauritius,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
 ATF,French Southern Territories,MYT,Mayotte,Connection line; Unsettled median line (land),0.0,False
-ATF,French Southern Territories,SYC,Seychelles,Connection line; Treaty,0.0,False
+ATF,French Southern Territories,REU,Reunion,Unsettled median line (land),0.0,False
+ATF,French Southern Territories,SYC,Seychelles,Connection line; Treaty; Unsettled median line (land),0.0,False
 ATG,Antigua and Barbuda,BLM,Saint Barthelemy,Median line,75.3,False
 ATG,Antigua and Barbuda,GLP,Guadeloupe,Median line,423.9,False
 ATG,Antigua and Barbuda,KNA,Saint Kitts and Nevis,Median line,128.4,False
@@ -182,8 +184,7 @@ EST,Estonia,RUS,Russia,Connection line; Median line; Treaty,136.9,False
 EST,Estonia,SWE,Sweden,Treaty,91.8,False
 FIN,Finland,RUS,Russia,Connection line; Median line; Treaty,133.5,False
 FIN,Finland,SWE,Sweden,Connection line; Median line; Treaty,1011.5,False
-FJI,Fiji,FRA,France,Connection line,0.0,False
-FJI,Fiji,NCL,New Caledonia,Treaty,580.5,False
+FJI,Fiji,NCL,New Caledonia,Connection line; Treaty,580.5,False
 FJI,Fiji,SLB,Solomon Islands,Median line,84.6,False
 FJI,Fiji,TON,Tonga,Median line,1042.1,False
 FJI,Fiji,TUV,Tuvalu,Connection line; Unilateral claim (undisputed),635.6,False
@@ -194,12 +195,6 @@ FRA,France,GGY,Guernsey,Treaty,199.8,False
 FRA,France,ITA,Italy,Connection line; Joint regime; Joint regime area; Treaty; Unilateral claim (undisputed),897.1,False
 FRA,France,JEY,Jersey,Treaty,148.1,False
 FRA,France,MCO,Monaco,Treaty,184.7,False
-FRA,France,MDG,Madagascar,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
-FRA,France,MUS,Mauritius,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
-FRA,France,NCL,New Caledonia,Unsettled median line (land),0.0,False
-FRA,France,REU,Reunion,Unsettled median line (land),0.0,False
-FRA,France,SYC,Seychelles,Unsettled median line (land),0.0,False
-FRA,France,VUT,Vanuatu,200 NM; Connection line; Overlapping claim area; Unsettled median line (land),391.5,False
 FRO,Faroe Islands,GBR,United Kingdom,Connection line; Joint regime; Joint regime area; Treaty,2051.6,False
 FRO,Faroe Islands,ISL,Iceland,Connection line; Joint regime; Joint regime area; Treaty,1007.6,False
 FRO,Faroe Islands,NOR,Norway,Connection line; Treaty,60.9,False
@@ -347,7 +342,7 @@ MYS,Malaysia,VNM,Vietnam,Median line,365.3,False
 NAM,Namibia,ZAF,South Africa,Median line,460.9,False
 NCL,New Caledonia,NFK,Norfolk Island,Treaty,360.7,False
 NCL,New Caledonia,SLB,Solomon Islands,Connection line; Treaty,525.5,False
-NCL,New Caledonia,VUT,Vanuatu,Median line; Unsettled median line (land),1056.0,False
+NCL,New Caledonia,VUT,Vanuatu,200 NM; Connection line; Median line; Overlapping claim area; Unsettled median line (land),1447.5,False
 NFK,Norfolk Island,NZL,New Zealand,Treaty,819.7,False
 NGA,Nigeria,STP,Sao Tome and Principe,Joint regime; Joint regime area,999.6,False
 NIC,Nicaragua,SLV,El Salvador,Median line,419.3,False
