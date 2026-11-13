@@ -52,6 +52,21 @@ file. The format is loosely based on
   pericoupled by default, so the prompt hint, the validation block and the
   automatic map treat them as neighbours. Tests follow the new default
   (suite 2,172).
+- **The fishing example labels every flow with the package's country
+  database.** `examples/fishing_eez/` took its intracoupled, pericoupled and
+  telecoupled labels from the tables of Carlson et al. (2020). Step 02 now
+  gives each EEZ and fishing nation its country (`data/sau_country_codes.csv`)
+  and labels each flow with `build_adjacency(level="adm0",
+  maritime_adjacency=True)` and `classify_coupling`, counting borders on land
+  and at sea. The database gives Carlson's label to 97.4% of their 5,486
+  adjacent and distant flows, by count and by catch
+  (`outputs/carlson_comparison.csv`). Tables 4 and 5, the global figures and
+  the yearly series are recomputed: the own and adjacent share of the catch
+  is 88.4% (88.1% with Carlson's labels), and the telecoupled share peaks at
+  0.203 in 1972 (0.216). The parser also leaves out five 2013 rows of Table
+  S8's Clipperton Island block, which hold a number where the fishing
+  nation's name belongs (2,314 t); they had entered the edge table as five
+  fishing nations named by numbers.
 
 ## [0.2.2] — 2026-10-24
 

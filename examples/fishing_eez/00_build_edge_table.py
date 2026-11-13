@@ -20,12 +20,19 @@ from ./source when it is unset:
         nation active that year, so we aggregate (sum) over all years AND over
         repeated nation rows.
 
+      * In the Clipperton Isl. (France) block of S8, five 2013 rows hold a number
+        where the fishing nation's name belongs (2,314 t in all).  Their fleets
+        cannot be known, so the parser leaves them out and reports them.
+
 OUTPUT (pinned so downstream steps run offline):
     data/fishing_edge_table.csv  -- one row per flow, columns:
-        focal_system_id, destination_id, coupling_type {I,P,T}, flow_value
+        focal_system_id, destination_id, carlson_type {I,P,T}, flow_value
+
+    carlson_type is Carlson et al.'s label (the table the catch comes from);
+    02_compute_indicators.py labels every flow again with the package's database.
 
     Edge construction:
-        Type 1 -> {focal: EEZ, destination_id: EEZ+' (own)', coupling_type:'I', flow_value: own catch}
+        Type 1 -> {focal: EEZ, destination_id: EEZ+' (own)', carlson_type:'I', flow_value: own catch}
         Type 2 -> one row per adjacent nation {focal: EEZ, destination_id: nation, 'P', catch}
         Type 3 -> one row per distant  nation {focal: EEZ, destination_id: nation, 'T', catch}
 
@@ -73,29 +80,26 @@ def _eez(name) -> str:
     return EEZ_ALIASES.get(eez, eez)
 
 
-def parse_type1_own(path: Path) -> dict[str, float]:
-    """S4 (wide): sum each EEZ column over all year rows -> own catch per EEZ."""
+def iter_own(path: Path):
+    """S4 (wide): yield (year, EEZ, catch) for every own-catch cell."""
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = wb["catch"]
-
     header = next(ws.iter_rows(min_row=HEADER_ROW, max_row=HEADER_ROW, values_only=True))
     # column 0 is 'Year/EEZ'; columns 1.. are EEZ names
     eez_by_col = {col: _eez(name) for col, name in enumerate(header) if col >= 1 and name}
-
-    totals: dict[str, float] = defaultdict(float)
-    for row in ws.iter_rows(min_row=FIRST_DATA_ROW, values_only=True):
-        for col, eez in eez_by_col.items():
-            val = row[col]
-            if val is not None:
-                totals[eez] += float(val)
-    wb.close()
-    return dict(totals)
+    try:
+        for row in ws.iter_rows(min_row=FIRST_DATA_ROW, values_only=True):
+            for col, eez in eez_by_col.items():
+                if row[col] is not None:
+                    yield row[0], eez, float(row[col])
+    finally:
+        wb.close()
 
 
-def parse_blocks(path: Path) -> dict[str, dict[str, float]]:
-    """S6 / S8 (blocks): for each EEZ, sum catch per fishing-nation over all years.
+def iter_blocks(path: Path):
+    """S6 / S8 (blocks): yield (year, EEZ, fishing nation, catch) for every catch row.
 
-    Returns {EEZ: {fishing_nation: total_catch, ...}, ...}.
+    A row whose nation cell is not a name (a number) is left out and reported.
     """
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = wb["catch"]
@@ -114,18 +118,36 @@ def parse_blocks(path: Path) -> dict[str, dict[str, float]]:
     # Keep only the columns that are EEZ-name columns (those whose +1 neighbour is 'Catch')
     name_cols = [c for c in eez_block if (c + 1) < n and _clean(header[c + 1]).lower() == "catch"]
 
-    result: dict[str, dict[str, float]] = {eez_block[c]: defaultdict(float) for c in name_cols}
-    for row in ws.iter_rows(min_row=FIRST_DATA_ROW, values_only=True):
-        for c in name_cols:
-            nation = row[c]
-            catch = row[c + 1] if (c + 1) < len(row) else None
-            if nation is not None and catch is not None:
-                eez = eez_block[c]
-                result[eez][_clean(nation)] += float(catch)
+    try:
+        for row in ws.iter_rows(min_row=FIRST_DATA_ROW, values_only=True):
+            for c in name_cols:
+                nation = row[c]
+                catch = row[c + 1] if (c + 1) < len(row) else None
+                if nation is None or catch is None:
+                    continue
+                if not isinstance(nation, str):
+                    print(f"  left out: {eez_block[c]}, {row[0]}: a number ({nation}) where the "
+                          f"fishing nation belongs, {float(catch):,.1f} t")
+                    continue
+                yield row[0], eez_block[c], _clean(nation), float(catch)
+    finally:
+        wb.close()
 
-    wb.close()
-    # drop empties, demote defaultdicts to plain dicts
-    return {eez: dict(d) for eez, d in result.items() if d}
+
+def parse_type1_own(path: Path) -> dict[str, float]:
+    """S4: own catch per EEZ, summed over all years."""
+    totals: dict[str, float] = defaultdict(float)
+    for _, eez, catch in iter_own(path):
+        totals[eez] += catch
+    return dict(totals)
+
+
+def parse_blocks(path: Path) -> dict[str, dict[str, float]]:
+    """S6 / S8: {EEZ: {fishing_nation: catch summed over all years and repeated rows}}."""
+    result: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    for _, eez, nation, catch in iter_blocks(path):
+        result[eez][nation] += catch
+    return {eez: dict(d) for eez, d in result.items()}
 
 
 def main() -> None:
@@ -159,7 +181,7 @@ def main() -> None:
                 {
                     "focal_system_id": eez,
                     "destination_id": f"{eez} (own)",
-                    "coupling_type": "I",
+                    "carlson_type": "I",
                     "flow_value": own[eez],
                 }
             )
@@ -170,7 +192,7 @@ def main() -> None:
                     {
                         "focal_system_id": eez,
                         "destination_id": nation,
-                        "coupling_type": "P",
+                        "carlson_type": "P",
                         "flow_value": catch,
                     }
                 )
@@ -181,7 +203,7 @@ def main() -> None:
                     {
                         "focal_system_id": eez,
                         "destination_id": nation,
-                        "coupling_type": "T",
+                        "carlson_type": "T",
                         "flow_value": catch,
                     }
                 )
@@ -189,7 +211,7 @@ def main() -> None:
     out = DATA_DIR / "fishing_edge_table.csv"
     with out.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(
-            f, fieldnames=["focal_system_id", "destination_id", "coupling_type", "flow_value"]
+            f, fieldnames=["focal_system_id", "destination_id", "carlson_type", "flow_value"]
         )
         w.writeheader()
         w.writerows(edges)

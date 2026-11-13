@@ -1,4 +1,4 @@
-focal_system_id,destination_id,coupling_type,flow_value
+focal_system_id,destination_id,carlson_type,flow_value
 Albania,Albania (own),I,295633.6062137996
 Albania,Greece,P,7495.704881452099
 Albania,Montenegro,P,414.6829008104
@@ -945,11 +945,6 @@ Clipperton Isl. (France),Senegal,T,89.59097454
 Clipperton Isl. (France),Venezuela,T,53050.543626612
 Clipperton Isl. (France),Belize,T,2450.5861637119997
 Clipperton Isl. (France),China,T,5750.972682785001
-Clipperton Isl. (France),8.388267267,T,41.94063697
-Clipperton Isl. (France),1911.337162,T,22.34456634
-Clipperton Isl. (France),38.1767114,T,568.6854525
-Clipperton Isl. (France),364.6735082,T,435.5738029
-Clipperton Isl. (France),64.62552987,T,1245.986793
 Cocos (Keeling) Isl. (Australia),Cocos (Keeling) Isl. (Australia) (own),I,641.4252984889999
 Cocos (Keeling) Isl. (Australia),Malaysia,T,3.976615667
 Cocos (Keeling) Isl. (Australia),Japan,T,2924.1586013
