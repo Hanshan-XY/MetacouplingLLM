@@ -9,6 +9,20 @@ file. The format is loosely based on
 
 ### Added
 
+- **`OpenAIAdapter(..., reasoning_effort=...)` and GPT-6 models.** The
+  effort applies to every call the assistant makes, its native OpenAI web
+  search included. With an effort, the adapter sends its requests through
+  the Responses API, which takes every effort a model offers: Chat
+  Completions accepts gpt-6.1-sol's efforts only up to `"xhigh"`, Responses
+  takes `"max"`. While a model reasons, no `temperature` is sent (the API
+  rejects it) and no output-token cap (it would count reasoning tokens too,
+  so a cap sized for the answer could end a response during reasoning).
+  Without an effort, Chat Completions is used as before; GPT-6 models, which
+  reason by default, get neither `temperature` nor a cap there. Run traces
+  record the reasoning effort and the adjacency settings
+  (`de_facto_borders`, `coupling_standard`, `maritime_adjacency`), and
+  `scripts/trace_pipeline.py` takes the effort and the adjacency settings as
+  constants. Nine new tests in `tests/test_gpt6_reasoning.py`.
 - **Maritime adjacency for countries (`maritime_adjacency`, default
   `False`).** The country lookups (`lookup_pericoupling`, `is_pericoupled`,
   `get_pericoupled_neighbors`), the two country map functions,

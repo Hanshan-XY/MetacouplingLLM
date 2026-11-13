@@ -268,6 +268,21 @@ advisor = MetacouplingAssistant(adapter)
 Supported models: `"gpt-4o"`, `"gpt-4o-mini"`, or any OpenAI chat
 model identifier OpenAI's API accepts.
 
+For reasoning models, `reasoning_effort` sets the effort of every call the
+assistant makes, its native web search included:
+
+```python
+adapter = OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max")
+```
+
+With an effort, the adapter sends its requests through OpenAI's Responses
+API, which takes every effort a model offers (Chat Completions stops at
+`"xhigh"` for gpt-6.1-sol); without one, it uses Chat Completions and the
+model's default effort. While a model reasons, the adapter sends no
+`temperature` (the API rejects it) and no output-token cap (the cap would
+count reasoning tokens too), so the `temperature` setting of §5 applies only
+to models that do not reason.
+
 **Using Google Colab with secure API key storage:**
 
 ```python
@@ -401,6 +416,8 @@ advisor = MetacouplingAssistant(
     adapter,
     temperature=0.7,          # Creativity (0.0=deterministic, 1.0=creative);
                               #   ignored by gpt-5* models (always run at 1), by
+                              #   GPT-6 models and any OpenAIAdapter with a
+                              #   reasoning_effort (not sent, §4), by
                               #   Claude 4.7 and later models, and by every Claude
                               #   model with anthropic>=2 (API version 2026-10-21
                               #   has no temperature); main analysis call only
@@ -1896,7 +1913,7 @@ Methods and properties:
 
 | Class | Description |
 |---|---|
-| `OpenAIAdapter(client, model="gpt-4o")` | Wraps an `openai.OpenAI` instance. |
+| `OpenAIAdapter(client, model="gpt-4o", *, reasoning_effort=None)` | Wraps an `openai.OpenAI` instance; `reasoning_effort` (e.g. `"max"` for `gpt-6.1-sol`) sets the effort of every call and sends them through the Responses API (§4). |
 | `AnthropicAdapter(client, model="claude-sonnet-5-5", extended_thinking=None)` | Wraps an `anthropic.Anthropic` instance; `extended_thinking` (e.g. `{"type": "enabled", "budget_tokens": 10000}`) is forwarded as the `thinking` request parameter and is not sent when `None`. |
 | `GeminiAdapter(client, model="gemini-2.5-flash")` | Wraps a `google.genai.Client` instance. |
 | `GrokAdapter(client, model="grok-3")` | Wraps an `openai.OpenAI` instance pointed at `https://api.x.ai/v1`. |
