@@ -62,6 +62,7 @@ def build_adjacency(
     flag_col: str = "adjacent",
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> "pd.DataFrame":
     """Fill an ``adjacent`` column (1 / 0) from the bundled pericoupling DB.
 
@@ -84,6 +85,9 @@ def build_adjacency(
     de_facto_borders, coupling_standard:
         Forwarded to the bundled lookups (see
         :func:`metacouplingllm.knowledge.pericoupling.is_pericoupled`).
+    maritime_adjacency:
+        ``True`` also counts countries that share a maritime boundary.
+        Country level only: ``level="adm1"`` raises ``ValueError``.
 
     Returns
     -------
@@ -109,6 +113,11 @@ def build_adjacency(
         raise ValueError(
             f"level must be 'adm0' or 'adm1', got {level!r}."
         )
+    if maritime_adjacency and level != "adm0":
+        raise ValueError(
+            "maritime_adjacency applies to level='adm0' only: maritime "
+            "boundaries are recorded between countries."
+        )
     missing = [c for c in (origin_col, destination_col) if c not in pairs.columns]
     if missing:
         raise KeyError(
@@ -130,6 +139,7 @@ def build_adjacency(
                 code_a, code_b,
                 de_facto_borders=de_facto_borders,
                 coupling_standard=coupling_standard,
+                maritime_adjacency=maritime_adjacency,
             )
     else:
         from metacouplingllm.knowledge.adm1_pericoupling import (

@@ -7,7 +7,9 @@ prior-practice context, and the sensitivity analyses that back the parameters.
 
 All numeric results below were computed from the World Bank Official Boundaries
 2026-05-14 GeoPackages (ADM1 `WB_GAD_ADM1`, 3,591 polygons; ADM0 `WB_GAD_ADM0`,
-264 polygons) with `scripts/build_pericoupling_db.py`.
+264 polygons) with `scripts/build_pericoupling_db.py`; those of §11, the
+optional maritime table, from the Marine Regions Maritime Boundaries
+Geodatabase with `scripts/build_maritime_adjacency.py`.
 
 ## Construction and the source of every number (four-stage build)
 
@@ -1649,3 +1651,90 @@ frontage conserved), and the two junction closings. Standalone re-run:
 
 Full verification record: `build_data/build_record/relabel_RESULTS.md`; scan +
 adjudication evidence: `build_data/arusha_sliver_audit/`.
+
+## 11. Maritime adjacency (optional, country level)
+
+The land databases treat countries separated by sea as non-adjacent:
+Japan, Cuba and the Philippines have no neighbours. Flows that cross the sea,
+such as fish caught in another country's waters, can call for a different
+notion, in which two countries are adjacent when their waters meet, so the
+country lookups take a third toggle, `maritime_adjacency` (default `False`,
+because most metacoupling studies define adjacency on land), orthogonal to
+`de_facto_borders` and `coupling_standard`. It applies to countries only;
+the ADM1 functions do not take it.
+
+**Source.** The Maritime Boundaries Geodatabase of the Flanders Marine
+Institute, version 12 (Flanders Marine Institute, 2023; Marine Regions,
+https://doi.org/10.14284/632; CC BY 4.0). Two of its attribute tables are
+read without geometry, as CSV from the VLIZ WFS service, pinned by SHA-256
+(`data/PROVENANCE.md`) and committed in `build_data/marine_regions/`: the
+boundary lines
+(`MarineRegions:eez_boundaries`, 2,349 lines, each with its type, its length
+and the territories and zones on its two sides) and the zone records
+(`MarineRegions:eez`, 285 records: 229 ordinary 200-nautical-mile zones, 35
+overlapping claims and 21 joint regimes, each naming its territories and
+their ISO 3166-1 codes).
+
+**Rules** (`scripts/build_maritime_adjacency.py`), applied to every record
+alike:
+
+1. A boundary line between two territories makes them neighbours, whatever
+   its type: a treaty line, a median line, a line set by a court, a joint
+   regime's line or an unsettled one. The question is whether two countries' waters
+   meet, not whether the line between them is agreed, just as the land
+   databases count every border the World Bank draws. Lines with a single
+   side (mostly baselines and 200-nautical-mile outer limits) join nobody.
+2. An overlapping-claim area borders every claimant its record lists, and
+   its claimants share it, so they border one another. A joint-regime area's
+   parties are the territories on the boundary lines that carry it, compared
+   by territory ID; the record's parties stand only for an area no line
+   carries. This changes one area, the United States–Russia joint regime,
+   whose record names the contiguous United States while its lines name
+   Alaska; both count as the United States, so no country pair changes.
+3. A territory counts as a unit of the ADM0 database: as its own ISO 3166-1
+   code where Marine Regions gives one and the database has it as a unit
+   (Greenland, the Faroe Islands, Réunion), else as the country that holds
+   it (Alaska, Hawaii, the Azores, the Andaman and Nicobar Islands), so a
+   flow between the Azores' waters and mainland Portugal stays within one
+   country.
+4. A World Bank disputed tract follows the land database's rule (§5): its
+   waters go to the administrator Natural Earth records for it
+   (`_NDLSA_TRACT_ADMIN`). The Falkland Islands, South Georgia and the South
+   Sandwich Islands and the Chagos Archipelago go to the United Kingdom, and
+   Western Sahara to Morocco.
+5. A pair that exists only through a disputed tract's waters is marked
+   `disputed_only`, and the loaders drop it from the strict view
+   (`de_facto_borders=False`), as they drop the land overlay. There are three:
+   Argentina–United Kingdom (the waters of the Falkland Islands and South
+   Georgia), Maldives–United Kingdom (the Chagos Archipelago) and
+   Mauritania–Morocco (Western Sahara).
+6. Waters within one country make no pair.
+
+**Result.** `data/maritime_adjacency_pairs.csv` holds 392 country pairs among
+194 ADM0 units, each with the types of the lines and areas that join it, the
+summed length Marine Regions records for the lines between the two
+countries' own territories (0 for the 22 pairs joined only through a shared
+area) and the `disputed_only` flag. 130 of the pairs are also land pairs; the
+other 262 are what the toggle adds. Country pairs in each view:
+
+| view | land | land or sea |
+|---|---|---|
+| `lenient` (default) | 326 | 588 |
+| `moderate` | 321 | 585 |
+| `stringent` | 307 | 572 |
+| `lenient`, `de_facto_borders=False` | 323 | 583 |
+| `moderate`, `de_facto_borders=False` | 318 | 580 |
+| `stringent`, `de_facto_borders=False` | 304 | 567 |
+
+`coupling_standard` governs only the land table's water-only borders and
+never removes a sea pair: Guyana and Suriname, and French Guiana and
+Suriname, which `"moderate"` and `"stringent"` separate on land (a river
+border with no fixed crossing), stay adjacent at sea.
+
+**Reproduction.** `python scripts/build_maritime_adjacency.py` reads the two
+committed inputs, verifies them against their pins, checks that every
+country code is a unit of the ADM0 database, and writes the table
+byte-stably; `--check` exits 2 instead of writing when the output would
+change. `docs/REPRODUCING.md` §8 gives the commands that fetched the inputs.
+`tests/test_maritime_adjacency.py` checks the table and the loaders' views,
+and re-runs the build with `--check`.

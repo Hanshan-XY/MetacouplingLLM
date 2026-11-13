@@ -818,9 +818,13 @@ class MetacouplingAssistant:
         # disputed land into its de-facto administrator (vs the strict WB
         # standard layer); ``coupling_standard`` (``"stringent"``/
         # ``"moderate"``/``"lenient"``) controls how water-only borders are
-        # treated.  Defaults match the underlying lookup defaults.
+        # treated; ``maritime_adjacency=True`` also counts countries that
+        # share a maritime boundary (country lookups only: the country hint,
+        # the country validation and the country map).  Defaults match the
+        # underlying lookup defaults.
         de_facto_borders: bool = True,
         coupling_standard: str = "lenient",
+        maritime_adjacency: bool = False,
         # PR #31: opt out of the dedicated abstract LLM call.  Defaults
         # to True so scholars get ``result.abstract`` for free; set to
         # False in unit tests / batch jobs that need to count calls
@@ -880,6 +884,7 @@ class MetacouplingAssistant:
                 f"{coupling_standard!r}"
             )
         self._coupling_standard = _std
+        self._maritime_adjacency = bool(maritime_adjacency)
         self._last_web_results: list[dict[str, str]] = []
         self._last_web_map_signals: dict[str, object] | None = None
         self._last_map_notice: str | None = None
@@ -900,6 +905,7 @@ class MetacouplingAssistant:
             max_examples=max_examples,
             de_facto_borders=self._de_facto_borders,
             coupling_standard=self._coupling_standard,
+            maritime_adjacency=self._maritime_adjacency,
         )
         self._formatter = AnalysisFormatter()
 
@@ -4252,6 +4258,7 @@ class MetacouplingAssistant:
                     flows=map_flows if map_flows else None,
                     de_facto_borders=self._de_facto_borders,
                     coupling_standard=self._coupling_standard,
+                    maritime_adjacency=self._maritime_adjacency,
                 )
                 self._last_map_type = "country"
                 return fig
@@ -4447,6 +4454,7 @@ class MetacouplingAssistant:
                 ),
                 de_facto_borders=self._de_facto_borders,
                 coupling_standard=self._coupling_standard,
+                maritime_adjacency=self._maritime_adjacency,
             )
             self._last_map_type = "country"
             return fig
@@ -4895,6 +4903,7 @@ class MetacouplingAssistant:
             national_mode=not self._user_query_mentions_adm1(),
             de_facto_borders=self._de_facto_borders,
             coupling_standard=self._coupling_standard,
+            maritime_adjacency=self._maritime_adjacency,
         )
 
         formatted = self._formatter.format_full(parsed)
@@ -5417,8 +5426,11 @@ class MetacouplingAssistant:
         national_mode: bool = False,
         de_facto_borders: bool = True,
         coupling_standard: str = "lenient",
+        maritime_adjacency: bool = False,
     ) -> None:
         """Run ADM1 (subnational) and country-level validations.
+
+        ``maritime_adjacency`` reaches the country-level validation only.
 
         PR #27: previously the function returned early once ADM1
         validation succeeded, so analyses that identified a focal
@@ -5466,6 +5478,7 @@ class MetacouplingAssistant:
             national_mode=national_mode,
             de_facto_borders=de_facto_borders,
             coupling_standard=coupling_standard,
+            maritime_adjacency=maritime_adjacency,
         )
 
     @staticmethod
@@ -5475,6 +5488,7 @@ class MetacouplingAssistant:
         national_mode: bool = False,
         de_facto_borders: bool = True,
         coupling_standard: str = "lenient",
+        maritime_adjacency: bool = False,
     ) -> None:
         """Country-level pericoupling validation.
 
@@ -5628,6 +5642,7 @@ class MetacouplingAssistant:
                 focal_code, code_b,
                 de_facto_borders=de_facto_borders,
                 coupling_standard=coupling_standard,
+                maritime_adjacency=maritime_adjacency,
             )
             if result.pair_type == PairCouplingType.PERICOUPLED:
                 return "PERICOUPLED"

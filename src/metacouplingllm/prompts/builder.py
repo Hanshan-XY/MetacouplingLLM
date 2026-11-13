@@ -107,6 +107,9 @@ class PromptBuilder:
         the country and ADM1 lookups (see
         :func:`~metacouplingllm.knowledge.pericoupling.lookup_pericoupling`).
         The defaults are the lookups' own.
+    maritime_adjacency:
+        Passed to the country lookups only: ``True`` also counts countries
+        that share a maritime boundary.
     """
 
     def __init__(
@@ -115,10 +118,12 @@ class PromptBuilder:
         *,
         de_facto_borders: bool = True,
         coupling_standard: str = "lenient",
+        maritime_adjacency: bool = False,
     ) -> None:
         self._max_examples = max_examples
         self._de_facto_borders = bool(de_facto_borders)
         self._coupling_standard = _check_standard(coupling_standard)
+        self._maritime_adjacency = bool(maritime_adjacency)
 
     def build_system_prompt(
         self,
@@ -188,6 +193,7 @@ class PromptBuilder:
                     research_context,
                     de_facto_borders=self._de_facto_borders,
                     coupling_standard=self._coupling_standard,
+                    maritime_adjacency=self._maritime_adjacency,
                 )
             if hint:
                 parts.append(hint)
@@ -359,6 +365,7 @@ class PromptBuilder:
         *,
         de_facto_borders: bool = True,
         coupling_standard: str = "lenient",
+        maritime_adjacency: bool = False,
     ) -> str | None:
         """Scan research text for country names and build a country-pair
         classification hint.
@@ -379,9 +386,10 @@ class PromptBuilder:
         pericoupling angles for single-country queries that
         previously got no hint at all.
 
-        Both lookups use the given ``de_facto_borders`` and
-        ``coupling_standard`` (the assistant's adjacency settings), so
-        the hint agrees with the post-LLM validation.
+        Both lookups use the given ``de_facto_borders``,
+        ``coupling_standard`` and ``maritime_adjacency`` (the assistant's
+        adjacency settings), so the hint agrees with the post-LLM
+        validation.
 
         Framing is REFERENCE-ONLY, parallel to the ADM1 hint
         (PR #20, harmonized in PR #43): the LLM is told that
@@ -427,6 +435,7 @@ class PromptBuilder:
                     code_b,
                     de_facto_borders=de_facto_borders,
                     coupling_standard=coupling_standard,
+                    maritime_adjacency=maritime_adjacency,
                 )
                 name_b = get_country_name(code_b)
                 if result.pair_type == PairCouplingType.PERICOUPLED:
@@ -454,6 +463,7 @@ class PromptBuilder:
                     focal_code,
                     de_facto_borders=de_facto_borders,
                     coupling_standard=coupling_standard,
+                    maritime_adjacency=maritime_adjacency,
                 )
             )
             if not neighbors:

@@ -22,8 +22,9 @@ the spirit of ``tests/test_docs_capabilities.py``:
      ``tests/_helpers.make_parsed_analysis``.
    - §7  "Formatting options" — every ``format_component`` name in the
      doc must be recognised (no ``(Unknown component`` in output).
-   - §8  standalone pericoupling lookups, adjacency standards, and
-     country-name resolution — documented results must match the DB.
+   - §8  standalone pericoupling lookups, adjacency standards, maritime
+     adjacency and country-name resolution — documented results must
+     match the DB.
    - §16 Brazil-soybean worked example including the
      ``group_cols=["flow_type"]`` continuation — MFE ≈ 0.73,
      IFCI == 1.0, and the other documented indicator values.
@@ -360,6 +361,29 @@ def _check_pericoupling_standalone(ns: dict[str, Any], out: str) -> None:
     assert is_pericoupled("COD", "CAF", coupling_standard="moderate") is False
 
 
+def _check_maritime_adjacency(ns: dict[str, Any], out: str) -> None:
+    # The §8 maritime_adjacency subsection: its documented values and the
+    # claims of its prose.
+    is_pericoupled = ns["is_pericoupled"]
+    neighbors = ns["get_pericoupled_neighbors"]
+    assert is_pericoupled("France", "United Kingdom") is False
+    assert is_pericoupled("France", "United Kingdom", maritime_adjacency=True) is True
+    assert neighbors("Japan") == set()
+    assert neighbors("Japan", maritime_adjacency=True) == {
+        "CHN", "KOR", "MNP", "PHL", "RUS",
+    }
+    assert is_pericoupled("ARG", "GBR", maritime_adjacency=True) is True
+    assert is_pericoupled(
+        "ARG", "GBR", de_facto_borders=False, maritime_adjacency=True,
+    ) is False
+    # Guyana-Suriname: a river border with no fixed crossing, adjacent at sea.
+    for standard in ("moderate", "stringent"):
+        assert is_pericoupled("GUY", "SUR", coupling_standard=standard) is False
+        assert is_pericoupled(
+            "GUY", "SUR", coupling_standard=standard, maritime_adjacency=True,
+        ) is True
+
+
 def _check_country_resolution(ns: dict[str, Any], out: str) -> None:
     resolve = ns["resolve_country_code"]
     documented = {
@@ -546,6 +570,12 @@ EXECUTABLE_SECTIONS: list[ExecSpec] = [
         ),
         setup=dict,
         check=_check_pericoupling_standalone,
+    ),
+    ExecSpec(
+        id="s8-maritime-adjacency",
+        subsections=("Maritime adjacency (country level)",),
+        setup=dict,
+        check=_check_maritime_adjacency,
     ),
     ExecSpec(
         id="s8-country-name-resolution",
