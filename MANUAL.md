@@ -417,6 +417,8 @@ advisor = MetacouplingAssistant(
                                #   land into its de-facto administrator (vs strict WB)
     coupling_standard="lenient",   # "stringent"/"moderate"/"lenient" — how
                                #   water-only borders count as adjacency
+    maritime_adjacency=False,  # Countries only: also count countries whose
+                               #   waters share a maritime boundary (§8)
     generate_abstract=True,    # One extra model call per analyze()/refine() to write
                                #   result.abstract; False skips it
     trace=None,                # Write a run-trace folder per analyze()/refine():
@@ -442,6 +444,12 @@ they agree on adjacency: Ohio and Ontario, for example, meet only across Lake
 Erie, which has no fixed crossing, so with the default both list Ontario as a
 cross-border neighbour of Ohio, and with `coupling_standard="moderate"` neither
 does.
+
+`maritime_adjacency=True` (default `False`) adds, for countries only, the
+country pairs whose waters share a maritime boundary (§8, *Maritime
+adjacency*): with it, the country hint, the country validation and the
+country map count France and the United Kingdom as neighbours. The ADM1
+hint, validation and map do not change.
 
 ### Run tracing (`trace`, `trace_dir`)
 
@@ -706,7 +714,7 @@ prefix) are invalid and are silently stripped by the sanitizer.
 of those four is set (`web_structured_extraction`, which is on by
 default, only when `web_search=True`). `max_examples`,
 `max_recommendations`, `generate_abstract`, `de_facto_borders`,
-`coupling_standard`, `adm0_shapefile`, `adm1_shapefile`,
+`coupling_standard`, `maritime_adjacency`, `adm0_shapefile`, `adm1_shapefile`,
 `web_structured_min_confidence` and `web_structured_max_targets` are
 also ignored, without a notice. `rag_corpus`, `rag_papers_dir`,
 `web_search`, `web_search_max_results`, `rag_top_k`, `rag_backend`,
@@ -1055,7 +1063,9 @@ Boundaries, 2026-05-14 release; see `data/PROVENANCE.md`). A second,
 subnational database connects 3,374 first-level administrative (ADM1)
 regions in 196 countries through border pairs (with `de_facto_borders=True`:
 8,462 under `lenient`, 8,026 under `moderate`, 7,638 under `stringent`);
-regions are identified by World Bank codes such as `MEX014`.
+regions are identified by World Bank codes such as `MEX014`. An optional
+maritime layer adds, for countries only, the 392 country pairs whose waters
+share a maritime boundary (*Maritime adjacency*, below).
 
 ### Automatic integration
 
@@ -1163,7 +1173,8 @@ toggles (defaults shown):
 
 `MetacouplingAssistant` (§5) and the map functions (§10) take the same two
 settings; the assistant applies them to the pre-LLM hint, the post-LLM
-validation block and the automatic map.
+validation block and the automatic map. The country-level functions take a
+third setting, `maritime_adjacency` (*Maritime adjacency*, below).
 
 ```python
 # Romania <-> Moldova share only rivers, the Prut and a short Danube reach (bridges exist):
@@ -1242,6 +1253,60 @@ compares the rest the same way (`"Trans-Nzoia County"`).  A name that
 resolves as written keeps its code, and a spelling that several regions share
 gives `None`: `"Nord Ouest"` without `country` matches Haiti's Nord-Ouest and
 Cameroon's Nord - Ouest.
+
+### Maritime adjacency (country level)
+
+The country-level functions take a third toggle, **`maritime_adjacency`**
+(default `False`). With `True`, two countries are also adjacent when their
+waters share a maritime boundary in the Maritime Boundaries Geodatabase of
+the Flanders Marine Institute (Marine Regions, version 12, 2023,
+https://doi.org/10.14284/632; CC BY 4.0): 392 country pairs, 262 of them not
+adjacent on land, so the default country view grows from 326 to 588 pairs.
+The default is `False` because most metacoupling studies define adjacency on
+land; turn it on for flows that cross the sea, such as fish caught in another
+country's waters.
+
+- Every boundary line counts, whatever its legal status: a treaty line, a
+  median line, a line set by a court or one still in dispute.
+- An area that several countries claim, or manage jointly, borders each of
+  them, and they border one another.
+- Waters belong to the units of the country database: Alaska's and Hawaii's
+  count as the United States', the Azores' as Portugal's, while Greenland,
+  the Faroe Islands and Réunion, units of their own, keep theirs. A disputed
+  tract's waters go to the administrator the land database assigns the tract
+  (*Adjacency standards*, above): the Falkland Islands to the United Kingdom,
+  Western Sahara to Morocco. Waters within one country make no pair.
+- Three pairs exist only through a disputed tract's waters
+  (Argentina–United Kingdom, Maldives–United Kingdom and Mauritania–Morocco);
+  `de_facto_borders=False` drops them, as it drops the land overlay.
+
+`maritime_adjacency` is independent of `coupling_standard`, which governs only
+river and lake borders: Guyana and Suriname, whose river border has no fixed
+crossing and so does not count under `"moderate"` or `"stringent"`, stay
+adjacent at sea. The ADM1 functions do not take the toggle, and
+`build_adjacency(level="adm1", maritime_adjacency=True)` raises a
+`ValueError`.
+
+```python
+from metacouplingllm import is_pericoupled, get_pericoupled_neighbors
+
+# France <-> United Kingdom meet only at sea:
+is_pericoupled("France", "United Kingdom")                           # False (default)
+is_pericoupled("France", "United Kingdom", maritime_adjacency=True)  # True
+# Japan has no land border:
+get_pericoupled_neighbors("Japan")                           # set()
+get_pericoupled_neighbors("Japan", maritime_adjacency=True)  # {'CHN', 'KOR', 'MNP', 'PHL', 'RUS'}
+# Argentina <-> United Kingdom meet only in the waters of the Falkland Islands
+# and South Georgia, which the strict view leaves out:
+is_pericoupled("ARG", "GBR", maritime_adjacency=True)                          # True
+is_pericoupled("ARG", "GBR", de_facto_borders=False, maritime_adjacency=True)  # False
+```
+
+`MetacouplingAssistant(maritime_adjacency=True)` applies it to the
+country-level hint, validation and map (§5); the two country map functions
+(§10) and `build_adjacency(level="adm0")` (§16) take it too. The pairs ship
+as `data/maritime_adjacency_pairs.csv`; `data/PROVENANCE.md` and
+`docs/METHODS_adjacency.md` §11 describe how they are built.
 
 ### Country name resolution
 
@@ -1484,10 +1549,11 @@ effects (spillover systems included), and colors web-extraction targets only
 if you pass them as `extra_mentioned_countries=`. If the map-data
 extraction fails or returns no focal country, `result.map` falls back to
 that same text scan.
-Map adjacency follows the two adjacency settings of §8: the plot functions
+Map adjacency follows the adjacency settings of §8: the plot functions
 take `de_facto_borders` and `coupling_standard` as keyword arguments
-(defaults `True` / `"lenient"`), and the automatic map uses the assistant's
-settings (§5).
+(defaults `True` / `"lenient"`), the two country map functions also
+`maritime_adjacency` (default `False`), and the automatic map uses the
+assistant's settings (§5).
 
 ### Database-only map (no LLM needed)
 
@@ -1512,6 +1578,10 @@ fig = plot_focal_country_map("USA", figsize=(20, 10))
 # Under another adjacency standard (§8): Romania, which borders Moldova
 # only along rivers, shows as telecoupled
 fig = plot_focal_country_map("Moldova", coupling_standard="stringent")
+
+# With maritime adjacency (§8): the countries whose waters meet Japan's
+# show as pericoupled
+fig = plot_focal_country_map("Japan", maritime_adjacency=True)
 ```
 
 ### Analysis-based map (from LLM output)
@@ -1780,6 +1850,7 @@ parameter except `llm_client` is optional.
 | `coupling_analysis` | `True` | `False` switches to RAG-only Q&A, which returns a `RAGResult` (§5). |
 | `de_facto_borders` | `True` | Disputed-territory setting of the adjacency lookups: the prompt hint, the pericoupling validation and the automatic map (§8). |
 | `coupling_standard` | `"lenient"` | Water-only-border setting of the adjacency lookups: the prompt hint, the pericoupling validation and the automatic map (§8). |
+| `maritime_adjacency` | `False` | Country level only: also count countries whose waters share a maritime boundary as adjacent, in the prompt hint, the pericoupling validation and the automatic map (§8). |
 | `generate_abstract` | `True` | One extra model call per result to write `result.abstract`; `False` skips it. |
 | `trace` | `None` | Write a run-trace folder per `analyze()` / `refine()`: `None` = on unless `METACOUPLINGLLM_DISABLE_TRACE=1`, `True` / `False` force it (§5). |
 | `trace_dir` | `None` | Where trace folders are written (default `runs/<utc>_<slug>/`). |
@@ -1843,15 +1914,17 @@ Methods and properties:
 
 | Function | Returns | Description |
 |---|---|---|
-| `lookup_pericoupling(country_a, country_b, de_facto_borders=True, coupling_standard="lenient")` | `PericouplingResult` | Full lookup with pair type and codes. |
-| `is_pericoupled(country_a, country_b, de_facto_borders=True, coupling_standard="lenient")` | `bool \| None` | Quick check: True/False/None. |
-| `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="lenient")` | `set[str]` | All pericoupled ISO codes. |
+| `lookup_pericoupling(country_a, country_b, de_facto_borders=True, coupling_standard="lenient", maritime_adjacency=False)` | `PericouplingResult` | Full lookup with pair type and codes. |
+| `is_pericoupled(country_a, country_b, de_facto_borders=True, coupling_standard="lenient", maritime_adjacency=False)` | `bool \| None` | Quick check: True/False/None. |
+| `get_pericoupled_neighbors(country, de_facto_borders=True, coupling_standard="lenient", maritime_adjacency=False)` | `set[str]` | All pericoupled ISO codes. |
 | `resolve_country_code(name_or_code, *, substring=True)` | `str \| None` | Resolve name/alias/demonym to ISO alpha-3; `substring=False` accepts only a whole code, name or alias. |
 | `get_country_name(code)` | `str` | ISO alpha-3 code to canonical English name. |
 
 `de_facto_borders` toggles the disputed-territory overlay;
 `coupling_standard` (`"stringent"`/`"moderate"`/`"lenient"`) controls
-water-only pairs — see §8 "Adjacency standards".
+water-only pairs — see §8 "Adjacency standards"; `maritime_adjacency=True`
+adds the countries whose waters share a maritime boundary — see §8
+"Maritime adjacency".
 
 ### ADM1 (Subnational) Pericoupling Functions
 
@@ -1907,7 +1980,7 @@ exported for custom pipelines.
 | Function | Returns | Description |
 |---|---|---|
 | `classify_coupling(edges, focal_id, adjacency, ...)` | `pd.DataFrame` | Add I/P/T column to an edge table (optional `llm_client=` for ambiguous edges). |
-| `build_adjacency(pairs, level="adm0", ...)` | `pd.DataFrame` | Fill the `adjacent` flag (`1`/`0`/`<NA>`) from the bundled pericoupling DB; `level="adm0"` (countries) or `"adm1"` (WB subnational), with `de_facto_borders=` / `coupling_standard=` passthrough. |
+| `build_adjacency(pairs, level="adm0", ...)` | `pd.DataFrame` | Fill the `adjacent` flag (`1`/`0`/`<NA>`) from the bundled pericoupling DB; `level="adm0"` (countries) or `"adm1"` (WB subnational), with `de_facto_borders=` / `coupling_standard=` passthrough and, at `"adm0"`, `maritime_adjacency=`. |
 | `compute_flow_shares(data, ...)` | `pd.DataFrame` | Metacoupled Flow Shares (IFS / PFS / TFS) per focal system. |
 | `compute_mfe(data, ...)` | `pd.DataFrame` | Normalised Shannon entropy across coupling types; input is the **shares table from `compute_flow_shares`** (needs IFS/PFS/TFS columns), not the raw edge table. |
 | `compute_mfci(data, ...)` | `pd.DataFrame` | Normalised HHI per coupling type (long-format: one row per system × coupling type). |
@@ -2529,7 +2602,11 @@ build_adjacency(pairs, level="adm1")
 
 `build_adjacency` takes the same `de_facto_borders=` and
 `coupling_standard=` arguments as the §8 lookups, so disputed-territory
-and water-separated conventions carry through. **Review the table before
+and water-separated conventions carry through. At `level="adm0"` it also
+takes `maritime_adjacency=True` (§8), which marks countries whose waters
+share a maritime boundary as adjacent, for flows that cross the sea such as
+fish catches (at `level="adm1"` that argument raises a `ValueError`).
+**Review the table before
 relying on it** — the helper builds a transparent, editable adjacency
 table; it doesn't replace your judgement.
 

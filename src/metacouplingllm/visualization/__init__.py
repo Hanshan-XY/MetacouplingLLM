@@ -44,6 +44,7 @@ def plot_focal_country_map(
     mentioned_countries: set[str] | None = None,
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> matplotlib.figure.Figure:
     """Generate a world map colored by coupling type relative to a focal country.
 
@@ -66,6 +67,7 @@ def plot_focal_country_map(
         mentioned_countries=mentioned_countries,
         de_facto_borders=de_facto_borders,
         coupling_standard=coupling_standard,
+        maritime_adjacency=maritime_adjacency,
     )
 
 
@@ -84,6 +86,7 @@ def plot_analysis_map(
     flows: list[dict[str, str]] | None = None,
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> matplotlib.figure.Figure:
     """Generate a world map from a parsed LLM analysis result.
 
@@ -108,6 +111,7 @@ def plot_analysis_map(
         flows=flows,
         de_facto_borders=de_facto_borders,
         coupling_standard=coupling_standard,
+        maritime_adjacency=maritime_adjacency,
     )
 
 

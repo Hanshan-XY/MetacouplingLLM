@@ -4,7 +4,8 @@ This manual walks through regenerating and verifying the two bundled adjacency
 datasets — the ADM1 edge list (8,462 subnational shared-border pairs) and the
 ADM0 country matrix (326 pairs) with their water-only classification (824
 ADM1 pairs / 19 ADM0 roll-ups) — from scratch. It is written for a reader who
-has never touched the pipeline. Companion documents:
+has never touched the pipeline (§8 covers the optional maritime table).
+Companion documents:
 `src/metacouplingllm/data/PROVENANCE.md` (what the data is, sources, known
 limitations) and `docs/METHODS_adjacency.md` (why each methodological choice
 is defensible).
@@ -84,8 +85,9 @@ The four GeoPackages for §3 must be downloaded from the
 World Bank (their hashes are verified before any build). The wider
 `build_data/` audit-evidence tree (screen outputs, frozen AI verdicts,
 worksheets, the screen scripts) is a local working archive, NOT shipped in the
-repository (which holds only its ten `SPEC_*.md` specifications and
-`build_record/relabel_RESULTS.md`) — its content is summarized in
+repository (which holds only its ten `SPEC_*.md` specifications,
+`build_record/relabel_RESULTS.md` and the two Marine Regions tables of §8 in
+`marine_regions/`) — its content is summarized in
 PROVENANCE.md/METHODS and in each water row's `source` column. §6 describes the
 screens and their specifications; the screen scripts it names (those under
 `build_data/`) are not shipped (they live in the maintainer's local archive).
@@ -197,7 +199,7 @@ produces.
 python -m pytest tests/ -q
 ```
 
-The suite (2,172 tests at the time of writing) includes: the expected-count assertions, the engine
+The suite (2,193 tests at the time of writing) includes: the expected-count assertions, the engine
 byte-stability guard, a fresh-build check that Stages 3–4 reproduce the
 shipped files, the check that the engine's inputs are exactly the reviewed
 files, loader behavior for
@@ -380,3 +382,45 @@ ADM1 and 323 / 318 / 304 at ADM0 (lenient / moderate / stringent). The
 water-only rows count the rows of the water table, and the provenance row the
 `adjudication` and `verification_tier` columns of the water file; neither
 toggle changes them, and `build_all.py` does not check the provenance row.
+A third toggle, `maritime_adjacency` (default `False`; country lookups
+only), adds the pairs of the maritime table (§8).
+
+## 8. The optional maritime table (country level)
+
+`src/metacouplingllm/data/maritime_adjacency_pairs.csv` (392 country pairs,
+read by `maritime_adjacency=True`) is built from two attribute tables of the
+Marine Regions Maritime Boundaries Geodatabase, version 12, which ship in
+`build_data/marine_regions/` (about 0.5 MB; CC BY 4.0, with the attribution
+in the folder's README). No download is needed:
+
+```
+python scripts/build_maritime_adjacency.py --check
+```
+
+| input | SHA-256 |
+|---|---|
+| `mr_eez_boundaries_v12.csv` (`MarineRegions:eez_boundaries`, 2,349 lines) | `7cc30de5…7d39adb` |
+| `mr_eez_v12.csv` (`MarineRegions:eez`, 285 records) | `e68c97e7…651f187` |
+
+(Full hashes: `data/PROVENANCE.md` → "Sources (pinned)".) The build reads
+the two files by default, refuses a file that does not match its pin, checks
+that every country code is a unit of the ADM0 database, and with `--check`
+prints `392 country pairs (3 only through disputed waters); unchanged` and
+exits 0 on an untouched checkout (2 if the table would change);
+`tests/test_maritime_adjacency.py` runs the same check. `.gitattributes`
+turns off line-ending conversion for the two files, so their bytes, and the
+pins, are the same on every platform.
+
+The files were fetched without geometry from the VLIZ WFS service on
+2026-11-12 with (bash):
+
+```
+B="https://geo.vliz.be/geoserver/MarineRegions/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=csv"
+curl -sS -L -A "Mozilla/5.0" -o mr_eez_boundaries_v12.csv "$B&typeNames=MarineRegions:eez_boundaries&propertyName=line_id,line_name,line_type,mrgid_sov1,mrgid_ter1,territory1,sovereign1,mrgid_ter2,territory2,mrgid_sov2,sovereign2,mrgid_eez1,eez1,mrgid_eez2,eez2,origin,doc_date,mrgid_jreg,joint_reg,length_km"
+curl -sS -L -A "Mozilla/5.0" -o mr_eez_v12.csv "$B&typeNames=MarineRegions:eez&propertyName=mrgid,geoname,mrgid_ter1,pol_type,mrgid_sov1,territory1,iso_ter1,sovereign1,mrgid_ter2,mrgid_sov2,territory2,iso_ter2,sovereign2,mrgid_ter3,mrgid_sov3,territory3,iso_ter3,sovereign3,mrgid_eez,area_km2,iso_sov1,iso_sov2,iso_sov3"
+```
+
+The service serves the current version of the geodatabase: once Marine
+Regions publishes a newer one, these commands return files that no longer
+match the pins, and `--boundaries`, `--eez` and `--no-verify` build the table
+from the newer version instead.

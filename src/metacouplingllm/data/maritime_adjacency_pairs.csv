@@ -1,0 +1,393 @@
+code_a,name_a,code_b,name_b,line_types,boundary_km,disputed_only
+ABW,Aruba,CUW,Curacao,Connection line; Median line,350.5,False
+ABW,Aruba,DOM,Dominican Republic,Connection line; Overlapping claim area,0.0,False
+ABW,Aruba,VEN,Venezuela,Connection line; Overlapping claim area; Treaty,452.9,False
+AGO,Angola,COD,Democratic Republic of the Congo,Connection line; Median line; Unsettled (maritime),890.4,False
+AGO,Angola,COG,Republic of the Congo,Connection line,0.0,False
+AGO,Angola,NAM,Namibia,Connection line; Median line; Treaty,380.2,False
+AIA,Anguilla,ATG,Antigua and Barbuda,Median line,385.0,False
+AIA,Anguilla,BES,"Bonaire, Sint Eustatius and Saba",Median line,26.9,False
+AIA,Anguilla,BLM,Saint Barthelemy,Connection line; Treaty,57.0,False
+AIA,Anguilla,MAF,Saint Martin,Connection line; Treaty,100.1,False
+AIA,Anguilla,VGB,British Virgin Islands,Connection line; Median line,446.3,False
+AIA,Anguilla,VIR,United States Virgin Islands,Connection line; Treaty,3.0,False
+ALB,Albania,GRC,Greece,Unsettled median line (maritime),120.5,False
+ALB,Albania,ITA,Italy,Connection line; Median line; Treaty,162.9,False
+ALB,Albania,MNE,Montenegro,Median line,129.2,False
+ARE,United Arab Emirates,IRN,Iran,Connection line; Median line; Overlapping claim area; Treaty; Unsettled median line (land),246.2,False
+ARE,United Arab Emirates,OMN,Oman,Median line; Unsettled median line (land),177.3,False
+ARE,United Arab Emirates,QAT,Qatar,Overlapping claim area; Unsettled (maritime),0.0,False
+ARE,United Arab Emirates,SAU,Saudi Arabia,Overlapping claim area; Unsettled (maritime); Unsettled median line (maritime),62.9,False
+ARG,Argentina,CHL,Chile,Connection line; Median line; Treaty,835.4,False
+ARG,Argentina,GBR,United Kingdom,Unsettled (land); Unsettled median line (land),4636.6,True
+ARG,Argentina,URY,Uruguay,Connection line; Joint regime; Joint regime area; Median line; Treaty,1838.6,False
+ASM,American Samoa,COK,Cook Islands,Treaty,1035.5,False
+ASM,American Samoa,NIU,Niue,Connection line; Treaty,517.1,False
+ASM,American Samoa,TKL,Tokelau,Connection line; Treaty,592.9,False
+ASM,American Samoa,TON,Tonga,Median line,121.2,False
+ASM,American Samoa,WSM,Samoa,Median line,785.2,False
+ATF,French Southern Territories,HMD,Heard Island and McDonald Islands,Treaty,707.6,False
+ATF,French Southern Territories,MDG,Madagascar,Median line; Overlapping claim area; Unsettled median line (land),1325.1,False
+ATF,French Southern Territories,MOZ,Mozambique,Median line,1439.9,False
+ATF,French Southern Territories,MYT,Mayotte,Connection line; Unsettled median line (land),0.0,False
+ATF,French Southern Territories,SYC,Seychelles,Connection line; Treaty,0.0,False
+ATG,Antigua and Barbuda,BLM,Saint Barthelemy,Median line,75.3,False
+ATG,Antigua and Barbuda,GLP,Guadeloupe,Median line,423.9,False
+ATG,Antigua and Barbuda,KNA,Saint Kitts and Nevis,Median line,128.4,False
+ATG,Antigua and Barbuda,MSR,Montserrat,Median line,112.9,False
+AUS,Australia,IDN,Indonesia,Treaty,2354.6,False
+AUS,Australia,NCL,New Caledonia,Treaty,1176.6,False
+AUS,Australia,NZL,New Zealand,Treaty,959.0,False
+AUS,Australia,PNG,Papua New Guinea,Connection line; Joint regime area; Treaty,2852.6,False
+AUS,Australia,SLB,Solomon Islands,Treaty,264.8,False
+AUS,Australia,TLS,Timor-Leste,Treaty,240.9,False
+AZE,Azerbaijan,IRN,Iran,Median line,240.9,False
+AZE,Azerbaijan,KAZ,Kazakhstan,Median line,206.8,False
+AZE,Azerbaijan,RUS,Russia,Treaty,133.4,False
+AZE,Azerbaijan,TKM,Turkmenistan,Median line,306.6,False
+BEL,Belgium,FRA,France,Connection line; Treaty,56.6,False
+BEL,Belgium,GBR,United Kingdom,Treaty,41.6,False
+BEL,Belgium,NLD,Netherlands,Connection line; Treaty; Unilateral claim (undisputed),87.0,False
+BEN,Benin,NGA,Nigeria,Connection line; Treaty,399.5,False
+BES,"Bonaire, Sint Eustatius and Saba",BLM,Saint Barthelemy,Median line,41.2,False
+BES,"Bonaire, Sint Eustatius and Saba",CUW,Curacao,Median line,297.5,False
+BES,"Bonaire, Sint Eustatius and Saba",KNA,Saint Kitts and Nevis,Connection line; Median line,140.8,False
+BES,"Bonaire, Sint Eustatius and Saba",MAF,Saint Martin,Median line,37.8,False
+BES,"Bonaire, Sint Eustatius and Saba",SXM,Sint Maarten,Median line,20.2,False
+BES,"Bonaire, Sint Eustatius and Saba",VEN,Venezuela,Treaty,501.6,False
+BES,"Bonaire, Sint Eustatius and Saba",VIR,United States Virgin Islands,Connection line; Median line,132.7,False
+BGD,Bangladesh,IND,India,Connection line; Court ruling; Median line,558.7,False
+BGD,Bangladesh,MMR,Myanmar,Connection line; Court ruling; Median line,489.4,False
+BGR,Bulgaria,ROU,Romania,Connection line; Median line,228.5,False
+BGR,Bulgaria,TUR,Turkey,Treaty,331.6,False
+BHR,Bahrain,IRN,Iran,Treaty,26.8,False
+BHR,Bahrain,QAT,Qatar,Connection line; Court ruling,206.6,False
+BHR,Bahrain,SAU,Saudi Arabia,Connection line; Treaty,207.5,False
+BHS,Bahamas,CUB,Cuba,Connection line; Treaty,890.7,False
+BHS,Bahamas,HTI,Haiti,Connection line; Median line,127.5,False
+BHS,Bahamas,TCA,Turks and Caicos Islands,Median line,544.4,False
+BHS,Bahamas,USA,United States,Connection line; Median line; Unilateral claim (undisputed),1074.0,False
+BIH,Bosnia and Herzegovina,HRV,Croatia,Treaty,15.0,False
+BLM,Saint Barthelemy,KNA,Saint Kitts and Nevis,Median line,37.0,False
+BLM,Saint Barthelemy,MAF,Saint Martin,Connection line; Median line,27.5,False
+BLM,Saint Barthelemy,SXM,Sint Maarten,Median line,28.1,False
+BLZ,Belize,GTM,Guatemala,Median line,90.0,False
+BLZ,Belize,HND,Honduras,Median line; Overlapping claim area; Unsettled median line (land),261.0,False
+BLZ,Belize,MEX,Mexico,Median line,267.6,False
+BRA,Brazil,GUF,French Guiana,Connection line; Median line; Treaty,464.7,False
+BRA,Brazil,URY,Uruguay,Connection line; Treaty,389.3,False
+BRB,Barbados,GUY,Guyana,Connection line; Joint regime; Joint regime area,40.2,False
+BRB,Barbados,LCA,Saint Lucia,Connection line; Median line,105.1,False
+BRB,Barbados,MTQ,Martinique,Connection line; Treaty,340.6,False
+BRB,Barbados,TTO,Trinidad and Tobago,Connection line; Court ruling,383.0,False
+BRB,Barbados,VCT,Saint Vincent and the Grenadines,Median line,96.4,False
+BRB,Barbados,VEN,Venezuela,Connection line,0.0,False
+BRN,Brunei,MYS,Malaysia,Connection line; Median line; Unsettled (maritime),882.2,False
+CAN,Canada,GRL,Greenland,Connection line; Median line; Treaty,3121.3,False
+CAN,Canada,SPM,Saint Pierre and Miquelon,Court ruling,974.6,False
+CAN,Canada,USA,United States,Connection line; Court ruling; Median line; Overlapping claim area; Treaty; Unilateral claim (undisputed); Unsettled (maritime),2655.6,False
+CHL,Chile,PER,Peru,Connection line; Court ruling,446.9,False
+CHN,China,JPN,Japan,Connection line; Median line; Overlapping claim area; Unsettled median line (land),638.4,False
+CHN,China,KOR,South Korea,Connection line; Median line,965.7,False
+CHN,China,PHL,Philippines,Median line,964.8,False
+CHN,China,PRK,North Korea,Median line,204.0,False
+CHN,China,VNM,Vietnam,Connection line; Median line; Treaty; Unsettled median line (land),1055.6,False
+CIV,Ivory Coast,GHA,Ghana,Court ruling; Median line,394.8,False
+CIV,Ivory Coast,LBR,Liberia,Median line,449.5,False
+CMR,Cameroon,GNQ,Equatorial Guinea,Median line,350.4,False
+CMR,Cameroon,NGA,Nigeria,Connection line; Court ruling; Median line,118.4,False
+COG,Republic of the Congo,GAB,Gabon,Connection line,0.0,False
+COK,Cook Islands,KIR,Kiribati,Treaty,1781.8,False
+COK,Cook Islands,NIU,Niue,Connection line; Treaty,234.5,False
+COK,Cook Islands,PYF,French Polynesia,Connection line; Treaty,1196.0,False
+COK,Cook Islands,TKL,Tokelau,Connection line; Treaty,204.2,False
+COL,Colombia,CRI,Costa Rica,Connection line; Treaty,241.0,False
+COL,Colombia,DOM,Dominican Republic,Connection line; Joint regime; Joint regime area; Overlapping claim area; Treaty,932.9,False
+COL,Colombia,ECU,Ecuador,Connection line; Joint regime; Joint regime area; Median line; Treaty,1720.3,False
+COL,Colombia,HTI,Haiti,Treaty,118.2,False
+COL,Colombia,JAM,Jamaica,Joint regime; Joint regime area; Treaty,1483.8,False
+COL,Colombia,NIC,Nicaragua,Court ruling,1182.2,False
+COL,Colombia,PAN,Panama,Connection line; Treaty,1830.0,False
+COL,Colombia,VEN,Venezuela,Connection line; Median line; Overlapping claim area,920.5,False
+COM,Comoros,MDG,Madagascar,Median line,51.4,False
+COM,Comoros,MOZ,Mozambique,Median line,518.5,False
+COM,Comoros,MYT,Mayotte,Connection line; Unsettled median line (land),0.0,False
+COM,Comoros,SYC,Seychelles,Connection line; Median line,442.9,False
+COM,Comoros,TZA,Tanzania,Median line,249.8,False
+CPV,Cape Verde,GMB,Gambia,Connection line,37.2,False
+CPV,Cape Verde,MRT,Mauritania,Connection line; Treaty,317.8,False
+CPV,Cape Verde,SEN,Senegal,Connection line; Treaty,286.8,False
+CRI,Costa Rica,ECU,Ecuador,Connection line; Joint regime; Joint regime area; Treaty,1493.8,False
+CRI,Costa Rica,NIC,Nicaragua,Connection line; Court ruling; Median line,846.4,False
+CRI,Costa Rica,PAN,Panama,Connection line; Treaty,556.3,False
+CUB,Cuba,CYM,Cayman Islands,Connection line; Median line,610.9,False
+CUB,Cuba,HND,Honduras,Treaty,179.7,False
+CUB,Cuba,HTI,Haiti,Treaty,282.3,False
+CUB,Cuba,JAM,Jamaica,Connection line; Median line; Treaty,348.3,False
+CUB,Cuba,MEX,Mexico,Connection line; Treaty,650.0,False
+CUB,Cuba,USA,United States,Connection line; Treaty,578.5,False
+CUW,Curacao,VEN,Venezuela,Treaty,139.4,False
+CXR,Christmas Island,IDN,Indonesia,Median line,808.2,False
+CYM,Cayman Islands,HND,Honduras,Joint regime; Joint regime area; Treaty,606.3,False
+CYM,Cayman Islands,JAM,Jamaica,Connection line; Median line,299.0,False
+CYP,Cyprus,EGY,Egypt,Connection line; Median line; Treaty,310.3,False
+CYP,Cyprus,GRC,Greece,Median line,49.2,False
+CYP,Cyprus,ISR,Israel,Treaty,120.0,False
+CYP,Cyprus,LBN,Lebanon,Connection line; Unsettled median line (maritime),165.0,False
+CYP,Cyprus,SYR,Syria,Median line,137.5,False
+CYP,Cyprus,TUR,Turkey,Median line,564.8,False
+DEU,Germany,DNK,Denmark,Connection line; Median line; Treaty; Unilateral claim (undisputed),784.6,False
+DEU,Germany,GBR,United Kingdom,Treaty,17.9,False
+DEU,Germany,NLD,Netherlands,Connection line; Treaty,403.5,False
+DEU,Germany,POL,Poland,Connection line; Median line; Treaty,111.5,False
+DEU,Germany,SWE,Sweden,Connection line; Treaty,55.7,False
+DJI,Djibouti,ERI,Eritrea,Connection line; Overlapping claim area; Unsettled median line (land),0.6,False
+DJI,Djibouti,SOM,Somalia,Median line,116.0,False
+DJI,Djibouti,YEM,Yemen,Median line; Unsettled median line (land),140.1,False
+DMA,Dominica,GLP,Guadeloupe,Treaty,572.1,False
+DMA,Dominica,MTQ,Martinique,Treaty,579.8,False
+DMA,Dominica,VEN,Venezuela,Connection line,63.8,False
+DNK,Denmark,GBR,United Kingdom,Treaty,19.6,False
+DNK,Denmark,NOR,Norway,Treaty,480.5,False
+DNK,Denmark,POL,Poland,Treaty,178.6,False
+DNK,Denmark,SWE,Sweden,Connection line; Treaty,658.3,False
+DOM,Dominican Republic,HTI,Haiti,Connection line; Median line,508.6,False
+DOM,Dominican Republic,PRI,Puerto Rico,Connection line; Median line; Overlapping claim area; Unsettled median line (maritime),422.5,False
+DOM,Dominican Republic,TCA,Turks and Caicos Islands,Unsettled median line (maritime),540.0,False
+DOM,Dominican Republic,VEN,Venezuela,Connection line; Overlapping claim area; Treaty,244.1,False
+DOM,Dominican Republic,VGB,British Virgin Islands,Connection line,0.0,False
+DZA,Algeria,ESP,Spain,Median line,821.1,False
+DZA,Algeria,ITA,Italy,Connection line; Median line,176.9,False
+DZA,Algeria,MAR,Morocco,Median line,92.4,False
+DZA,Algeria,TUN,Tunisia,Connection line; Treaty,155.5,False
+ECU,Ecuador,PER,Peru,Connection line; Joint regime; Joint regime area; Median line; Treaty,1453.6,False
+EGY,Egypt,GRC,Greece,Median line; Unsettled (maritime),539.5,False
+EGY,Egypt,ISR,Israel,Connection line; Median line; Treaty,149.4,False
+EGY,Egypt,JOR,Jordan,Median line,9.0,False
+EGY,Egypt,LBY,Libya,Connection line; Overlapping claim area; Unsettled (maritime),0.0,False
+EGY,Egypt,PSE,Palestine,Connection line; Median line; Treaty,67.1,False
+EGY,Egypt,SAU,Saudi Arabia,Median line; Unsettled median line (land),781.8,False
+EGY,Egypt,SDN,Sudan,Overlapping claim area; Unsettled median line (land),0.0,False
+ERI,Eritrea,SAU,Saudi Arabia,Connection line; Median line,250.6,False
+ERI,Eritrea,SDN,Sudan,Median line,123.6,False
+ERI,Eritrea,YEM,Yemen,Connection line; Court ruling; Median line; Unsettled median line (land),467.2,False
+ESP,Spain,FRA,France,Connection line; Joint regime; Joint regime area; Median line; Treaty; Unilateral claim (undisputed); Unsettled median line (maritime),1387.3,False
+ESP,Spain,GIB,Gibraltar,Overlapping claim area; Unsettled median line (land),90.0,False
+ESP,Spain,ITA,Italy,Connection line; Treaty,278.0,False
+ESP,Spain,MAR,Morocco,Median line; Overlapping claim area; Unsettled median line (land),1873.1,False
+ESP,Spain,PRT,Portugal,Median line,1637.0,False
+EST,Estonia,FIN,Finland,Connection line; Treaty,369.2,False
+EST,Estonia,LVA,Latvia,Connection line; Treaty,296.7,False
+EST,Estonia,RUS,Russia,Connection line; Median line; Treaty,136.9,False
+EST,Estonia,SWE,Sweden,Treaty,91.8,False
+FIN,Finland,RUS,Russia,Connection line; Median line; Treaty,133.5,False
+FIN,Finland,SWE,Sweden,Connection line; Median line; Treaty,1011.5,False
+FJI,Fiji,FRA,France,Connection line,0.0,False
+FJI,Fiji,NCL,New Caledonia,Treaty,580.5,False
+FJI,Fiji,SLB,Solomon Islands,Median line,84.6,False
+FJI,Fiji,TON,Tonga,Median line,1042.1,False
+FJI,Fiji,TUV,Tuvalu,Connection line; Unilateral claim (undisputed),635.6,False
+FJI,Fiji,VUT,Vanuatu,Connection line; Median line,189.2,False
+FJI,Fiji,WLF,Wallis and Futuna,Connection line; Treaty,466.3,False
+FRA,France,GBR,United Kingdom,Connection line; Treaty,1092.5,False
+FRA,France,GGY,Guernsey,Treaty,199.8,False
+FRA,France,ITA,Italy,Connection line; Joint regime; Joint regime area; Treaty; Unilateral claim (undisputed),897.1,False
+FRA,France,JEY,Jersey,Treaty,148.1,False
+FRA,France,MCO,Monaco,Treaty,184.7,False
+FRA,France,MDG,Madagascar,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
+FRA,France,MUS,Mauritius,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
+FRA,France,NCL,New Caledonia,Unsettled median line (land),0.0,False
+FRA,France,REU,Reunion,Unsettled median line (land),0.0,False
+FRA,France,SYC,Seychelles,Unsettled median line (land),0.0,False
+FRA,France,VUT,Vanuatu,200 NM; Connection line; Overlapping claim area; Unsettled median line (land),391.5,False
+FRO,Faroe Islands,GBR,United Kingdom,Connection line; Joint regime; Joint regime area; Treaty,2051.6,False
+FRO,Faroe Islands,ISL,Iceland,Connection line; Joint regime; Joint regime area; Treaty,1007.6,False
+FRO,Faroe Islands,NOR,Norway,Connection line; Treaty,60.9,False
+FSM,Micronesia,GUM,Guam,Connection line; Treaty,829.3,False
+FSM,Micronesia,MHL,Marshall Islands,Connection line; Treaty,1394.8,False
+FSM,Micronesia,PLW,Palau,Treaty,747.3,False
+FSM,Micronesia,PNG,Papua New Guinea,Treaty,788.7,False
+GAB,Gabon,GNQ,Equatorial Guinea,Connection line; Median line; Unsettled median line (maritime),560.4,False
+GAB,Gabon,STP,Sao Tome and Principe,Connection line; Treaty,268.8,False
+GBR,United Kingdom,IMN,Isle of Man,12 NM; Unilateral claim (undisputed),249.6,False
+GBR,United Kingdom,IRL,Ireland,Connection line; Median line; Treaty,1823.8,False
+GBR,United Kingdom,MDV,Maldives,Connection line; Court ruling,580.7,True
+GBR,United Kingdom,NLD,Netherlands,Treaty,451.7,False
+GBR,United Kingdom,NOR,Norway,Connection line; Treaty,922.1,False
+GEO,Georgia,RUS,Russia,Connection line; Median line,147.2,False
+GEO,Georgia,TUR,Turkey,Connection line; Treaty,235.3,False
+GGY,Guernsey,JEY,Jersey,Connection line; Treaty,43.6,False
+GIN,Guinea,GNB,Guinea-Bissau,Connection line; Court ruling; Median line,398.7,False
+GIN,Guinea,SLE,Sierra Leone,Median line,400.3,False
+GLP,Guadeloupe,MSR,Montserrat,Connection line; Treaty,141.2,False
+GLP,Guadeloupe,MTQ,Martinique,Median line,42.3,False
+GLP,Guadeloupe,VEN,Venezuela,Treaty,86.0,False
+GMB,Gambia,SEN,Senegal,Connection line; Median line; Treaty,760.0,False
+GNB,Guinea-Bissau,SEN,Senegal,Connection line; Court ruling; Joint regime; Joint regime area,1519.3,False
+GNQ,Equatorial Guinea,NGA,Nigeria,Connection line; Treaty,189.6,False
+GNQ,Equatorial Guinea,STP,Sao Tome and Principe,Connection line; Treaty,841.4,False
+GRC,Greece,ITA,Italy,Connection line; Treaty,526.9,False
+GRC,Greece,LBY,Libya,Median line,735.4,False
+GRC,Greece,TUR,Turkey,Unsettled median line (maritime),1397.1,False
+GRD,Grenada,TTO,Trinidad and Tobago,Connection line; Treaty,189.7,False
+GRD,Grenada,VCT,Saint Vincent and the Grenadines,Median line,308.1,False
+GRD,Grenada,VEN,Venezuela,Median line,300.2,False
+GRL,Greenland,ISL,Iceland,Treaty,1103.6,False
+GRL,Greenland,SJM,Svalbard and Jan Mayen,Treaty,1436.8,False
+GTM,Guatemala,HND,Honduras,Median line,24.7,False
+GTM,Guatemala,MEX,Mexico,Median line,371.8,False
+GTM,Guatemala,SLV,El Salvador,Median line,379.2,False
+GUF,French Guiana,SUR,Suriname,Connection line; Median line,100.8,False
+GUM,Guam,MNP,Northern Mariana Islands,Median line,754.9,False
+GUY,Guyana,SUR,Suriname,Court ruling,408.6,False
+GUY,Guyana,TTO,Trinidad and Tobago,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
+GUY,Guyana,VEN,Venezuela,Connection line; Overlapping claim area; Unsettled median line (land),232.0,False
+HND,Honduras,JAM,Jamaica,Connection line; Median line,188.0,False
+HND,Honduras,MEX,Mexico,Connection line; Treaty,263.0,False
+HND,Honduras,NIC,Nicaragua,Court ruling; Median line,463.2,False
+HND,Honduras,SLV,El Salvador,Median line,40.6,False
+HRV,Croatia,ITA,Italy,Connection line; Treaty,677.5,False
+HRV,Croatia,MNE,Montenegro,Connection line; Median line,100.1,False
+HRV,Croatia,SVN,Slovenia,Court ruling; Joint regime area,75.9,False
+HTI,Haiti,JAM,Jamaica,Connection line; Median line; Unsettled median line (land),286.7,False
+HTI,Haiti,TCA,Turks and Caicos Islands,Median line,27.1,False
+HTI,Haiti,USA,United States,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
+IDN,Indonesia,IND,India,Connection line; Treaty,576.0,False
+IDN,Indonesia,MYS,Malaysia,Connection line; Median line; Treaty,2543.5,False
+IDN,Indonesia,PHL,Philippines,Connection line; Treaty,1162.6,False
+IDN,Indonesia,PLW,Palau,Median line,1226.7,False
+IDN,Indonesia,PNG,Papua New Guinea,Connection line; Treaty,685.6,False
+IDN,Indonesia,SGP,Singapore,Connection line; Median line; Treaty,69.7,False
+IDN,Indonesia,THA,Thailand,Treaty,517.4,False
+IDN,Indonesia,TLS,Timor-Leste,Connection line; Median line; Treaty,1047.4,False
+IDN,Indonesia,VNM,Vietnam,Treaty,464.3,False
+IND,India,LKA,Sri Lanka,Connection line; Treaty,1121.6,False
+IND,India,MDV,Maldives,Connection line; Treaty,1021.9,False
+IND,India,MMR,Myanmar,Connection line; Treaty,1099.1,False
+IND,India,PAK,Pakistan,Median line,461.3,False
+IND,India,THA,Thailand,Connection line; Median line; Treaty,212.8,False
+IRN,Iran,IRQ,Iraq,Median line; Overlapping claim area,138.1,False
+IRN,Iran,KWT,Kuwait,Unsettled median line (maritime),90.8,False
+IRN,Iran,OMN,Oman,Connection line; Median line; Treaty; Unsettled median line (land),727.2,False
+IRN,Iran,PAK,Pakistan,Connection line; Median line,203.8,False
+IRN,Iran,QAT,Qatar,Treaty,267.6,False
+IRN,Iran,SAU,Saudi Arabia,Connection line; Median line; Treaty,284.6,False
+IRN,Iran,TKM,Turkmenistan,Median line,291.4,False
+IRQ,Iraq,KWT,Kuwait,Connection line; Median line; Treaty,121.2,False
+ISL,Iceland,SJM,Svalbard and Jan Mayen,Joint regime; Joint regime area,892.1,False
+ISR,Israel,JOR,Jordan,Connection line; Treaty,11.8,False
+ISR,Israel,LBN,Lebanon,Connection line; Unilateral claim (undisputed),134.4,False
+ISR,Israel,PSE,Palestine,200NM area; Treaty,99.3,False
+ITA,Italy,LBY,Libya,Median line,83.7,False
+ITA,Italy,MLT,Malta,Connection line; Unsettled median line (maritime),544.7,False
+ITA,Italy,MNE,Montenegro,Connection line; Median line; Treaty,32.8,False
+ITA,Italy,SVN,Slovenia,Treaty,21.6,False
+ITA,Italy,TUN,Tunisia,Treaty,980.4,False
+JAM,Jamaica,NIC,Nicaragua,Connection line,31.7,False
+JAM,Jamaica,USA,United States,Unsettled median line (land),0.0,False
+JOR,Jordan,SAU,Saudi Arabia,Connection line; Treaty,7.6,False
+JPN,Japan,KOR,South Korea,Connection line; Joint regime; Joint regime area; Overlapping claim area; Treaty; Unsettled (land); Unsettled median line (land),2412.2,False
+JPN,Japan,MNP,Northern Mariana Islands,Median line,510.9,False
+JPN,Japan,PHL,Philippines,Median line,243.7,False
+JPN,Japan,RUS,Russia,Median line; Overlapping claim area; Unsettled (land); Unsettled median line (land),1373.9,False
+KAZ,Kazakhstan,RUS,Russia,Connection line; Treaty,601.0,False
+KAZ,Kazakhstan,TKM,Turkmenistan,Median line,103.8,False
+KEN,Kenya,SOM,Somalia,Connection line; Court ruling,373.4,False
+KEN,Kenya,TZA,Tanzania,Connection line; Median line; Treaty,482.8,False
+KHM,Cambodia,THA,Thailand,Connection line; Median line,448.5,False
+KHM,Cambodia,VNM,Vietnam,Connection line; Median line,356.5,False
+KIR,Kiribati,MHL,Marshall Islands,Treaty,974.2,False
+KIR,Kiribati,NRU,Nauru,Treaty,618.3,False
+KIR,Kiribati,PYF,French Polynesia,Treaty,1012.5,False
+KIR,Kiribati,TKL,Tokelau,Treaty,801.9,False
+KIR,Kiribati,TUV,Tuvalu,Treaty,782.6,False
+KIR,Kiribati,UMI,United States Minor Outlying Islands,Treaty,2336.8,False
+KNA,Saint Kitts and Nevis,MSR,Montserrat,Median line,43.5,False
+KNA,Saint Kitts and Nevis,VEN,Venezuela,Connection line; Median line,68.3,False
+KOR,South Korea,PRK,North Korea,Median line,929.9,False
+KOR,South Korea,RUS,Russia,Median line,50.6,False
+KWT,Kuwait,SAU,Saudi Arabia,Connection line; Treaty,117.8,False
+LBN,Lebanon,SYR,Syria,Unsettled median line (maritime),98.2,False
+LBR,Liberia,SLE,Sierra Leone,Median line,392.2,False
+LBY,Libya,MLT,Malta,Connection line; Median line; Treaty,448.2,False
+LBY,Libya,TUN,Tunisia,Connection line; Treaty,302.3,False
+LBY,Libya,TUR,Turkey,Unsettled (maritime),33.3,False
+LCA,Saint Lucia,MTQ,Martinique,Treaty,307.0,False
+LCA,Saint Lucia,VCT,Saint Vincent and the Grenadines,Median line,284.8,False
+LCA,Saint Lucia,VEN,Venezuela,Connection line; Median line,5.5,False
+LKA,Sri Lanka,MDV,Maldives,Connection line,6.2,False
+LTU,Lithuania,LVA,Latvia,Connection line; Treaty,122.8,False
+LTU,Lithuania,RUS,Russia,Median line; Treaty,196.3,False
+LTU,Lithuania,SWE,Sweden,Treaty,14.2,False
+LVA,Latvia,SWE,Sweden,Treaty,236.1,False
+MAF,Saint Martin,SXM,Sint Maarten,Median line,32.6,False
+MAR,Morocco,MRT,Mauritania,Median line,373.5,True
+MAR,Morocco,PRT,Portugal,Median line,680.6,False
+MDG,Madagascar,MOZ,Mozambique,Median line,110.3,False
+MDG,Madagascar,MUS,Mauritius,Connection line; Overlapping claim area; Unsettled median line (land),0.0,False
+MDG,Madagascar,MYT,Mayotte,Connection line; Median line; Unsettled median line (land),0.0,False
+MDG,Madagascar,REU,Reunion,Connection line; Treaty; Unsettled median line (land),386.7,False
+MDG,Madagascar,SYC,Seychelles,Connection line; Median line; Treaty; Unsettled median line (land),642.3,False
+MEX,Mexico,USA,United States,Connection line; Median line; Treaty,1213.8,False
+MHL,Marshall Islands,NRU,Nauru,Connection line; Median line,310.3,False
+MHL,Marshall Islands,UMI,United States Minor Outlying Islands,Unsettled median line (land),491.3,False
+MLT,Malta,TUN,Tunisia,Connection line,12.6,False
+MMR,Myanmar,THA,Thailand,Connection line; Median line; Treaty,435.2,False
+MOZ,Mozambique,TZA,Tanzania,Connection line; Median line; Treaty,307.8,False
+MOZ,Mozambique,ZAF,South Africa,Median line,378.8,False
+MRT,Mauritania,SEN,Senegal,Median line,407.4,False
+MSR,Montserrat,VEN,Venezuela,Connection line,60.6,False
+MTQ,Martinique,VEN,Venezuela,Treaty,45.1,False
+MUS,Mauritius,REU,Reunion,Connection line; Treaty; Unsettled median line (land),985.2,False
+MUS,Mauritius,SYC,Seychelles,Connection line; Median line; Treaty; Unsettled median line (land),956.4,False
+MYS,Malaysia,PHL,Philippines,Connection line; Unsettled median line (land),1121.9,False
+MYS,Malaysia,SGP,Singapore,Median line; Overlapping claim area; Unsettled median line (land),100.4,False
+MYS,Malaysia,THA,Thailand,Connection line; Median line; Treaty,477.9,False
+MYS,Malaysia,VNM,Vietnam,Median line,365.3,False
+NAM,Namibia,ZAF,South Africa,Median line,460.9,False
+NCL,New Caledonia,NFK,Norfolk Island,Treaty,360.7,False
+NCL,New Caledonia,SLB,Solomon Islands,Connection line; Treaty,525.5,False
+NCL,New Caledonia,VUT,Vanuatu,Median line; Unsettled median line (land),1056.0,False
+NFK,Norfolk Island,NZL,New Zealand,Treaty,819.7,False
+NGA,Nigeria,STP,Sao Tome and Principe,Joint regime; Joint regime area,999.6,False
+NIC,Nicaragua,SLV,El Salvador,Median line,419.3,False
+NIU,Niue,TON,Tonga,Median line,619.2,False
+NOR,Norway,RUS,Russia,Connection line; Joint regime; Joint regime area; Median line; Treaty,816.2,False
+NOR,Norway,SWE,Sweden,Connection line; Joint regime; Joint regime area; Median line; Treaty,212.2,False
+OMN,Oman,PAK,Pakistan,Treaty,266.2,False
+OMN,Oman,YEM,Yemen,Connection line; Treaty,640.1,False
+PCN,Pitcairn Islands,PYF,French Polynesia,Connection line; Treaty,665.6,False
+PHL,Philippines,PLW,Palau,Median line,164.3,False
+PNG,Papua New Guinea,SLB,Solomon Islands,Connection line; Treaty,1851.8,False
+POL,Poland,RUS,Russia,Median line; Treaty,191.6,False
+POL,Poland,SWE,Sweden,Connection line; Treaty,168.5,False
+PRI,Puerto Rico,VEN,Venezuela,Treaty,310.5,False
+PRI,Puerto Rico,VGB,British Virgin Islands,Connection line; Treaty,247.8,False
+PRI,Puerto Rico,VIR,United States Virgin Islands,Median line,472.4,False
+PRK,North Korea,RUS,Russia,Connection line; Median line; Treaty,373.9,False
+QAT,Qatar,SAU,Saudi Arabia,Connection line; Median line; Overlapping claim area; Unsettled (maritime),120.1,False
+ROU,Romania,UKR,Ukraine,Connection line; Court ruling; Median line,282.6,False
+RUS,Russia,SJM,Svalbard and Jan Mayen,Treaty,1015.1,False
+RUS,Russia,SWE,Sweden,Treaty,8.4,False
+RUS,Russia,TUR,Turkey,Treaty,261.8,False
+RUS,Russia,UKR,Ukraine,Connection line; Median line,531.9,False
+RUS,Russia,USA,United States,Joint regime; Joint regime area; Treaty,3402.1,False
+SAU,Saudi Arabia,SDN,Sudan,Median line; Unsettled median line (land),531.0,False
+SAU,Saudi Arabia,YEM,Yemen,Treaty,182.6,False
+SLB,Solomon Islands,VUT,Vanuatu,Connection line; Treaty,1169.9,False
+SOM,Somalia,YEM,Yemen,Median line,1442.1,False
+SYC,Seychelles,TZA,Tanzania,Connection line; Treaty,42.2,False
+SYR,Syria,TUR,Turkey,Median line,72.9,False
+THA,Thailand,VNM,Vietnam,Connection line; Treaty,144.2,False
+TKL,Tokelau,WLF,Wallis and Futuna,Median line,190.3,False
+TKL,Tokelau,WSM,Samoa,Median line,54.8,False
+TON,Tonga,WLF,Wallis and Futuna,Median line,398.1,False
+TON,Tonga,WSM,Samoa,Median line,349.5,False
+TTO,Trinidad and Tobago,VCT,Saint Vincent and the Grenadines,Connection line,5.0,False
+TTO,Trinidad and Tobago,VEN,Venezuela,Connection line; Overlapping claim area; Treaty,536.8,False
+TUR,Turkey,UKR,Ukraine,Connection line; Treaty,396.6,False
+TUV,Tuvalu,WLF,Wallis and Futuna,Connection line; Unilateral claim (undisputed),603.5,False
+VCT,Saint Vincent and the Grenadines,VEN,Venezuela,Median line,106.3,False
+VEN,Venezuela,VIR,United States Virgin Islands,Treaty,242.6,False
+VGB,British Virgin Islands,VIR,United States Virgin Islands,Treaty,287.3,False
+WLF,Wallis and Futuna,WSM,Samoa,Median line,354.3,False

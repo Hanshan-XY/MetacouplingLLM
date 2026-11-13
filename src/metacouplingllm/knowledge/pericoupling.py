@@ -9,6 +9,11 @@ At runtime the full ``PeriTelecoupling_clean.csv`` is loaded if present;
 otherwise the small ``PeriTelecoupling_subset.csv`` is used as a fallback
 (useful for testing).
 
+With ``maritime_adjacency=True`` the lookups also count country pairs whose
+waters meet along a maritime boundary (``maritime_adjacency_pairs.csv``,
+built from the Marine Regions Maritime Boundaries Geodatabase by
+``scripts/build_maritime_adjacency.py``; see ``data/PROVENANCE.md``).
+
 Source
 ------
 PeriTelecoupling_clean.csv (research dataset using ISO 3166-1 alpha-3).
@@ -70,7 +75,9 @@ _pericoupled_pairs: frozenset[frozenset[str]] | None = None
 _disputed_overlay_adm0: frozenset[frozenset[str]] | None = None
 _water_all_adm0: frozenset[frozenset[str]] | None = None
 _water_nobridge_adm0: frozenset[frozenset[str]] | None = None
-_pairs_view_cache: dict[tuple[bool, str], frozenset[frozenset[str]]] = {}
+_maritime_pairs: frozenset[frozenset[str]] | None = None
+_maritime_disputed_only: frozenset[frozenset[str]] | None = None
+_pairs_view_cache: dict[tuple[bool, str, bool], frozenset[frozenset[str]]] = {}
 
 _COUPLING_STANDARDS = ("stringent", "moderate", "lenient")
 
@@ -197,8 +204,40 @@ def _water_dropped_adm0(coupling_standard: str) -> frozenset[frozenset[str]]:
     return frozenset()
 
 
+def _load_maritime_pairs() -> tuple[
+    frozenset[frozenset[str]], frozenset[frozenset[str]]
+]:
+    """Load the country pairs that share a maritime boundary.
+
+    Reads ``maritime_adjacency_pairs.csv``: ISO country pairs whose waters
+    meet along a boundary recorded in the Marine Regions Maritime Boundaries
+    Geodatabase.  Returns ``(pairs, disputed_only)``; the second set holds the
+    pairs that meet only through the waters of a disputed tract, which the
+    strict view (``de_facto_borders=False``) leaves out.  Empty sets if the
+    file is absent (older data).
+    """
+    try:
+        data_pkg = resources.files("metacouplingllm") / "data"
+        path = Path(str(data_pkg / "maritime_adjacency_pairs.csv"))
+    except (TypeError, ModuleNotFoundError):
+        return frozenset(), frozenset()
+    if not path.is_file():
+        return frozenset(), frozenset()
+    pairs: set[frozenset[str]] = set()
+    disputed: set[frozenset[str]] = set()
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            pair = frozenset({row["code_a"].strip(), row["code_b"].strip()})
+            pairs.add(pair)
+            if row.get("disputed_only", "").strip() == "True":
+                disputed.add(pair)
+    return frozenset(pairs), frozenset(disputed)
+
+
 def _get_pairs(
-    de_facto_borders: bool = True, coupling_standard: str = "lenient"
+    de_facto_borders: bool = True,
+    coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> frozenset[frozenset[str]]:
     """Lazily load and cache the pericoupled pairs for a given view.
 
@@ -214,11 +253,21 @@ def _get_pairs(
         ``"moderate"`` drops water-only country pairs with no open fixed
         crossing; ``"stringent"`` drops every water-only pair.  See
         ``data/water_separated_pairs.csv``.
+    maritime_adjacency:
+        ``False`` (default) counts the borders between the countries'
+        territories, land, river or lake; ``True`` also counts pairs whose
+        waters meet at sea, along a boundary in the Marine Regions Maritime
+        Boundaries Geodatabase (a treaty, a median line, a joint regime, an
+        unsettled line).  A pair that meets only through the waters of a
+        disputed tract follows ``de_facto_borders``.  See
+        ``data/maritime_adjacency_pairs.csv``.
     """
     global _pericoupled_pairs, _disputed_overlay_adm0
     global _water_all_adm0, _water_nobridge_adm0
+    global _maritime_pairs, _maritime_disputed_only
     coupling_standard = _check_standard(coupling_standard)
-    key = (de_facto_borders, coupling_standard)
+    maritime_adjacency = bool(maritime_adjacency)
+    key = (de_facto_borders, coupling_standard, maritime_adjacency)
     if key in _pairs_view_cache:
         return _pairs_view_cache[key]
     if _pericoupled_pairs is None:
@@ -231,6 +280,13 @@ def _get_pairs(
     if not de_facto_borders:
         pairs -= _disputed_overlay_adm0
     pairs -= _water_dropped_adm0(coupling_standard)
+    if maritime_adjacency:
+        if _maritime_pairs is None:
+            _maritime_pairs, _maritime_disputed_only = _load_maritime_pairs()
+        sea = set(_maritime_pairs)
+        if not de_facto_borders:
+            sea -= _maritime_disputed_only or frozenset()
+        pairs |= sea
     view = frozenset(pairs)
     _pairs_view_cache[key] = view
     return view
@@ -246,6 +302,7 @@ def lookup_pericoupling(
     country_b: str,
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> PericouplingResult:
     """Look up whether two countries are pericoupled or telecoupled.
 
@@ -257,6 +314,8 @@ def lookup_pericoupling(
     country_b:
         Name or ISO code of the second country (e.g., ``"United States"``
         or ``"USA"``).
+    de_facto_borders, coupling_standard, maritime_adjacency:
+        Adjacency settings (see :func:`_get_pairs`).
 
     Returns
     -------
@@ -292,7 +351,7 @@ def lookup_pericoupling(
         )
 
     pair = frozenset({code_a, code_b})
-    pairs = _get_pairs(de_facto_borders, coupling_standard)
+    pairs = _get_pairs(de_facto_borders, coupling_standard, maritime_adjacency)
 
     if pair in pairs:
         return PericouplingResult(
@@ -314,6 +373,7 @@ def get_pericoupled_neighbors(
     country: str,
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> set[str]:
     """Return the set of ISO alpha-3 codes pericoupled with a country.
 
@@ -321,6 +381,8 @@ def get_pericoupled_neighbors(
     ----------
     country:
         Country name or ISO alpha-3 code.
+    de_facto_borders, coupling_standard, maritime_adjacency:
+        Adjacency settings (see :func:`_get_pairs`).
 
     Returns
     -------
@@ -337,7 +399,7 @@ def get_pericoupled_neighbors(
     if code is None:
         return set()
     neighbors: set[str] = set()
-    for pair in _get_pairs(de_facto_borders, coupling_standard):
+    for pair in _get_pairs(de_facto_borders, coupling_standard, maritime_adjacency):
         if code in pair:
             others = pair - frozenset({code})
             if others:
@@ -350,6 +412,7 @@ def is_pericoupled(
     country_b: str,
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> bool | None:
     """Convenience function for quick pericoupling checks.
 
@@ -358,11 +421,13 @@ def is_pericoupled(
     ``True`` if pericoupled, ``False`` if telecoupled, ``None`` if one or
     both countries could not be resolved.
 
-    See :func:`_get_pairs` for the ``de_facto_borders`` flag (default ``True``
-    treats disputed land as part of its de-facto administrator).
+    See :func:`_get_pairs` for the adjacency settings: ``de_facto_borders``
+    (default ``True`` treats disputed land as part of its de-facto
+    administrator), ``coupling_standard`` and ``maritime_adjacency``.
     """
     result = lookup_pericoupling(
-        country_a, country_b, de_facto_borders, coupling_standard
+        country_a, country_b, de_facto_borders, coupling_standard,
+        maritime_adjacency,
     )
     if result.pair_type == PairCouplingType.PERICOUPLED:
         return True

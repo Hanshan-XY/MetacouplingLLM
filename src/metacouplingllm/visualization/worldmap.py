@@ -1071,6 +1071,7 @@ def plot_focal_country_map(
     mentioned_countries: set[str] | None = None,
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> matplotlib.figure.Figure:
     """Generate a world map colored by coupling type relative to a focal country.
 
@@ -1112,7 +1113,7 @@ def plot_focal_country_map(
         All other distant countries are grey.  The focal country is always
         included automatically.  When ``None``, the legacy behaviour is
         used (all DB countries are coloured).
-    de_facto_borders, coupling_standard:
+    de_facto_borders, coupling_standard, maritime_adjacency:
         Forwarded to the neighbor lookup (see
         :func:`metacouplingllm.knowledge.pericoupling.get_pericoupled_neighbors`).
 
@@ -1156,6 +1157,7 @@ def plot_focal_country_map(
         focal_code,
         de_facto_borders=de_facto_borders,
         coupling_standard=coupling_standard,
+        maritime_adjacency=maritime_adjacency,
     )
 
     # Load world shapefile
@@ -1379,6 +1381,7 @@ def plot_analysis_map(
     flows: list[dict[str, str]] | None = None,
     de_facto_borders: bool = True,
     coupling_standard: str = "lenient",
+    maritime_adjacency: bool = False,
 ) -> matplotlib.figure.Figure:
     """Generate a world map from a parsed LLM analysis result.
 
@@ -1433,7 +1436,7 @@ def plot_analysis_map(
     flows:
         Optional pre-resolved flow list for arrow rendering. When omitted,
         raw ``parsed_analysis.flows`` are used.
-    de_facto_borders, coupling_standard:
+    de_facto_borders, coupling_standard, maritime_adjacency:
         Forwarded to the pair lookup that colors each country (see
         :func:`metacouplingllm.knowledge.pericoupling.lookup_pericoupling`).
 
@@ -1545,6 +1548,7 @@ def plot_analysis_map(
                 code,
                 de_facto_borders=de_facto_borders,
                 coupling_standard=coupling_standard,
+                maritime_adjacency=maritime_adjacency,
             )
             if result.pair_type == PairCouplingType.PERICOUPLED:
                 classification[code] = "pericoupling"

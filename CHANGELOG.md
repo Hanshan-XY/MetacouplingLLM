@@ -7,6 +7,34 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+### Added
+
+- **Maritime adjacency for countries (`maritime_adjacency`, default
+  `False`).** The country lookups (`lookup_pericoupling`, `is_pericoupled`,
+  `get_pericoupled_neighbors`), the two country map functions,
+  `build_adjacency(level="adm0")`, `PromptBuilder` and
+  `MetacouplingAssistant` (its country hint, country validation and country
+  map) take a new toggle: with `True`, two countries are also adjacent when
+  their waters share a maritime boundary in the Maritime Boundaries
+  Geodatabase of the Flanders Marine Institute (Marine Regions, version 12;
+  CC BY 4.0). The new table `data/maritime_adjacency_pairs.csv` holds 392
+  country pairs, 262 of them not adjacent on land, so the default country
+  view grows from 326 to 588 pairs (583 with `de_facto_borders=False`,
+  which drops the three pairs joined only through a disputed tract's
+  waters). Every boundary line counts, whatever its legal status; an area
+  that several countries claim, or manage jointly, borders each of them;
+  territories count as the units of the ADM0 database, and disputed tracts
+  as the administrators the land database assigns them. The default is
+  `False` because most metacoupling studies define adjacency on land. The
+  ADM1 functions do not take the toggle, and
+  `build_adjacency(level="adm1", maritime_adjacency=True)` raises a
+  `ValueError`. Built by `scripts/build_maritime_adjacency.py` from two
+  SHA-256-pinned attribute tables, which ship unmodified in
+  `build_data/marine_regions/` (`.gitattributes` keeps their bytes exact),
+  so `python scripts/build_maritime_adjacency.py --check` reproduces the
+  table offline; see `docs/METHODS_adjacency.md` §11.
+  New tests in `tests/test_maritime_adjacency.py` (suite 2,193).
+
 ### Changed
 
 - **The default `coupling_standard` is `"lenient"`: every administrative

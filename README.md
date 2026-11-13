@@ -147,6 +147,11 @@ turn it off.
   (water-only borders: `"stringent"`, `"moderate"` or `"lenient"` (default)),
   also accepted by the map functions and by `MetacouplingAssistant` for its
   prompt hint, validation and automatic map
+- Optional maritime adjacency for countries (`maritime_adjacency=True`;
+  default `False`): countries whose waters share a maritime boundary in the
+  Marine Regions geodatabase also count as pericoupled, in the country
+  lookups, the country maps, `build_adjacency(level="adm0")` and
+  `MetacouplingAssistant`
 - Automated map generation at both country and subnational (ADM1) levels
   (`plot_focal_country_map`, `plot_analysis_map`, `plot_focal_adm1_map`)
 - Scholar-ready Markdown + Word export (`result.abstract`,
@@ -189,3 +194,9 @@ non-commercial use only (CC BY-NC, BY-NC-SA or BY-NC-ND), and the BY-NC-ND
 texts are included unaltered (their reference lists and other back matter are
 left out). The other 202 papers are represented only by paraphrased summaries
 that contain no source text.
+
+The country pairs in `src/metacouplingllm/data/maritime_adjacency_pairs.csv`
+are derived from the Maritime Boundaries Geodatabase, version 12, of the
+Flanders Marine Institute (Marine Regions, https://doi.org/10.14284/632),
+licensed under CC BY 4.0; the two attribute tables they are built from are
+included unmodified, under the same licence, in `build_data/marine_regions/`.

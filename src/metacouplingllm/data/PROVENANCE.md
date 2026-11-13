@@ -4,7 +4,8 @@ Regenerated in **PR #50** (2026-05-30) from the refreshed World Bank Official
 Boundaries dataset, and restructured as a **four-stage pipeline** in **PR #76**,
 refined through **PRs #77-81**. This
 file documents the sources, method, and known limitations of the two bundled
-adjacency datasets.
+adjacency datasets, and of the optional maritime table (*Maritime
+boundaries*, below).
 
 ## Reproducing the shipped data
 
@@ -288,6 +289,7 @@ municipal consolidation postdates the WB layer's 119-novadi representation).
 | `pericoupled_adm1_edge_list.csv` | 8,462 edges · 3,374 ADM1 regions · 196 countries | Subnational (ADM1) shared-border adjacency (land borders + the reviewed edges of Stages 3 and 4 below) |
 | `PeriTelecoupling_clean.csv` | 326 adjacent pairs · 264 units · 244 ISO codes | Country (ADM0) shared-border adjacency matrix |
 | `PeriTelecoupling_subset.csv` | small | Test fallback for the country matrix |
+| `maritime_adjacency_pairs.csv` | 392 country pairs · 194 ADM0 units | Country pairs whose waters share a maritime boundary (Marine Regions, version 12), read by `maritime_adjacency`; built by `scripts/build_maritime_adjacency.py` (see *Maritime boundaries* below) |
 | `disputed_overlay_pairs.csv` | 3 ADM0 + 16 ADM1 pairs | De-facto disputed-territory overlay manifest (see *Disputed territories* below) |
 | `water_separated_pairs.csv` | 824 ADM1 + 19 ADM0 pairs | Water-only pairs + `has_bridge` for the `coupling_standard` filter, composed by Stage 3 from `water_classification_pairs.csv` (798 on a shared edge + 26 between non-touching units; see *Water-separated pairs* below) |
 | `sliver_corridor_relabel.csv` | 10 host polygons | Reviewed source-relabel manifest: WB sliver-corridor artifacts reassigned to their true owner units before contiguity. |
@@ -357,6 +359,21 @@ Both use **current ISO 3166-1 alpha-3** codes (e.g. `COD`, `ROU`, `SRB`,
   https://doi.org/10.1002/hyp.9740 (HydroRIVERS) and Messager et al. (2016),
   *Nature Communications* 7, 13603, https://doi.org/10.1038/ncomms13603
   (HydroLAKES).
+- **Maritime Boundaries Geodatabase, version 12** — Flanders Marine
+  Institute (2023), Marine Regions, https://doi.org/10.14284/632, licence
+  CC BY 4.0; the source of `maritime_adjacency_pairs.csv` only. Two
+  attribute tables, read without geometry as CSV from the VLIZ WFS service
+  (`https://geo.vliz.be/geoserver/MarineRegions/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=csv`
+  plus `&typeNames=<layer>&propertyName=<fields>`, the fields of
+  `BOUNDARY_FIELDS` and `EEZ_FIELDS` in the build script; fetched
+  2026-11-12; the commands are in `docs/REPRODUCING.md` §8) and committed
+  unmodified in `build_data/marine_regions/`, as CC BY 4.0 permits with
+  attribution (the folder's README). SHA-256 (also pinned in
+  `scripts/build_maritime_adjacency.py`, which refuses a mismatching file):
+  - `MarineRegions:eez_boundaries` (2,349 lines)
+    `7cc30de5e68c238659f43b4e8608550bb001a9e61a2bdcfa65566d0947d39adb`
+  - `MarineRegions:eez` (285 records)
+    `e68c97e7aa1ebe774a3329f6bf73d16774b9fbfceeaab9b9c4ddddfbe651f187`
 
 ## Method
 
@@ -390,6 +407,45 @@ re-running on the same inputs yields byte-identical CSVs). Summary:
    `potential_artifact` (<1 km). Flags never remove a pair.
 5. **ADM0** computed directly from the ADM0 polygon layer (not aggregated from
    ADM1), for complete coverage and a uniform method.
+
+## Maritime boundaries (`maritime_adjacency_pairs.csv`)
+
+The optional maritime table, read by `maritime_adjacency=True` (country
+lookups only; default `False`). Built by `scripts/build_maritime_adjacency.py`
+from the two pinned Marine Regions attribute tables (*Sources*, above), which
+ship in `build_data/marine_regions/`; byte-stable, and
+`python scripts/build_maritime_adjacency.py --check` exits 2 instead of
+writing when the table would change. Rules (rationale and results:
+`docs/METHODS_adjacency.md` §11):
+
+1. A boundary line between two territories makes them neighbours, whatever
+   its type (treaty, median line, court ruling, joint regime, unsettled).
+2. An overlapping-claim area borders, and is shared by, every claimant its
+   record lists; a joint-regime area's parties are the territories on the
+   lines that carry it.
+3. A territory counts as a unit of the ADM0 database: its own ISO 3166-1
+   code where Marine Regions gives one and the database has it as a unit
+   (Greenland, the Faroe Islands, Réunion), else the country that holds it
+   (Alaska, Hawaii, the Azores).
+4. A World Bank disputed tract counts as the administrator the land database
+   assigns it (`_NDLSA_TRACT_ADMIN`): the Falkland Islands, South Georgia and
+   the South Sandwich Islands and the Chagos Archipelago as `GBR`, Western
+   Sahara as `MAR`.
+5. A pair joined only through a disputed tract's waters is `disputed_only`
+   (three pairs: `ARG`/`GBR`, `GBR`/`MDV`, `MAR`/`MRT`); the loaders drop it
+   when `de_facto_borders=False`.
+6. Waters within one country make no pair.
+
+Columns: `code_a`, `name_a`, `code_b`, `name_b` (the ISO alpha-3 codes of two
+ADM0 units, in alphabetical order, and their names), `line_types` (the types
+of the lines and areas that join the pair), `boundary_km` (the summed length
+Marine Regions records for the lines between the two countries' own
+territories; 0 for the 22 pairs joined only through a shared area) and
+`disputed_only`. The table holds 392 pairs among 194 units; 130 of them are
+also land pairs, and the other 262 take the default country view from 326 to
+588 pairs (583 with `de_facto_borders=False`). It follows the lines of
+version 12 as Marine Regions records them, unsettled and unilaterally claimed
+ones included, and takes no position on any of them.
 
 ## Known limitations
 
