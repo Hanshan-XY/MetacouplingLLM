@@ -98,7 +98,7 @@ def main() -> int:
         rag_corpus="bundled",
         rag_max_chunks_per_paper=5,
         web_search=True,
-        web_search_max_results=25,
+        web_search_max_results=50,
         auto_map=True,
         verbose=True,
         coupling_analysis=True,
