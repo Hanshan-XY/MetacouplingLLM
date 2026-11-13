@@ -29,10 +29,10 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-MODEL = "gpt-6.1-sol"
+MODEL = "gpt-6-luna"
 # Reasoning effort for every OpenAI call (None: the model's default).  With an
 # effort the adapter uses the Responses API, which takes gpt-6.1-sol's "max".
-REASONING_EFFORT = "xhigh"
+REASONING_EFFORT = "max"
 # Adjacency settings of the assistant (the 2026-06-16 run used the defaults of
 # its day: de facto borders, the "moderate" coupling standard, no sea borders).
 ADJACENCY = {"de_facto_borders": True, "coupling_standard": "moderate", "maritime_adjacency": True}
@@ -98,7 +98,7 @@ def main() -> int:
         rag_corpus="bundled",
         rag_max_chunks_per_paper=5,
         web_search=True,
-        web_search_max_results=50,
+        web_search_max_results=25,
         auto_map=True,
         verbose=True,
         coupling_analysis=True,
