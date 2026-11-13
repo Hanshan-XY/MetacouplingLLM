@@ -15,19 +15,26 @@ file. The format is loosely based on
   the Responses API, which takes every effort a model offers: Chat
   Completions accepts gpt-6.1-sol's efforts only up to `"xhigh"`, Responses
   takes `"max"`. While a model reasons, no `temperature` is sent (the API
-  rejects it) and no output-token cap (it would count reasoning tokens too,
-  so a cap sized for the answer could end a response during reasoning).
+  rejects it), and none of the package's output limits, which are sized
+  for the visible answer (8,192 tokens for the structured web extraction
+  and the map extraction, 4,096 for the abstract, 1,000 per web result
+  with a 12,000 floor): OpenAI counts reasoning tokens against them, so
+  the model's own maximum applies (128,000 tokens for gpt-6.1-sol). From
+  `"high"` effort up, the web search sets `return_token_budget` to
+  `"unlimited"`, as OpenAI's web search guide advises for high-effort
+  research that reads many pages, and a response that ends incomplete is
+  logged as a warning.
   These requests, the web search's included, run in OpenAI's background
   mode, polled until they finish, so a long one (a `"max"` effort, a
   25-result web search) is not cut off by the openai SDK's 10-minute read
   timeout, which resends the whole request; an interrupted wait cancels
   the response. Without an effort, Chat Completions is used as before;
   GPT-6 models, which reason by default, get neither `temperature` nor a
-  cap there. Run traces
+  cap there, and their web search sends no ceiling. Run traces
   record the reasoning effort and the adjacency settings
   (`de_facto_borders`, `coupling_standard`, `maritime_adjacency`), and
   `scripts/trace_pipeline.py` takes the effort and the adjacency settings as
-  constants. Fourteen new tests in `tests/test_gpt6_reasoning.py`.
+  constants. Twenty-four new tests in `tests/test_gpt6_reasoning.py`.
 - **Maritime adjacency for countries (`maritime_adjacency`, default
   `False`).** The country lookups (`lookup_pericoupling`, `is_pericoupled`,
   `get_pericoupled_neighbors`), the two country map functions,

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from metacouplingllm.core import MetacouplingAssistant
 from metacouplingllm.knowledge.websearch import OpenAIWebSearchBackend
 from metacouplingllm.llm.client import Message, OpenAIAdapter
@@ -127,6 +129,14 @@ class TestWebSearchBackend:
         assert client.responses.kwargs["reasoning"] == {"effort": "max"}
         assert "max_output_tokens" not in client.responses.kwargs
 
+    def test_effort_none_keeps_the_ceiling(self):
+        client = SimpleNamespace(responses=_FakeResponses())
+        OpenAIWebSearchBackend(client=client, model="gpt-6.1-terra", reasoning="none").search(
+            "avocado production in Mexico", max_results=25,
+        )
+        assert client.responses.kwargs["reasoning"] == {"effort": "none"}
+        assert client.responses.kwargs["max_output_tokens"] == 25000
+
     def test_the_default_keeps_the_ceiling(self):
         client = SimpleNamespace(responses=_FakeResponses())
         OpenAIWebSearchBackend(client=client, model="gpt-5.5").search("avocado production in Mexico", max_results=25)
@@ -173,8 +183,10 @@ class _BackgroundResponses:
 
     def _response(self, status):
         usage = SimpleNamespace(input_tokens=1, output_tokens=2, total_tokens=3)
+        details = SimpleNamespace(reason="max_output_tokens") if status == "incomplete" else None
         return SimpleNamespace(id="resp_1", status=status, output_text=self._output_text, usage=usage,
-                               error=None, model_dump=lambda: {"output": []})
+                               error=None, incomplete_details=details,
+                               model_dump=lambda: {"output": []})
 
     def create(self, **kwargs):
         self.created = kwargs
@@ -203,8 +215,6 @@ class TestBackgroundMode:
         assert responses.retrieved == 3 and reply.content == ANSWER
 
     def test_a_failed_response_raises(self, monkeypatch):
-        import pytest
-
         monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
         client = SimpleNamespace(responses=_BackgroundResponses(["failed"]))
         with pytest.raises(RuntimeError, match="failed"):
@@ -213,8 +223,6 @@ class TestBackgroundMode:
             )
 
     def test_an_interrupted_wait_cancels_the_response(self, monkeypatch):
-        import pytest
-
         monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
         responses = _BackgroundResponses([KeyboardInterrupt()])
         client = SimpleNamespace(responses=responses)
@@ -238,3 +246,76 @@ class TestBackgroundMode:
         client = SimpleNamespace(responses=_FakeResponses())
         OpenAIWebSearchBackend(client=client, model="gpt-5.5").search("avocado", max_results=5)
         assert "background" not in client.responses.kwargs
+
+    def test_an_incomplete_response_is_returned_with_a_warning(self, monkeypatch, caplog):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        client = SimpleNamespace(responses=_BackgroundResponses(["incomplete"]))
+        with caplog.at_level("WARNING", logger="metacouplingllm.llm.client"):
+            reply = OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+                [Message(role="user", content="ping")],
+            )
+        assert reply.content == ANSWER
+        assert "resp_1 ended incomplete (max_output_tokens)" in caplog.text
+
+    def test_a_gpt6_search_at_its_default_effort_sends_no_ceiling(self, monkeypatch):
+        # GPT-6 models reason by default, so the ceiling sized for the results
+        # JSON would count reasoning tokens too.
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        responses = _BackgroundResponses(["completed"], output_text='{"results": []}')
+        OpenAIWebSearchBackend(client=SimpleNamespace(responses=responses), model="gpt-6.1-sol").search(
+            "avocado production in Mexico", max_results=25,
+        )
+        assert "reasoning" not in responses.created
+        assert "max_output_tokens" not in responses.created
+        assert responses.created["background"] is True
+
+
+def test_the_structured_web_extraction_sends_no_ceiling_at_max():
+    from metacouplingllm.knowledge.websearch import extract_web_map_signals
+
+    client = _FakeOpenAI()
+    extract_web_map_signals(
+        "Avocado trade from Mexico",
+        [{"title": "t", "url": "https://example.org",
+          "model_summary": "Mexico exports avocados to the United States."}],
+        OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max"),
+    )
+    assert client.response_calls
+    for sent in client.response_calls:
+        assert "max_output_tokens" not in sent
+        assert sent["text"]["format"]["name"] == "web_map_signals"
+
+
+def test_no_request_of_a_max_run_carries_an_output_limit(monkeypatch):
+    # The main analysis, the map extraction (8,192 tokens otherwise) and the
+    # abstract (4,096 otherwise) all leave the limit to the model.
+    monkeypatch.setattr("metacouplingllm.knowledge.websearch.search_web", lambda *a, **k: [])
+    client = _FakeOpenAI()
+    advisor = MetacouplingAssistant(
+        OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max"),
+        web_search=True, web_structured_extraction=False, auto_map=True, generate_abstract=True,
+    )
+    advisor.analyze("Impact of avocado production and trade in Mexico on sustainability")
+    assert len(client.response_calls) >= 3
+    assert all("max_output_tokens" not in sent for sent in client.response_calls)
+
+
+@pytest.mark.parametrize("effort, budget", [
+    ("low", "default"), ("medium", "default"),
+    ("high", "unlimited"), ("xhigh", "unlimited"), ("max", "unlimited"),
+])
+def test_the_web_search_reads_without_the_return_budget_from_high_effort(monkeypatch, effort, budget):
+    seen = []
+
+    def fake_search_web(query, max_results=5, backend=None, metadata=None, **kwargs):
+        seen.append(backend)
+        return []
+
+    monkeypatch.setattr("metacouplingllm.knowledge.websearch.search_web", fake_search_web)
+    advisor = MetacouplingAssistant(
+        OpenAIAdapter(_FakeOpenAI(), model="gpt-6.1-sol", reasoning_effort=effort),
+        web_search=True, web_structured_extraction=False, generate_abstract=False,
+    )
+    advisor.analyze("Impact of avocado production and trade in Mexico on sustainability")
+    (backend,) = seen
+    assert backend.return_token_budget == budget

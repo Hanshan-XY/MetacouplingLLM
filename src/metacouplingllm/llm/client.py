@@ -8,9 +8,12 @@ plus ready-made adapters for OpenAI and Anthropic APIs.
 from __future__ import annotations
 
 import inspect
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
+
+logger = logging.getLogger(__name__)
 
 # Maximum number of retries for transient API errors (rate limits, etc.)
 _MAX_RETRIES = 3
@@ -104,7 +107,9 @@ def _create_in_background(client: Any, kwargs: dict[str, Any]) -> Any:
     sending the whole request again.  In background mode the request
     returns at once and is polled, so no connection stays open for it.  An
     interrupted wait cancels the response, so it does not keep running
-    unattended; a failed or cancelled response raises.
+    unattended; a failed or cancelled response raises.  An incomplete one
+    (for example at the output limit, which OpenAI's reasoning guide says
+    can come before any visible text) is returned with a warning.
     """
     response = client.responses.create(**kwargs, background=True)
     try:
@@ -128,6 +133,14 @@ def _create_in_background(client: Any, kwargs: dict[str, Any]) -> Any:
         raise RuntimeError(
             f"OpenAI background response {response.id} ended {response.status}: "
             f"{getattr(response, 'error', None)}"
+        )
+    if getattr(response, "status", None) == "incomplete":
+        details = getattr(response, "incomplete_details", None)
+        logger.warning(
+            "OpenAI response %s ended incomplete (%s); its output may be cut "
+            "short or empty.",
+            response.id,
+            getattr(details, "reason", None),
         )
     return response
 
@@ -154,7 +167,10 @@ class OpenAIAdapter:
         set, requests go through the Responses API, which takes every
         effort a model offers (Chat Completions stops at ``"xhigh"`` for
         gpt-6.1-sol), in background mode, polled until they finish, so a
-        long request is not cut off by the SDK's 10-minute timeout.
+        long request is not cut off by the SDK's 10-minute timeout.  With
+        any effort but ``"none"`` no output limit is sent, because the
+        API counts reasoning tokens against it; the model's own maximum
+        applies.
         ``None`` (default) uses Chat Completions and the model's own
         effort.  The assistant's native web search uses the same effort.
     """

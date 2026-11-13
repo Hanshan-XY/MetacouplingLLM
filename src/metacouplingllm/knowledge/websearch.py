@@ -206,10 +206,12 @@ class OpenAIWebSearchBackend:
     # OpenAI web_search tool config.  ``search_context_size`` controls
     # how much context from web results is made available to the model
     # ("low" | "medium" | "high"); default "high" maximises evidence
-    # depth at modest token cost.  ``return_token_budget`` controls the
-    # output token budget for GPT-5+ reasoning models ("default" |
-    # "unlimited"); we default to "default" so callers opt into the
-    # unbounded path explicitly.
+    # depth at modest token cost.  ``return_token_budget`` caps how much
+    # web-search result content the tool returns to a GPT-5+ reasoning
+    # model ("default" | "unlimited"); OpenAI's web search guide
+    # advises "unlimited" only for high-effort research that reads many
+    # pages, so it stays "default" here and ``MetacouplingAssistant``
+    # sets "unlimited" at the high, xhigh and max efforts.
     search_context_size: str = "high"
     return_token_budget: str = "default"
     user_location: dict[str, object] | None = None
@@ -220,6 +222,9 @@ class OpenAIWebSearchBackend:
     # when more results are requested (see effective_max_tokens
     # calculation in ``search()``).  12000 covers ~10-12 results at
     # 200-400 word summaries with ~500 tokens of overhead per result.
+    # The ceiling is sized for the results JSON, so it is not sent when
+    # the search reasons: at an explicit effort other than "none", or on
+    # a GPT-6 model, which reasons by default (see ``search()``).
     max_output_tokens: int = 12000
 
     def search(
@@ -342,10 +347,16 @@ class OpenAIWebSearchBackend:
             # docstring on the dataclass.
             "max_output_tokens": effective_max_tokens,
         }
-        if self.reasoning and self.reasoning != "default":
+        explicit_effort = bool(self.reasoning) and self.reasoning != "default"
+        if explicit_effort:
             kwargs["reasoning"] = {"effort": self.reasoning}
-            # The output-token ceiling counts reasoning tokens too, and an
-            # explicit effort ("max" above all) can reason past a ceiling
+        reasons = self.reasoning != "none" and (
+            explicit_effort or self.model.startswith("gpt-6")
+        )
+        if reasons:
+            # The output-token ceiling counts reasoning tokens too, and a
+            # reasoning search (an explicit effort, "max" above all, or a
+            # GPT-6 model at its default effort) can reason past a ceiling
             # sized for the results JSON, leaving an incomplete response
             # (OpenAI's reasoning guide); leave it to the model's own limit.
             kwargs.pop("max_output_tokens", None)
