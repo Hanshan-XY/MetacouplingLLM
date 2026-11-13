@@ -197,6 +197,58 @@ class TestPromptAndValidation:
         assert "France (FRA) and United Kingdom (GBR) are **pericoupled**" in advisor.history[0].content
 
 
+class TestAtSeaLabels:
+    """A pair adjacent only at sea is said to be, in the hint and in the validation block."""
+
+    def test_pair_hint_says_when_adjacency_is_at_sea(self):
+        sea = PromptBuilder._build_coupling_hint(FRANCE_UK, maritime_adjacency=True)
+        assert ("France (FRA) and United Kingdom (GBR) are **pericoupled** "
+                "(adjacent at sea: their waters share a maritime boundary)") in sea
+        land = PromptBuilder._build_coupling_hint(
+            "Avocado exports from Mexico to the United States", maritime_adjacency=True,
+        )
+        assert "are **pericoupled** (geographically adjacent)" in land
+        assert "at sea" not in land
+
+    def test_neighbor_list_marks_neighbors_met_at_sea(self):
+        hint = PromptBuilder._build_coupling_hint("Avocado production in Mexico", maritime_adjacency=True)
+        assert "- Cuba (CUB) (at sea)\n" in hint
+        assert "- Honduras (HND) (at sea)\n" in hint
+        assert "- Guatemala (GTM)\n" in hint
+        assert "- United States (USA)\n" in hint
+        assert "Neighbors marked (at sea) are adjacent only at sea" in hint
+
+    def test_a_river_border_without_a_crossing_counts_at_sea(self):
+        # Guyana and Suriname meet on land only across a river with no fixed
+        # crossing, so under "moderate" they are adjacent at sea alone.
+        hint = PromptBuilder._build_coupling_hint(
+            "Timber trade from Guyana to Suriname", coupling_standard="moderate",
+            maritime_adjacency=True,
+        )
+        assert "(adjacent at sea: their waters share a maritime boundary)" in hint
+        lenient = PromptBuilder._build_coupling_hint(
+            "Timber trade from Guyana to Suriname", maritime_adjacency=True,
+        )
+        assert "(geographically adjacent)" in lenient
+
+    def test_off_by_default_the_hint_has_no_sea_label(self):
+        assert "at sea" not in PromptBuilder._build_coupling_hint("Avocado production in Mexico")
+
+    def test_validation_block_marks_pairs_met_at_sea(self):
+        from metacouplingllm.output.formatter import AnalysisFormatter
+
+        parsed = make_parsed_analysis(
+            coupling_classification="pericoupling",
+            systems={
+                "sending": {"name": "France", "geographic_scope": "France"},
+                "receiving": {"name": "United Kingdom", "geographic_scope": "United Kingdom"},
+            },
+        )
+        MetacouplingAssistant._validate_country_pericoupling(parsed, maritime_adjacency=True)
+        assert "United Kingdom (GBR) (at sea): PERICOUPLED" in parsed.country_pericoupling_info["pair_results"]
+        assert "United Kingdom (GBR) (at sea)" in AnalysisFormatter.format_full(parsed)
+
+
 class _FranceClient:
     def chat(self, messages, temperature=0.7, max_tokens=None):
         from metacouplingllm.llm.client import LLMResponse
