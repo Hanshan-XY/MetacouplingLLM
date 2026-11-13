@@ -344,6 +344,11 @@ class OpenAIWebSearchBackend:
         }
         if self.reasoning and self.reasoning != "default":
             kwargs["reasoning"] = {"effort": self.reasoning}
+            # The output-token ceiling counts reasoning tokens too, and an
+            # explicit effort ("max" above all) can reason past a ceiling
+            # sized for the results JSON, leaving an incomplete response
+            # (OpenAI's reasoning guide); leave it to the model's own limit.
+            kwargs.pop("max_output_tokens", None)
 
         response = self.client.responses.create(**kwargs)
         output_text = getattr(response, "output_text", "") or ""

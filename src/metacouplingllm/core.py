@@ -1103,7 +1103,7 @@ class MetacouplingAssistant:
                     web_backend = OpenAIWebSearchBackend(
                         client=_wc.raw_client,
                         model=_wc.model,
-                        reasoning="default",
+                        reasoning=_wc.reasoning_effort or "default",
                     )
                 elif isinstance(_wc, AnthropicAdapter):
                     web_backend = AnthropicWebSearchBackend(
@@ -1470,7 +1470,7 @@ class MetacouplingAssistant:
                     web_backend = OpenAIWebSearchBackend(
                         client=_wc.raw_client,
                         model=_wc.model,
-                        reasoning="default",
+                        reasoning=_wc.reasoning_effort or "default",
                     )
                 elif isinstance(_wc, AnthropicAdapter):
                     web_backend = AnthropicWebSearchBackend(

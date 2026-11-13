@@ -13,7 +13,8 @@ Usage::
 
     python scripts/trace_pipeline.py
 
-Edit ``QUERY``, ``OUT_DIR``, ``MODEL`` at the top to retarget.
+Edit ``QUERY``, ``MODEL``, ``REASONING_EFFORT`` and ``ADJACENCY`` at the top to
+retarget.  The API key comes from the environment, or else from ``API_KEY_PATH``.
 """
 from __future__ import annotations
 
@@ -28,7 +29,13 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-MODEL = "gpt-5.5"
+MODEL = "gpt-6.1-sol"
+# Reasoning effort for every OpenAI call (None: the model's default).  With an
+# effort the adapter uses the Responses API, which takes gpt-6.1-sol's "max".
+REASONING_EFFORT = "max"
+# Adjacency settings of the assistant (the 2026-06-16 run used the defaults of
+# its day: de facto borders, the "moderate" coupling standard, no sea borders).
+ADJACENCY = {"de_facto_borders": True, "coupling_standard": "moderate", "maritime_adjacency": True}
 # A new dated folder for every run, so a run never overwrites a committed one
 # (runs/avocado_2026-06-16_gpt-5.5_builtin-trace/ is the run the paper describes).
 OUT_DIR = Path("runs") / f"avocado_{datetime.now(timezone.utc):%Y-%m-%d_%H%M%S}_{MODEL}"
@@ -38,11 +45,14 @@ API_KEY_PATH = Path(
 
 
 def load_api_key() -> None:
-    """Read API key(s) from the configured .env file into the environment.
+    """Read API key(s) from the configured .env file into the environment,
+    unless one is already set there.
 
     Accepts either OPENAI_API_KEY or ANTHROPIC_API_KEY (whichever the
     configured MODEL targets).
     """
+    if os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"):
+        return
     if not API_KEY_PATH.exists():
         sys.exit(f"ERROR: API key file not found at {API_KEY_PATH}")
     for raw in API_KEY_PATH.read_text(encoding="utf-8").splitlines():
@@ -68,7 +78,8 @@ def main() -> int:
     print("METACOUPLING PIPELINE TRACE")
     print("=" * 60)
     print(f"  Query:  {QUERY}")
-    print(f"  Model:  {MODEL}")
+    print(f"  Model:  {MODEL} (reasoning effort: {REASONING_EFFORT or 'model default'})")
+    print(f"  Adjacency: {ADJACENCY}")
     print(f"  Out:    {OUT_DIR}")
     print()
 
@@ -80,7 +91,7 @@ def main() -> int:
     else:
         from openai import OpenAI
         from metacouplingllm import OpenAIAdapter
-        llm = OpenAIAdapter(OpenAI(), model=MODEL)
+        llm = OpenAIAdapter(OpenAI(), model=MODEL, reasoning_effort=REASONING_EFFORT)
 
     assistant = MetacouplingAssistant(
         llm_client=llm,
@@ -93,6 +104,7 @@ def main() -> int:
         coupling_analysis=True,
         trace=True,
         trace_dir=OUT_DIR,
+        **ADJACENCY,
     )
 
     t0 = time.perf_counter()

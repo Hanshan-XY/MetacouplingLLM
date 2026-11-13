@@ -93,6 +93,13 @@ class LLMClient(Protocol):
 # OpenAI Adapter
 # ---------------------------------------------------------------------------
 
+def _responses_text_format(response_format: dict) -> dict:
+    """A Chat Completions ``response_format`` as a Responses ``text.format``."""
+    if response_format.get("type") == "json_schema":
+        return {"type": "json_schema", **response_format.get("json_schema", {})}
+    return dict(response_format)
+
+
 class OpenAIAdapter:
     """Adapter wrapping an OpenAI client to satisfy ``LLMClient``.
 
@@ -102,11 +109,26 @@ class OpenAIAdapter:
         An ``openai.OpenAI`` instance (or compatible).
     model:
         Model identifier (e.g., ``"gpt-4o"``, ``"gpt-4o-mini"``).
+    reasoning_effort:
+        Reasoning effort for every request, for example ``"max"`` with
+        ``gpt-6.1-sol``; the accepted values depend on the model.  When
+        set, requests go through the Responses API, which takes every
+        effort a model offers (Chat Completions stops at ``"xhigh"`` for
+        gpt-6.1-sol).  ``None`` (default) uses Chat Completions and the
+        model's own effort.  The assistant's native web search uses the
+        same effort.
     """
 
-    def __init__(self, client: Any, model: str = "gpt-4o") -> None:
+    def __init__(
+        self,
+        client: Any,
+        model: str = "gpt-4o",
+        *,
+        reasoning_effort: str | None = None,
+    ) -> None:
         self._client = client
         self._model = model
+        self._reasoning_effort = reasoning_effort
 
     @property
     def raw_client(self) -> Any:
@@ -117,6 +139,11 @@ class OpenAIAdapter:
     def model(self) -> str:
         """Return the configured model identifier."""
         return self._model
+
+    @property
+    def reasoning_effort(self) -> str | None:
+        """Return the configured reasoning effort (``None``: model default)."""
+        return self._reasoning_effort
 
     def chat(
         self,
@@ -139,6 +166,9 @@ class OpenAIAdapter:
             extraction + fallback parsing.  Keyword-only so legacy
             callers don't break.
         """
+        if self._reasoning_effort is not None:
+            return self._respond(messages, temperature, max_tokens, response_format)
+
         api_messages = [
             {"role": msg.role, "content": msg.content} for msg in messages
         ]
@@ -164,6 +194,14 @@ class OpenAIAdapter:
             kwargs["temperature"] = 1
             if "max_tokens" in kwargs:
                 kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+        # GPT-6 family (OpenAI's "Using GPT-6" guide): these models reason
+        # by default, and while they reason the API rejects temperature and
+        # a completion-token cap counts the reasoning tokens too, so a cap
+        # sized for the visible answer can end the response during
+        # reasoning.  Send neither.
+        elif self._model.startswith("gpt-6"):
+            kwargs.pop("temperature", None)
+            kwargs.pop("max_tokens", None)
 
         try:
             response = self._client.chat.completions.create(**kwargs)
@@ -219,6 +257,56 @@ class OpenAIAdapter:
             content=choice.message.content or "",
             usage=usage_data,
         )
+
+    def _respond(
+        self,
+        messages: list[Message],
+        temperature: float,
+        max_tokens: int | None,
+        response_format: dict | None,
+    ) -> LLMResponse:
+        """Send messages via the Responses API with the configured effort.
+
+        While a model reasons (any effort but ``"none"``), the API rejects
+        ``temperature`` and ``max_output_tokens`` counts reasoning tokens
+        too, so neither is sent; with ``"none"`` both are.
+        """
+        kwargs: dict[str, Any] = {
+            "model": self._model,
+            "input": [{"role": m.role, "content": m.content} for m in messages],
+            "reasoning": {"effort": self._reasoning_effort},
+        }
+        if self._reasoning_effort == "none":
+            kwargs["temperature"] = temperature
+            if max_tokens is not None:
+                kwargs["max_output_tokens"] = max_tokens
+        if response_format is not None:
+            kwargs["text"] = {"format": _responses_text_format(response_format)}
+
+        response = self._create_response(kwargs)
+        usage = getattr(response, "usage", None)
+        usage_data: dict[str, int] = {}
+        if usage is not None:
+            usage_data = {
+                "prompt_tokens": usage.input_tokens,
+                "completion_tokens": usage.output_tokens,
+                "total_tokens": usage.total_tokens,
+            }
+        return LLMResponse(
+            content=getattr(response, "output_text", "") or "",
+            usage=usage_data,
+        )
+
+    def _create_response(self, kwargs: dict[str, Any]) -> Any:
+        """``responses.create`` with backoff on rate-limit and server errors."""
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                return self._client.responses.create(**kwargs)
+            except Exception as exc:
+                if attempt == _MAX_RETRIES or not self._is_rate_limit_error(exc):
+                    raise
+                time.sleep(_RETRY_BACKOFF_BASE * (2 ** attempt))
+        raise AssertionError("unreachable")
 
     def _retry_with_backoff(
         self,
