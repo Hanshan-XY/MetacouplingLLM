@@ -67,7 +67,7 @@ file. The format is loosely based on
   is 88.4% (88.1% with Carlson's labels), and the telecoupled share peaks at
   0.203 in 1972 (0.216). The parser also leaves out five 2013 rows of Table
   S8's Clipperton Island block, which hold a number where the fishing
-  nation's name belongs (2,314 t); they had entered the edge table as five
+  nation's name belongs (2,315 t); they had entered the edge table as five
   fishing nations named by numbers.
 
 ## [0.2.2] — 2026-10-24

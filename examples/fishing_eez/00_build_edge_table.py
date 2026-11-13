@@ -21,7 +21,7 @@ from ./source when it is unset:
         repeated nation rows.
 
       * In the Clipperton Isl. (France) block of S8, five 2013 rows hold a number
-        where the fishing nation's name belongs (2,314 t in all).  Their fleets
+        where the fishing nation's name belongs (2,315 t in all).  Their fleets
         cannot be known, so the parser leaves them out and reports them.
 
 OUTPUT (pinned so downstream steps run offline):

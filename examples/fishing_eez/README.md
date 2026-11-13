@@ -183,7 +183,7 @@ name; left apart, each EEZ would split into an all-domestic and an all-foreign
 focal system.
 
 **Rows without a nation.** In Table S8's block for `Clipperton Isl. (France)`,
-five 2013 rows hold a number where the fishing nation's name belongs (2,314 t in
+five 2013 rows hold a number where the fishing nation's name belongs (2,315 t in
 all). Their fleets cannot be known, so step 00 leaves them out and reports them.
 
 `data/sau_country_codes.csv` — the country of each EEZ and fishing nation (332
