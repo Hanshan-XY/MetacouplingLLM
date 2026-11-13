@@ -5,18 +5,19 @@ summary figures of its fishing example (Section 5.2).
 
 INPUT
     outputs/indicators_by_eez.csv  -- per-EEZ indicators from the package (step 02)
-    data/fishing_edge_table.csv    -- the edge table (for nominal partner counts)
+    outputs/classified_edges.csv   -- every flow with the database's label and Carlson's (step 02)
     data/eez_region.json           -- per-EEZ region map  {EEZ: {grp, region}}
 
 OUTPUT
     outputs/regional_catch.csv       -- Table 4: regional catch totals and proportions
     outputs/regional_indicators.csv  -- Table 5: catch-weighted regional indicators
     outputs/global_totals.csv        -- global shares and the Section 5.2 figures
+    outputs/carlson_comparison.csv   -- flows and catch by Carlson's label and the database's
     outputs/telecoupled_share_timeseries.csv   (optional; needs the source tables)
 
 ALL the statistics in this file are USER-SUPPLIED analysis built ON TOP of the
-package's per-EEZ indicator table.  The package computes the indicators; this
-script aggregates them by region.
+package's labels and per-EEZ indicator table.  The package classifies the flows and
+computes the indicators; this script aggregates them by region.
 
   * Regions follow the 'grp' field of eez_region.json (Carlson et al.'s Table S16
     scheme, joined by 01_build_region_map.py).  The eleven regions cover 276 of the
@@ -32,6 +33,8 @@ from __future__ import annotations
 
 import json
 import os
+import runpy
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -39,7 +42,7 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 IND = HERE / "outputs" / "indicators_by_eez.csv"
-EDGES = HERE / "data" / "fishing_edge_table.csv"
+EDGES = HERE / "outputs" / "classified_edges.csv"
 REGION_JSON = HERE / "data" / "eez_region.json"
 OUT_DIR = HERE / "outputs"
 SRC_DIR = Path(os.environ.get("CARLSON2020_SUPPLEMENT", HERE / "source"))
@@ -90,11 +93,19 @@ def main() -> None:
     table5 = pd.DataFrame(ind_rows).sort_values("TFS", ascending=False)
     table5.to_csv(OUT_DIR / "regional_indicators.csv", index=False)
 
+    # ----- The database's labels against Carlson et al.'s -------------------------
+    comparison = (edges.groupby(["carlson_type", "coupling_type"])["flow_value"]
+                  .agg(n_flows="size", catch_MMT="sum").reset_index())
+    comparison["catch_MMT"] /= 1e6
+    comparison.to_csv(OUT_DIR / "carlson_comparison.csv", index=False)
+    foreign = edges[edges["carlson_type"] != "I"]          # Carlson's adjacent and distant flows
+    same = foreign["coupling_type"] == foreign["carlson_type"]
+
     # ----- Global figures --------------------------------------------------------
     total_t = ind["F_total"].sum()
     distant = ind[ind["F_T"] > 0]
     nominal = (edges[edges["coupling_type"] == "T"]
-               .groupby("focal_system_id")["destination_id"].nunique()
+               .groupby("focal_system_id")["partner"].nunique()
                .reindex(distant["focal_system_id"]))
     global_rows = pd.DataFrame([
         {"metric": "n_eez", "value": ind["focal_system_id"].nunique()},
@@ -106,6 +117,10 @@ def main() -> None:
         {"metric": "n_eez_with_distant_catch", "value": len(distant)},
         {"metric": "mean_ENP_T_unweighted", "value": distant["ENP_T"].mean()},
         {"metric": "mean_nominal_distant_nations", "value": nominal.mean()},
+        {"metric": "n_foreign_flows", "value": len(foreign)},
+        {"metric": "carlson_agreement_flows", "value": same.mean()},
+        {"metric": "carlson_agreement_catch",
+         "value": foreign.loc[same, "flow_value"].sum() / foreign["flow_value"].sum()},
     ])
     global_rows.to_csv(OUT_DIR / "global_totals.csv", index=False)
 
@@ -116,67 +131,46 @@ def main() -> None:
     print(f"  total catch {g['total_catch_Bt']:.3f} Bt; own + adjacent {100 * g['own_plus_adjacent_share']:.1f}%")
     print(f"  EEZs with distant catch: {g['n_eez_with_distant_catch']:.0f}; unweighted mean ENP_T "
           f"{g['mean_ENP_T_unweighted']:.2f} vs {g['mean_nominal_distant_nations']:.2f} nominal distant nations")
+    print(f"  Carlson's adjacent and distant flows: the database gives the same label to "
+          f"{100 * g['carlson_agreement_flows']:.1f}% of the {g['n_foreign_flows']:.0f} flows and "
+          f"{100 * g['carlson_agreement_catch']:.1f}% of their catch")
     with pd.option_context("display.width", 200, "display.max_columns", 20):
         print("\n=== Table 4: regional catch (MMT, %) ===")
         print(table4.set_index("region").round(1))
         print("\n=== Table 5: catch-weighted regional indicators ===")
         print(table5.set_index("region").round(2))
+        print("\n=== Carlson's label -> the database's ===")
+        print(comparison.set_index(["carlson_type", "coupling_type"]).round(1))
 
-    _telecoupled_timeseries()
+    _telecoupled_timeseries(edges)
 
 
-def _telecoupled_timeseries() -> None:
-    """Per-year global telecoupled share = Type3 / (Type1+Type2+Type3).
+def _telecoupled_timeseries(edges: pd.DataFrame) -> None:
+    """Per-year global telecoupled share = T / (I + P + T), with the database's labels.
 
-    Recomputes annual catch totals straight from the source tables (the pinned
-    edge table sums over years, so it cannot give a per-year series).  This is a
-    supplementary, descriptive figure -- not part of the regional tables.
+    Re-reads the source tables, year by year (the pinned edge table sums over
+    years), with step 00's parsers, and gives each year's catch the label its
+    (EEZ, fishing nation) flow got in step 02.  This is a supplementary,
+    descriptive figure -- not part of the regional tables.
     """
-    import openpyxl
-
     if not (SRC_DIR / "Table S4.xlsx").exists():
         print(f"\n(Source tables not found in {SRC_DIR}; skipping temporal series.)")
         return
 
-    def s4_year_totals(path):
-        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-        ws = wb["catch"]
-        totals = {}
-        for row in ws.iter_rows(min_row=4, values_only=True):
-            year = row[0]
-            if year is None:
-                continue
-            s = sum(float(v) for v in row[1:] if v is not None)
-            totals[int(float(year))] = totals.get(int(float(year)), 0.0) + s
-        wb.close()
-        return totals
+    step00 = runpy.run_path(str(HERE / "00_build_edge_table.py"))   # its parsers, not its main()
+    label = dict(zip(zip(edges["focal_system_id"], edges["destination_id"]), edges["coupling_type"]))
+    totals: dict[int, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    for year, _eez, catch in step00["iter_own"](SRC_DIR / "Table S4.xlsx"):
+        totals[int(float(year))]["I"] += catch
+    for table in ("Table S6.xlsx", "Table S8.xlsx"):
+        for year, eez, nation, catch in step00["iter_blocks"](SRC_DIR / table):
+            if catch:
+                totals[int(float(year))][label[(eez, nation)]] += catch
 
-    def block_year_totals(path):
-        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-        ws = wb["catch"]
-        header = next(ws.iter_rows(min_row=3, max_row=3, values_only=True))
-        # catch lives in columns whose header == 'Catch'
-        catch_cols = [c for c, h in enumerate(header) if h is not None and str(h).strip().lower() == "catch"]
-        totals = {}
-        for row in ws.iter_rows(min_row=4, values_only=True):
-            year = row[0]
-            if year is None:
-                continue
-            s = sum(float(row[c]) for c in catch_cols if c < len(row) and row[c] is not None)
-            totals[int(float(year))] = totals.get(int(float(year)), 0.0) + s
-        wb.close()
-        return totals
-
-    t1 = s4_year_totals(SRC_DIR / "Table S4.xlsx")
-    t2 = block_year_totals(SRC_DIR / "Table S6.xlsx")
-    t3 = block_year_totals(SRC_DIR / "Table S8.xlsx")
-
-    years = sorted(set(t1) | set(t2) | set(t3))
     rows = []
-    for y in years:
-        a, b, c = t1.get(y, 0.0), t2.get(y, 0.0), t3.get(y, 0.0)
-        tot = a + b + c
-        rows.append({"year": y, "telecoupled_share": (c / tot) if tot else np.nan})
+    for y in sorted(totals):
+        tot = sum(totals[y].values())
+        rows.append({"year": y, "telecoupled_share": totals[y]["T"] / tot if tot else np.nan})
     ts = pd.DataFrame(rows)
     ts.to_csv(OUT_DIR / "telecoupled_share_timeseries.csv", index=False)
 
