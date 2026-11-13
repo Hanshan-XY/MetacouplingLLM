@@ -93,6 +93,45 @@ class LLMClient(Protocol):
 # OpenAI Adapter
 # ---------------------------------------------------------------------------
 
+_BACKGROUND_POLL_SECONDS = 3.0
+
+
+def _create_in_background(client: Any, kwargs: dict[str, Any]) -> Any:
+    """``responses.create`` in OpenAI's background mode, polled until it ends.
+
+    A long reasoning request (a "max" effort, a 25-result web search) can
+    outlast the SDK's 10-minute read timeout, which the SDK answers by
+    sending the whole request again.  In background mode the request
+    returns at once and is polled, so no connection stays open for it.  An
+    interrupted wait cancels the response, so it does not keep running
+    unattended; a failed or cancelled response raises.
+    """
+    response = client.responses.create(**kwargs, background=True)
+    try:
+        while getattr(response, "status", None) in ("queued", "in_progress"):
+            time.sleep(_BACKGROUND_POLL_SECONDS)
+            for attempt in range(_MAX_RETRIES + 1):
+                try:
+                    response = client.responses.retrieve(response.id)
+                    break
+                except Exception as exc:
+                    if attempt == _MAX_RETRIES or not OpenAIAdapter._is_rate_limit_error(exc):
+                        raise
+                    time.sleep(_RETRY_BACKOFF_BASE * (2 ** attempt))
+    except BaseException:
+        try:
+            client.responses.cancel(response.id)
+        except Exception:
+            pass
+        raise
+    if getattr(response, "status", None) in ("failed", "cancelled"):
+        raise RuntimeError(
+            f"OpenAI background response {response.id} ended {response.status}: "
+            f"{getattr(response, 'error', None)}"
+        )
+    return response
+
+
 def _responses_text_format(response_format: dict) -> dict:
     """A Chat Completions ``response_format`` as a Responses ``text.format``."""
     if response_format.get("type") == "json_schema":
@@ -114,9 +153,10 @@ class OpenAIAdapter:
         ``gpt-6.1-sol``; the accepted values depend on the model.  When
         set, requests go through the Responses API, which takes every
         effort a model offers (Chat Completions stops at ``"xhigh"`` for
-        gpt-6.1-sol).  ``None`` (default) uses Chat Completions and the
-        model's own effort.  The assistant's native web search uses the
-        same effort.
+        gpt-6.1-sol), in background mode, polled until they finish, so a
+        long request is not cut off by the SDK's 10-minute timeout.
+        ``None`` (default) uses Chat Completions and the model's own
+        effort.  The assistant's native web search uses the same effort.
     """
 
     def __init__(
@@ -298,10 +338,10 @@ class OpenAIAdapter:
         )
 
     def _create_response(self, kwargs: dict[str, Any]) -> Any:
-        """``responses.create`` with backoff on rate-limit and server errors."""
+        """A background-mode response, with backoff on rate-limit and server errors."""
         for attempt in range(_MAX_RETRIES + 1):
             try:
-                return self._client.responses.create(**kwargs)
+                return _create_in_background(self._client, kwargs)
             except Exception as exc:
                 if attempt == _MAX_RETRIES or not self._is_rate_limit_error(exc):
                     raise

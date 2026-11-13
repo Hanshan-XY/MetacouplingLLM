@@ -159,3 +159,82 @@ def test_the_assistant_gives_its_web_search_the_adapter_effort(monkeypatch, tmp_
     for row in ("| `reasoning_effort` | max |", "| `maritime_adjacency` | True |",
                 "| `coupling_standard` | lenient |", "| `de_facto_borders` | True |"):
         assert row in config, row
+
+
+class _BackgroundResponses:
+    """A Responses API that runs requests in the background: queued, then the given statuses."""
+
+    def __init__(self, statuses: list, output_text: str = ANSWER) -> None:
+        self.created: dict | None = None
+        self.retrieved = 0
+        self.cancelled: list[str] = []
+        self._statuses = list(statuses)
+        self._output_text = output_text
+
+    def _response(self, status):
+        usage = SimpleNamespace(input_tokens=1, output_tokens=2, total_tokens=3)
+        return SimpleNamespace(id="resp_1", status=status, output_text=self._output_text, usage=usage,
+                               error=None, model_dump=lambda: {"output": []})
+
+    def create(self, **kwargs):
+        self.created = kwargs
+        return self._response("queued")
+
+    def retrieve(self, response_id):
+        self.retrieved += 1
+        status = self._statuses.pop(0)
+        if isinstance(status, BaseException):
+            raise status
+        return self._response(status)
+
+    def cancel(self, response_id):
+        self.cancelled.append(response_id)
+
+
+class TestBackgroundMode:
+    def test_requests_with_an_effort_run_in_background_until_they_finish(self, monkeypatch):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        responses = _BackgroundResponses(["in_progress", "in_progress", "completed"])
+        client = SimpleNamespace(responses=responses)
+        reply = OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+            [Message(role="user", content="ping")],
+        )
+        assert responses.created["background"] is True
+        assert responses.retrieved == 3 and reply.content == ANSWER
+
+    def test_a_failed_response_raises(self, monkeypatch):
+        import pytest
+
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        client = SimpleNamespace(responses=_BackgroundResponses(["failed"]))
+        with pytest.raises(RuntimeError, match="failed"):
+            OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+                [Message(role="user", content="ping")],
+            )
+
+    def test_an_interrupted_wait_cancels_the_response(self, monkeypatch):
+        import pytest
+
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        responses = _BackgroundResponses([KeyboardInterrupt()])
+        client = SimpleNamespace(responses=responses)
+        with pytest.raises(KeyboardInterrupt):
+            OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+                [Message(role="user", content="ping")],
+            )
+        assert responses.cancelled == ["resp_1"]
+
+    def test_the_web_search_runs_in_background_with_an_explicit_effort(self, monkeypatch):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        output = '{"results": [{"title": "t", "url": "https://example.org", "model_summary": "s"}]}'
+        responses = _BackgroundResponses(["completed"], output_text=output)
+        results = OpenAIWebSearchBackend(
+            client=SimpleNamespace(responses=responses), model="gpt-6.1-sol", reasoning="max",
+        ).search("avocado production in Mexico", max_results=25)
+        assert responses.created["background"] is True and responses.retrieved == 1
+        assert results and results[0]["url"] == "https://example.org"
+
+    def test_the_default_web_search_stays_synchronous(self):
+        client = SimpleNamespace(responses=_FakeResponses())
+        OpenAIWebSearchBackend(client=client, model="gpt-5.5").search("avocado", max_results=5)
+        assert "background" not in client.responses.kwargs

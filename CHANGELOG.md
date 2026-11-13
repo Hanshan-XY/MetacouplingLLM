@@ -17,12 +17,17 @@ file. The format is loosely based on
   takes `"max"`. While a model reasons, no `temperature` is sent (the API
   rejects it) and no output-token cap (it would count reasoning tokens too,
   so a cap sized for the answer could end a response during reasoning).
-  Without an effort, Chat Completions is used as before; GPT-6 models, which
-  reason by default, get neither `temperature` nor a cap there. Run traces
+  These requests, the web search's included, run in OpenAI's background
+  mode, polled until they finish, so a long one (a `"max"` effort, a
+  25-result web search) is not cut off by the openai SDK's 10-minute read
+  timeout, which resends the whole request; an interrupted wait cancels
+  the response. Without an effort, Chat Completions is used as before;
+  GPT-6 models, which reason by default, get neither `temperature` nor a
+  cap there. Run traces
   record the reasoning effort and the adjacency settings
   (`de_facto_borders`, `coupling_standard`, `maritime_adjacency`), and
   `scripts/trace_pipeline.py` takes the effort and the adjacency settings as
-  constants. Nine new tests in `tests/test_gpt6_reasoning.py`.
+  constants. Fourteen new tests in `tests/test_gpt6_reasoning.py`.
 - **Maritime adjacency for countries (`maritime_adjacency`, default
   `False`).** The country lookups (`lookup_pericoupling`, `is_pericoupled`,
   `get_pericoupled_neighbors`), the two country map functions,

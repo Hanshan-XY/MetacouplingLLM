@@ -349,8 +349,13 @@ class OpenAIWebSearchBackend:
             # sized for the results JSON, leaving an incomplete response
             # (OpenAI's reasoning guide); leave it to the model's own limit.
             kwargs.pop("max_output_tokens", None)
+            # Such a search can outlast the SDK's 10-minute read timeout, so it
+            # runs in background mode, polled until it ends.
+            from metacouplingllm.llm.client import _create_in_background
 
-        response = self.client.responses.create(**kwargs)
+            response = _create_in_background(self.client, kwargs)
+        else:
+            response = self.client.responses.create(**kwargs)
         output_text = getattr(response, "output_text", "") or ""
         raw_obj = _extract_json_object(output_text)
         parsed_results = []

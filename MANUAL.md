@@ -281,7 +281,11 @@ API, which takes every effort a model offers (Chat Completions stops at
 model's default effort. While a model reasons, the adapter sends no
 `temperature` (the API rejects it) and no output-token cap (the cap would
 count reasoning tokens too), so the `temperature` setting of §5 applies only
-to models that do not reason.
+to models that do not reason. These requests run in OpenAI's background
+mode: the adapter starts each response and polls it until it finishes, so a
+long request (a `"max"` effort, a 25-result web search) is not cut off by
+the openai SDK's 10-minute read timeout, which the SDK answers by sending
+the whole request again. Interrupting the wait cancels the response.
 
 **Using Google Colab with secure API key storage:**
 
