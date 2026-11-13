@@ -25,6 +25,8 @@ Rules, applied to every record alike:
 3. A territory's country is its own ISO 3166-1 code where Marine Regions gives
    one (Greenland, the Faroe Islands, Reunion), else its sovereign's (Alaska,
    Hawaii, the Andaman and Nicobar Islands): the units of the ADM0 database.
+   A claim coded by its claimant's sovereign goes to the unit of that sovereign
+   the World Bank ADM0 layer draws the claimed island in (``WB_CLAIM_UNITS``).
 4. Units the ADM0 database does not have follow its own rule: a World Bank
    disputed tract goes to the administrator Natural Earth records for it
    (``_NDLSA_TRACT_ADMIN`` in ``scripts/build_pericoupling_db.py``), and a unit
@@ -81,6 +83,12 @@ DISPUTED_TRACTS = {
 }
 # Units the World Bank ADM0 layer draws inside another country's polygon
 WB_ADM0 = {"TWN": "CHN"}
+# Claims Marine Regions codes by the claimant's sovereign that the World Bank ADM0 layer draws in another unit
+# of that sovereign: (territory, sovereign's code) -> the unit
+WB_CLAIM_UNITS = {
+    ("Ile Tromelin", "FRA"): "ATF",                 # French Southern and Antarctic Lands
+    ("Matthew and Hunter Islands", "FRA"): "NCL",   # New Caledonia
+}
 
 
 def _tract_admins() -> dict[str, str | None]:
@@ -124,6 +132,8 @@ def build(boundaries: list[dict], eez: list[dict]) -> dict[tuple[str, str], dict
     def country(territory: str, iso: str) -> str:
         if territory in tract_country:
             return tract_country[territory]
+        if (territory, iso) in WB_CLAIM_UNITS:
+            return WB_CLAIM_UNITS[(territory, iso)]
         return WB_ADM0.get(iso, iso)
 
     parties = {r["mrgid_eez"]: [(r["territory" + i], country(r["territory" + i], r["iso_ter" + i] or r["iso_sov" + i]))

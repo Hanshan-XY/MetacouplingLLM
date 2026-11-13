@@ -3056,7 +3056,7 @@ Macquarie Isl. (Australia),Taiwan,T,1496.2892877499999,AUS,CHN,T
 Macquarie Isl. (Australia),Russian Federation,T,7391.1932958319985,AUS,RUS,T
 Macquarie Isl. (Australia),Ukraine,T,1.594029429,AUS,UKR,T
 Madagascar,Madagascar (own),I,5481553.406969999,MDG,MDG,I
-Madagascar,France,P,1238.1192941049999,MDG,FRA,P
+Madagascar,France,P,1238.1192941049999,MDG,FRA,T
 Madagascar,Seychelles,P,64720.44583639,MDG,SYC,P
 Madagascar,Egypt,T,10161.5937084,MDG,EGY,T
 Madagascar,Reunion (France),T,25767.25841159,MDG,REU,P
@@ -3319,7 +3319,7 @@ Mauritania,Bulgaria,T,421.4391567,MRT,BGR,T
 Mauritania,Comoros,T,47837.691000000006,MRT,COM,T
 Mauritania,Sierra Leone,T,4.697255025,MRT,SLE,T
 Mauritius,Mauritius (own),I,595160.4944450001,MUS,MUS,I
-Mauritius,France,P,295.11006711199997,MUS,FRA,P
+Mauritius,France,P,295.11006711199997,MUS,FRA,T
 Mauritius,Seychelles,P,708.100923638,MUS,SYC,P
 Mauritius,Madagascar,P,3.842980105,MUS,MDG,P
 Mauritius,Egypt,T,4848.829918409999,MUS,EGY,T
@@ -3605,7 +3605,7 @@ Mozambique Channel Isl. (France),Australia,T,0.011547852,ATF,AUS,T
 Mozambique Channel Isl. (France),Spain,T,4318.5670534,ATF,ESP,T
 Mozambique Channel Isl. (France),Indonesia,T,1.5094690789999998,ATF,IDN,T
 Mozambique Channel Isl. (France),South Africa,T,513.925745936,ATF,ZAF,T
-Mozambique Channel Isl. (France),Reunion (France),T,374.57376442700007,ATF,REU,T
+Mozambique Channel Isl. (France),Reunion (France),T,374.57376442700007,ATF,REU,P
 Mozambique Channel Isl. (France),China,T,569.8886961400001,ATF,CHN,T
 Myanmar,Myanmar (own),I,40883188.55059999,MMR,MMR,I
 Myanmar,India,P,301116.57105100004,MMR,IND,P
@@ -4596,7 +4596,7 @@ Seychelles,Ukraine,T,15936.37072549,SYC,UKR,T
 Seychelles,Korea (South),T,15119.885153469999,SYC,KOR,T
 Seychelles,Spain,T,17770.389790654997,SYC,ESP,T
 Seychelles,Indonesia,T,35.066986324,SYC,IDN,T
-Seychelles,France,T,3158.7689349179996,SYC,FRA,P
+Seychelles,France,T,3158.7689349179996,SYC,FRA,T
 Seychelles,Italy,T,1352.0525275500001,SYC,ITA,T
 Seychelles,India,T,178096.63887000002,SYC,IND,T
 Seychelles,Portugal,T,4517.856984121,SYC,PRT,T

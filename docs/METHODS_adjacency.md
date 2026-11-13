@@ -1696,7 +1696,11 @@ alike:
    (Greenland, the Faroe Islands, Réunion), else as the country that holds
    it (Alaska, Hawaii, the Azores, the Andaman and Nicobar Islands), so a
    flow between the Azores' waters and mainland Portugal stays within one
-   country.
+   country. A claim that Marine Regions codes by its claimant's country
+   counts as the unit of that country in which the World Bank layer draws
+   the claimed island: France's claims at Tromelin and at Matthew and Hunter
+   Islands count as the French Southern and Antarctic Lands and New
+   Caledonia.
 4. A World Bank disputed tract follows the land database's rule (§5): its
    waters go to the administrator Natural Earth records for it
    (`_NDLSA_TRACT_ADMIN`). The Falkland Islands, South Georgia and the South
@@ -1710,21 +1714,21 @@ alike:
    Mauritania–Morocco (Western Sahara).
 6. Waters within one country make no pair.
 
-**Result.** `data/maritime_adjacency_pairs.csv` holds 392 country pairs among
+**Result.** `data/maritime_adjacency_pairs.csv` holds 387 country pairs among
 194 ADM0 units, each with the types of the lines and areas that join it, the
 summed length Marine Regions records for the lines between the two
-countries' own territories (0 for the 22 pairs joined only through a shared
+countries' own territories (0 for the 18 pairs joined only through a shared
 area) and the `disputed_only` flag. 130 of the pairs are also land pairs; the
-other 262 are what the toggle adds. Country pairs in each view:
+other 257 are what the toggle adds. Country pairs in each view:
 
 | view | land | land or sea |
 |---|---|---|
-| `lenient` (default) | 326 | 588 |
-| `moderate` | 321 | 585 |
-| `stringent` | 307 | 572 |
-| `lenient`, `de_facto_borders=False` | 323 | 583 |
-| `moderate`, `de_facto_borders=False` | 318 | 580 |
-| `stringent`, `de_facto_borders=False` | 304 | 567 |
+| `lenient` (default) | 326 | 583 |
+| `moderate` | 321 | 580 |
+| `stringent` | 307 | 567 |
+| `lenient`, `de_facto_borders=False` | 323 | 578 |
+| `moderate`, `de_facto_borders=False` | 318 | 575 |
+| `stringent`, `de_facto_borders=False` | 304 | 562 |
 
 `coupling_standard` governs only the land table's water-only borders and
 never removes a sea pair: Guyana and Suriname, and French Guiana and

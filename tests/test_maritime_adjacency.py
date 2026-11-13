@@ -48,7 +48,7 @@ def _rows() -> list[dict]:
 class TestMaritimeTable:
     def test_size_and_disputed_only_pairs(self):
         rows = _rows()
-        assert len(rows) == 392
+        assert len(rows) == 387
         disputed = {(r["code_a"], r["code_b"]) for r in rows if r["disputed_only"] == "True"}
         # Through the waters of the Falkland Islands, the Chagos Archipelago
         # and Western Sahara, assigned as the land database assigns them.
@@ -110,9 +110,9 @@ class TestLookups:
 
     def test_view_sizes(self):
         assert len(_get_pairs()) == 326
-        assert len(_get_pairs(maritime_adjacency=True)) == 588
+        assert len(_get_pairs(maritime_adjacency=True)) == 583
         assert len(_get_pairs(de_facto_borders=False)) == 323
-        assert len(_get_pairs(de_facto_borders=False, maritime_adjacency=True)) == 583
+        assert len(_get_pairs(de_facto_borders=False, maritime_adjacency=True)) == 578
 
     def test_strict_view_drops_pairs_through_disputed_waters(self):
         assert is_pericoupled("ARG", "GBR", maritime_adjacency=True) is True

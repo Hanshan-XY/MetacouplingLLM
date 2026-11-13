@@ -1064,7 +1064,7 @@ subnational database connects 3,374 first-level administrative (ADM1)
 regions in 196 countries through border pairs (with `de_facto_borders=True`:
 8,462 under `lenient`, 8,026 under `moderate`, 7,638 under `stringent`);
 regions are identified by World Bank codes such as `MEX014`. An optional
-maritime layer adds, for countries only, the 392 country pairs whose waters
+maritime layer adds, for countries only, the 387 country pairs whose waters
 share a maritime boundary (*Maritime adjacency*, below).
 
 ### Automatic integration
@@ -1260,8 +1260,8 @@ The country-level functions take a third toggle, **`maritime_adjacency`**
 (default `False`). With `True`, two countries are also adjacent when their
 waters share a maritime boundary in the Maritime Boundaries Geodatabase of
 the Flanders Marine Institute (Marine Regions, version 12, 2023,
-https://doi.org/10.14284/632; CC BY 4.0): 392 country pairs, 262 of them not
-adjacent on land, so the default country view grows from 326 to 588 pairs.
+https://doi.org/10.14284/632; CC BY 4.0): 387 country pairs, 257 of them not
+adjacent on land, so the default country view grows from 326 to 583 pairs.
 The default is `False` because most metacoupling studies define adjacency on
 land; turn it on for flows that cross the sea, such as fish caught in another
 country's waters.

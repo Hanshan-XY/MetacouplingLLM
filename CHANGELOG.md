@@ -17,14 +17,16 @@ file. The format is loosely based on
   map) take a new toggle: with `True`, two countries are also adjacent when
   their waters share a maritime boundary in the Maritime Boundaries
   Geodatabase of the Flanders Marine Institute (Marine Regions, version 12;
-  CC BY 4.0). The new table `data/maritime_adjacency_pairs.csv` holds 392
-  country pairs, 262 of them not adjacent on land, so the default country
-  view grows from 326 to 588 pairs (583 with `de_facto_borders=False`,
+  CC BY 4.0). The new table `data/maritime_adjacency_pairs.csv` holds 387
+  country pairs, 257 of them not adjacent on land, so the default country
+  view grows from 326 to 583 pairs (578 with `de_facto_borders=False`,
   which drops the three pairs joined only through a disputed tract's
   waters). Every boundary line counts, whatever its legal status; an area
   that several countries claim, or manage jointly, borders each of them;
-  territories count as the units of the ADM0 database, and disputed tracts
-  as the administrators the land database assigns them. The default is
+  territories count as the units of the ADM0 database (a claim coded by its
+  claimant's country as the unit the World Bank draws the claimed island
+  in), and disputed tracts as the administrators the land database assigns
+  them. The default is
   `False` because most metacoupling studies define adjacency on land. The
   ADM1 functions do not take the toggle, and
   `build_adjacency(level="adm1", maritime_adjacency=True)` raises a
@@ -58,8 +60,8 @@ file. The format is loosely based on
   gives each EEZ and fishing nation its country (`data/sau_country_codes.csv`)
   and labels each flow with `build_adjacency(level="adm0",
   maritime_adjacency=True)` and `classify_coupling`, counting borders on land
-  and at sea. The database gives Carlson's label to 97.4% of their 5,486
-  adjacent and distant flows, by count and by catch
+  and at sea. The database gives Carlson's label to 97.3% of their 5,486
+  adjacent and distant flows, holding 97.4% of their catch
   (`outputs/carlson_comparison.csv`). Tables 4 and 5, the global figures and
   the yearly series are recomputed: the own and adjacent share of the catch
   is 88.4% (88.1% with Carlson's labels), and the telecoupled share peaks at
