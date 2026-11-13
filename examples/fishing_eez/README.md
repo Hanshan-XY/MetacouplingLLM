@@ -184,7 +184,15 @@ focal system.
 
 **Rows without a nation.** In Table S8's block for `Clipperton Isl. (France)`,
 five 2013 rows hold a number where the fishing nation's name belongs (2,315 t in
-all). Their fleets cannot be known, so step 00 leaves them out and reports them.
+all). The numbers are a copy of the same block's 1985 catch column, pasted over
+the first five 2013 names. The rows were most likely American Samoa, Belize,
+China, Korea (South) and Mexico, in that order: the table almost always lists a
+year's nations alphabetically, the 2013 rows end with Panama and Venezuela, and
+2012 and 2014 list exactly those seven nations. The current Sea Around Us
+release, a later version, matches the first two by their catch; it no longer
+lists China in this zone and has revised South Korea's and Mexico's catch. As
+the table does not name the five fleets, step 00 leaves them out and reports
+them.
 
 `data/sau_country_codes.csv` — the country of each EEZ and fishing nation (332
 names; *Labelling the flows*).
