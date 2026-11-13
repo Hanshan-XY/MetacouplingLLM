@@ -448,8 +448,12 @@ does.
 `maritime_adjacency=True` (default `False`) adds, for countries only, the
 country pairs whose waters share a maritime boundary (§8, *Maritime
 adjacency*): with it, the country hint, the country validation and the
-country map count France and the United Kingdom as neighbours. The ADM1
-hint, validation and map do not change.
+country map count France and the United Kingdom as neighbours. The hint
+and the validation block say when a pair is adjacent only at sea: the hint
+calls such a pair "adjacent at sea: their waters share a maritime
+boundary" and marks such a neighbour "(at sea)", and the validation block
+marks the partner "(at sea)". The ADM1 hint, validation and map do not
+change.
 
 ### Run tracing (`trace`, `trace_dir`)
 

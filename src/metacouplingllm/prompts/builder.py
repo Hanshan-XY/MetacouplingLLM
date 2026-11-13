@@ -389,7 +389,9 @@ class PromptBuilder:
         Both lookups use the given ``de_facto_borders``,
         ``coupling_standard`` and ``maritime_adjacency`` (the assistant's
         adjacency settings), so the hint agrees with the post-LLM
-        validation.
+        validation.  With ``maritime_adjacency``, a pair adjacent only at
+        sea is said to be ("adjacent at sea: their waters share a
+        maritime boundary"), and such neighbors are marked "(at sea)".
 
         Framing is REFERENCE-ONLY, parallel to the ADM1 hint
         (PR #20, harmonized in PR #43): the LLM is told that
@@ -410,7 +412,8 @@ class PromptBuilder:
         Returns ``None`` when:
         - No country is detected, OR
         - A 1-country query's focal country has zero pericoupled
-          neighbors (island nations like Australia, Japan, Cuba).
+          neighbors (island nations like Australia, Japan, Cuba, unless
+          ``maritime_adjacency`` finds neighbors at sea).
         """
         # Detect country codes mentioned in the text, in the order the
         # text first names them.
@@ -439,9 +442,19 @@ class PromptBuilder:
                 )
                 name_b = get_country_name(code_b)
                 if result.pair_type == PairCouplingType.PERICOUPLED:
+                    basis = (
+                        "adjacent at sea: their waters share a maritime boundary"
+                        if maritime_adjacency and not is_pericoupled(
+                            focal_code,
+                            code_b,
+                            de_facto_borders=de_facto_borders,
+                            coupling_standard=coupling_standard,
+                        )
+                        else "geographically adjacent"
+                    )
                     lines.append(
                         f"- {focal_name} ({focal_code}) and {name_b} ({code_b}) are "
-                        f"**pericoupled** (geographically adjacent) according "
+                        f"**pericoupled** ({basis}) according "
                         f"to the pericoupling database."
                     )
                 elif result.pair_type == PairCouplingType.TELECOUPLED:
@@ -468,14 +481,33 @@ class PromptBuilder:
             )
             if not neighbors:
                 return None
+            # With maritime_adjacency, mark the neighbors met only at sea.
+            on_land = (
+                get_pericoupled_neighbors(
+                    focal_code,
+                    de_facto_borders=de_facto_borders,
+                    coupling_standard=coupling_standard,
+                )
+                if maritime_adjacency
+                else set(neighbors)
+            )
             neighbor_lines = [
-                f"- {get_country_name(c)} ({c})" for c in neighbors
+                f"- {get_country_name(c)} ({c})"
+                + ("" if c in on_land else " (at sea)")
+                for c in neighbors
             ]
+            at_sea_note = (
+                "\n\nNeighbors marked (at sea) are adjacent only at sea: "
+                "their waters share a maritime boundary."
+                if set(neighbors) - on_land
+                else ""
+            )
             body = (
                 f"No specific partner country was named in the research "
                 f"description.  Based on the database, {focal_name}'s "
                 f"pericoupled (geographically adjacent) neighbors are:\n"
                 + "\n".join(neighbor_lines)
+                + at_sea_note
                 + "\n\nAny actual pericoupling involving these neighbors "
                 "must still be supported by independent evidence of "
                 "cross-system flows."

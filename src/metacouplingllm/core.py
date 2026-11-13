@@ -29,6 +29,7 @@ from metacouplingllm.knowledge.countries import (
 from metacouplingllm.knowledge.literature import Paper
 from metacouplingllm.knowledge.pericoupling import (
     PairCouplingType,
+    is_pericoupled,
     lookup_pericoupling,
 )
 from metacouplingllm.knowledge.places import place_readings
@@ -5650,6 +5651,23 @@ class MetacouplingAssistant:
                 return "TELECOUPLED"
             return None  # UNKNOWN — skip
 
+        def _partner(code_b: str, verdict: str) -> str:
+            """The partner's label; with ``maritime_adjacency``, a
+            country-scale pair adjacent only at sea is marked so."""
+            label = f"{get_country_name(code_b)} ({code_b})"
+            if (
+                verdict == "PERICOUPLED"
+                and maritime_adjacency
+                and not use_region_adjacency
+                and not is_pericoupled(
+                    focal_code, code_b,
+                    de_facto_borders=de_facto_borders,
+                    coupling_standard=coupling_standard,
+                )
+            ):
+                label += " (at sea)"
+            return label
+
         emitted_codes: set[str] = set()  # PR #48: dedup vs union members
         for code_b in other_codes:
             llm_role = country_roles.get(code_b, "")
@@ -5666,9 +5684,8 @@ class MetacouplingAssistant:
             verdict = _verdict_for(code_b)
             if verdict is None:
                 continue
-            cn_b = get_country_name(code_b)
             pair_lines.append(
-                f"{left_label} ↔ {cn_b} ({code_b}): {verdict}"
+                f"{left_label} ↔ {_partner(code_b, verdict)}: {verdict}"
             )
             emitted_codes.add(code_b)
 
@@ -5698,7 +5715,7 @@ class MetacouplingAssistant:
             if peri_members:
                 for m in peri_members:
                     pair_lines.append(
-                        f"{left_label} ↔ {get_country_name(m)} ({m}): "
+                        f"{left_label} ↔ {_partner(m, 'PERICOUPLED')}: "
                         f"PERICOUPLED"
                     )
                 pair_lines.append(

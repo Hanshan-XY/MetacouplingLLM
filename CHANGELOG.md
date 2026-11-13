@@ -27,7 +27,10 @@ file. The format is loosely based on
   claimant's country as the unit the World Bank draws the claimed island
   in), and disputed tracts as the administrators the land database assigns
   them. The default is
-  `False` because most metacoupling studies define adjacency on land. The
+  `False` because most metacoupling studies define adjacency on land. With
+  it on, the prompt hint and the validation block say when a pair is
+  adjacent only at sea ("adjacent at sea: their waters share a maritime
+  boundary" in the hint, "(at sea)" after a neighbour or partner). The
   ADM1 functions do not take the toggle, and
   `build_adjacency(level="adm1", maritime_adjacency=True)` raises a
   `ValueError`. Built by `scripts/build_maritime_adjacency.py` from two
@@ -35,7 +38,7 @@ file. The format is loosely based on
   `build_data/marine_regions/` (`.gitattributes` keeps their bytes exact),
   so `python scripts/build_maritime_adjacency.py --check` reproduces the
   table offline; see `docs/METHODS_adjacency.md` §11.
-  New tests in `tests/test_maritime_adjacency.py` (suite 2,193).
+  New tests in `tests/test_maritime_adjacency.py` (suite 2,198).
 
 ### Changed
 
