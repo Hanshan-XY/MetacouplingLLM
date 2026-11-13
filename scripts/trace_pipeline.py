@@ -29,7 +29,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-MODEL = "gpt-6-luna"
+MODEL = "gpt-6.1-terra"
 # Reasoning effort for every OpenAI call (None: the model's default).  With an
 # effort the adapter uses the Responses API, which takes gpt-6.1-sol's "max".
 REASONING_EFFORT = "max"
