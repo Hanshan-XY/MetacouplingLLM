@@ -21,7 +21,8 @@ the results to outputs recorded from the regular-expression implementation
 copied so that re-running the trace harness, which writes to that folder,
 cannot change this test's input.
 
-Results changed on purpose since the recording are listed in ``_AMENDED``.
+Results changed on purpose since the recording are listed in ``_AMENDED``
+and ``_EXTRACTOR_CODES_REMOVED``.
 """
 
 from __future__ import annotations
@@ -82,6 +83,12 @@ _AMENDED = {
     ("Ile de France", None): "FRA013",
     ("KwaZulu Natal", None): "ZAF004",
 }
+
+# ADM1 codes the extractor no longer finds in the avocado analysis, on
+# purpose (2026-11-14): a phrase that is just a country's name or adjective
+# names that country, not its namesake region, so the analysis's bare
+# "Mexico" is not the State of México.
+_EXTRACTOR_CODES_REMOVED = {"MEX015"}
 
 
 def _regex_phrase(haystack: str, needle: str) -> bool:
@@ -148,7 +155,8 @@ class TestRecordedOutputs:
         codes = MetacouplingAssistant._extract_mentioned_adm1_from_text(
             parse_analysis(response)
         )
-        assert sorted(codes) == _GOLDEN["avocado_extractor_codes"]
+        expected = set(_GOLDEN["avocado_extractor_codes"]) - _EXTRACTOR_CODES_REMOVED
+        assert sorted(codes) == sorted(expected)
 
 
 class TestMatcherExactness:

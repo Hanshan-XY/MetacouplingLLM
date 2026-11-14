@@ -926,7 +926,9 @@ that nothing was checked (§8).
 The `Core subnational regions:` sub-line appears only for
 national-scope queries (user named a country, not a state) and
 lists the LLM-mentioned subnational regions inside the focal
-country.  For subnational-scope queries (e.g. "avocado in
+country. A country's own name or adjective ("Mexico", "Australian")
+is not read as its namesake region (the State of México, the
+Australian Capital Territory); "State of Mexico" is.  For subnational-scope queries (e.g. "avocado in
 Jalisco, Mexico"), the `Focal System:` line shows the ADM1
 region explicitly instead — e.g.
 `Focal System: Jalisco (MEX014), Mexico (MEX)` — no

@@ -4098,6 +4098,46 @@ class TestStructuredMapData:
             )
 
 
+class TestMentionedRegionsNamesake:
+    """A country's own name or adjective is not its namesake region.
+
+    With a country hint, the ADM1 resolver reads "Mexico" as the State of
+    M\u00e9xico and "Australian" as the Australian Capital Territory.  The
+    subnational-region scan behind "Core subnational regions" skips such
+    matches, as the focal-region resolver does.
+    """
+
+    @staticmethod
+    def _scan(text):
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            systems=[{"role": "sending", "name": "Producers", "human_subsystem": text}],
+        )
+        return MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
+
+    def test_mexico_is_not_the_state_of_mexico(self):
+        codes = self._scan("Growers and packers in Michoac\u00e1n and Jalisco, Mexico.")
+        assert "MEX015" not in codes
+        assert {"MEX014", "MEX016"} <= codes
+
+    def test_australian_is_not_the_capital_territory(self):
+        # The phrase of the Australian lithium run that produced it.
+        codes = self._scan("Australian mine emissions alone understate chain impacts, Australia.")
+        assert "AUS002" not in codes
+
+    def test_the_state_of_mexico_is_still_found(self):
+        codes = self._scan("Orchards in Temascaltepec, State of Mexico, Mexico.")
+        assert "MEX015" in codes
+
+    def test_a_us_state_named_like_a_country_is_still_found(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import resolve_adm1_code
+
+        georgia = resolve_adm1_code("Georgia", country="USA")
+        codes = self._scan("Poultry farms in Georgia, United States.")
+        assert georgia is not None and georgia in codes
+
+
 class TestMapFollowsAnalysisSystems:
     """The map's focal country and partners follow the analysis's systems.
 
