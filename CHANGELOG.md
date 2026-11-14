@@ -73,6 +73,28 @@ file. The format is loosely based on
   nation's name belongs (2,315 t); they had entered the edge table as five
   fishing nations named by numbers.
 
+### Fixed
+
+- **The validation block anchors on the focal system's country.** The
+  country check took its focal country from the first sending system, and
+  from the `[Focal System]` only when the analysis had no sending system,
+  and it resolved a name that names two countries to the longer country
+  name. The first sending system can be a partner's, and "Mexico — avocado
+  exports to the United States" resolves to the United States, so a
+  gpt-6-luna analysis of Mexico's avocado trade printed "Focal System:
+  United States (USA)" and checked "United States (USA) ↔ Mexico (MEX)".
+  The check now takes the country the `[Focal System]` names, in its name
+  or else its geographic scope, then the first sending system's, and in a
+  name of the form `<country> — <what flows>` the country before the dash.
+  Of the 31 gpt-5.5 analyses saved on 2026-10-15, 8 anchored on a partner
+  and now anchor on the country their description is about: southern
+  Chile's salmon aquaculture had anchored on Peru, Germany's electricity
+  imports on France (so the block checked France ↔ Poland, TELECOUPLED,
+  where it now checks Germany ↔ Poland, PERICOUPLED), Kenya's exports on
+  Tanzania and Rwanda's gorilla tourism on the Democratic Republic of the
+  Congo. The validation blocks of the other 23 and of the committed avocado
+  run are unchanged. Tests +3 (suite 2,201).
+
 ## [0.2.2] — 2026-10-24
 
 A maintenance release: the Claude adapter works with anthropic 2.x, two

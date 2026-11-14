@@ -1119,12 +1119,18 @@ ways:
 Both steps work from one focal system rather than from every pair. Before
 the LLM call, that system is the first subnational region found in the
 research description or, if there is none, the first country named (assumed
-to be the focal one). After it, the validation anchors on the sending (or
-focal) system of the parsed analysis (when your query names a subnational
-region, on the focal region found in the analysis) and shows only that
-system's pairs with the other systems found (partner countries and, for a
-focal region, other mentioned regions); systems the model placed in the
-spillover role are skipped. For a focal region, a partner country counts as
+to be the focal one). After it, the validation anchors on the focal system
+of the parsed analysis (when your query names a subnational region, on the
+focal region found in the analysis) and shows only that system's pairs with
+the other systems found (partner countries and, for a focal region, other
+mentioned regions); systems the model placed in the spillover role are
+skipped. The focal country is the one the `[Focal System]` names, in its
+name or else its geographic scope; when it names none (a system named only
+by its states), the first sending system's, and failing that the first
+country found in the systems. In a name of the form
+`<country> — <what flows>` ("Mexico — avocado exports to the United
+States"), the country before the dash is the system's. For a focal region,
+a partner country counts as
 pericoupled only if the region has a cross-border neighbor in it (§7).
 
 ### Standalone usage (no LLM needed)
@@ -2125,10 +2131,10 @@ backend is used automatically.
 ### Pericoupling validation shows unexpected country pairs
 
 The package only validates pairs involving the **focal system**: the
-sending (or focal) system of the parsed analysis, which is the focal
-subnational region when your query names one. If you see unexpected
-pairs, the LLM may have identified a different country as the sending
-system than you intended. Use
+country the parsed analysis's `[Focal System]` names (the first sending
+system's when it names none), or the focal subnational region when your
+query names one (§8). If you see unexpected pairs, the LLM may have named a
+different focal system than you intended, or one that names no country. Use
 `list(result.parsed.iter_system_entries())` to check what the LLM
 detected.
 
