@@ -878,8 +878,9 @@ shows a pericoupled pair but the classification does not mention
 pericoupling (or shows only telecoupled pairs but the classification
 does not mention telecoupling), the Note is printed as
 `Note (country): ...` and ends with "Consider revising." When the block
-lists no pair, for example because every partner country has the spillover
-role, the Note says that nothing was checked (§8).
+lists no pair, because every partner country has the spillover role or
+because the systems name no country besides the focal one, the Note says
+that nothing was checked (§8).
 
 The `Core subnational regions:` sub-line appears only for
 national-scope queries (user named a country, not a state) and
@@ -1109,9 +1110,12 @@ ways:
    checked. Otherwise the note says the classification is consistent with
    the database. A check that looked up no pair notes that nothing was
    checked instead: the country check when every partner country has the
-   spillover role, the subnational (ADM1) check when it finds no other
-   region outside the spillover role (§13 lists why a region can be
-   missed). The report prints such a note only when it lists no pair. The
+   spillover role, or when the analysis has adjacent or distant systems
+   but its systems name no country besides the focal one (an analysis
+   without such systems gets no country check), and the subnational (ADM1)
+   check when it finds no other region outside the spillover role (§13
+   lists why a region can be missed). The report prints such a note only
+   when it lists no pair. The
    validation reads a country's name that a region elsewhere also has, such
    as Georgia, as the research description and the answer read it (Country
    name resolution, below).

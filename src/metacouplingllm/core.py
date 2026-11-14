@@ -5463,8 +5463,9 @@ class MetacouplingAssistant:
           national mode).
         - ``parsed.country_pericoupling_info``: country-level
           result, always populated when ≥1 non-spillover partner
-          country is mentioned.  Carries
-          ``core_subnational_regions`` in national mode.
+          country is mentioned, and with a note when the analysis has
+          adjacent or distant systems but no other country is found.
+          Carries ``core_subnational_regions`` in national mode.
         """
         if not national_mode:
             # ADM1-mode query: run ADM1 validator (populates
@@ -5501,7 +5502,10 @@ class MetacouplingAssistant:
         Populates ``parsed.country_pericoupling_info`` when:
         - A focal country is resolvable from the focal system (or,
           when it names none, the first sending system), AND
-        - At least one other country is mentioned in the systems.
+        - At least one other country is mentioned in the systems, or
+          the analysis has adjacent or distant systems
+          (:meth:`_has_partner_systems`); with no other country found,
+          the info's note says so and that no pair was checked.
 
         Otherwise leaves the field as None.
 
@@ -5576,8 +5580,16 @@ class MetacouplingAssistant:
         # is NOT dropped by the other_codes early-return below.
         unions = MetacouplingAssistant._extract_unions_with_roles(parsed)
 
-        if not other_codes and not unions:
-            return  # No partner country or union detected
+        # No partner country or union detected.  An analysis without
+        # adjacent or distant systems claims no partner, so it gets no
+        # block.  One with them gets a block that says no other country
+        # was found: its partners may be named in words the resolver does
+        # not read, which a missing block would hide.
+        only_focal = not other_codes and not unions
+        if only_focal and not MetacouplingAssistant._has_partner_systems(
+            parsed
+        ):
+            return
 
         # --- Build validation info (focal ↔ each other only) ---
         info: dict[str, str] = {}
@@ -5766,7 +5778,13 @@ class MetacouplingAssistant:
         # Check agreement with LLM classification.  PR #44 (v3):
         # 2-way check only (no spillover branch since the
         # validator no longer emits SPILLOVER pair lines).
-        if parsed.coupling_classification:
+        if only_focal:
+            info["note"] = (
+                f"No country other than {info['focal_country']} was "
+                "found in the systems, so no country pair was checked "
+                "against the coupling database."
+            )
+        elif parsed.coupling_classification:
             llm_class = parsed.coupling_classification.lower()
             has_peri = any(": PERICOUPLED" in p for p in pair_lines)
             has_tele = any(": TELECOUPLED" in p for p in pair_lines)
@@ -5800,6 +5818,18 @@ class MetacouplingAssistant:
                 )
 
         parsed.country_pericoupling_info = info
+
+    @staticmethod
+    def _has_partner_systems(parsed: ParsedAnalysis) -> bool:
+        """Return True when the analysis has an adjacent or distant
+        system: an entry of its pericoupling or telecoupling section
+        other than a focal system."""
+        for section in ("pericoupling", "telecoupling"):
+            entries = list(parsed.iter_system_entries(coupling_type=section))
+            focal = parsed.get_system_entries("focal", coupling_type=section)
+            if len(entries) > len(focal):
+                return True
+        return False
 
     @staticmethod
     def _system_own_country(value: str) -> str | None:

@@ -344,7 +344,7 @@ class TestAdjectives:
         assert find_country_codes("Kosovar Albanian farmers") == ["XKX"]
 
     @pytest.mark.parametrize("word, region", [
-        ("Kazakh", "AZE020"),  # Qazax, Azerbaijan
+        ("Kazakh", "AZE020"),  # Gazakh, Azerbaijan (alias "kazakh")
         ("Somali", "ETH011"),  # the Somali Region of Ethiopia
     ])
     def test_region_names_are_not_adjectives(self, word, region):

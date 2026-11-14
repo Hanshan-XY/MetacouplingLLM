@@ -127,6 +127,20 @@ file. The format is loosely based on
   hold a new word, 139 now name the adjective's country where they named
   none, and 39 that name two countries now resolve to the adjective's.
   The ADM1 alias tables rebuild byte for byte. Tests +48 (suite 2,249).
+- **The validation block says when it finds no country besides the focal
+  one.** The country check left its block out when the systems named no
+  country besides the focal one, so a partner named in words the resolver
+  does not read disappeared without a trace: before the adjectives above,
+  the Palk Bay analysis printed no block at all. An analysis with adjacent
+  or distant systems (an entry of its pericoupling or telecoupling section
+  other than a focal system) now gets the block with its focal system and
+  a note: "No country other than India (IND) was found in the systems, so
+  no country pair was checked against the coupling database." For an
+  analysis without such systems the country check still prints nothing.
+  Like the other notes of a check that looked up no pair, the report
+  prints this one only when it lists no pair. Of the 44 saved analyses,
+  the note appears for the Palk Bay analysis alone on the code before the
+  adjectives above, and for none with them. Tests +7 (suite 2,256).
 
 ## [0.2.2] — 2026-10-24
 
