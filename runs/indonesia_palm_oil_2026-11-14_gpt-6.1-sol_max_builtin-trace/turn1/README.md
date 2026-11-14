@@ -1,10 +1,10 @@
 # Pipeline trace
 
-**Query:** Impact of avocado production and trade in Mexico on sustainability
+**Query:** Impact of palm oil production and exports in Indonesia on sustainability
 
-**Model:** `gpt-5.5`
+**Model:** `gpt-6.1-sol`
 
-**Wall-clock:** 5263.9s | **LLM calls:** 3 | **Total tokens:** 74537
+**Wall-clock:** 1708.5s | **LLM calls:** 3 | **Total tokens:** 81544
 
 ## Reading this trace
 
@@ -27,5 +27,5 @@
 | [`08_map_data.md`](./08_map_data.md) | Structured map data used to render the figure. |
 | [`09_formatted_output.md`](./09_formatted_output.md) | Final formatted report. |
 | [`10_pipeline_metadata.md`](./10_pipeline_metadata.md) | Per-call token usage, wall-clock breakdown, and map metadata. |
-| [`11_llm_call_abstract.md`](./11_llm_call_abstract.md) | Abstract-generation model call (prompt rebuilt and response regenerated on 2026-10-07; see the file). |
+| [`11_llm_call_abstract.md`](./11_llm_call_abstract.md) | Abstract-generation model call. |
 | [`map.png`](./map.png) | Rendered metacoupling map. |

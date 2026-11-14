@@ -35,7 +35,8 @@ file. The format is loosely based on
   record the reasoning effort and the adjacency settings
   (`de_facto_borders`, `coupling_standard`, `maritime_adjacency`), and
   `scripts/trace_pipeline.py` takes the effort and the adjacency settings as
-  constants. Twenty-five new tests in `tests/test_gpt6_reasoning.py`.
+  constants. Twenty-five new tests in `tests/test_gpt6_reasoning.py`, and
+  the docs check compiles one more MANUAL example (suite 2,300).
 - **Maritime adjacency for countries (`maritime_adjacency`, default
   `False`).** The country lookups (`lookup_pericoupling`, `is_pericoupled`,
   `get_pericoupled_neighbors`), the two country map functions,
@@ -69,6 +70,16 @@ file. The format is loosely based on
 
 ### Changed
 
+- **The committed example run is an Indonesian palm-oil analysis by
+  gpt-6.1-sol at `"max"` reasoning effort.**
+  `runs/indonesia_palm_oil_2026-11-14_gpt-6.1-sol_max_builtin-trace/`
+  replaces `runs/avocado_2026-06-16_gpt-5.5_builtin-trace/` (kept in git
+  history) as the run the paper describes. It answers "Impact of palm oil
+  production and exports in Indonesia on sustainability" with sea borders
+  (`maritime_adjacency=True`), de facto borders and the `"moderate"`
+  coupling standard, and its trace records commit 6a46d75.
+  `scripts/trace_pipeline.py` now runs that query with that model, effort
+  and adjacency settings.
 - **The default `coupling_standard` is `"lenient"`: every administrative
   border counts as adjacency.** Units that meet only across a river or lake
   are now pericoupled under the default settings whether or not a bridge

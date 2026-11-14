@@ -28,17 +28,18 @@ from pathlib import Path
 # Run configuration
 # ---------------------------------------------------------------------------
 
-QUERY = "Impact of avocado production and trade in Mexico on sustainability"
-MODEL = "gpt-5.5"
+QUERY = "Impact of palm oil production and exports in Indonesia on sustainability"
+MODEL = "gpt-6.1-sol"
 # Reasoning effort for every OpenAI call (None: the model's default).  With an
 # effort the adapter uses the Responses API, which takes gpt-6.1-sol's "max".
-REASONING_EFFORT = None
-# Adjacency settings of the assistant (the 2026-06-16 run used the defaults of
-# its day: de facto borders, the "moderate" coupling standard, no sea borders).
+REASONING_EFFORT = "max"
+# Adjacency settings of the assistant: de facto borders, the "moderate"
+# coupling standard, and sea borders.
 ADJACENCY = {"de_facto_borders": True, "coupling_standard": "moderate", "maritime_adjacency": True}
 # A new dated folder for every run, so a run never overwrites a committed one
-# (runs/avocado_2026-06-16_gpt-5.5_builtin-trace/ is the run the paper describes).
-OUT_DIR = Path("runs") / f"avocado_{datetime.now(timezone.utc):%Y-%m-%d_%H%M%S}_{MODEL}"
+# (runs/indonesia_palm_oil_2026-11-14_gpt-6.1-sol_max_builtin-trace/ is the run
+# the paper describes).
+OUT_DIR = Path("runs") / f"indonesia_palm_oil_{datetime.now(timezone.utc):%Y-%m-%d_%H%M%S}_{MODEL}"
 API_KEY_PATH = Path(
     r"D:\Onedrive\OneDrive - Michigan State University\Desktop\api.env"
 )
