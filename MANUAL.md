@@ -1609,10 +1609,14 @@ colored (all non-adjacent countries show as telecoupled). On
 analysis-driven: only countries identified from the analysis (and, on
 automatic maps, from web extraction) are colored, and everything else stays
 grey. The two routes differ in detail. The automatic map (`auto_map=True`,
-stored on `result.map`) colors the focal country (or focal ADM1 region), the
-receiving countries found by its map-data extraction call and the validated
-receiving targets from web extraction; spillover countries stay grey (NA) by
-design. A direct `plot_analysis_map(result.parsed)` call instead colors
+stored on `result.map`) colors the focal country (or focal ADM1 region), its
+partner countries and the validated receiving targets from web extraction;
+spillover countries stay grey (NA) by design. The focal country is the
+analysis's own, the one the coupling database validation reads (§8), also
+when it receives the flows. The partners are the receiving countries its
+map-data extraction call finds plus the own country of every other system
+in the analysis except spillover systems, so a partner the call leaves out
+is still drawn, with its flows. A direct `plot_analysis_map(result.parsed)` call instead colors
 every country that a text scan finds in the parsed systems, flows, coupling
 classification, cross-coupling interactions, research gaps, causes and
 effects (spillover systems included), and colors web-extraction targets only

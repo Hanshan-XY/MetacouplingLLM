@@ -102,6 +102,21 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **The automatic map follows the analysis's focal country and partners.**
+  The map-data extraction call names the primary sending country as the
+  focal country, so a study whose focal country receives the flows was
+  mapped around the sender: "Impact of haze pollution on public health and
+  sustainability in Singapore" drew a map of Indonesia, and an Italian
+  study of irregular migration one of Libya. The map's focal country is now
+  the one the coupling database validation reads, the extracted one joining
+  the partners. The own country of every other system except spillover
+  systems joins the partners too, so partners the call left out are drawn
+  with their flows (Norway, Belgium and Denmark in a study of the United
+  Kingdom's electricity interconnectors); a country a system only mentions
+  is not added. Replaying the saved map-extraction responses of 19 traced
+  runs, 5 change (those three, and two avocado runs gain the Netherlands, a
+  system of their analyses) and 14 do not, among them the committed
+  2026-06-16 avocado run. Six new tests.
 - **The validation block anchors on the focal system's country.** The
   country check took its focal country from the first sending system, and
   from the `[Focal System]` only when the analysis had no sending system,

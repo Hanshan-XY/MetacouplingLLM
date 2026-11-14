@@ -3354,6 +3354,24 @@ class MetacouplingAssistant:
                         "target_supranational_members": list(members),
                     })
 
+        # The map follows the analysis's own systems: its focal country
+        # and its partners (see _reconcile_map_countries).
+        extracted_focal, extracted_receiving = focal, list(receiving)
+        focal, receiving, spillover, adm1_region = (
+            self._reconcile_map_countries(
+                parsed, focal, receiving, spillover, adm1_region,
+            )
+        )
+        if self._verbose and (
+            focal != extracted_focal or receiving != extracted_receiving
+        ):
+            print(
+                f"[MetacouplingAssistant] Map countries follow the "
+                f"analysis's systems: focal={focal} (extracted "
+                f"{extracted_focal}), receiving={receiving} (extracted "
+                f"{extracted_receiving})."
+            )
+
         result = {
             "focal_country": focal,
             "adm1_region": adm1_region,
@@ -5566,29 +5584,9 @@ class MetacouplingAssistant:
         )
 
         # --- Identify the focal country first ---
-        # The [Focal System]'s own country; when that system names none
-        # (or the analysis has none), the first sending system's.  The
-        # first sending system can be a partner's: "United States —
-        # market information", or Brazil in a study of China's imports.
-        focal_code: str | None = None
-        for role in ("focal", "sending"):
-            entry = parsed.get_first_system_entry(role)
-            if entry is None:
-                continue
-            for key in ("name", "geographic_scope"):
-                value = entry.get(key, "")
-                if value:
-                    code = MetacouplingAssistant._system_own_country(value)
-                    if code:
-                        focal_code = code
-                        break
-            if focal_code is not None:
-                break
-
-        # Fall back to first detected country from all systems
-        if focal_code is None and country_roles:
-            focal_code = next(iter(country_roles))
-
+        focal_code = MetacouplingAssistant._analysis_focal_country(
+            parsed, country_roles,
+        )
         if focal_code is None:
             return  # Cannot identify any country
 
@@ -5875,6 +5873,83 @@ class MetacouplingAssistant:
             if code:
                 return code
         return resolve_country_code(value, free_text=True)
+
+    @staticmethod
+    def _analysis_focal_country(
+        parsed: ParsedAnalysis,
+        country_roles: dict[str, str],
+    ) -> str | None:
+        """Return the analysis's focal country, as the database check reads it.
+
+        The [Focal System]'s own country; when that system names none
+        (or the analysis has none), the first sending system's; failing
+        both, the first country *country_roles* holds.  The first sending
+        system can be a partner's: "United States — market
+        information", or Brazil in a study of China's imports.
+        """
+        for role in ("focal", "sending"):
+            entry = parsed.get_first_system_entry(role)
+            if entry is None:
+                continue
+            for key in ("name", "geographic_scope"):
+                value = entry.get(key, "")
+                if value:
+                    code = MetacouplingAssistant._system_own_country(value)
+                    if code:
+                        return code
+        return next(iter(country_roles), None)
+
+    @staticmethod
+    def _reconcile_map_countries(
+        parsed: ParsedAnalysis,
+        focal: str,
+        receiving: list[str],
+        spillover: list[str],
+        adm1_region: str | None,
+    ) -> tuple[str, list[str], list[str], str | None]:
+        """Align the map-data extraction's countries with the analysis.
+
+        The extraction call names the primary sending country as the
+        focal country, so a study whose focal country receives the flow
+        (Singapore's haze, Italy's arriving migrants) was mapped around
+        the sender.  When the analysis's [Focal System] or first sending
+        system names a country, as the database check reads it
+        (:meth:`_analysis_focal_country`), that country is the focal
+        country and the extracted one, when different, becomes a
+        partner; the check's last resort, the first country any system
+        names, does not override the extraction.  Every system
+        but a spillover system adds its own country
+        (:meth:`_system_own_country` of its name, else of its scope) to
+        the partners (``receiving_countries``), so a partner the
+        extraction call left out is still drawn; a country a system only
+        mentions is not added.  An ADM1 focal region outside the focal
+        country is dropped.  Flows are not touched.
+        """
+        from metacouplingllm.knowledge.adm1_pericoupling import get_adm1_info
+
+        analysis_focal = MetacouplingAssistant._analysis_focal_country(
+            parsed, {},
+        )
+        partners = list(receiving)
+        if analysis_focal and analysis_focal != focal:
+            partners.insert(0, focal)
+            focal = analysis_focal
+        for entry in parsed.iter_system_entries():
+            if entry.get("role") == "spillover":
+                continue
+            for key in ("name", "geographic_scope"):
+                value = entry.get(key, "")
+                code = value and MetacouplingAssistant._system_own_country(value)
+                if code:
+                    partners.append(code)
+                    break
+        receiving = [c for c in dict.fromkeys(partners) if c != focal]
+        spillover = [c for c in spillover if c != focal and c not in receiving]
+        if adm1_region:
+            info = get_adm1_info(adm1_region)
+            if info is not None and info.get("iso_a3") != focal:
+                adm1_region = None
+        return focal, receiving, spillover, adm1_region
 
     @staticmethod
     def _extract_countries_with_roles(
