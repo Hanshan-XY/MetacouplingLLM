@@ -5322,8 +5322,8 @@ class MetacouplingAssistant:
         # mentioned region is "pericoupled" with the focal iff it
         # appears in the focal's adjacency set (domestic or
         # cross-border), otherwise "telecoupled".  Then compare the
-        # LLM's text-level classification against what the database
-        # actually shows.
+        # coupling types the analysis claims (the sections it holds)
+        # with what the database shows.
         mentioned_adm1 = (
             MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
         )
@@ -5380,7 +5380,10 @@ class MetacouplingAssistant:
             peri_info["pair_results"] = "; ".join(adm1_pair_lines)
 
         if parsed.coupling_classification:
-            llm_class = parsed.coupling_classification.lower()
+            # As in the country check, the analysis claims the coupling
+            # types whose sections it holds; its classification text can
+            # name a type only to deny it.
+            claimed = parsed.active_coupling_types()
             if not adm1_pair_lines:
                 # No region was classified (the scan found none
                 # besides the focal one, or only spillover ones), so
@@ -5391,7 +5394,7 @@ class MetacouplingAssistant:
                     "region was checked against the ADM1 "
                     "pericoupling database."
                 )
-            elif has_peri and "pericoupl" not in llm_class:
+            elif has_peri and "pericoupling" not in claimed:
                 peri_info["note"] = (
                     "The ADM1 pericoupling database indicates at "
                     "least one mentioned subnational region is "
@@ -5399,7 +5402,9 @@ class MetacouplingAssistant:
                     "not classify this study as pericoupling.  "
                     "Consider revising."
                 )
-            elif has_tele and not has_peri and "telecoupl" not in llm_class:
+            elif (
+                has_tele and not has_peri and "telecoupling" not in claimed
+            ):
                 peri_info["note"] = (
                     "The ADM1 pericoupling database indicates all "
                     "mentioned subnational regions are non-adjacent "
