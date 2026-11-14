@@ -83,6 +83,11 @@ _UNSUPPORTED_AUTOMAP_SCOPE_RE = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+# The dash after a system's own place in a name written "<place> — <what
+# flows>" ("Mexico — avocado exports to the United States"): an em dash, or
+# an en dash or hyphen with a space on each side ("Guinea-Bissau" and
+# "Mexico–United States" keep theirs).
+_SYSTEM_NAME_DASH_RE = re.compile(r"\s*\u2014\s*|\s+[\u2013-]\s+")
 
 
 # ---------------------------------------------------------------------------
@@ -5494,7 +5499,8 @@ class MetacouplingAssistant:
         """Country-level pericoupling validation.
 
         Populates ``parsed.country_pericoupling_info`` when:
-        - A focal country is resolvable from the sending/focal system, AND
+        - A focal country is resolvable from the focal system (or,
+          when it names none, the first sending system), AND
         - At least one other country is mentioned in the systems.
 
         Otherwise leaves the field as None.
@@ -5534,20 +5540,25 @@ class MetacouplingAssistant:
             parsed
         )
 
-        # --- Identify the focal (sending) country first ---
+        # --- Identify the focal country first ---
+        # The [Focal System]'s own country; when that system names none
+        # (or the analysis has none), the first sending system's.  The
+        # first sending system can be a partner's: "United States —
+        # market information", or Brazil in a study of China's imports.
         focal_code: str | None = None
-        sending_entry = (
-            parsed.get_first_system_entry("sending")
-            or parsed.get_first_system_entry("focal")
-        )
-        if sending_entry is not None:
+        for role in ("focal", "sending"):
+            entry = parsed.get_first_system_entry(role)
+            if entry is None:
+                continue
             for key in ("name", "geographic_scope"):
-                value = sending_entry.get(key, "")
+                value = entry.get(key, "")
                 if value:
-                    code = resolve_country_code(value, free_text=True)
+                    code = MetacouplingAssistant._system_own_country(value)
                     if code:
                         focal_code = code
                         break
+            if focal_code is not None:
+                break
 
         # Fall back to first detected country from all systems
         if focal_code is None and country_roles:
@@ -5789,6 +5800,23 @@ class MetacouplingAssistant:
                 )
 
         parsed.country_pericoupling_info = info
+
+    @staticmethod
+    def _system_own_country(value: str) -> str | None:
+        """Return the country a system's name or scope gives as its own.
+
+        A name written "<place> — <what flows>" ("Mexico — avocado
+        exports to the United States") gives its own place before the
+        dash, while the whole name resolves to its longest country name
+        (the United States).  The part before the dash is read first,
+        and the whole *value* when that part names no country.
+        """
+        head = _SYSTEM_NAME_DASH_RE.split(value, maxsplit=1)[0]
+        if head != value:
+            code = resolve_country_code(head, free_text=True)
+            if code:
+                return code
+        return resolve_country_code(value, free_text=True)
 
     @staticmethod
     def _extract_countries_with_roles(
