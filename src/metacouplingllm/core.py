@@ -2060,7 +2060,11 @@ class MetacouplingAssistant:
         Each candidate is validated against the ADM1 database and
         guarded against false positives (e.g., "Gulf" resolving to
         Papua New Guinea) by requiring the resolved region's country
-        to appear in the analysis text.
+        to appear in the analysis text.  A phrase that is just a
+        country's name or adjective ("Mexico", "Australian") names
+        that country, not its namesake region (the State of México,
+        the Australian Capital Territory), as for the focal region in
+        :meth:`_resolve_adm1_from_analysis`.
         """
         from metacouplingllm.knowledge.adm1_pericoupling import (
             get_adm1_country,
@@ -2079,6 +2083,11 @@ class MetacouplingAssistant:
         for m in re.findall(r"\b([A-Z]{3})\b", combined):
             if m in ISO_ALPHA3_NAMES:
                 country_mentions.add(m)
+
+        def _names_own_country(phrase: str, code: str) -> bool:
+            return resolve_country_code(phrase, substring=False) == (
+                get_adm1_country(code)
+            )
 
         def _resolve_candidate(text: str) -> str | None:
             cleaned = re.sub(r"\[[^\]]+\]", " ", text)
@@ -2109,7 +2118,7 @@ class MetacouplingAssistant:
                 if not part or len(part) < 3:
                     continue
                 code = resolve_adm1_code(part, country=country_hint)
-                if code is None:
+                if code is None or _names_own_country(part, code):
                     continue
                 # Relevance guard: the ADM1 region's country must
                 # appear in the analysis text.
@@ -2134,7 +2143,7 @@ class MetacouplingAssistant:
                     if len(phrase) < 3:
                         continue
                     code = resolve_adm1_code(phrase, country=country_hint)
-                    if code is None:
+                    if code is None or _names_own_country(phrase, code):
                         continue
                     adm1_country = get_adm1_country(code)
                     if adm1_country and country_mentions and (
