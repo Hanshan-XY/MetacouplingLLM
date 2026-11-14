@@ -4098,6 +4098,142 @@ class TestStructuredMapData:
             )
 
 
+class TestMapFollowsAnalysisSystems:
+    """The map's focal country and partners follow the analysis's systems.
+
+    The map-data extraction call names the primary sending country as the
+    focal country and can leave partners out.  Its countries are reconciled
+    with the analysis: the focal country the coupling database validation
+    reads, and every non-spillover system's own country as a partner.
+    """
+
+    @staticmethod
+    def _extract(systems, extraction):
+        import json
+
+        from ._helpers import make_parsed_analysis
+
+        class MockClient:
+            def chat(self, messages, temperature=0.7, max_tokens=None):
+                return LLMResponse(content=json.dumps(extraction))
+
+        advisor = MetacouplingAssistant(llm_client=MockClient(), auto_map=False)
+        parsed = make_parsed_analysis(systems=systems)
+        return advisor, parsed, advisor._extract_map_data_from_analysis(parsed)
+
+    def test_a_receiving_focal_country_stays_the_focal_country(self):
+        # "Impact of haze pollution ... in Singapore": the extraction call
+        # names the sender, Indonesia, as the focal country.
+        _, _, md = self._extract(
+            [
+                {"role": "focal", "name": "Singapore"},
+                {"role": "sending", "name": "Indonesia \u2014 for smoke"},
+                {"role": "receiving", "name": "Singapore \u2014 for smoke"},
+            ],
+            {"focal_country": "IDN", "adm1_region": None,
+             "receiving_countries": ["SGP", "MYS"], "spillover_countries": [],
+             "flows": [{"category": "matter", "source": "IDN", "target": "SGP",
+                        "bidirectional": False}]},
+        )
+        assert md["focal_country"] == "SGP"
+        assert md["receiving_countries"] == ["IDN", "MYS"]
+        assert [f["direction"] for f in md["flows"]] == ["Indonesia \u2192 Singapore"]
+
+    def test_partners_the_extraction_left_out_join_from_the_systems(self):
+        _, _, md = self._extract(
+            [
+                {"role": "focal", "name": "United Kingdom"},
+                {"role": "receiving", "name": "Ireland \u2014 electricity"},
+                {"role": "receiving", "name": "France \u2014 electricity"},
+                {"role": "receiving", "name": "Norway \u2014 electricity"},
+                {"role": "spillover", "name": "Germany \u2014 prices"},
+            ],
+            {"focal_country": "GBR", "adm1_region": None,
+             "receiving_countries": ["IRL"], "spillover_countries": [], "flows": []},
+        )
+        assert md["focal_country"] == "GBR"
+        # The spillover system's Germany stays out.
+        assert md["receiving_countries"] == ["IRL", "FRA", "NOR"]
+
+    def test_a_country_a_system_only_mentions_is_not_a_partner(self):
+        # A receiving entry "Mexico \u2014 payments" whose scope mentions Chile,
+        # as when the parser folds a spillover line into the entry above it.
+        _, _, md = self._extract(
+            [
+                {"role": "sending", "name": "Mexico \u2014 avocados"},
+                {"role": "receiving", "name": "United States \u2014 avocados"},
+                {"role": "receiving", "name": "Mexico \u2014 payments",
+                 "geographic_scope": "Chilean producing regions linked to "
+                                     "international avocado markets"},
+            ],
+            {"focal_country": "MEX", "adm1_region": None,
+             "receiving_countries": ["USA"], "spillover_countries": [], "flows": []},
+        )
+        assert md["focal_country"] == "MEX"
+        assert md["receiving_countries"] == ["USA"]
+
+    def test_an_adm1_region_outside_the_focal_country_is_dropped(self):
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            get_adm1_codes_for_country,
+        )
+
+        indonesian_region = sorted(get_adm1_codes_for_country("IDN"))[0]
+        _, _, md = self._extract(
+            [
+                {"role": "focal", "name": "Singapore"},
+                {"role": "sending", "name": "Indonesia \u2014 for smoke"},
+            ],
+            {"focal_country": "IDN", "adm1_region": indonesian_region,
+             "receiving_countries": ["SGP"], "spillover_countries": [], "flows": []},
+        )
+        assert md["focal_country"] == "SGP"
+        assert md["adm1_region"] is None
+
+    def test_without_a_focal_or_sending_country_the_extracted_focal_stays(self):
+        # The database check's last resort, the first country any system
+        # names (Japan here), does not override the extraction's focal country.
+        _, _, md = self._extract(
+            [
+                {"role": "focal", "name": "Beef ranching systems"},
+                {"role": "receiving", "name": "Japan \u2014 beef"},
+            ],
+            {"focal_country": "AUS", "adm1_region": None,
+             "receiving_countries": [], "spillover_countries": [], "flows": []},
+        )
+        assert md["focal_country"] == "AUS"
+        assert md["receiving_countries"] == ["JPN"]
+
+    def test_the_map_draws_the_flows_of_partners_the_extraction_left_out(self, monkeypatch):
+        # Before, a flow whose source was not the focal country or an
+        # extracted receiving country was filtered out of the map.
+        captured = {}
+
+        def fake_plot(parsed, **kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr(
+            "metacouplingllm.visualization.worldmap.plot_analysis_map", fake_plot,
+        )
+        advisor, parsed, md = self._extract(
+            [
+                {"role": "focal", "name": "United Kingdom"},
+                {"role": "receiving", "name": "Ireland \u2014 electricity"},
+                {"role": "receiving", "name": "Norway \u2014 electricity"},
+            ],
+            {"focal_country": "GBR", "adm1_region": None,
+             "receiving_countries": ["IRL"], "spillover_countries": [],
+             "flows": [{"category": "energy", "source": "NOR", "target": "GBR",
+                        "bidirectional": False}]},
+        )
+        parsed.map_data = md
+        advisor._generate_map(parsed)
+        assert captured["focal_code_override"] == "GBR"
+        assert {"IRL", "NOR"} <= set(captured["mentioned_countries_override"])
+        assert [f["direction"] for f in captured["flows"]] == [
+            "Norway \u2192 United Kingdom"
+        ]
+
+
 class TestExtractMapDataSupranational:
     """Primary path (`_extract_map_data_from_analysis`) recognises
     supranational entities (EU / ASEAN / NAFTA / USMCA) when the LLM
