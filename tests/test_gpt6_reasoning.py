@@ -174,9 +174,11 @@ def test_the_assistant_gives_its_web_search_the_adapter_effort(monkeypatch, tmp_
 class _BackgroundResponses:
     """A Responses API that runs requests in the background: queued, then the given statuses."""
 
-    def __init__(self, statuses: list, output_text: str = ANSWER) -> None:
+    def __init__(self, statuses: list, output_text: str = ANSWER, failed_error: object = None) -> None:
         self.created: dict | None = None
+        self.creates = 0
         self.retrieved = 0
+        self._failed_error = failed_error
         self.cancelled: list[str] = []
         self._statuses = list(statuses)
         self._output_text = output_text
@@ -184,12 +186,14 @@ class _BackgroundResponses:
     def _response(self, status):
         usage = SimpleNamespace(input_tokens=1, output_tokens=2, total_tokens=3)
         details = SimpleNamespace(reason="max_output_tokens") if status == "incomplete" else None
+        error = self._failed_error if status == "failed" else None
         return SimpleNamespace(id="resp_1", status=status, output_text=self._output_text, usage=usage,
-                               error=None, incomplete_details=details,
+                               error=error, incomplete_details=details,
                                model_dump=lambda: {"output": []})
 
     def create(self, **kwargs):
         self.created = kwargs
+        self.creates += 1
         return self._response("queued")
 
     def retrieve(self, response_id):
@@ -240,6 +244,20 @@ class TestBackgroundMode:
             client=SimpleNamespace(responses=responses), model="gpt-6.1-sol", reasoning="max",
         ).search("avocado production in Mexico", max_results=25)
         assert responses.created["background"] is True and responses.retrieved == 1
+        assert results and results[0]["url"] == "https://example.org"
+
+    def test_a_rate_limited_web_search_is_retried(self, monkeypatch):
+        # In background mode a rate limit arrives as a failed response, not an
+        # HTTP 429, so the SDK's own retries never see it.
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        output = '{"results": [{"title": "t", "url": "https://example.org", "model_summary": "s"}]}'
+        error = SimpleNamespace(code="rate_limit_exceeded",
+                                message="Rate limit reached for gpt-6.1-sol. Please try again in 350ms.")
+        responses = _BackgroundResponses(["failed", "completed"], output_text=output, failed_error=error)
+        results = OpenAIWebSearchBackend(
+            client=SimpleNamespace(responses=responses), model="gpt-6.1-sol", reasoning="medium",
+        ).search("salmon farming and exports in Norway", max_results=25)
+        assert responses.creates == 2
         assert results and results[0]["url"] == "https://example.org"
 
     def test_the_default_web_search_stays_synchronous(self):

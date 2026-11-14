@@ -27,14 +27,15 @@ file. The format is loosely based on
   These requests, the web search's included, run in OpenAI's background
   mode, polled until they finish, so a long one (a `"max"` effort, a
   25-result web search) is not cut off by the openai SDK's 10-minute read
-  timeout, which resends the whole request; an interrupted wait cancels
-  the response. Without an effort, Chat Completions is used as before;
+  timeout, which resends the whole request; a response that fails on a
+  rate limit is retried, since the SDK's own retries see only HTTP 429s,
+  and an interrupted wait cancels the response. Without an effort, Chat Completions is used as before;
   GPT-6 models, which reason by default, get neither `temperature` nor a
   cap there, and their web search sends no ceiling. Run traces
   record the reasoning effort and the adjacency settings
   (`de_facto_borders`, `coupling_standard`, `maritime_adjacency`), and
   `scripts/trace_pipeline.py` takes the effort and the adjacency settings as
-  constants. Twenty-four new tests in `tests/test_gpt6_reasoning.py`.
+  constants. Twenty-five new tests in `tests/test_gpt6_reasoning.py`.
 - **Maritime adjacency for countries (`maritime_adjacency`, default
   `False`).** The country lookups (`lookup_pericoupling`, `is_pericoupled`,
   `get_pericoupled_neighbors`), the two country map functions,

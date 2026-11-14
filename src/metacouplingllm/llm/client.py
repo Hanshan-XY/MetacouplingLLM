@@ -145,6 +145,22 @@ def _create_in_background(client: Any, kwargs: dict[str, Any]) -> Any:
     return response
 
 
+def _create_with_retry(client: Any, kwargs: dict[str, Any]) -> Any:
+    """``_create_in_background`` with backoff on rate-limit and server errors.
+
+    In background mode a rate limit arrives as a ``failed`` response, not
+    as an HTTP 429, so the SDK's own retries never see it; retry here.
+    """
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            return _create_in_background(client, kwargs)
+        except Exception as exc:
+            if attempt == _MAX_RETRIES or not OpenAIAdapter._is_rate_limit_error(exc):
+                raise
+            time.sleep(_RETRY_BACKOFF_BASE * (2 ** attempt))
+    raise AssertionError("unreachable")
+
+
 def _responses_text_format(response_format: dict) -> dict:
     """A Chat Completions ``response_format`` as a Responses ``text.format``."""
     if response_format.get("type") == "json_schema":
@@ -355,14 +371,7 @@ class OpenAIAdapter:
 
     def _create_response(self, kwargs: dict[str, Any]) -> Any:
         """A background-mode response, with backoff on rate-limit and server errors."""
-        for attempt in range(_MAX_RETRIES + 1):
-            try:
-                return _create_in_background(self._client, kwargs)
-            except Exception as exc:
-                if attempt == _MAX_RETRIES or not self._is_rate_limit_error(exc):
-                    raise
-                time.sleep(_RETRY_BACKOFF_BASE * (2 ** attempt))
-        raise AssertionError("unreachable")
+        return _create_with_retry(self._client, kwargs)
 
     def _retry_with_backoff(
         self,

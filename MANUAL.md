@@ -284,8 +284,8 @@ applies only to models that do not reason. These requests run in OpenAI's
 background mode: the adapter starts each response and polls it until it
 finishes, so a long request (a `"max"` effort, a 25-result web search) is
 not cut off by the openai SDK's 10-minute read timeout, which the SDK
-answers by sending the whole request again. Interrupting the wait cancels
-the response.
+answers by sending the whole request again. A response that fails on a rate
+limit is retried, and interrupting the wait cancels the response.
 
 Output limits follow OpenAI's reasoning guide: a request's output limit
 counts its reasoning tokens as well as the visible answer, and a request
