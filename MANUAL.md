@@ -268,6 +268,42 @@ advisor = MetacouplingAssistant(adapter)
 Supported models: `"gpt-4o"`, `"gpt-4o-mini"`, or any OpenAI chat
 model identifier OpenAI's API accepts.
 
+For reasoning models, `reasoning_effort` sets the effort of every call the
+assistant makes, its native web search included:
+
+```python
+adapter = OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max")
+```
+
+With an effort, the adapter sends its requests through OpenAI's Responses
+API, which takes every effort a model offers (Chat Completions stops at
+`"xhigh"` for gpt-6.1-sol); without one, it uses Chat Completions and the
+model's default effort. While a model reasons, the adapter sends no
+`temperature` (the API rejects it), so the `temperature` setting of §5
+applies only to models that do not reason. These requests run in OpenAI's
+background mode: the adapter starts each response and polls it until it
+finishes, so a long request (a `"max"` effort, a 25-result web search) is
+not cut off by the openai SDK's 10-minute read timeout, which the SDK
+answers by sending the whole request again. A response that fails on a rate
+limit is retried, and interrupting the wait cancels the response.
+
+Output limits follow OpenAI's reasoning guide: a request's output limit
+counts its reasoning tokens as well as the visible answer, and a request
+that reaches it ends `incomplete`, sometimes before any visible text. The
+package's own limits are sized for the visible answer: 8,192 tokens for
+the structured web extraction and the map extraction, 4,096 for the
+abstract, and 1,000 per requested result, at least 12,000, for the web
+search (25,000 for 25 results). None of them, nor a `max_tokens` you set
+(§5), is sent when a request reasons (at any effort but `"none"`, or on a
+GPT-6 model at its default effort): the model's own maximum applies instead
+(128,000 output tokens for gpt-6.1-sol), above the 25,000 tokens the guide
+advises reserving at first. GPT-5 models without an effort keep the
+limits. From `"high"` effort up, the web search also sets the `web_search`
+tool's `return_token_budget` to `"unlimited"`, as OpenAI's web search guide
+advises for high-effort research that reads many pages, so a 25-result
+search is not stopped at the tool's standard budget for returned page
+content. A response that still ends incomplete is logged as a warning.
+
 **Using Google Colab with secure API key storage:**
 
 ```python
@@ -375,7 +411,8 @@ All four native backends share the same rich prompt template, a strict
 structured-output schema, the default domain blocklist (reddit.com,
 quora.com, pinterest.com; the field is `blocked_domains` on the OpenAI,
 Anthropic and Gemini backends and `excluded_domains` on the Grok backend)
-and an output-token budget that scales with `web_search_max_results`.
+and an output-token budget that scales with `web_search_max_results` (the
+OpenAI backend sends none when the search reasons, §4).
 Supranational unions are handled downstream of the backends, in the
 structured web extraction, the map-data extraction and the map renderer,
 for every provider. See §14 for details and configuration knobs.
@@ -401,6 +438,8 @@ advisor = MetacouplingAssistant(
     adapter,
     temperature=0.7,          # Creativity (0.0=deterministic, 1.0=creative);
                               #   ignored by gpt-5* models (always run at 1), by
+                              #   GPT-6 models and any OpenAIAdapter with a
+                              #   reasoning_effort (not sent, §4), by
                               #   Claude 4.7 and later models, and by every Claude
                               #   model with anthropic>=2 (API version 2026-10-21
                               #   has no temperature); main analysis call only
@@ -1929,7 +1968,7 @@ Methods and properties:
 
 | Class | Description |
 |---|---|
-| `OpenAIAdapter(client, model="gpt-4o")` | Wraps an `openai.OpenAI` instance. |
+| `OpenAIAdapter(client, model="gpt-4o", *, reasoning_effort=None)` | Wraps an `openai.OpenAI` instance; `reasoning_effort` (e.g. `"max"` for `gpt-6.1-sol`) sets the effort of every call and sends them through the Responses API (§4). |
 | `AnthropicAdapter(client, model="claude-sonnet-5-5", extended_thinking=None)` | Wraps an `anthropic.Anthropic` instance; `extended_thinking` (e.g. `{"type": "enabled", "budget_tokens": 10000}`) is forwarded as the `thinking` request parameter and is not sent when `None`. |
 | `GeminiAdapter(client, model="gemini-2.5-flash")` | Wraps a `google.genai.Client` instance. |
 | `GrokAdapter(client, model="grok-3")` | Wraps an `openai.OpenAI` instance pointed at `https://api.x.ai/v1`. |
@@ -2001,7 +2040,7 @@ exported for custom pipelines.
 | `extract_turn_cited_ids(text)` | The `(k, kind, N)` tuples of the turn-scoped markers used in `text`. |
 | `format_web_context(results, turn=1)` | Format `search_web()` results as the prompt's web-context section. |
 | `annotate_web_citations(formatted, web_results, min_keyword_overlap=3, min_overlap_ratio=0.25, turn=1)` | Add inline `[Tk:Wn]` citations to the lines of formatted text that match a web result. |
-| `extract_web_map_signals(query, results, llm_client, *, min_confidence=0.7, max_targets=6, temperature=0.0, max_tokens=8192)` | One model call that extracts validated map-ready countries and flows from web results (the source of `result.web_map_signals`); returns a dict or `None`. |
+| `extract_web_map_signals(query, results, llm_client, *, min_confidence=0.7, max_targets=6, temperature=0.0, max_tokens=8192)` | One model call that extracts validated map-ready countries and flows from web results (the source of `result.web_map_signals`); returns a dict or `None`. `max_tokens` is not sent to an OpenAI model that reasons (§4). |
 | `format_web_map_signals_context(signals)` | Format those signals as a prompt-ready section. |
 
 ### Visualization Functions
@@ -2287,12 +2326,12 @@ a backend directly.
 | Setting | Default | Notes |
 |---|---|---|
 | `web_search` | `False` | Master switch (constructor kwarg). |
-| `web_search_max_results` | `10` | Number of web hits requested. Scales `max_output_tokens` automatically. |
+| `web_search_max_results` | `10` | Number of web hits requested. Scales `max_output_tokens` automatically; the OpenAI backend sends none when the search reasons (§4). |
 | `web_structured_extraction` | `True` | Runs a second, strict-JSON LLM pass over the web results to extract validated receiving countries, spillover countries, and map-ready flows, plus evidence cards for the analysis prompt. Runs only when `web_search=True` and the search returns results; pass `False` to skip it. |
 | `web_structured_min_confidence` | `0.7` | Minimum confidence for a country or flow from the structured web extraction to be kept in the validated payload. |
 | `web_structured_max_targets` | `6` | Cap on the validated receiving systems and, separately, the spillover systems kept (6 each by default); validated map-ready flows are capped at this value + 2 (8 by default). |
 | `blocked_domains` | `["reddit.com", "quora.com", "pinterest.com"]` | Field of the backend dataclasses (not an assistant or adapter kwarg): `blocked_domains` on the OpenAI, Anthropic and Gemini backends (Gemini filters the returned URLs client-side), `excluded_domains` (at most 5 entries) on `GrokWebSearchBackend`, where an `allowed_domains` list, if given, replaces it (xAI accepts only one of the two). Low-authority domains are excluded **out of the box**. `MetacouplingAssistant` always auto-wires a backend with these defaults and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, blocked_domains=[]))` yourself. |
-| `search_context_size`, `return_token_budget` | `"high"` / `"default"` | Fields of `OpenAIWebSearchBackend` — `"high"` deliberately maximises evidence depth. `MetacouplingAssistant` always auto-wires a backend with these defaults and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, search_context_size="medium"))` yourself. |
+| `search_context_size`, `return_token_budget` | `"high"` / `"default"` | Fields of `OpenAIWebSearchBackend` — `"high"` deliberately maximises evidence depth; `return_token_budget` caps how much page content the `web_search` tool returns to a reasoning model. `MetacouplingAssistant` auto-wires a backend with these defaults, except that `return_token_budget` is `"unlimited"` when the adapter's `reasoning_effort` is `"high"`, `"xhigh"` or `"max"` (§4), and has no parameter to change them; to use other values, instantiate the backend and call `search_web(query, max_results, backend=OpenAIWebSearchBackend(client, search_context_size="medium"))` yourself. |
 
 The validated structured-extraction payload appears at
 `result.web_map_signals` (an output field, not a setting). The same pass

@@ -653,7 +653,7 @@ class TestResolveAdm1FromAnalysis:
         assert code == expected
 
     def test_avocado_run_national_analysis_has_no_focal_region(self):
-        """The committed avocado run's focal scope opens "Mexico, especially
+        """The 2026-06-16 avocado run's focal scope opens "Mexico, especially
         the Michoacán Avocado Belt ..." and its last part ("while Data
         México reports ...") names Mexico: the country, not its namesake
         region."""

@@ -10,7 +10,7 @@ the results to outputs recorded from the regular-expression implementation
 
 * ``resolve_adm1_code`` for every (query, country hint) that
   ``MetacouplingAssistant._extract_mentioned_adm1_from_text`` generates for
-  the committed avocado run's main analysis when no candidate resolves (a
+  the 2026-06-16 avocado run's main analysis when no candidate resolves (a
   superset of the calls a real run makes), for every input the test suite
   passed the resolver, and for hand-picked edge cases;
 * the extractor's ADM1 code set for that analysis.
@@ -18,8 +18,8 @@ the results to outputs recorded from the regular-expression implementation
 ``data/avocado_main_analysis_response.md`` is a verbatim copy of the
 ``## Response`` section of
 ``runs/avocado_2026-06-16_gpt-5.5_builtin-trace/turn1/05_llm_call_main_analysis.md``,
-copied so that re-running the trace harness, which writes to that folder,
-cannot change this test's input.
+a run no longer in the tree (it remains in git history); the copy keeps this
+test's input fixed.
 
 Results changed on purpose since the recording are listed in ``_AMENDED``
 and ``_EXTRACTOR_CODES_REMOVED``.

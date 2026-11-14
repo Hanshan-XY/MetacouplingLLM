@@ -8,9 +8,12 @@ plus ready-made adapters for OpenAI and Anthropic APIs.
 from __future__ import annotations
 
 import inspect
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
+
+logger = logging.getLogger(__name__)
 
 # Maximum number of retries for transient API errors (rate limits, etc.)
 _MAX_RETRIES = 3
@@ -93,6 +96,78 @@ class LLMClient(Protocol):
 # OpenAI Adapter
 # ---------------------------------------------------------------------------
 
+_BACKGROUND_POLL_SECONDS = 3.0
+
+
+def _create_in_background(client: Any, kwargs: dict[str, Any]) -> Any:
+    """``responses.create`` in OpenAI's background mode, polled until it ends.
+
+    A long reasoning request (a "max" effort, a 25-result web search) can
+    outlast the SDK's 10-minute read timeout, which the SDK answers by
+    sending the whole request again.  In background mode the request
+    returns at once and is polled, so no connection stays open for it.  An
+    interrupted wait cancels the response, so it does not keep running
+    unattended; a failed or cancelled response raises.  An incomplete one
+    (for example at the output limit, which OpenAI's reasoning guide says
+    can come before any visible text) is returned with a warning.
+    """
+    response = client.responses.create(**kwargs, background=True)
+    try:
+        while getattr(response, "status", None) in ("queued", "in_progress"):
+            time.sleep(_BACKGROUND_POLL_SECONDS)
+            for attempt in range(_MAX_RETRIES + 1):
+                try:
+                    response = client.responses.retrieve(response.id)
+                    break
+                except Exception as exc:
+                    if attempt == _MAX_RETRIES or not OpenAIAdapter._is_rate_limit_error(exc):
+                        raise
+                    time.sleep(_RETRY_BACKOFF_BASE * (2 ** attempt))
+    except BaseException:
+        try:
+            client.responses.cancel(response.id)
+        except Exception:
+            pass
+        raise
+    if getattr(response, "status", None) in ("failed", "cancelled"):
+        raise RuntimeError(
+            f"OpenAI background response {response.id} ended {response.status}: "
+            f"{getattr(response, 'error', None)}"
+        )
+    if getattr(response, "status", None) == "incomplete":
+        details = getattr(response, "incomplete_details", None)
+        logger.warning(
+            "OpenAI response %s ended incomplete (%s); its output may be cut "
+            "short or empty.",
+            response.id,
+            getattr(details, "reason", None),
+        )
+    return response
+
+
+def _create_with_retry(client: Any, kwargs: dict[str, Any]) -> Any:
+    """``_create_in_background`` with backoff on rate-limit and server errors.
+
+    In background mode a rate limit arrives as a ``failed`` response, not
+    as an HTTP 429, so the SDK's own retries never see it; retry here.
+    """
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            return _create_in_background(client, kwargs)
+        except Exception as exc:
+            if attempt == _MAX_RETRIES or not OpenAIAdapter._is_rate_limit_error(exc):
+                raise
+            time.sleep(_RETRY_BACKOFF_BASE * (2 ** attempt))
+    raise AssertionError("unreachable")
+
+
+def _responses_text_format(response_format: dict) -> dict:
+    """A Chat Completions ``response_format`` as a Responses ``text.format``."""
+    if response_format.get("type") == "json_schema":
+        return {"type": "json_schema", **response_format.get("json_schema", {})}
+    return dict(response_format)
+
+
 class OpenAIAdapter:
     """Adapter wrapping an OpenAI client to satisfy ``LLMClient``.
 
@@ -102,11 +177,30 @@ class OpenAIAdapter:
         An ``openai.OpenAI`` instance (or compatible).
     model:
         Model identifier (e.g., ``"gpt-4o"``, ``"gpt-4o-mini"``).
+    reasoning_effort:
+        Reasoning effort for every request, for example ``"max"`` with
+        ``gpt-6.1-sol``; the accepted values depend on the model.  When
+        set, requests go through the Responses API, which takes every
+        effort a model offers (Chat Completions stops at ``"xhigh"`` for
+        gpt-6.1-sol), in background mode, polled until they finish, so a
+        long request is not cut off by the SDK's 10-minute timeout.  With
+        any effort but ``"none"`` no output limit is sent, because the
+        API counts reasoning tokens against it; the model's own maximum
+        applies.
+        ``None`` (default) uses Chat Completions and the model's own
+        effort.  The assistant's native web search uses the same effort.
     """
 
-    def __init__(self, client: Any, model: str = "gpt-4o") -> None:
+    def __init__(
+        self,
+        client: Any,
+        model: str = "gpt-4o",
+        *,
+        reasoning_effort: str | None = None,
+    ) -> None:
         self._client = client
         self._model = model
+        self._reasoning_effort = reasoning_effort
 
     @property
     def raw_client(self) -> Any:
@@ -117,6 +211,11 @@ class OpenAIAdapter:
     def model(self) -> str:
         """Return the configured model identifier."""
         return self._model
+
+    @property
+    def reasoning_effort(self) -> str | None:
+        """Return the configured reasoning effort (``None``: model default)."""
+        return self._reasoning_effort
 
     def chat(
         self,
@@ -139,6 +238,9 @@ class OpenAIAdapter:
             extraction + fallback parsing.  Keyword-only so legacy
             callers don't break.
         """
+        if self._reasoning_effort is not None:
+            return self._respond(messages, temperature, max_tokens, response_format)
+
         api_messages = [
             {"role": msg.role, "content": msg.content} for msg in messages
         ]
@@ -164,6 +266,14 @@ class OpenAIAdapter:
             kwargs["temperature"] = 1
             if "max_tokens" in kwargs:
                 kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+        # GPT-6 family (OpenAI's "Using GPT-6" guide): these models reason
+        # by default, and while they reason the API rejects temperature and
+        # a completion-token cap counts the reasoning tokens too, so a cap
+        # sized for the visible answer can end the response during
+        # reasoning.  Send neither.
+        elif self._model.startswith("gpt-6"):
+            kwargs.pop("temperature", None)
+            kwargs.pop("max_tokens", None)
 
         try:
             response = self._client.chat.completions.create(**kwargs)
@@ -219,6 +329,49 @@ class OpenAIAdapter:
             content=choice.message.content or "",
             usage=usage_data,
         )
+
+    def _respond(
+        self,
+        messages: list[Message],
+        temperature: float,
+        max_tokens: int | None,
+        response_format: dict | None,
+    ) -> LLMResponse:
+        """Send messages via the Responses API with the configured effort.
+
+        While a model reasons (any effort but ``"none"``), the API rejects
+        ``temperature`` and ``max_output_tokens`` counts reasoning tokens
+        too, so neither is sent; with ``"none"`` both are.
+        """
+        kwargs: dict[str, Any] = {
+            "model": self._model,
+            "input": [{"role": m.role, "content": m.content} for m in messages],
+            "reasoning": {"effort": self._reasoning_effort},
+        }
+        if self._reasoning_effort == "none":
+            kwargs["temperature"] = temperature
+            if max_tokens is not None:
+                kwargs["max_output_tokens"] = max_tokens
+        if response_format is not None:
+            kwargs["text"] = {"format": _responses_text_format(response_format)}
+
+        response = self._create_response(kwargs)
+        usage = getattr(response, "usage", None)
+        usage_data: dict[str, int] = {}
+        if usage is not None:
+            usage_data = {
+                "prompt_tokens": usage.input_tokens,
+                "completion_tokens": usage.output_tokens,
+                "total_tokens": usage.total_tokens,
+            }
+        return LLMResponse(
+            content=getattr(response, "output_text", "") or "",
+            usage=usage_data,
+        )
+
+    def _create_response(self, kwargs: dict[str, Any]) -> Any:
+        """A background-mode response, with backoff on rate-limit and server errors."""
+        return _create_with_retry(self._client, kwargs)
 
     def _retry_with_backoff(
         self,

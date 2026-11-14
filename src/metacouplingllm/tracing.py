@@ -363,7 +363,11 @@ def write_run_artifacts(
         })
         cfg += "\n" + _h2("Git") + _kv_table(
             {"branch": trace.git_branch, "sha": trace.git_sha})
-        cfg += "\n" + _h2("Model") + _kv_table({"model": trace.model})
+        model_cfg: dict[str, Any] = {"model": trace.model}
+        effort = getattr(_attr("_client_inner"), "reasoning_effort", None)
+        if effort is not None:
+            model_cfg["reasoning_effort"] = effort
+        cfg += "\n" + _h2("Model") + _kv_table(model_cfg)
         cfg += "\n" + _h2("Assistant parameters") + _kv_table({
             "rag_top_k": _attr("_rag_top_k"),
             "rag_max_chunks_per_paper": _attr("_rag_max_chunks_per_paper"),
@@ -375,6 +379,9 @@ def write_run_artifacts(
             "auto_map": _attr("_auto_map"),
             "temperature": _attr("_temperature"),
             "coupling_analysis": _attr("_coupling_analysis"),
+            "de_facto_borders": _attr("_de_facto_borders"),
+            "coupling_standard": _attr("_coupling_standard"),
+            "maritime_adjacency": _attr("_maritime_adjacency"),
             "verbose": _attr("_verbose"),
         })
         cfg += "\n" + _h2("Environment") + _kv_table(trace.env)

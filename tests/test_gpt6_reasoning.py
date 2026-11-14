@@ -1,0 +1,339 @@
+"""OpenAI GPT-6 models and an adapter-wide reasoning effort.
+
+OpenAI's "Using GPT-6" guide: gpt-6-astra and gpt-6.1-sol take no ``"none"``
+effort; while a model reasons the API rejects ``temperature``, and an
+output-token cap counts reasoning tokens too, so a cap sized for the visible
+answer can end a response during reasoning.  Chat Completions stops at
+``"xhigh"`` for gpt-6.1-sol, so an adapter with an effort uses the Responses
+API, which takes ``"max"``.
+"""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import pytest
+
+from metacouplingllm.core import MetacouplingAssistant
+from metacouplingllm.knowledge.websearch import OpenAIWebSearchBackend
+from metacouplingllm.llm.client import Message, OpenAIAdapter
+
+ANSWER = "### 1. Coupling Classification\nTelecoupling."
+SCHEMA_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {"name": "signals", "strict": True, "schema": {"type": "object"}},
+}
+
+
+class _FakeOpenAI:
+    """Records Chat Completions and Responses requests; can fail the first Responses call."""
+
+    def __init__(self, fail_first_response: Exception | None = None) -> None:
+        self.chat_calls: list[dict] = []
+        self.response_calls: list[dict] = []
+        chat_calls, response_calls = self.chat_calls, self.response_calls
+        pending = [fail_first_response] if fail_first_response else []
+
+        class _Completions:
+            @staticmethod
+            def create(**kwargs):
+                chat_calls.append(kwargs)
+                message = SimpleNamespace(content=ANSWER)
+                return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=None)
+
+        class _Responses:
+            @staticmethod
+            def create(**kwargs):
+                response_calls.append(kwargs)
+                if pending:
+                    raise pending.pop()
+                usage = SimpleNamespace(input_tokens=11, output_tokens=7, total_tokens=18)
+                return SimpleNamespace(output_text=ANSWER, usage=usage, status="completed")
+
+        self.chat = SimpleNamespace(completions=_Completions())
+        self.responses = _Responses()
+
+
+def _chat(model: str, effort: str | None = None, client: _FakeOpenAI | None = None, **chat_kwargs):
+    client = client or _FakeOpenAI()
+    reply = OpenAIAdapter(client, model=model, reasoning_effort=effort).chat(
+        [Message(role="system", content="Be brief."), Message(role="user", content="ping")],
+        **chat_kwargs,
+    )
+    return client, reply
+
+
+class TestAdapter:
+    def test_an_effort_goes_through_the_responses_api(self):
+        client, reply = _chat("gpt-6.1-sol", "max", temperature=0.0, max_tokens=8192,
+                              response_format=SCHEMA_FORMAT)
+        assert client.chat_calls == []
+        (sent,) = client.response_calls
+        assert sent["model"] == "gpt-6.1-sol"
+        assert sent["reasoning"] == {"effort": "max"}
+        assert sent["input"] == [{"role": "system", "content": "Be brief."},
+                                 {"role": "user", "content": "ping"}]
+        assert "temperature" not in sent and "max_output_tokens" not in sent
+        assert sent["text"] == {"format": {"type": "json_schema", "name": "signals", "strict": True,
+                                           "schema": {"type": "object"}}}
+        assert reply.content == ANSWER
+        assert reply.usage == {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18}
+
+    def test_effort_none_keeps_sampling_and_the_cap(self):
+        client, _ = _chat("gpt-6.1-terra", "none", temperature=0.2, max_tokens=100)
+        (sent,) = client.response_calls
+        assert sent["temperature"] == 0.2 and sent["max_output_tokens"] == 100
+
+    def test_gpt6_without_an_effort_uses_chat_completions_without_temperature_or_cap(self):
+        client, _ = _chat("gpt-6.1-sol", temperature=0.7, max_tokens=8192)
+        assert client.response_calls == []
+        (sent,) = client.chat_calls
+        assert "temperature" not in sent
+        assert "max_tokens" not in sent and "max_completion_tokens" not in sent
+        assert "reasoning_effort" not in sent
+
+    def test_other_models_are_unchanged(self):
+        client, _ = _chat("gpt-4o-mini", temperature=0.3, max_tokens=50)
+        (sent,) = client.chat_calls
+        assert sent["temperature"] == 0.3 and sent["max_tokens"] == 50
+        client, _ = _chat("gpt-5.5", temperature=0.3, max_tokens=50)
+        (sent,) = client.chat_calls
+        assert sent["temperature"] == 1 and sent["max_completion_tokens"] == 50
+
+    def test_a_rate_limit_error_is_retried(self, monkeypatch):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        client = _FakeOpenAI(fail_first_response=Exception("Error code: 429 - rate limit reached"))
+        _, reply = _chat("gpt-6.1-sol", "max", client=client)
+        assert len(client.response_calls) == 2 and reply.content == ANSWER
+
+    def test_effort_is_exposed(self):
+        assert OpenAIAdapter(_FakeOpenAI(), model="gpt-6.1-sol", reasoning_effort="max").reasoning_effort == "max"
+        assert OpenAIAdapter(_FakeOpenAI()).reasoning_effort is None
+
+
+class _FakeResponses:
+    def __init__(self) -> None:
+        self.kwargs: dict | None = None
+
+    def create(self, **kwargs):
+        self.kwargs = kwargs
+        return SimpleNamespace(output_text='{"results": []}', model_dump=lambda: {"output": []})
+
+
+class TestWebSearchBackend:
+    def test_an_explicit_effort_leaves_the_output_ceiling_to_the_model(self):
+        client = SimpleNamespace(responses=_FakeResponses())
+        OpenAIWebSearchBackend(client=client, model="gpt-6.1-sol", reasoning="max").search(
+            "avocado production in Mexico", max_results=25,
+        )
+        assert client.responses.kwargs["reasoning"] == {"effort": "max"}
+        assert "max_output_tokens" not in client.responses.kwargs
+
+    def test_effort_none_keeps_the_ceiling(self):
+        client = SimpleNamespace(responses=_FakeResponses())
+        OpenAIWebSearchBackend(client=client, model="gpt-6.1-terra", reasoning="none").search(
+            "avocado production in Mexico", max_results=25,
+        )
+        assert client.responses.kwargs["reasoning"] == {"effort": "none"}
+        assert client.responses.kwargs["max_output_tokens"] == 25000
+
+    def test_the_default_keeps_the_ceiling(self):
+        client = SimpleNamespace(responses=_FakeResponses())
+        OpenAIWebSearchBackend(client=client, model="gpt-5.5").search("avocado production in Mexico", max_results=25)
+        assert "reasoning" not in client.responses.kwargs
+        assert client.responses.kwargs["max_output_tokens"] >= 25000
+
+
+def test_the_assistant_gives_its_web_search_the_adapter_effort(monkeypatch, tmp_path):
+    seen = []
+
+    def fake_search_web(query, max_results=5, backend=None, metadata=None, **kwargs):
+        seen.append(backend)
+        return []
+
+    monkeypatch.setattr("metacouplingllm.knowledge.websearch.search_web", fake_search_web)
+    client = _FakeOpenAI()
+    adapter = OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max")
+    advisor = MetacouplingAssistant(
+        adapter, web_search=True, web_structured_extraction=False,
+        generate_abstract=False, maritime_adjacency=True, trace=True, trace_dir=tmp_path,
+    )
+    advisor.analyze("Impact of avocado production and trade in Mexico on sustainability")
+    (backend,) = seen
+    assert isinstance(backend, OpenAIWebSearchBackend)
+    assert backend.model == "gpt-6.1-sol" and backend.reasoning == "max"
+    assert client.chat_calls == [] and client.response_calls  # the analysis went through Responses
+
+    # The run's configuration records the effort and the adjacency settings.
+    config = next(tmp_path.rglob("00_run_config.md")).read_text(encoding="utf-8")
+    for row in ("| `reasoning_effort` | max |", "| `maritime_adjacency` | True |",
+                "| `coupling_standard` | lenient |", "| `de_facto_borders` | True |"):
+        assert row in config, row
+
+
+class _BackgroundResponses:
+    """A Responses API that runs requests in the background: queued, then the given statuses."""
+
+    def __init__(self, statuses: list, output_text: str = ANSWER, failed_error: object = None) -> None:
+        self.created: dict | None = None
+        self.creates = 0
+        self.retrieved = 0
+        self._failed_error = failed_error
+        self.cancelled: list[str] = []
+        self._statuses = list(statuses)
+        self._output_text = output_text
+
+    def _response(self, status):
+        usage = SimpleNamespace(input_tokens=1, output_tokens=2, total_tokens=3)
+        details = SimpleNamespace(reason="max_output_tokens") if status == "incomplete" else None
+        error = self._failed_error if status == "failed" else None
+        return SimpleNamespace(id="resp_1", status=status, output_text=self._output_text, usage=usage,
+                               error=error, incomplete_details=details,
+                               model_dump=lambda: {"output": []})
+
+    def create(self, **kwargs):
+        self.created = kwargs
+        self.creates += 1
+        return self._response("queued")
+
+    def retrieve(self, response_id):
+        self.retrieved += 1
+        status = self._statuses.pop(0)
+        if isinstance(status, BaseException):
+            raise status
+        return self._response(status)
+
+    def cancel(self, response_id):
+        self.cancelled.append(response_id)
+
+
+class TestBackgroundMode:
+    def test_requests_with_an_effort_run_in_background_until_they_finish(self, monkeypatch):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        responses = _BackgroundResponses(["in_progress", "in_progress", "completed"])
+        client = SimpleNamespace(responses=responses)
+        reply = OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+            [Message(role="user", content="ping")],
+        )
+        assert responses.created["background"] is True
+        assert responses.retrieved == 3 and reply.content == ANSWER
+
+    def test_a_failed_response_raises(self, monkeypatch):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        client = SimpleNamespace(responses=_BackgroundResponses(["failed"]))
+        with pytest.raises(RuntimeError, match="failed"):
+            OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+                [Message(role="user", content="ping")],
+            )
+
+    def test_an_interrupted_wait_cancels_the_response(self, monkeypatch):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        responses = _BackgroundResponses([KeyboardInterrupt()])
+        client = SimpleNamespace(responses=responses)
+        with pytest.raises(KeyboardInterrupt):
+            OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+                [Message(role="user", content="ping")],
+            )
+        assert responses.cancelled == ["resp_1"]
+
+    def test_the_web_search_runs_in_background_with_an_explicit_effort(self, monkeypatch):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        output = '{"results": [{"title": "t", "url": "https://example.org", "model_summary": "s"}]}'
+        responses = _BackgroundResponses(["completed"], output_text=output)
+        results = OpenAIWebSearchBackend(
+            client=SimpleNamespace(responses=responses), model="gpt-6.1-sol", reasoning="max",
+        ).search("avocado production in Mexico", max_results=25)
+        assert responses.created["background"] is True and responses.retrieved == 1
+        assert results and results[0]["url"] == "https://example.org"
+
+    def test_a_rate_limited_web_search_is_retried(self, monkeypatch):
+        # In background mode a rate limit arrives as a failed response, not an
+        # HTTP 429, so the SDK's own retries never see it.
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        output = '{"results": [{"title": "t", "url": "https://example.org", "model_summary": "s"}]}'
+        error = SimpleNamespace(code="rate_limit_exceeded",
+                                message="Rate limit reached for gpt-6.1-sol. Please try again in 350ms.")
+        responses = _BackgroundResponses(["failed", "completed"], output_text=output, failed_error=error)
+        results = OpenAIWebSearchBackend(
+            client=SimpleNamespace(responses=responses), model="gpt-6.1-sol", reasoning="medium",
+        ).search("salmon farming and exports in Norway", max_results=25)
+        assert responses.creates == 2
+        assert results and results[0]["url"] == "https://example.org"
+
+    def test_the_default_web_search_stays_synchronous(self):
+        client = SimpleNamespace(responses=_FakeResponses())
+        OpenAIWebSearchBackend(client=client, model="gpt-5.5").search("avocado", max_results=5)
+        assert "background" not in client.responses.kwargs
+
+    def test_an_incomplete_response_is_returned_with_a_warning(self, monkeypatch, caplog):
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        client = SimpleNamespace(responses=_BackgroundResponses(["incomplete"]))
+        with caplog.at_level("WARNING", logger="metacouplingllm.llm.client"):
+            reply = OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max").chat(
+                [Message(role="user", content="ping")],
+            )
+        assert reply.content == ANSWER
+        assert "resp_1 ended incomplete (max_output_tokens)" in caplog.text
+
+    def test_a_gpt6_search_at_its_default_effort_sends_no_ceiling(self, monkeypatch):
+        # GPT-6 models reason by default, so the ceiling sized for the results
+        # JSON would count reasoning tokens too.
+        monkeypatch.setattr("metacouplingllm.llm.client.time.sleep", lambda s: None)
+        responses = _BackgroundResponses(["completed"], output_text='{"results": []}')
+        OpenAIWebSearchBackend(client=SimpleNamespace(responses=responses), model="gpt-6.1-sol").search(
+            "avocado production in Mexico", max_results=25,
+        )
+        assert "reasoning" not in responses.created
+        assert "max_output_tokens" not in responses.created
+        assert responses.created["background"] is True
+
+
+def test_the_structured_web_extraction_sends_no_ceiling_at_max():
+    from metacouplingllm.knowledge.websearch import extract_web_map_signals
+
+    client = _FakeOpenAI()
+    extract_web_map_signals(
+        "Avocado trade from Mexico",
+        [{"title": "t", "url": "https://example.org",
+          "model_summary": "Mexico exports avocados to the United States."}],
+        OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max"),
+    )
+    assert client.response_calls
+    for sent in client.response_calls:
+        assert "max_output_tokens" not in sent
+        assert sent["text"]["format"]["name"] == "web_map_signals"
+
+
+def test_no_request_of_a_max_run_carries_an_output_limit(monkeypatch):
+    # The main analysis, the map extraction (8,192 tokens otherwise) and the
+    # abstract (4,096 otherwise) all leave the limit to the model.
+    monkeypatch.setattr("metacouplingllm.knowledge.websearch.search_web", lambda *a, **k: [])
+    client = _FakeOpenAI()
+    advisor = MetacouplingAssistant(
+        OpenAIAdapter(client, model="gpt-6.1-sol", reasoning_effort="max"),
+        web_search=True, web_structured_extraction=False, auto_map=True, generate_abstract=True,
+    )
+    advisor.analyze("Impact of avocado production and trade in Mexico on sustainability")
+    assert len(client.response_calls) >= 3
+    assert all("max_output_tokens" not in sent for sent in client.response_calls)
+
+
+@pytest.mark.parametrize("effort, budget", [
+    ("low", "default"), ("medium", "default"),
+    ("high", "unlimited"), ("xhigh", "unlimited"), ("max", "unlimited"),
+])
+def test_the_web_search_reads_without_the_return_budget_from_high_effort(monkeypatch, effort, budget):
+    seen = []
+
+    def fake_search_web(query, max_results=5, backend=None, metadata=None, **kwargs):
+        seen.append(backend)
+        return []
+
+    monkeypatch.setattr("metacouplingllm.knowledge.websearch.search_web", fake_search_web)
+    advisor = MetacouplingAssistant(
+        OpenAIAdapter(_FakeOpenAI(), model="gpt-6.1-sol", reasoning_effort=effort),
+        web_search=True, web_structured_extraction=False, generate_abstract=False,
+    )
+    advisor.analyze("Impact of avocado production and trade in Mexico on sustainability")
+    (backend,) = seen
+    assert backend.return_token_budget == budget

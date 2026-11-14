@@ -9,6 +9,34 @@ file. The format is loosely based on
 
 ### Added
 
+- **`OpenAIAdapter(..., reasoning_effort=...)` and GPT-6 models.** The
+  effort applies to every call the assistant makes, its native OpenAI web
+  search included. With an effort, the adapter sends its requests through
+  the Responses API, which takes every effort a model offers: Chat
+  Completions accepts gpt-6.1-sol's efforts only up to `"xhigh"`, Responses
+  takes `"max"`. While a model reasons, no `temperature` is sent (the API
+  rejects it), and none of the package's output limits, which are sized
+  for the visible answer (8,192 tokens for the structured web extraction
+  and the map extraction, 4,096 for the abstract, 1,000 per web result
+  with a 12,000 floor): OpenAI counts reasoning tokens against them, so
+  the model's own maximum applies (128,000 tokens for gpt-6.1-sol). From
+  `"high"` effort up, the web search sets `return_token_budget` to
+  `"unlimited"`, as OpenAI's web search guide advises for high-effort
+  research that reads many pages, and a response that ends incomplete is
+  logged as a warning.
+  These requests, the web search's included, run in OpenAI's background
+  mode, polled until they finish, so a long one (a `"max"` effort, a
+  25-result web search) is not cut off by the openai SDK's 10-minute read
+  timeout, which resends the whole request; a response that fails on a
+  rate limit is retried, since the SDK's own retries see only HTTP 429s,
+  and an interrupted wait cancels the response. Without an effort, Chat Completions is used as before;
+  GPT-6 models, which reason by default, get neither `temperature` nor a
+  cap there, and their web search sends no ceiling. Run traces
+  record the reasoning effort and the adjacency settings
+  (`de_facto_borders`, `coupling_standard`, `maritime_adjacency`), and
+  `scripts/trace_pipeline.py` takes the effort and the adjacency settings as
+  constants. Twenty-five new tests in `tests/test_gpt6_reasoning.py`, and
+  the docs check compiles one more MANUAL example (suite 2,300).
 - **Maritime adjacency for countries (`maritime_adjacency`, default
   `False`).** The country lookups (`lookup_pericoupling`, `is_pericoupled`,
   `get_pericoupled_neighbors`), the two country map functions,
@@ -42,6 +70,16 @@ file. The format is loosely based on
 
 ### Changed
 
+- **The committed example run is an Indonesian palm-oil analysis by
+  gpt-6.1-sol at `"max"` reasoning effort.**
+  `runs/indonesia_palm_oil_2026-11-14_gpt-6.1-sol_max_builtin-trace/`
+  replaces `runs/avocado_2026-06-16_gpt-5.5_builtin-trace/` (kept in git
+  history) as the run the paper describes. It answers "Impact of palm oil
+  production and exports in Indonesia on sustainability" with sea borders
+  (`maritime_adjacency=True`), de facto borders and the `"moderate"`
+  coupling standard, and its trace records commit 6a46d75.
+  `scripts/trace_pipeline.py` now runs that query with that model, effort
+  and adjacency settings.
 - **The default `coupling_standard` is `"lenient"`: every administrative
   border counts as adjacency.** Units that meet only across a river or lake
   are now pericoupled under the default settings whether or not a bridge

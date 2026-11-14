@@ -55,6 +55,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Reasoning efforts at which the native OpenAI web search lifts the web_search
+# tool's cap on returned page content (return_token_budget="unlimited"), as
+# OpenAI's web search guide advises for high-effort research that reads many
+# pages.
+_UNLIMITED_WEB_RETURN_EFFORTS = ("high", "xhigh", "max")
+
 
 # Public built-in RAG corpus names. Use these when the bundled journal
 # corpus should be used; ``rag_papers_dir`` is reserved for custom folders.
@@ -1108,7 +1114,12 @@ class MetacouplingAssistant:
                     web_backend = OpenAIWebSearchBackend(
                         client=_wc.raw_client,
                         model=_wc.model,
-                        reasoning="default",
+                        reasoning=_wc.reasoning_effort or "default",
+                        return_token_budget=(
+                            "unlimited"
+                            if _wc.reasoning_effort in _UNLIMITED_WEB_RETURN_EFFORTS
+                            else "default"
+                        ),
                     )
                 elif isinstance(_wc, AnthropicAdapter):
                     web_backend = AnthropicWebSearchBackend(
@@ -1475,7 +1486,12 @@ class MetacouplingAssistant:
                     web_backend = OpenAIWebSearchBackend(
                         client=_wc.raw_client,
                         model=_wc.model,
-                        reasoning="default",
+                        reasoning=_wc.reasoning_effort or "default",
+                        return_token_budget=(
+                            "unlimited"
+                            if _wc.reasoning_effort in _UNLIMITED_WEB_RETURN_EFFORTS
+                            else "default"
+                        ),
                     )
                 elif isinstance(_wc, AnthropicAdapter):
                     web_backend = AnthropicWebSearchBackend(
