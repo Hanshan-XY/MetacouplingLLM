@@ -4813,6 +4813,115 @@ class TestValidateAdm1Pericoupling:
         )
         assert "United Kingdom" not in info["pair_results"]
 
+    def test_focal_country_follows_the_focal_system(self):
+        """A gpt-6-luna avocado run (2026-11-13) printed "Focal System:
+        United States (USA)" for an analysis whose [Focal System] is
+        Mexico's: the validation read its focal country from the first
+        sending system, "Mexico — avocado exports to the United States",
+        and the whole name resolves to its longest country name."""
+        from metacouplingllm.llm.parser import parse_analysis
+        from metacouplingllm.output.formatter import AnalysisFormatter
+
+        parsed = parse_analysis(
+            "### 1. Coupling Classification\n\n"
+            "- **Intracoupling — present.** Avocado production within "
+            "Mexico.\n"
+            "- **Pericoupling — present.** Mexico and the United States "
+            "are adjacent.\n\n"
+            "### 2. Intracoupling Analysis (within the focal system)\n\n"
+            "#### 2.1 Systems Identification\n"
+            "**Focal System**: Mexico’s avocado production-and-export "
+            "system, with evidence concentrated in Michoacán.\n"
+            "- **Geographic scope**: Mexico nationally.\n\n"
+            "### 3. Pericoupling Analysis (adjacent systems)\n\n"
+            "#### 3.1 Systems Identification\n"
+            "**Sending System (adjacent)**: Mexico — avocado exports to "
+            "the United States\n"
+            "- **Geographic scope**: Mexico, centered on Michoacán.\n\n"
+            "**Receiving System (adjacent)**: United States — imported "
+            "avocados\n"
+            "- **Geographic scope**: United States.\n"
+        )
+        MetacouplingAssistant._validate_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        assert info["focal_country"] == "Mexico (MEX)"
+        assert info["pair_results"] == (
+            "Mexico (MEX) ↔ United States (USA): PERICOUPLED"
+        )
+        assert "Focal System: Mexico (MEX)" in AnalysisFormatter.format_full(
+            parsed
+        )
+
+    def test_focal_system_comes_before_the_first_sending_system(self):
+        """The first sending system can be a partner's: here Brazil's,
+        in a study whose [Focal System] is China.  Anchored on Brazil,
+        the block reported Brazil and Argentina as pericoupled, a pair
+        the analysis never relates, and asked to revise the telecoupling
+        classification."""
+        from metacouplingllm.llm.parser import CouplingSection, ParsedAnalysis
+
+        parsed = ParsedAnalysis(
+            coupling_classification="Telecoupling: soybean imports.",
+            intracoupling=CouplingSection(systems=[
+                {
+                    "role": "focal",
+                    "name": "China's soybean import and processing system",
+                    "geographic_scope": "China",
+                },
+            ]),
+            telecoupling=CouplingSection(systems=[
+                {"role": "sending", "name": "Brazil"},
+                {"role": "sending", "name": "Argentina"},
+                {"role": "receiving", "name": "China"},
+            ]),
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        assert info["focal_country"] == "China (CHN)"
+        assert info["pair_results"] == (
+            "China (CHN) ↔ Brazil (BRA): TELECOUPLED; "
+            "China (CHN) ↔ Argentina (ARG): TELECOUPLED"
+        )
+
+    def test_focal_country_is_read_before_the_dash_of_a_system_name(self):
+        """A [Focal System] named by its states names no country, so the
+        first sending system gives the focal country.  Named "<country> —
+        <what flows>", it gives the country before the dash, not the
+        longest country name in the whole name (the United States)."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="pericoupling",
+            coupling_type="pericoupling",
+            systems=[
+                {
+                    "role": "focal",
+                    "name": "Michoacán avocado belt",
+                    "geographic_scope": "Michoacán and Jalisco",
+                },
+                {
+                    "role": "sending",
+                    "name": "Mexico — avocado exports to the United States",
+                },
+                {"role": "receiving", "name": "United States — imported avocados"},
+            ],
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        assert info["focal_country"] == "Mexico (MEX)"
+        assert info["pair_results"] == (
+            "Mexico (MEX) ↔ United States (USA): PERICOUPLED"
+        )
+
     def test_roles_skip_countries_named_inside_other_places(self):
         """"Latin American markets" named no country; until 2026-10-16 it
         put the United States among the receiving systems."""
