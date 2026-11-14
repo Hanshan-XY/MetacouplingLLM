@@ -166,6 +166,28 @@ file. The format is loosely based on
   and has one partner country, which the database finds telecoupled
   without maritime adjacency and adjacent at sea with it. Tests +4
   (suite 2,260).
+- **The subnational (ADM1) validation note reads the coupling sections
+  the analysis holds too.** Like the country note above, it asked for a
+  revision only when the classification text never contained "pericoupl"
+  or "telecoupl", so a classification that named a coupling type only to
+  deny it passed as consistent, and the two notes of one report could
+  disagree. For acid rain from Ohio on Ontario under
+  `coupling_standard="moderate"`, which makes the two telecoupled, an
+  analysis that calls the study "pericoupling, not telecoupling" and holds
+  only a pericoupling section got "Consider revising" from the country
+  note and "consistent" from the ADM1 note; both now ask for a revision.
+  The check compares the focal region with the other regions it finds in
+  the analysis, including one the analysis keeps inside its own focal
+  system, so an analysis whose focal system spans two adjacent regions
+  gets the note unless it has a pericoupling section, whatever its
+  classification says (before, only when the classification never named
+  pericoupling). None of the 112 replays of the 44 saved analyses
+  changes. Eight print an ADM1 block: the two analyses of avocado
+  expansion in Michoacán and its effects on neighbouring Jalisco, which
+  hold a pericoupling section, and the two of Indonesia's coal exports
+  from East Kalimantan, in which the check finds no region besides the
+  focal one, each with `maritime_adjacency` off and on. Tests +4
+  (suite 2,264).
 
 ## [0.2.2] — 2026-10-24
 

@@ -4,11 +4,10 @@ After each analysis the country validator
 (``parsed.country_pericoupling_info``) and, when the research description
 names a subnational region, the ADM1 validator
 (``parsed.pericoupling_info``) compare the LLM's classification with the
-pairs they classified against the bundled adjacency databases.  The
-country validator reads the classification from the coupling sections the
-analysis holds, since its classification text can name a coupling type
-only to deny it; the ADM1 validator reads which coupling types the
-classification text mentions.  A validator that classified no pair notes
+pairs they classified against the bundled adjacency databases.  Both read
+the classification from the coupling sections the analysis holds, since
+its classification text can name a coupling type only to deny it.  A
+validator that classified no pair notes
 that nothing was checked instead of calling the classification
 consistent, and the report's Note shows such a note only when no
 validator with a note classified a pair.
@@ -467,8 +466,13 @@ class TestTheCountryNoteReadsTheSections:
 # ---------------------------------------------------------------------------
 
 
-def _michigan_parsed(classification: str, direction: str | None = None):
-    """Michigan focal; a flow direction names the partner, if any."""
+def _michigan_parsed(
+    classification: str,
+    direction: str | None = None,
+    section: str = "telecoupling",
+):
+    """Michigan focal; a flow direction names the partner, if any; the
+    systems and the flow sit in the coupling section *section*."""
     flows = None
     if direction:
         flows = [{
@@ -485,11 +489,13 @@ def _michigan_parsed(classification: str, direction: str | None = None):
             },
         },
         flows=flows,
+        coupling_type=section,
     )
 
 
 def _jalisco_parsed(michoacan_role: str) -> ParsedAnalysis:
-    """Jalisco focal; Michoacán named in a flow, in the given role."""
+    """Jalisco focal; Michoacán named in a flow, in the given role, in a
+    pericoupling section."""
     return make_parsed_analysis(
         coupling_classification="Pericoupling between Jalisco and Michoacán.",
         systems={
@@ -504,6 +510,7 @@ def _jalisco_parsed(michoacan_role: str) -> ParsedAnalysis:
             "direction": "Michoacán de Ocampo → Jalisco",
             "description": "inputs flow",
         }],
+        coupling_type="pericoupling",
     )
 
 
@@ -545,10 +552,11 @@ class TestAdm1Validator:
         assert parsed.pericoupling_info["note"] == ADM1_NO_CLASSIFICATION
 
     @pytest.mark.parametrize(
-        ("classification", "direction", "pair", "note"),
+        ("classification", "section", "direction", "pair", "note"),
         [
             (
                 "Pericoupling between Michigan and Ohio in the United States",
+                "pericoupling",
                 "Michigan → Ohio",
                 "Michigan (USA023) ↔ Ohio (USA036): PERICOUPLED",
                 ADM1_CONSISTENT,
@@ -556,6 +564,7 @@ class TestAdm1Validator:
             (
                 "Telecoupling: Michigan in United States exports to "
                 "international markets",
+                "telecoupling",
                 "Michigan → Ohio",
                 "Michigan (USA023) ↔ Ohio (USA036): PERICOUPLED",
                 ADM1_PERI_REVISE,
@@ -563,6 +572,7 @@ class TestAdm1Validator:
             (
                 "Telecoupling between Michigan, United States and "
                 "Mato Grosso, Brazil",
+                "telecoupling",
                 "Michigan → Mato Grosso",
                 "Michigan (USA023) ↔ Mato Grosso (BRA011): TELECOUPLED",
                 ADM1_CONSISTENT,
@@ -570,6 +580,7 @@ class TestAdm1Validator:
             (
                 "Pericoupling between Michigan, United States and "
                 "Mato Grosso, Brazil",
+                "pericoupling",
                 "Michigan → Mato Grosso",
                 "Michigan (USA023) ↔ Mato Grosso (BRA011): TELECOUPLED",
                 ADM1_TELE_REVISE,
@@ -583,9 +594,11 @@ class TestAdm1Validator:
         ],
     )
     def test_classified_regions_keep_their_note(
-        self, classification, direction, pair, note,
+        self, classification, section, direction, pair, note,
     ):
-        parsed = _michigan_parsed(classification, direction)
+        """Each analysis holds the coupling section its classification
+        names, with the systems and the flow in it."""
+        parsed = _michigan_parsed(classification, direction, section)
         MetacouplingAssistant._validate_adm1_pericoupling(parsed)
         info = parsed.pericoupling_info
         assert info["pair_results"] == pair
@@ -702,6 +715,113 @@ class TestOhioAcidRain:
         )
         assert country["note"] == country_note
         assert _note_lines(parsed) == notes
+
+
+# ---------------------------------------------------------------------------
+# The ADM1 note reads the coupling sections the analysis holds
+# ---------------------------------------------------------------------------
+
+# The Ohio analysis and the flow that names Ontario, with a classification
+# that names telecoupling only to deny it.
+OHIO_DENIAL = OHIO_ANALYSIS.replace(
+    "Pericoupling: sulfur", "Pericoupling, not telecoupling: sulfur",
+) + OHIO_FLOW
+
+# An avocado belt that keeps Jalisco inside its focal system: Jalisco is
+# named only in the intracoupling section, and the classification sets
+# pericoupling aside, while the ADM1 database finds Michoacán and Jalisco
+# adjacent.
+BELT_ANALYSIS = """\
+## 1. Coupling Classification
+- **Intracoupling**: Present. The focal system is the avocado belt of \
+Michoacán and Jalisco; fruit moving between the two states stays within it.
+- **Telecoupling**: Present. The belt exports avocados to the United States.
+- **Pericoupling**: Not analysed separately: both states lie within the \
+focal system.
+
+## 2. Intracoupling Analysis (within the focal system)
+### 2.1 Systems Identification
+**Focal System**: Avocado belt of Michoacán, Mexico
+- **Human subsystem**: Growers and packers in Michoacán and in Jalisco.
+- **Geographic scope**: Michoacán, Mexico
+
+### 2.2 Flows Analysis
+**Matter Flow**
+- **Direction**: Michoacán orchards → Jalisco packing houses
+- **Description**: Fruit moves between the two states of the belt.
+
+## 4. Telecoupling Analysis (distant systems)
+### 4.1 Systems Identification
+**Sending System**: Avocado belt of Michoacán, Mexico
+- **Geographic scope**: Michoacán, Mexico
+**Receiving System**: United States avocado importers
+- **Geographic scope**: United States
+"""
+
+
+class TestTheAdm1NoteReadsTheSections:
+    """As in the country check, the analysis claims the coupling types
+    whose sections it holds, whatever its classification text names."""
+
+    @pytest.mark.parametrize(
+        ("standard", "verdict", "notes"),
+        [
+            ("moderate", "TELECOUPLED",
+             [f"Note (country): {COUNTRY_TELE_REVISE}",
+              f"Note (subnational): {ADM1_TELE_REVISE}"]),
+            ("lenient", "PERICOUPLED", [BOTH_CONSISTENT]),
+        ],
+        ids=["moderate", "lenient"],
+    )
+    def test_telecoupling_named_only_to_be_denied(
+        self, standard, verdict, notes,
+    ):
+        """Under "moderate" Ohio and Ontario are telecoupled and the
+        analysis has no telecoupling section, so both notes ask for a
+        revision; the ADM1 note had read "not telecoupling" as agreement,
+        against the country note."""
+        parsed = parse_analysis(OHIO_DENIAL)
+        assert "not telecoupling" in parsed.coupling_classification
+        assert parsed.active_coupling_types() == ["pericoupling"]
+        MetacouplingAssistant._validate_pericoupling(
+            parsed, coupling_standard=standard,
+        )
+        assert parsed.pericoupling_info["pair_results"] == (
+            f"Ohio (USA036) ↔ Ontario (CAN009): {verdict}"
+        )
+        assert _note_lines(parsed) == notes
+
+    def test_pericoupling_named_only_to_be_set_aside(self):
+        """The check compares every region the analysis names besides the
+        focal region, Jalisco included, though the analysis keeps it inside
+        its own focal system.  Without a pericoupling section the note asks
+        for a revision, whatever the classification says."""
+        parsed = parse_analysis(BELT_ANALYSIS)
+        assert parsed.active_coupling_types() == [
+            "intracoupling", "telecoupling",
+        ]
+        MetacouplingAssistant._validate_pericoupling(parsed)
+        adm1 = parsed.pericoupling_info
+        assert adm1["focal_region"] == "Michoacán de Ocampo (MEX016)"
+        assert adm1["pair_results"] == (
+            "Michoacán de Ocampo (MEX016) ↔ Jalisco (MEX014): PERICOUPLED"
+        )
+        assert _note_lines(parsed) == [
+            f"Note (country): {COUNTRY_CONSISTENT}",
+            f"Note (subnational): {ADM1_PERI_REVISE}",
+        ]
+
+    def test_a_section_claims_its_type_without_the_text_naming_it(self):
+        parsed = _michigan_parsed(
+            "Coal and freight between Michigan and Ohio in the United "
+            "States", "Michigan → Ohio", "pericoupling",
+        )
+        MetacouplingAssistant._validate_adm1_pericoupling(parsed)
+        info = parsed.pericoupling_info
+        assert info["pair_results"] == (
+            "Michigan (USA023) ↔ Ohio (USA036): PERICOUPLED"
+        )
+        assert info["note"] == ADM1_CONSISTENT
 
 
 # ---------------------------------------------------------------------------

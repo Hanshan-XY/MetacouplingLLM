@@ -1106,18 +1106,20 @@ ways:
    looks up each pair between the focal system and the other named systems
    (skipping systems the model gave the spillover role) and shows the
    database verdict for each pair. It adds a "Consider revising" note only
-   when a partner is pericoupled in the database but the analysis does not
-   classify the study as pericoupling, or when all partners are
-   telecoupled but it does not classify it as telecoupling; individual
-   partner labels are not checked. The country check reads that
-   classification from the coupling sections the analysis holds (a
-   section counts when it has systems, flows, agents, causes or effects),
-   since the prompt has the model leave out the section of a coupling type
-   it finds absent, while the classification text can name a type only to
-   deny it ("pericoupling—not telecoupling"); the subnational (ADM1) check
-   reads it from the coupling types the classification text mentions.
-   Otherwise the note says the classification is consistent with
-   the database. A check that looked up no pair notes that nothing was
+   when a partner is pericoupled in the database but the analysis has no
+   pericoupling section, or when all partners are telecoupled but it has
+   no telecoupling section (a section counts when it has systems, flows,
+   agents, causes or effects); individual partner labels are not checked.
+   The sections decide because the prompt has the model leave out the
+   section of a coupling type it finds absent, while the classification
+   text can name a type only to deny it ("pericoupling—not telecoupling").
+   The subnational (ADM1) check compares the focal region with the other
+   regions it finds in the analysis (§13), including one the analysis
+   keeps inside its own focal system, so an analysis whose focal system
+   spans two adjacent regions gets a "Consider revising" note unless it
+   has a pericoupling section. Otherwise the note says the classification
+   is consistent with the database. A check that looked up no pair notes
+   that nothing was
    checked instead: the country check when every partner country has the
    spillover role, or when the analysis has adjacent or distant systems
    but its systems name no country besides the focal one (an analysis
