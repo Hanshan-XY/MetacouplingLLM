@@ -1405,11 +1405,17 @@ of other places come from two sources:
   name: New South Wales, Port of Spain, Thai Binh, Inner Mongolia;
 - a list of continents, seas, lakes, rivers, basins and regions named after
   a country: South America, Latin American, the Gulf of Mexico, the Indian
-  Ocean, Lake Chad, the Congo Basin, the Korean Peninsula, New England.
+  Ocean, Lake Chad, the Congo Basin, the Korean Peninsula, New England, the
+  Mongolian Plateau; the adjectives of regions named after another country
+  ("Inner Mongolian"); and a tree and two insects named after a country
+  (pau-brasil, the Mongolian locust, the Senegalese grasshopper).
 
 A place's own country still counts: "Western Australia" and "Mexico City"
 read as Australia and Mexico. Words that only look like codes do not:
-"and", "Can" and the pronoun "us". Both find a country's name, not its
+"and", "Can" and the pronoun "us". Most countries' adjectives count as
+their names ("Sri Lankan fishers"); those that several countries share or
+that also name a region or a people across a border, such as "Congolese",
+"Guinean" and "Somali", do not. Both find a country's name, not its
 sense, so a person's name ("Chad"), a disease ("Panama disease") or an
 acronym written as a code ("LCA" for life-cycle assessment, in parentheses)
 still reads as a country, and in a description written in lower case,
