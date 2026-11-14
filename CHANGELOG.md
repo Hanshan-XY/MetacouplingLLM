@@ -75,6 +75,21 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **A country's name is no longer read as its namesake region.** The
+  subnational-region scan behind the validation block's "Core subnational
+  regions" line (also the fallback for the map data's
+  `mentioned_adm1_regions`) resolves short phrases with the focal country
+  as a hint, and with that hint the ADM1 resolver reads a country's own
+  name or adjective as its namesake region: a bare "Mexico" listed the
+  State of México, and "Australian" in a study of Australian lithium the
+  Australian Capital Territory. The scan now skips a phrase that is exactly
+  a name or adjective of the region's own country, as the focal-region
+  resolver already did; "State of Mexico" is still read as the region,
+  and a US state named like a country (Georgia) still reaches the state.
+  Across 55 saved analyses, 9 change, each by losing such a region: the
+  State of México in 8, among them the committed 2026-06-16 avocado run,
+  and the Australian Capital Territory in 1; an analysis that names
+  Temascaltepec in the State of Mexico keeps it. Four new tests.
 - **The automatic map follows the analysis's focal country and partners.**
   The map-data extraction call names the primary sending country as the
   focal country, so a study whose focal country receives the flows was
