@@ -913,12 +913,15 @@ Countries the LLM placed in the spillover role (such as the
 `[Spillover System]` above) are not listed, because adjacency cannot
 validate that indirect role; a group with no pairs is not printed. The
 Note compares coupling types, not individual partners: if the database
-shows a pericoupled pair but the classification does not mention
-pericoupling (or shows only telecoupled pairs but the classification
-does not mention telecoupling), the Note is printed as
-`Note (country): ...` and ends with "Consider revising." When the block
-lists no pair, for example because every partner country has the spillover
-role, the Note says that nothing was checked (§8).
+shows a pericoupled pair but the analysis has no pericoupling section
+(or shows only telecoupled pairs but the analysis has no telecoupling
+section), the Note is printed as `Note (country): ...` and ends with
+"Consider revising." The sections decide, not the words of the
+classification, which can name a coupling type only to deny it
+("pericoupling—not telecoupling"). When the block
+lists no pair, because every partner country has the spillover role or
+because the systems name no country besides the focal one, the Note says
+that nothing was checked (§8).
 
 The `Core subnational regions:` sub-line appears only for
 national-scope queries (user named a country, not a state) and
@@ -1142,15 +1145,27 @@ ways:
    looks up each pair between the focal system and the other named systems
    (skipping systems the model gave the spillover role) and shows the
    database verdict for each pair. It adds a "Consider revising" note only
-   when a partner is pericoupled in the database but the classification
-   does not mention pericoupling, or when all partners are telecoupled but
-   it does not mention telecoupling; individual partner labels are not
-   checked. Otherwise the note says the classification is consistent with
-   the database. A check that looked up no pair notes that nothing was
+   when a partner is pericoupled in the database but the analysis has no
+   pericoupling section, or when all partners are telecoupled but it has
+   no telecoupling section (a section counts when it has systems, flows,
+   agents, causes or effects); individual partner labels are not checked.
+   The sections decide because the prompt has the model leave out the
+   section of a coupling type it finds absent, while the classification
+   text can name a type only to deny it ("pericoupling—not telecoupling").
+   The subnational (ADM1) check compares the focal region with the other
+   regions it finds in the analysis (§13), including one the analysis
+   keeps inside its own focal system, so an analysis whose focal system
+   spans two adjacent regions gets a "Consider revising" note unless it
+   has a pericoupling section. Otherwise the note says the classification
+   is consistent with the database. A check that looked up no pair notes
+   that nothing was
    checked instead: the country check when every partner country has the
-   spillover role, the subnational (ADM1) check when it finds no other
-   region outside the spillover role (§13 lists why a region can be
-   missed). The report prints such a note only when it lists no pair. The
+   spillover role, or when the analysis has adjacent or distant systems
+   but its systems name no country besides the focal one (an analysis
+   without such systems gets no country check), and the subnational (ADM1)
+   check when it finds no other region outside the spillover role (§13
+   lists why a region can be missed). The report prints such a note only
+   when it lists no pair. The
    validation reads a country's name that a region elsewhere also has, such
    as Georgia, as the research description and the answer read it (Country
    name resolution, below).
@@ -1444,11 +1459,17 @@ of other places come from two sources:
   name: New South Wales, Port of Spain, Thai Binh, Inner Mongolia;
 - a list of continents, seas, lakes, rivers, basins and regions named after
   a country: South America, Latin American, the Gulf of Mexico, the Indian
-  Ocean, Lake Chad, the Congo Basin, the Korean Peninsula, New England.
+  Ocean, Lake Chad, the Congo Basin, the Korean Peninsula, New England, the
+  Mongolian Plateau; the adjectives of regions named after another country
+  ("Inner Mongolian"); and a tree and two insects named after a country
+  (pau-brasil, the Mongolian locust, the Senegalese grasshopper).
 
 A place's own country still counts: "Western Australia" and "Mexico City"
 read as Australia and Mexico. Words that only look like codes do not:
-"and", "Can" and the pronoun "us". Both find a country's name, not its
+"and", "Can" and the pronoun "us". Most countries' adjectives count as
+their names ("Sri Lankan fishers"); those that several countries share or
+that also name a region or a people across a border, such as "Congolese",
+"Guinean" and "Somali", do not. Both find a country's name, not its
 sense, so a person's name ("Chad"), a disease ("Panama disease") or an
 acronym written as a code ("LCA" for life-cycle assessment, in parentheses)
 still reads as a country, and in a description written in lower case,

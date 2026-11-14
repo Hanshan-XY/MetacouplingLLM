@@ -5338,8 +5338,8 @@ class MetacouplingAssistant:
         # mentioned region is "pericoupled" with the focal iff it
         # appears in the focal's adjacency set (domestic or
         # cross-border), otherwise "telecoupled".  Then compare the
-        # LLM's text-level classification against what the database
-        # actually shows.
+        # coupling types the analysis claims (the sections it holds)
+        # with what the database shows.
         mentioned_adm1 = (
             MetacouplingAssistant._extract_mentioned_adm1_from_text(parsed)
         )
@@ -5396,7 +5396,10 @@ class MetacouplingAssistant:
             peri_info["pair_results"] = "; ".join(adm1_pair_lines)
 
         if parsed.coupling_classification:
-            llm_class = parsed.coupling_classification.lower()
+            # As in the country check, the analysis claims the coupling
+            # types whose sections it holds; its classification text can
+            # name a type only to deny it.
+            claimed = parsed.active_coupling_types()
             if not adm1_pair_lines:
                 # No region was classified (the scan found none
                 # besides the focal one, or only spillover ones), so
@@ -5407,7 +5410,7 @@ class MetacouplingAssistant:
                     "region was checked against the ADM1 "
                     "pericoupling database."
                 )
-            elif has_peri and "pericoupl" not in llm_class:
+            elif has_peri and "pericoupling" not in claimed:
                 peri_info["note"] = (
                     "The ADM1 pericoupling database indicates at "
                     "least one mentioned subnational region is "
@@ -5415,7 +5418,9 @@ class MetacouplingAssistant:
                     "not classify this study as pericoupling.  "
                     "Consider revising."
                 )
-            elif has_tele and not has_peri and "telecoupl" not in llm_class:
+            elif (
+                has_tele and not has_peri and "telecoupling" not in claimed
+            ):
                 peri_info["note"] = (
                     "The ADM1 pericoupling database indicates all "
                     "mentioned subnational regions are non-adjacent "
@@ -5479,8 +5484,9 @@ class MetacouplingAssistant:
           national mode).
         - ``parsed.country_pericoupling_info``: country-level
           result, always populated when ≥1 non-spillover partner
-          country is mentioned.  Carries
-          ``core_subnational_regions`` in national mode.
+          country is mentioned, and with a note when the analysis has
+          adjacent or distant systems but no other country is found.
+          Carries ``core_subnational_regions`` in national mode.
         """
         if not national_mode:
             # ADM1-mode query: run ADM1 validator (populates
@@ -5517,7 +5523,10 @@ class MetacouplingAssistant:
         Populates ``parsed.country_pericoupling_info`` when:
         - A focal country is resolvable from the focal system (or,
           when it names none, the first sending system), AND
-        - At least one other country is mentioned in the systems.
+        - At least one other country is mentioned in the systems, or
+          the analysis has adjacent or distant systems
+          (:meth:`_has_partner_systems`); with no other country found,
+          the info's note says so and that no pair was checked.
 
         Otherwise leaves the field as None.
 
@@ -5592,8 +5601,16 @@ class MetacouplingAssistant:
         # is NOT dropped by the other_codes early-return below.
         unions = MetacouplingAssistant._extract_unions_with_roles(parsed)
 
-        if not other_codes and not unions:
-            return  # No partner country or union detected
+        # No partner country or union detected.  An analysis without
+        # adjacent or distant systems claims no partner, so it gets no
+        # block.  One with them gets a block that says no other country
+        # was found: its partners may be named in words the resolver does
+        # not read, which a missing block would hide.
+        only_focal = not other_codes and not unions
+        if only_focal and not MetacouplingAssistant._has_partner_systems(
+            parsed
+        ):
+            return
 
         # --- Build validation info (focal ↔ each other only) ---
         info: dict[str, str] = {}
@@ -5782,8 +5799,19 @@ class MetacouplingAssistant:
         # Check agreement with LLM classification.  PR #44 (v3):
         # 2-way check only (no spillover branch since the
         # validator no longer emits SPILLOVER pair lines).
-        if parsed.coupling_classification:
-            llm_class = parsed.coupling_classification.lower()
+        if only_focal:
+            info["note"] = (
+                f"No country other than {info['focal_country']} was "
+                "found in the systems, so no country pair was checked "
+                "against the coupling database."
+            )
+        elif parsed.coupling_classification:
+            # The analysis claims the coupling types whose sections it
+            # holds: the prompt has it leave out the section of a type it
+            # finds absent.  Its classification text can name a type only
+            # to deny it ("pericoupling—not telecoupling"), so whether the
+            # text names a type decides nothing.
+            claimed = parsed.active_coupling_types()
             has_peri = any(": PERICOUPLED" in p for p in pair_lines)
             has_tele = any(": TELECOUPLED" in p for p in pair_lines)
 
@@ -5797,13 +5825,15 @@ class MetacouplingAssistant:
                     "coupling database (partners in the spillover "
                     "role are not checked)."
                 )
-            elif has_peri and "pericoupl" not in llm_class:
+            elif has_peri and "pericoupling" not in claimed:
                 info["note"] = (
                     "The coupling database indicates at least one "
                     "pericoupled country pair, but the LLM classified "
                     "this study differently. Consider revising."
                 )
-            elif has_tele and not has_peri and "telecoupl" not in llm_class:
+            elif (
+                has_tele and not has_peri and "telecoupling" not in claimed
+            ):
                 info["note"] = (
                     "The coupling database indicates all detected "
                     "pairs are telecoupled, but the LLM classified "
@@ -5816,6 +5846,18 @@ class MetacouplingAssistant:
                 )
 
         parsed.country_pericoupling_info = info
+
+    @staticmethod
+    def _has_partner_systems(parsed: ParsedAnalysis) -> bool:
+        """Return True when the analysis has an adjacent or distant
+        system: an entry of its pericoupling or telecoupling section
+        other than a focal system."""
+        for section in ("pericoupling", "telecoupling"):
+            entries = list(parsed.iter_system_entries(coupling_type=section))
+            focal = parsed.get_system_entries("focal", coupling_type=section)
+            if len(entries) > len(focal):
+                return True
+        return False
 
     @staticmethod
     def _system_own_country(value: str) -> str | None:

@@ -248,6 +248,51 @@ class TestAtSeaLabels:
         assert "United Kingdom (GBR) (at sea): PERICOUPLED" in parsed.country_pericoupling_info["pair_results"]
         assert "United Kingdom (GBR) (at sea)" in AnalysisFormatter.format_full(parsed)
 
+    @pytest.mark.parametrize("sea, pair", [
+        (False, "Sri Lanka (LKA) ↔ India (IND): TELECOUPLED"),
+        (True, "Sri Lanka (LKA) ↔ India (IND) (at sea): PERICOUPLED"),
+    ])
+    def test_validation_reads_a_country_named_by_its_adjective(self, sea, pair):
+        """A gpt-6.1-sol analysis of Indian trawling in the Palk Bay named
+        Sri Lanka only as "Sri Lankan", which free text did not read: the
+        validation found India alone and left its block out."""
+        from metacouplingllm.llm.parser import parse_analysis
+        from metacouplingllm.output.formatter import AnalysisFormatter
+
+        parsed = parse_analysis(
+            "## 1. Coupling Classification\n\n"
+            "**The central interaction is pericoupling—not telecoupling—"
+            "because India and Sri Lanka are geographically adjacent across "
+            "a shared maritime boundary.**\n\n"
+            "## 2. Intracoupling Analysis (within the focal system)\n\n"
+            "### 2.1 Systems Identification\n\n"
+            "**Focal System: Northern Sri Lankan coastal fisheries and "
+            "fishing communities**\n"
+            "- **Geographic scope:** Selected northern coastal communities "
+            "and their associated Sri Lankan fishing grounds, particularly "
+            "around Jaffna and Mannar.\n\n"
+            "## 3. Pericoupling Analysis (adjacent systems)\n\n"
+            "### 3.1 Systems Identification\n\n"
+            "**Sending System (adjacent): Tamil Nadu’s Palk Bay "
+            "trawl-fishing centres—for crew movement**\n"
+            "- **Geographic scope:** Indian Palk Bay ports, particularly "
+            "Rameswaram and Mandapam.\n\n"
+            "**Receiving System (adjacent): Northern Sri Lankan fishing "
+            "grounds—for entering Indian crews**\n"
+            "- **Geographic scope:** Sri Lankan waters used by the northern "
+            "communities included in the study.\n"
+        )
+        MetacouplingAssistant._validate_pericoupling(
+            parsed, national_mode=True, maritime_adjacency=sea,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        assert info["focal_country"] == "Sri Lanka (LKA)"
+        assert info["pair_results"] == pair
+        block = AnalysisFormatter.format_full(parsed)
+        assert "Focal System: Sri Lanka (LKA)" in block
+        assert pair.rsplit(": ", 1)[0] in block
+
 
 class _FranceClient:
     def chat(self, messages, temperature=0.7, max_tokens=None):

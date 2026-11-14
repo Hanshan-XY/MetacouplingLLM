@@ -120,6 +120,100 @@ file. The format is loosely based on
   Tanzania and Rwanda's gorilla tourism on the Democratic Republic of the
   Congo. The validation blocks of the other 23 and of the committed avocado
   run are unchanged. Tests +3 (suite 2,201).
+- **Free text reads the adjectives of small states: "Sri Lankan",
+  "Bahamian", "Fijian".** `resolve_country_code(..., free_text=True)` and
+  `find_country_codes` read a country's adjective only from the alias
+  table, and a country's name inside its adjective does not count, since a
+  letter follows it. The table lacked "Sri Lankan" and the adjectives of
+  most small states, among them the island states the `maritime_adjacency`
+  layer gives neighbours at sea. A gpt-6.1-sol analysis of Indian bottom
+  trawling in the Palk Bay named Sri Lanka in its systems only as "Sri
+  Lankan" ("Northern Sri Lankan coastal fisheries"), so the country
+  validation found India alone and left its block out. The table gains 124
+  adjectives of 117 units of the country database, and the block reads
+  "Sri Lanka (LKA) ↔ India (IND) (at sea)" with `maritime_adjacency=True`
+  (telecoupled without it). Left out: adjectives that several units share or that also
+  name a wider region (Congolese, Guinean, Micronesian, Macedonian,
+  Papuan), two that are region names of the ADM1 database (Kazakh in
+  Azerbaijan, Somali in Ethiopia), names of peoples who live in large
+  numbers across a border (Tajik, Uzbek, Turkmen, Swazi, Basotho,
+  Batswana), and Georgian, which is also the US state's. Fourteen names of
+  other places, plurals included, keep the new adjectives from naming a
+  country inside the name of a region, steppe, sea or insect: "Inner
+  Mongolian", "East" and "West Azerbaijani", "West Timorese", the
+  Mongolian Plateau and steppe, the Libyan Sea, the Mongolian locust, and
+  the Senegalese grasshopper and locust; "Kosovo Albanian" and "Kosovar
+  Albanian" read as Kosovo. For a text that names two countries,
+  `resolve_country_code` still gives the country of the longer name, which
+  can now be an adjective: "Indian trawlers in Sri Lankan waters" gives Sri
+  Lanka (`find_country_codes` gives both). Of 44 saved analyses
+  (the 31 gpt-5.5 analyses saved on 2026-10-15 and 13 traced runs), only
+  the Palk Bay analysis's validation changes, with `maritime_adjacency` on
+  or off. Of the 362 sentences of the RAG corpus and those analyses that
+  hold a new word, 139 now name the adjective's country where they named
+  none, and 39 that name two countries now resolve to the adjective's.
+  The ADM1 alias tables rebuild byte for byte. Tests +48 (suite 2,249).
+- **The validation block says when it finds no country besides the focal
+  one.** The country check left its block out when the systems named no
+  country besides the focal one, so a partner named in words the resolver
+  does not read disappeared without a trace: before the adjectives above,
+  the Palk Bay analysis printed no block at all. An analysis with adjacent
+  or distant systems (an entry of its pericoupling or telecoupling section
+  other than a focal system) now gets the block with its focal system and
+  a note: "No country other than India (IND) was found in the systems, so
+  no country pair was checked against the coupling database." For an
+  analysis without such systems the country check still prints nothing.
+  Like the other notes of a check that looked up no pair, the report
+  prints this one only when it lists no pair. Of the 44 saved analyses,
+  the note appears for the Palk Bay analysis alone on the code before the
+  adjectives above, and for none with them. Tests +7 (suite 2,256).
+- **The country validation note compares the database's verdicts with the
+  coupling sections the analysis holds.** The note asked for a revision
+  only when the database found a pericoupled pair and the classification
+  text never contained "pericoupl", or found only telecoupled pairs and it
+  never contained "telecoupl", so a classification that named a coupling
+  type only to deny it passed as consistent. A gpt-6.1-sol analysis of
+  Indian bottom trawling in the Palk Bay calls the interaction
+  "pericoupling—not telecoupling" and has no telecoupling section; with
+  `maritime_adjacency` off (the default) its block lists "Sri Lanka (LKA)
+  ↔ India (IND)" as telecoupled, and the note said "LLM classification is
+  consistent with the coupling database." The analysis now claims the
+  coupling types whose sections it holds, since the prompt has the model
+  leave out the section of a type it finds absent, so this note asks for a
+  revision. The note texts are unchanged, and the subnational (ADM1) check
+  still reads the classification text. The 44 saved analyses were replayed
+  under the default settings and, for the 12 runs that record their
+  settings, under those (`coupling_standard="moderate"`), each with
+  `maritime_adjacency` off and on: all 112 notes called the classification
+  consistent, and 8 now ask for a revision, those of the analyses of the
+  Palk Bay, cruise tourism from the United States in the Bahamas,
+  migration from Libya to Italy and the North Sea Link with the toggle
+  off. Each of the four denies telecoupling, holds no telecoupling section
+  and has one partner country, which the database finds telecoupled
+  without maritime adjacency and adjacent at sea with it. Tests +4
+  (suite 2,260).
+- **The subnational (ADM1) validation note reads the coupling sections
+  the analysis holds too.** Like the country note above, it asked for a
+  revision only when the classification text never contained "pericoupl"
+  or "telecoupl", so a classification that named a coupling type only to
+  deny it passed as consistent, and the two notes of one report could
+  disagree. For acid rain from Ohio on Ontario under
+  `coupling_standard="moderate"`, which makes the two telecoupled, an
+  analysis that calls the study "pericoupling, not telecoupling" and holds
+  only a pericoupling section got "Consider revising" from the country
+  note and "consistent" from the ADM1 note; both now ask for a revision.
+  The check compares the focal region with the other regions it finds in
+  the analysis, including one the analysis keeps inside its own focal
+  system, so an analysis whose focal system spans two adjacent regions
+  gets the note unless it has a pericoupling section, whatever its
+  classification says (before, only when the classification never named
+  pericoupling). None of the 112 replays of the 44 saved analyses
+  changes. Eight print an ADM1 block: the two analyses of avocado
+  expansion in Michoacán and its effects on neighbouring Jalisco, which
+  hold a pericoupling section, and the two of Indonesia's coal exports
+  from East Kalimantan, in which the check finds no region besides the
+  focal one, each with `maritime_adjacency` off and on. Tests +4
+  (suite 2,264).
 
 ## [0.2.2] — 2026-10-24
 

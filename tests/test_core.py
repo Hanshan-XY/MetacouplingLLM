@@ -4636,9 +4636,10 @@ class TestValidateAdm1Pericoupling:
     # guard accepts foreign codes too.
 
     @staticmethod
-    def _michigan_parsed(classification, direction):
+    def _michigan_parsed(classification, direction, section="telecoupling"):
         """Build a Michigan-focal ParsedAnalysis with the partner in
-        the flow direction (arrow-split path the extractor scans)."""
+        the flow direction (arrow-split path the extractor scans); the
+        system and the flow sit in the coupling section *section*."""
         from ._helpers import make_parsed_analysis
         return make_parsed_analysis(
             coupling_classification=classification,
@@ -4655,13 +4656,16 @@ class TestValidateAdm1Pericoupling:
                     "description": "trade",
                 },
             ],
+            coupling_type=section,
         )
 
     def test_note_consistent_when_classification_matches_pericoupled(self):
-        """LLM said pericoupling + DB shows Ohio is adjacent → consistent."""
+        """A pericoupling section + DB shows Ohio is adjacent →
+        consistent."""
         parsed = self._michigan_parsed(
             "Pericoupling between Michigan and Ohio in the United States",
             "Michigan → Ohio",
+            "pericoupling",
         )
         MetacouplingAssistant._validate_adm1_pericoupling(parsed)
         note = parsed.pericoupling_info["note"]
@@ -4697,13 +4701,15 @@ class TestValidateAdm1Pericoupling:
         assert "Consider revising" not in note
 
     def test_note_warns_when_only_telecoupled_but_no_tele_classification(self):
-        """LLM said pericoupling + DB shows Mato Grosso is non-adjacent
-        (no pericoupled partners mentioned) → warns 'all mentioned
-        subnational regions are non-adjacent ... Consider revising.'"""
+        """A pericoupling section only + DB shows Mato Grosso is
+        non-adjacent (no pericoupled partners mentioned) → warns 'all
+        mentioned subnational regions are non-adjacent ... Consider
+        revising.'"""
         parsed = self._michigan_parsed(
             "Pericoupling between Michigan, United States and "
             "Mato Grosso, Brazil",
             "Michigan → Mato Grosso",
+            "pericoupling",
         )
         MetacouplingAssistant._validate_adm1_pericoupling(parsed)
         note = parsed.pericoupling_info["note"]

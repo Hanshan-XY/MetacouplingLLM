@@ -237,6 +237,137 @@ class TestNewAliases:
         ) == "LAO"
 
 
+class TestAdjectives:
+    """Adjectives of the units of the country database.  Until 2026-11-13
+    free text did not read "Sri Lankan" (a letter follows "Sri Lanka") or
+    the adjectives of most other small states, so the validation of an
+    analysis naming Sri Lanka only so found India alone and was left out."""
+
+    @pytest.mark.parametrize("adjective, code", [
+        ("Sri Lankan", "LKA"),
+        ("Bahamian", "BHS"),
+        ("Libyan", "LBY"),
+        ("Maltese", "MLT"),
+        ("Icelandic", "ISL"),
+        ("Maldivian", "MDV"),
+        ("Singaporean", "SGP"),
+        ("Fijian", "FJI"),
+        ("Samoan", "WSM"),
+        ("Tongan", "TON"),
+        ("Mauritian", "MUS"),
+        ("Malagasy", "MDG"),
+        ("Cypriot", "CYP"),
+        ("Bahraini", "BHR"),
+        ("Barbadian", "BRB"),
+    ])
+    def test_island_states(self, adjective, code):
+        text = f"{adjective} fishers"
+        assert resolve_country_code(text, free_text=True) == code
+        assert find_country_codes(text) == [code]
+        assert resolve_country_code(adjective, substring=False) == code
+
+    def test_every_alias_reads_before_another_word(self):
+        """Each alias, the adjectives included, names its country in free
+        text when a word follows it ("us" counts only in capitals)."""
+        unread = [
+            key for key, code in _ALIASES.items()
+            if key != "us" and (
+                resolve_country_code(f"{key} fishers", free_text=True) != code
+                or find_country_codes(f"{key} fishers") != [code]
+            )
+        ]
+        assert unread == []
+
+    @pytest.mark.parametrize("text, code", [
+        ("Papua New Guinean fishers", "PNG"),
+        ("Equatorial Guinean oil", "GNQ"),
+        ("Bissau-Guinean cashew farmers", "GNB"),
+        ("Sierra Leonean fishers", "SLE"),
+        ("Cape Verdean migrants", "CPV"),
+        ("Puerto Rican coffee", "PRI"),
+        ("New Caledonian nickel", "NCL"),
+        ("Saint Lucian bananas", "LCA"),
+        ("North Macedonian tourism", "MKD"),
+    ])
+    def test_adjectives_of_names_of_several_words(self, text, code):
+        assert resolve_country_code(text, free_text=True) == code
+        assert find_country_codes(text) == [code]
+
+    @pytest.mark.parametrize("text, code, before", [
+        ("American Samoan fishers", "ASM", "USA"),
+        ("French Polynesian pearl farms", "PYF", "FRA"),
+        ("French Guianese gold miners", "GUF", "FRA"),
+    ])
+    def test_adjectives_holding_another_countrys_adjective(
+        self, text, code, before,
+    ):
+        """The shorter adjective inside gave *before*."""
+        assert resolve_country_code(text, free_text=True) == code
+        assert find_country_codes(text) == [code]
+
+    @pytest.mark.parametrize("text, found", [
+        # Adjectives of regions named after another country
+        ("Inner Mongolian grasslands", "MNG"),
+        ("East Azerbaijani villages", "AZE"),
+        ("West Timorese farmers", "TLS"),
+        # A plateau, a steppe and a sea that are not the country's alone
+        ("the Mongolian Plateau", "MNG"),
+        ("the Mongolian steppe in east Heilongjiang", "MNG"),
+        ("the Libyan Sea", "LBY"),
+        # Insects named after a country
+        ("Mongolian locust outbreaks", "MNG"),
+        ("Senegalese grasshoppers", "SEN"),
+    ])
+    def test_adjectives_inside_other_names_do_not_count(self, text, found):
+        """*found* is what the text reads as without ``free_text``."""
+        assert resolve_country_code(text) == found
+        assert resolve_country_code(text, free_text=True) is None
+        assert find_country_codes(text) == []
+
+    @pytest.mark.parametrize("text, code", [
+        ("Senegalese grasshoppers in Niger", "NER"),
+        ("Mongolian locust outbreaks in Mongolia", "MNG"),
+        ("Inner Mongolian herders and Mongolian traders", "MNG"),
+    ])
+    def test_other_countries_in_the_text_still_count(self, text, code):
+        assert resolve_country_code(text, free_text=True) == code
+        assert find_country_codes(text) == [code]
+
+    def test_a_people_named_after_its_unit_and_another_country(self):
+        """"Albanian" alone gives Albania; "Kosovo Albanian" stays Kosovo's."""
+        assert resolve_country_code(
+            "Albanian fishers", free_text=True
+        ) == "ALB"
+        assert resolve_country_code(
+            "Kosovo Albanian communities", free_text=True
+        ) == "XKX"
+        assert find_country_codes("Kosovar Albanian farmers") == ["XKX"]
+
+    @pytest.mark.parametrize("word, region", [
+        ("Kazakh", "AZE020"),  # Gazakh, Azerbaijan (alias "kazakh")
+        ("Somali", "ETH011"),  # the Somali Region of Ethiopia
+    ])
+    def test_region_names_are_not_adjectives(self, word, region):
+        """Left out: as a country's alias, the word would make the ADM1
+        country guard refuse the region's name without a country hint."""
+        from metacouplingllm.knowledge.adm1_pericoupling import (
+            resolve_adm1_code,
+        )
+
+        assert resolve_country_code(word, substring=False) is None
+        assert resolve_adm1_code(word) == region
+
+    @pytest.mark.parametrize("text", [
+        "Congolese timber exports",  # two units are named Congo
+        "the Guinean savannah",  # an ecoregion; four units are named Guinea
+        "Micronesian navigators",  # a region of several units
+        "Central Macedonian farmers",  # a region of Greece
+    ])
+    def test_shared_adjectives_name_no_country(self, text):
+        assert resolve_country_code(text, free_text=True) is None
+        assert find_country_codes(text) == []
+
+
 class TestWithoutSubstring:
     """``substring=False`` accepts only a whole code, name or alias."""
 
