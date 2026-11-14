@@ -874,10 +874,12 @@ Countries the LLM placed in the spillover role (such as the
 `[Spillover System]` above) are not listed, because adjacency cannot
 validate that indirect role; a group with no pairs is not printed. The
 Note compares coupling types, not individual partners: if the database
-shows a pericoupled pair but the classification does not mention
-pericoupling (or shows only telecoupled pairs but the classification
-does not mention telecoupling), the Note is printed as
-`Note (country): ...` and ends with "Consider revising." When the block
+shows a pericoupled pair but the analysis has no pericoupling section
+(or shows only telecoupled pairs but the analysis has no telecoupling
+section), the Note is printed as `Note (country): ...` and ends with
+"Consider revising." The sections decide, not the words of the
+classification, which can name a coupling type only to deny it
+("pericoupling—not telecoupling"). When the block
 lists no pair, because every partner country has the spillover role or
 because the systems name no country besides the focal one, the Note says
 that nothing was checked (§8).
@@ -1104,10 +1106,17 @@ ways:
    looks up each pair between the focal system and the other named systems
    (skipping systems the model gave the spillover role) and shows the
    database verdict for each pair. It adds a "Consider revising" note only
-   when a partner is pericoupled in the database but the classification
-   does not mention pericoupling, or when all partners are telecoupled but
-   it does not mention telecoupling; individual partner labels are not
-   checked. Otherwise the note says the classification is consistent with
+   when a partner is pericoupled in the database but the analysis does not
+   classify the study as pericoupling, or when all partners are
+   telecoupled but it does not classify it as telecoupling; individual
+   partner labels are not checked. The country check reads that
+   classification from the coupling sections the analysis holds (a
+   section counts when it has systems, flows, agents, causes or effects),
+   since the prompt has the model leave out the section of a coupling type
+   it finds absent, while the classification text can name a type only to
+   deny it ("pericoupling—not telecoupling"); the subnational (ADM1) check
+   reads it from the coupling types the classification text mentions.
+   Otherwise the note says the classification is consistent with
    the database. A check that looked up no pair notes that nothing was
    checked instead: the country check when every partner country has the
    spillover role, or when the analysis has adjacent or distant systems

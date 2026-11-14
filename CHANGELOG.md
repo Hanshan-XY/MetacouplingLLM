@@ -141,6 +141,31 @@ file. The format is loosely based on
   prints this one only when it lists no pair. Of the 44 saved analyses,
   the note appears for the Palk Bay analysis alone on the code before the
   adjectives above, and for none with them. Tests +7 (suite 2,256).
+- **The country validation note compares the database's verdicts with the
+  coupling sections the analysis holds.** The note asked for a revision
+  only when the database found a pericoupled pair and the classification
+  text never contained "pericoupl", or found only telecoupled pairs and it
+  never contained "telecoupl", so a classification that named a coupling
+  type only to deny it passed as consistent. A gpt-6.1-sol analysis of
+  Indian bottom trawling in the Palk Bay calls the interaction
+  "pericoupling—not telecoupling" and has no telecoupling section; with
+  `maritime_adjacency` off (the default) its block lists "Sri Lanka (LKA)
+  ↔ India (IND)" as telecoupled, and the note said "LLM classification is
+  consistent with the coupling database." The analysis now claims the
+  coupling types whose sections it holds, since the prompt has the model
+  leave out the section of a type it finds absent, so this note asks for a
+  revision. The note texts are unchanged, and the subnational (ADM1) check
+  still reads the classification text. The 44 saved analyses were replayed
+  under the default settings and, for the 12 runs that record their
+  settings, under those (`coupling_standard="moderate"`), each with
+  `maritime_adjacency` off and on: all 112 notes called the classification
+  consistent, and 8 now ask for a revision, those of the analyses of the
+  Palk Bay, cruise tourism from the United States in the Bahamas,
+  migration from Libya to Italy and the North Sea Link with the toggle
+  off. Each of the four denies telecoupling, holds no telecoupling section
+  and has one partner country, which the database finds telecoupled
+  without maritime adjacency and adjacent at sea with it. Tests +4
+  (suite 2,260).
 
 ## [0.2.2] — 2026-10-24
 
