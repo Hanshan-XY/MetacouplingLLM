@@ -5785,7 +5785,12 @@ class MetacouplingAssistant:
                 "against the coupling database."
             )
         elif parsed.coupling_classification:
-            llm_class = parsed.coupling_classification.lower()
+            # The analysis claims the coupling types whose sections it
+            # holds: the prompt has it leave out the section of a type it
+            # finds absent.  Its classification text can name a type only
+            # to deny it ("pericoupling—not telecoupling"), so whether the
+            # text names a type decides nothing.
+            claimed = parsed.active_coupling_types()
             has_peri = any(": PERICOUPLED" in p for p in pair_lines)
             has_tele = any(": TELECOUPLED" in p for p in pair_lines)
 
@@ -5799,13 +5804,15 @@ class MetacouplingAssistant:
                     "coupling database (partners in the spillover "
                     "role are not checked)."
                 )
-            elif has_peri and "pericoupl" not in llm_class:
+            elif has_peri and "pericoupling" not in claimed:
                 info["note"] = (
                     "The coupling database indicates at least one "
                     "pericoupled country pair, but the LLM classified "
                     "this study differently. Consider revising."
                 )
-            elif has_tele and not has_peri and "telecoupl" not in llm_class:
+            elif (
+                has_tele and not has_peri and "telecoupling" not in claimed
+            ):
                 info["note"] = (
                     "The coupling database indicates all detected "
                     "pairs are telecoupled, but the LLM classified "

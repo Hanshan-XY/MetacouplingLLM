@@ -4,11 +4,14 @@ After each analysis the country validator
 (``parsed.country_pericoupling_info``) and, when the research description
 names a subnational region, the ADM1 validator
 (``parsed.pericoupling_info``) compare the LLM's classification with the
-pairs they classified against the bundled adjacency databases.  A
-validator that classified no pair notes that nothing was checked instead
-of calling the classification consistent, and the report's Note shows
-such a note only when no validator with a note classified a pair.  Every
-note of a validator that classified a pair is unchanged.
+pairs they classified against the bundled adjacency databases.  The
+country validator reads the classification from the coupling sections the
+analysis holds, since its classification text can name a coupling type
+only to deny it; the ADM1 validator reads which coupling types the
+classification text mentions.  A validator that classified no pair notes
+that nothing was checked instead of calling the classification
+consistent, and the report's Note shows such a note only when no
+validator with a note classified a pair.
 """
 
 from __future__ import annotations
@@ -17,7 +20,11 @@ import pytest
 
 from metacouplingllm.core import MetacouplingAssistant
 from metacouplingllm.llm.client import LLMResponse
-from metacouplingllm.llm.parser import CouplingSection, ParsedAnalysis
+from metacouplingllm.llm.parser import (
+    CouplingSection,
+    ParsedAnalysis,
+    parse_analysis,
+)
 from metacouplingllm.output.formatter import AnalysisFormatter
 
 from ._helpers import make_parsed_analysis
@@ -133,10 +140,11 @@ class TestCountryValidator:
         assert _note_lines(parsed) == []
 
     @pytest.mark.parametrize(
-        ("classification", "systems", "pairs", "note"),
+        ("classification", "section", "systems", "pairs", "note"),
         [
             (
                 "Pericoupling between Mexico and the United States.",
+                "pericoupling",
                 {"sending": {"name": "Mexico"},
                  "receiving": {"name": "United States"}},
                 "Mexico (MEX) ↔ United States (USA): PERICOUPLED",
@@ -144,6 +152,7 @@ class TestCountryValidator:
             ),
             (
                 "Telecoupling between Mexico and distant markets.",
+                "telecoupling",
                 {"sending": {"name": "Mexico"},
                  "receiving": {"name": "United States"}},
                 "Mexico (MEX) ↔ United States (USA): PERICOUPLED",
@@ -151,6 +160,7 @@ class TestCountryValidator:
             ),
             (
                 "Telecoupling between Brazil and China.",
+                "telecoupling",
                 {"sending": {"name": "Brazil"},
                  "receiving": {"name": "China"}},
                 "Brazil (BRA) ↔ China (CHN): TELECOUPLED",
@@ -158,15 +168,17 @@ class TestCountryValidator:
             ),
             (
                 "Pericoupling between Brazil and China.",
+                "pericoupling",
                 {"sending": {"name": "Brazil"},
                  "receiving": {"name": "China"}},
                 "Brazil (BRA) ↔ China (CHN): TELECOUPLED",
                 COUNTRY_TELE_REVISE,
             ),
             (
-                # A spillover partner beside a classified one is skipped
-                # as before; the note covers the classified pair.
+                # A spillover partner beside a classified one is skipped;
+                # the note covers the classified pair.
                 "Pericoupling with spillover effects on Chile and Peru.",
+                "pericoupling",
                 {"sending": {"name": "Mexico"},
                  "receiving": {"name": "United States"},
                  "spillover": {"name": "Chile and Peru"}},
@@ -183,10 +195,13 @@ class TestCountryValidator:
         ],
     )
     def test_classified_pairs_keep_their_note(
-        self, classification, systems, pairs, note,
+        self, classification, section, systems, pairs, note,
     ):
+        """Each analysis holds the coupling section its classification
+        names, with the systems in it."""
         parsed = make_parsed_analysis(
             coupling_classification=classification, systems=systems,
+            coupling_type=section,
         )
         MetacouplingAssistant._validate_country_pericoupling(
             parsed, national_mode=True,
@@ -285,6 +300,166 @@ class TestOnlyTheFocalCountry:
             "Jalisco (MEX014) ↔ Michoacán de Ocampo (MEX016): PERICOUPLED"
         )
         assert _note_lines(parsed) == [f"Note: {ADM1_CONSISTENT}"]
+
+
+# ---------------------------------------------------------------------------
+# The country note reads the coupling sections the analysis holds
+# ---------------------------------------------------------------------------
+
+# From a gpt-6.1-sol analysis of Indian bottom trawling in the Palk Bay,
+# citations left out.  Its classification names telecoupling only to deny
+# it, and the analysis has no telecoupling section.
+PALK_BAY_ANALYSIS = """\
+## 1. Coupling Classification
+
+**The central interaction is pericoupling—not telecoupling—because India \
+and Sri Lanka are geographically adjacent across a shared maritime \
+boundary.** International interactions are not automatically telecoupled; \
+classification depends on system boundaries and adjacency (Liu, 2017).
+
+- **Intracoupling:** Interactions within northern Sri Lanka connect fish \
+stocks and habitats with fishing practices, household livelihoods, \
+markets, cooperatives, and fisheries governance.
+- **Pericoupling:** Indian trawl crews enter adjacent Sri Lankan waters, \
+extract resources, and interact with local fishing activities and \
+enforcement institutions. These actual cross-border interactions—not \
+adjacency alone—establish pericoupling.
+- **Telecoupling is a relevant extension but is not established \
+sufficiently for a separate analysis here.** Historical research \
+identifies shrimp export demand as a driver, but the supplied evidence \
+does not trace Palk Bay catches to specific distant markets.
+
+## 2. Intracoupling Analysis (within the focal system)
+
+### 2.1 Systems Identification
+
+**Focal System: Northern Sri Lankan coastal fisheries and fishing \
+communities**
+- **Geographic scope:** Selected northern coastal communities and their \
+associated Sri Lankan fishing grounds, particularly around Jaffna and \
+Mannar.
+
+## 3. Pericoupling Analysis (adjacent systems)
+
+### 3.1 Systems Identification
+
+**Sending System (adjacent): Tamil Nadu’s Palk Bay trawl-fishing \
+centres—for crew movement**
+- **Geographic scope:** Indian Palk Bay ports, particularly Rameswaram \
+and Mandapam.
+
+**Receiving System (adjacent): Northern Sri Lankan fishing grounds—for \
+entering Indian crews**
+- **Geographic scope:** Sri Lankan waters used by the northern \
+communities included in the study.
+"""
+
+# The mirror case: a classification that names pericoupling only to deny
+# it, worded after a gpt-5.5 analysis of Indonesia's coal exports, and no
+# pericoupling section, while the database finds Brazil and Argentina
+# adjacent.
+SOY_ANALYSIS = """\
+## 1. Coupling Classification
+
+- **Intracoupling**: Present. Land clearing, farm investment and labour \
+interact within Brazil's soybean frontier.
+- **Telecoupling**: Present. Brazil exports soybeans to China and \
+Argentina.
+- **Pericoupling**: Not included as a full section because the research \
+description does not provide specific evidence of flows between adjacent \
+systems.
+
+## 2. Intracoupling Analysis (within the focal system)
+
+### 2.1 Systems Identification
+
+**Focal System**: Brazil's soybean frontier
+- **Geographic scope**: Brazil
+
+## 4. Telecoupling Analysis (distant systems)
+
+### 4.1 Systems Identification
+
+**Sending System**: Brazilian soybean exporters
+- **Geographic scope**: Brazil
+
+**Receiving System**: Chinese soybean importers
+- **Geographic scope**: China
+
+**Receiving System**: Argentine soybean crushers
+- **Geographic scope**: Argentina
+"""
+
+
+class TestTheCountryNoteReadsTheSections:
+    """The analysis claims the coupling types whose sections it holds,
+    since the prompt has it leave out the section of a type it finds
+    absent.  Its classification text can name a type only to deny it
+    ("pericoupling—not telecoupling"), so a note that read the text passed
+    the denial as agreement."""
+
+    @pytest.mark.parametrize(
+        ("sea", "pair", "notes"),
+        [
+            (False, "Sri Lanka (LKA) ↔ India (IND): TELECOUPLED",
+             [f"Note (country): {COUNTRY_TELE_REVISE}"]),
+            (True, "Sri Lanka (LKA) ↔ India (IND) (at sea): PERICOUPLED",
+             [f"Note: {COUNTRY_CONSISTENT}"]),
+        ],
+        ids=["maritime-off", "maritime-on"],
+    )
+    def test_telecoupling_named_only_to_be_denied(self, sea, pair, notes):
+        parsed = parse_analysis(PALK_BAY_ANALYSIS)
+        assert "not telecoupling" in parsed.coupling_classification
+        assert parsed.active_coupling_types() == [
+            "intracoupling", "pericoupling",
+        ]
+        MetacouplingAssistant._validate_pericoupling(
+            parsed, national_mode=True, maritime_adjacency=sea,
+        )
+        info = parsed.country_pericoupling_info
+        assert info["focal_country"] == "Sri Lanka (LKA)"
+        assert info["pair_results"] == pair
+        assert _note_lines(parsed) == notes
+
+    def test_pericoupling_named_only_to_be_denied(self):
+        parsed = parse_analysis(SOY_ANALYSIS)
+        assert parsed.active_coupling_types() == [
+            "intracoupling", "telecoupling",
+        ]
+        MetacouplingAssistant._validate_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info["focal_country"] == "Brazil (BRA)"
+        assert info["pair_results"] == (
+            "Brazil (BRA) ↔ China (CHN): TELECOUPLED; "
+            "Brazil (BRA) ↔ Argentina (ARG): PERICOUPLED"
+        )
+        assert info["note"] == COUNTRY_PERI_REVISE
+
+    def test_a_section_claims_its_type_without_the_text_naming_it(self):
+        parsed = ParsedAnalysis(
+            coupling_classification="Avocado trade between Mexico and the "
+            "United States.",
+            intracoupling=CouplingSection(systems=[{
+                "role": "focal",
+                "name": "Mexico's avocado sector",
+                "geographic_scope": "Mexico",
+            }]),
+            pericoupling=CouplingSection(systems=[{
+                "role": "receiving",
+                "name": "United States avocado importers",
+            }]),
+        )
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        info = parsed.country_pericoupling_info
+        assert info["pair_results"] == (
+            "Mexico (MEX) ↔ United States (USA): PERICOUPLED"
+        )
+        assert info["note"] == COUNTRY_CONSISTENT
 
 
 # ---------------------------------------------------------------------------
