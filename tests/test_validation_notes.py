@@ -17,7 +17,7 @@ import pytest
 
 from metacouplingllm.core import MetacouplingAssistant
 from metacouplingllm.llm.client import LLMResponse
-from metacouplingllm.llm.parser import ParsedAnalysis
+from metacouplingllm.llm.parser import CouplingSection, ParsedAnalysis
 from metacouplingllm.output.formatter import AnalysisFormatter
 
 from ._helpers import make_parsed_analysis
@@ -194,6 +194,97 @@ class TestCountryValidator:
         info = parsed.country_pericoupling_info
         assert info["pair_results"] == pairs
         assert info["note"] == note
+
+
+ONLY_FOCAL = (
+    "No country other than Kenya (KEN) was found in the systems, so no "
+    "country pair was checked against the coupling database."
+)
+
+
+def _kenya_parsed(partner: dict[str, str] | None) -> ParsedAnalysis:
+    """Kenya's tea estates as the focal system, and *partner*, if any, as
+    an adjacent system."""
+    return ParsedAnalysis(
+        coupling_classification="Pericoupling between the estates and their "
+        "partners.",
+        intracoupling=CouplingSection(systems=[{
+            "role": "focal",
+            "name": "Kenya's tea estates",
+            "geographic_scope": "Kenya",
+        }]),
+        pericoupling=CouplingSection(systems=[partner]) if partner else None,
+    )
+
+
+class TestOnlyTheFocalCountry:
+    """An analysis with adjacent or distant systems whose systems name no
+    country besides the focal one gets a block that says so.  Until
+    2026-11-13 the block was left out, which hid partners named in words
+    the resolver does not read: a gpt-6.1-sol analysis of the Palk Bay
+    named Sri Lanka only as "Sri Lankan", and its block disappeared."""
+
+    @pytest.mark.parametrize(
+        "partner",
+        [
+            {"role": "receiving", "name": "Distant tea buyers"},
+            {"role": "sending", "name": "Kenyan smallholder suppliers"},
+        ],
+        ids=["no-country", "same-country"],
+    )
+    @pytest.mark.parametrize(
+        "national_mode", [False, True], ids=["subnational", "national"],
+    )
+    def test_partner_systems_that_name_no_other_country(
+        self, partner, national_mode,
+    ):
+        parsed = _kenya_parsed(partner)
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=national_mode,
+        )
+        info = parsed.country_pericoupling_info
+        assert info is not None
+        assert info["focal_country"] == "Kenya (KEN)"
+        assert "pair_results" not in info
+        assert info["note"] == ONLY_FOCAL
+        block = _validation_block(AnalysisFormatter.format_full(parsed))
+        assert "Focal System: Kenya (KEN)" in block
+        assert _note_lines(parsed) == [f"Note: {ONLY_FOCAL}"]
+
+    def test_without_partner_systems_there_is_no_block(self):
+        parsed = _kenya_parsed(None)
+        assert not MetacouplingAssistant._has_partner_systems(parsed)
+        MetacouplingAssistant._validate_pericoupling(parsed, national_mode=True)
+        assert parsed.country_pericoupling_info is None
+        assert "COUPLING DATABASE VALIDATION" not in (
+            AnalysisFormatter.format_full(parsed)
+        )
+
+    def test_a_focal_entry_is_not_a_partner_system(self):
+        """``make_parsed_analysis`` puts the focal system in the
+        telecoupling section."""
+        parsed = make_parsed_analysis(
+            systems={"focal": {"name": "Kenya's tea estates"}},
+        )
+        assert not MetacouplingAssistant._has_partner_systems(parsed)
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        assert parsed.country_pericoupling_info is None
+
+    def test_regions_checked_by_the_adm1_validator_keep_their_note(self):
+        """Jalisco and Michoacán name only Mexico, so the country check
+        notes that it checked no pair; the block lists the region pair and
+        shows its note alone."""
+        parsed = _jalisco_parsed("receiving")
+        MetacouplingAssistant._validate_pericoupling(parsed)
+        assert parsed.country_pericoupling_info["note"] == ONLY_FOCAL.replace(
+            "Kenya (KEN)", "Mexico (MEX)"
+        )
+        assert parsed.pericoupling_info["pair_results"] == (
+            "Jalisco (MEX014) ↔ Michoacán de Ocampo (MEX016): PERICOUPLED"
+        )
+        assert _note_lines(parsed) == [f"Note: {ADM1_CONSISTENT}"]
 
 
 # ---------------------------------------------------------------------------
