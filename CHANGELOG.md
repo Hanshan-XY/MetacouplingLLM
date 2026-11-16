@@ -113,6 +113,32 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **A flow from a supranational bloc is drawn on the map.** The map-data
+  extraction prompt asks for each capital flow in reverse, from a
+  receiving system to the focal country (rule 6), and lets the model name
+  a union as a flow's target (rule 12), so a payment from the EU comes
+  back as "European Union → Indonesia". The extraction kept a bloc only as
+  a flow's target, so it dropped that payment, and the renderer could not
+  start an arrow at a bloc, so the same flow from the web search drew
+  nothing. The extraction now keeps a bloc as a flow's source under the
+  guards a bloc target has (no member named on its own, the other
+  endpoint not a member), and drops a flow from a bloc that holds the
+  focal country or that it lists whole as a spillover system. On the map,
+  such a flow starts at the bloc's anchor and is drawn only when the bloc
+  does not hold the focal country, is a partner (the focal country or a
+  receiving country sends a flow to it, or the extraction kept a flow
+  from it to the focal country), and the flow ends at a country on the
+  map or at another partner bloc. Maps drawn from the analysis text,
+  which have no map data to say which blocs are partners, give a
+  web-sourced flow from a bloc no arrow. Each bloc on the map now gets its
+  own fill, so a bloc with a member bordering the focal country no longer
+  recolours another bloc, and the flows table of the Markdown and Word
+  exports names a bloc endpoint instead of printing "None". Replaying the
+  committed Indonesia run's map-data response through the fixed
+  extraction gives 14 flows, its 13 and the EU's capital flow to
+  Indonesia, and draws 14 arrows. Nineteen new tests in
+  `tests/test_core.py`, `tests/test_worldmap.py` and `tests/test_output.py`
+  (suite 2,319).
 - **A country's name is no longer read as its namesake region.** The
   subnational-region scan behind the validation block's "Core subnational
   regions" line (also the fallback for the map data's

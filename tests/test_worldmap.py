@@ -1220,6 +1220,154 @@ class TestSupranationalRendering:
             f"sum-of-members {total_before}"
         )
 
+    def _eu_source_flow(self):
+        """A flow FROM the EU (the payment for the pork in ``_eu_flow``),
+        with source_supranational set."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        members = expand_supranational("European Union")
+        return {
+            "category": "capital",
+            "direction": "European Union → United States",
+            "description": "Payments for pork",
+            "source_supranational": "European Union",
+            "source_supranational_members": list(members),
+        }
+
+    def test_supranational_source_starts_at_bloc_anchor(self):
+        """A flow with ``source_supranational_members`` starts at the
+        anchor a supranational target gets and ends at the target
+        country."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        from metacouplingllm.visualization.worldmap import (
+            _get_country_centroid,
+            _get_supranational_centroid,
+            _get_world_geodataframe,
+            _resolve_flow_endpoints,
+        )
+
+        world = _get_world_geodataframe()
+        src_xy, tgt_xy, bidir = _resolve_flow_endpoints(
+            self._eu_source_flow(), world,
+        )
+        assert src_xy is not None
+        assert src_xy == _get_supranational_centroid(
+            world, list(expand_supranational("European Union")),
+        )
+        assert tgt_xy == _get_country_centroid(world, "USA")
+        assert bidir is False
+
+    def test_eu_source_arrow_drawn(self):
+        """A flow FROM the EU draws one arrow, like a flow to it."""
+        import matplotlib.figure
+        from matplotlib.patches import FancyArrowPatch
+
+        from metacouplingllm.visualization.worldmap import (
+            plot_analysis_map,
+        )
+
+        analysis = make_parsed_analysis(
+            systems={
+                "sending": {"name": "Michigan, United States"},
+                "receiving": {"name": "European Union"},
+            },
+        )
+        fig = plot_analysis_map(
+            analysis, flows=[self._eu_source_flow()],
+        )
+        assert isinstance(fig, matplotlib.figure.Figure)
+        ax = fig.axes[0]
+        arrows = [p for p in ax.patches if isinstance(p, FancyArrowPatch)]
+        assert len(arrows) == 1
+        plt.close(fig)
+
+    def test_supranational_highlight_includes_source_bloc(self):
+        """A bloc that appears only as a flow's source is highlighted
+        like a bloc target."""
+        import matplotlib.pyplot as _plt
+
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        from metacouplingllm.visualization.worldmap import (
+            CouplingColors,
+            _draw_supranational_highlight,
+            _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        fig, ax = _plt.subplots()
+        members = _draw_supranational_highlight(
+            ax, world, flows=[self._eu_source_flow()],
+            classification={},
+            colors=CouplingColors(),
+        )
+        assert members == set(expand_supranational("European Union"))
+        _plt.close(fig)
+
+    def test_each_bloc_gets_its_own_fill(self):
+        """China focal, flows China -> EU and ASEAN -> China, with Laos
+        on the map as a pericoupled neighbour: ASEAN is filled as
+        pericoupling and the EU, which no member of borders China, as
+        telecoupling.  One bloc's neighbour does not recolour another
+        bloc."""
+        import matplotlib.colors as mcolors
+        import matplotlib.pyplot as _plt
+
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        from metacouplingllm.visualization.worldmap import (
+            CouplingColors,
+            _draw_supranational_highlight,
+            _get_world_geodataframe,
+        )
+
+        world = _get_world_geodataframe()
+        eu = list(expand_supranational("European Union"))
+        asean = list(expand_supranational("ASEAN"))
+        flows = [
+            {
+                "category": "matter",
+                "direction": "China → European Union",
+                "target_supranational": "European Union",
+                "target_supranational_members": eu,
+            },
+            {
+                "category": "matter",
+                "direction": "ASEAN → China",
+                "source_supranational": "ASEAN",
+                "source_supranational_members": asean,
+            },
+        ]
+        colors = CouplingColors()
+        fig, ax = _plt.subplots()
+        members = _draw_supranational_highlight(
+            ax, world, flows=flows,
+            classification={"CHN": "intracoupling", "LAO": "pericoupling"},
+            colors=colors,
+        )
+        assert members == set(eu) | set(asean)
+        fills = [
+            tuple(rgba)
+            for coll in ax.collections
+            for rgba in coll.get_facecolors().tolist()
+        ]
+
+        def _has(hex_color):
+            want = mcolors.to_rgba(hex_color)
+            return any(
+                all(abs(a - b) < 1e-6 for a, b in zip(rgba, want))
+                for rgba in fills
+            )
+
+        assert _has(colors.pericoupling), fills
+        assert _has(colors.telecoupling), fills
+        _plt.close(fig)
+
 
 @pytest.mark.parametrize("module", [
     "metacouplingllm.visualization.worldmap",

@@ -269,6 +269,34 @@ class TestBuildSections:
     def test_focal_country_from_map_data(self, minimal_result):
         assert _build_sections(minimal_result)["focal_country"] == "MEX"
 
+    def test_bloc_endpoints_show_the_bloc_name(self, minimal_result):
+        """A bloc endpoint has no ISO code (that side holds None); the
+        flows table shows the bloc's name rather than 'None'."""
+        minimal_result.parsed.map_data["flows"] = [
+            {
+                "category": "matter",
+                "source": "MEX",
+                "target": None,
+                "bidirectional": False,
+                "target_supranational": "European Union",
+                "target_supranational_members": ["DEU", "FRA"],
+            },
+            {
+                "category": "capital",
+                "source": None,
+                "target": "MEX",
+                "bidirectional": False,
+                "source_supranational": "European Union",
+                "source_supranational_members": ["DEU", "FRA"],
+            },
+        ]
+        s = _build_sections(minimal_result)
+        assert [(f["source"], f["target"]) for f in s["flows"]] == [
+            ("MEX", "European Union"),
+            ("European Union", "MEX"),
+        ]
+        assert "None" not in render_markdown(minimal_result)
+
     def test_flows_falls_back_to_coupling_section_when_no_map_data(self):
         parsed = make_parsed_analysis(
             flows=[
