@@ -4,7 +4,7 @@
 
 **Model:** `gpt-6.1-sol`
 
-**Wall-clock:** 1708.5s | **LLM calls:** 3 | **Total tokens:** 81544
+**Wall-clock:** 1516.3s | **LLM calls:** 3 | **Total tokens:** 79305
 
 ## Reading this trace
 
