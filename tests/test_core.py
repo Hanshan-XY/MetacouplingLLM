@@ -5711,6 +5711,50 @@ class TestValidateAdm1Pericoupling:
         unions = MetacouplingAssistant._extract_unions_with_roles(parsed)
         assert "European Union" in unions
 
+    @pytest.mark.parametrize("dash", ["—", "–", "-"])
+    def test_bloc_named_before_a_spaced_dash_is_validated(self, dash):
+        """Analyses name a system as 'place — what it sends or
+        receives': 'European Union — palm products' is the EU, and the
+        validation block gets its line."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems=[
+                {
+                    "role": "sending",
+                    "name": f"Indonesia {dash} palm products",
+                    "geographic_scope": "Indonesia",
+                },
+                {
+                    "role": "receiving",
+                    "name": f"European Union {dash} palm products",
+                },
+            ],
+        )
+        assert MetacouplingAssistant._extract_unions_with_roles(parsed) == {
+            "European Union": "receiving",
+        }
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        pr = parsed.country_pericoupling_info["pair_results"]
+        assert "Indonesia (IDN) ↔ European Union: TELECOUPLED" in pr
+
+    def test_hyphen_inside_a_word_names_no_bloc(self):
+        """Only a dash with spaces around it splits a name: 'Non-EU
+        importers' is not the EU."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems=[
+                {"role": "sending", "name": "Indonesia — palm products"},
+                {"role": "receiving", "name": "Non-EU importers — palm oil"},
+            ],
+        )
+        assert MetacouplingAssistant._extract_unions_with_roles(parsed) == {}
+
     # ------------------------------------------------------------------
     # PR #48 — ADM1 spillover filter (Item 3)
     # ------------------------------------------------------------------
@@ -6005,6 +6049,73 @@ class TestExtractMapDataPromptBudgets:
             **kwargs,
         )
         return advisor, captured
+
+    # --- Every system and flow reaches the prompt ------------------------
+
+    def test_every_system_and_flow_reaches_the_prompt(self):
+        """The telecoupling section's systems and flows come after the
+        intracoupling and pericoupling sections' (here six intracoupling
+        flows and two pericoupling systems per role), so the summary
+        sends every entry, not the first few, and the distant partners
+        reach the extraction call."""
+        from metacouplingllm.llm.parser import CouplingSection, ParsedAnalysis
+
+        def _flow(direction, category="matter"):
+            return {
+                "category": category,
+                "direction": direction,
+                "description": "",
+            }
+
+        parsed = ParsedAnalysis(
+            coupling_classification="All three coupling types.",
+            intracoupling=CouplingSection(flows=[
+                _flow(f"Plantations → mills, stage {i}") for i in range(6)
+            ]),
+            pericoupling=CouplingSection(
+                systems=[
+                    {"role": "sending", "name": "Indonesia — palm oil"},
+                    {"role": "sending", "name": "India — payments"},
+                    {"role": "receiving", "name": "Indonesia — payments"},
+                    {"role": "receiving", "name": "India — palm oil"},
+                ],
+                flows=[
+                    _flow("Indonesia → India"),
+                    _flow("India → Indonesia", "capital"),
+                ],
+            ),
+            telecoupling=CouplingSection(
+                systems=[
+                    {"role": "sending", "name": "Indonesia — palm products"},
+                    {
+                        "role": "sending",
+                        "name": (
+                            "European Union — payments and regulatory "
+                            "information"
+                        ),
+                    },
+                    {"role": "receiving", "name": "China — palm products"},
+                    {"role": "receiving", "name": "Pakistan — palm products"},
+                ],
+                flows=[
+                    _flow("Indonesia → China and Pakistan"),
+                    _flow(
+                        "EU regulators → Indonesian exporters",
+                        "information",
+                    ),
+                ],
+            ),
+        )
+        advisor, captured = self._make_advisor_with_capture()
+        advisor._extract_map_data_from_analysis(parsed)
+        for needle in (
+            "China — palm products",
+            "Pakistan — palm products",
+            "European Union — payments and regulatory information",
+            "Indonesia → China and Pakistan",
+            "EU regulators → Indonesian exporters",
+        ):
+            assert needle in captured["user_text"], needle
 
     # --- Flow description cap (100 -> 500) -------------------------------
 

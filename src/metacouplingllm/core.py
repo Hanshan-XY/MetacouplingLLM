@@ -2972,7 +2972,11 @@ class MetacouplingAssistant:
         from metacouplingllm.knowledge.websearch import _extract_json_object
         from metacouplingllm.llm.client import Message
 
-        # Build a concise summary of the analysis for the extraction call
+        # Summarise the analysis for the extraction call: every system and
+        # every flow, each capped in length.  The analysis lists the
+        # intracoupling and pericoupling sections' systems and flows
+        # before the telecoupling section's, so keeping only the first
+        # few entries drops the distant partners.
         parts: list[str] = []
         if parsed.coupling_classification:
             parts.append(
@@ -2981,7 +2985,7 @@ class MetacouplingAssistant:
             )
         for role in ("focal", "adjacent", "sending", "receiving", "spillover"):
             entries = parsed.get_system_entries(role)
-            for idx, entry in enumerate(entries[:2], 1):
+            for idx, entry in enumerate(entries, 1):
                 # Emit fields in priority order so ``name`` and
                 # ``geographic_scope`` are guaranteed to survive truncation
                 # at ``text[:800]`` even when subsystem prose is verbose.
@@ -3005,7 +3009,7 @@ class MetacouplingAssistant:
                 text = " | ".join(ordered_parts)
                 if text:
                     parts.append(f"{role.title()} system {idx}: {text[:800]}")
-        for flow in list(parsed.iter_flow_entries())[:8]:
+        for flow in parsed.iter_flow_entries():
             cat = flow.get("category", "")
             dirn = flow.get("direction", "")
             # 500-char cap keeps bilateral country names (often listed
@@ -6251,7 +6255,12 @@ class MetacouplingAssistant:
                 found[display] = (pr, role)
 
         def _try_union(text: str, role: str) -> None:
-            for chunk in re.split(r"[,;/()]+|\band\b|→|->|↔", text):
+            # A dash with spaces around it separates a system's place
+            # from what it sends or receives ("European Union — palm
+            # products"); a hyphen inside a word ("non-EU") does not.
+            for chunk in re.split(
+                r"[,;/()]+|\band\b|→|->|↔|\s[—–-]\s", text,
+            ):
                 chunk = chunk.strip()
                 if not chunk:
                     continue

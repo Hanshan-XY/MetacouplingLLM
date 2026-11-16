@@ -113,6 +113,29 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **The validation block finds a bloc named before a spaced dash.**
+  Analyses name a system as "European Union — palm products"; the bloc
+  detector behind the block's bloc line split names only at commas,
+  semicolons, slashes, parentheses, "and" and arrows, so an analysis
+  that names the EU only that way got no "↔ European Union" line. A dash
+  with spaces around it (—, – or -) now splits the name too; a hyphen
+  inside a word ("non-EU") does not. Four new tests (suite 2,324).
+- **The map-data extraction reads every system and flow of the
+  analysis.** Its summary of the analysis kept only the first two
+  systems of each role and the first eight flows. An analysis lists its
+  intracoupling and pericoupling systems and flows before its
+  telecoupling ones, so the distant partners never reached the call: in
+  the committed Indonesia run it saw 2 of 9 sending systems, 2 of 9
+  receiving systems and 8 of 13 flows, none of them telecoupling. That
+  summary named none of China, Pakistan, Bangladesh and the United
+  States, and the EU only once, in the Malaysia spillover system's text,
+  so the map's arrows to those partners rested on the web-result
+  summaries, and the telecoupling information flow from foreign
+  policymakers and buyers to Indonesian agencies and suppliers was never
+  seen. The summary now sends every system and flow, each still capped
+  in length (800 characters per system, 500 per flow description); for
+  that run's analysis the call's request, not counting the web results,
+  grows from 12,252 to 17,439 characters. One new test (suite 2,320).
 - **A flow from a supranational bloc is drawn on the map.** The map-data
   extraction prompt asks for each capital flow in reverse, from a
   receiving system to the focal country (rule 6), and lets the model name

@@ -2339,9 +2339,12 @@ proposes 3-5 follow-up web-search queries, available as
 `result.suggested_followup_queries` and appended to `result.formatted`
 under "Suggested follow-up web searches".
 
-With `auto_map=True`, the map-data extraction call (§10) also receives the
-web hits: up to 100 of them, each summary truncated to 2,500 characters,
-so country names that appear late in a long summary are not cut off.
+With `auto_map=True`, the map-data extraction call (§10) reads the
+analysis's coupling classification (up to 600 characters) and every
+system and flow (each system up to 800 characters, each flow description
+up to 500), and also receives the web hits: up to 100 of them, each
+summary truncated to 2,500 characters, so country names that appear late
+in a long summary are not cut off.
 
 ### Citation grammar
 
