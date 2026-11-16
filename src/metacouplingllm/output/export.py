@@ -94,10 +94,19 @@ def _build_sections(result: "AnalysisResult") -> dict[str, Any]:
             for flow in raw_flows:
                 if not isinstance(flow, dict):
                     continue
+                # A bloc endpoint ("European Union") has no ISO code:
+                # its side holds None and the bloc's name sits in
+                # ``<side>_supranational``.
                 flows.append({
                     "category": str(flow.get("category", "")).strip(),
-                    "source": str(flow.get("source", "")).strip(),
-                    "target": str(flow.get("target", "")).strip(),
+                    "source": str(
+                        flow.get("source")
+                        or flow.get("source_supranational") or ""
+                    ).strip(),
+                    "target": str(
+                        flow.get("target")
+                        or flow.get("target_supranational") or ""
+                    ).strip(),
                     "bidirectional": bool(flow.get("bidirectional", False)),
                     "description": str(flow.get("description", "")).strip(),
                 })

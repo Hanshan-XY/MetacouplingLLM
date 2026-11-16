@@ -4588,6 +4588,578 @@ class TestExtractMapDataSupranational:
             passed_flow.get("target_supranational_members", [])
         ) == 27
 
+    # --- a bloc as a flow's SOURCE (the reverse payment from the EU) ---
+
+    @staticmethod
+    def _bloc_source_json(flows, receiving=(), spillover=(), focal="USA"):
+        return {
+            "focal_country": focal,
+            "adm1_region": None,
+            "mentioned_adm1_regions": [],
+            "receiving_countries": list(receiving),
+            "spillover_countries": list(spillover),
+            "flows": flows,
+        }
+
+    _EU_PAYMENT = {
+        "category": "capital",
+        "source": "European Union",
+        "target": "USA",
+        "bidirectional": False,
+    }
+
+    def test_eu_source_stamps_supranational_fields(self):
+        """'European Union' as a flow's source keeps the flow, with the
+        ``source_supranational`` fields mirroring a bloc target's."""
+        advisor = self._make_advisor(self._bloc_source_json([self._EU_PAYMENT]))
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert len(result["flows"]) == 1
+        flow = result["flows"][0]
+        assert flow["source_supranational"] == "European Union"
+        assert len(flow["source_supranational_members"]) == 27
+        assert flow["direction"] == "European Union → United States"
+        assert flow["source"] is None  # supranational replaces single ISO
+        assert flow["target"] == "USA"
+        assert "target_supranational" not in flow
+
+    def test_eu_source_skipped_when_member_already_named(self):
+        """Conditional rule, as for a bloc target: a member named on its
+        own makes the umbrella redundant."""
+        advisor = self._make_advisor(
+            self._bloc_source_json([self._EU_PAYMENT], receiving=["DEU"]),
+        )
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result["flows"] == []
+
+    def test_eu_source_skipped_when_listed_as_spillover(self):
+        """A bloc the extraction lists whole as a spillover system is a
+        competitor, so its flows are not kept."""
+        advisor = self._make_advisor(
+            self._bloc_source_json(
+                [self._EU_PAYMENT], spillover=["European Union"],
+            ),
+        )
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result["flows"] == []
+
+    def test_source_bloc_into_own_member_dropped(self):
+        """A flow from a bloc into one of its own members is a
+        self-loop: USMCA -> United States is dropped."""
+        advisor = self._make_advisor(self._bloc_source_json([{
+            "category": "capital",
+            "source": "USMCA",
+            "target": "USA",
+            "bidirectional": False,
+        }]))
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert result["flows"] == []
+
+    def test_bidirectional_bloc_source_direction(self):
+        advisor = self._make_advisor(self._bloc_source_json([
+            dict(self._EU_PAYMENT, bidirectional=True),
+        ]))
+        result = advisor._extract_map_data_from_analysis(self._basic_parsed())
+        assert len(result["flows"]) == 1
+        assert result["flows"][0]["direction"] == (
+            "Bidirectional (European Union ↔ United States)"
+        )
+        assert result["flows"][0]["bidirectional"] is True
+
+    def test_bloc_source_skipped_when_bloc_holds_focal(self):
+        """A bloc that holds the focal country is not its partner: with
+        Germany focal, 'European Union -> Brazil' is dropped (its arrow
+        would start inside Germany, and the bloc's fill would cover the
+        focal country)."""
+        from ._helpers import make_parsed_analysis
+
+        advisor = self._make_advisor(self._bloc_source_json(
+            [{
+                "category": "capital",
+                "source": "European Union",
+                "target": "BRA",
+                "bidirectional": False,
+            }],
+            receiving=["BRA"],
+            focal="DEU",
+        ))
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": "Germany"}},
+        )
+        result = advisor._extract_map_data_from_analysis(parsed)
+        assert result["focal_country"] == "DEU"
+        assert result["flows"] == []
+
+    @staticmethod
+    def _capture_generate_map(
+        advisor, web_signals=None, sending="United States", systems=None,
+    ):
+        """Run ``_generate_map`` on the advisor's extraction and return
+        the flows handed to ``plot_analysis_map`` (stubbed).  ``systems``
+        replaces the default single sending system named ``sending``."""
+        captured: dict[str, object] = {}
+
+        def _fake_plot(parsed, **kwargs):
+            captured["flows"] = kwargs.get("flows")
+            return None
+
+        import metacouplingllm.visualization.worldmap as wm
+        original = wm.plot_analysis_map
+        wm.plot_analysis_map = _fake_plot
+        try:
+            from ._helpers import make_parsed_analysis
+            parsed = make_parsed_analysis(
+                coupling_classification="telecoupling",
+                systems=systems or {"sending": {"name": sending}},
+            )
+            parsed.map_data = advisor._extract_map_data_from_analysis(parsed)
+            advisor._last_web_map_signals = web_signals
+            advisor._generate_map(parsed)
+        finally:
+            wm.plot_analysis_map = original
+        assert "flows" in captured, "plot_analysis_map was never called"
+        return captured["flows"]
+
+    def test_generate_map_propagates_source_supranational_fields(self):
+        """Exports to the EU and the EU's payment back both reach the
+        renderer; the payment keeps its source fields."""
+        advisor = self._make_advisor(self._bloc_source_json([
+            {
+                "category": "matter",
+                "source": "USA",
+                "target": "European Union",
+                "bidirectional": False,
+            },
+            self._EU_PAYMENT,
+        ]))
+        flows = self._capture_generate_map(advisor)
+        assert len(flows) == 2
+        payment = next(f for f in flows if f["category"] == "capital")
+        assert payment["direction"] == "European Union → United States"
+        assert payment.get("source_supranational") == "European Union"
+        assert len(payment.get("source_supranational_members", [])) == 27
+
+    def test_generate_map_drops_bloc_source_that_is_not_a_partner(self):
+        """A flow FROM a bloc is drawn only when the bloc is a partner on
+        the map.  The EU is one (the United States exports to it); ASEAN
+        is not, so its web-sourced flow to the United States is dropped
+        rather than drawn as if it were part of the focal system's
+        trade."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+
+        advisor = self._make_advisor(self._bloc_source_json([{
+            "category": "matter",
+            "source": "USA",
+            "target": "European Union",
+            "bidirectional": False,
+        }]))
+        web = {"flows": [
+            {
+                "category": "capital",
+                "direction": "European Union → United States",
+                "description": "",
+                "source_country": "European Union",
+                "source_supranational_members": list(
+                    expand_supranational("European Union"),
+                ),
+            },
+            {
+                "category": "capital",
+                "direction": "ASEAN → United States",
+                "description": "",
+                "source_country": "ASEAN",
+                "source_supranational_members": list(
+                    expand_supranational("ASEAN"),
+                ),
+            },
+        ]}
+        flows = self._capture_generate_map(advisor, web_signals=web)
+        directions = {f["direction"] for f in flows}
+        assert "European Union → United States" in directions
+        assert "ASEAN → United States" not in directions
+
+    def test_generate_map_reverse_payment_alone_is_drawn(self):
+        """The extraction's flow from a bloc into the focal country (the
+        reverse payment of rule #6) makes the bloc a partner by itself."""
+        advisor = self._make_advisor(
+            self._bloc_source_json([self._EU_PAYMENT]),
+        )
+        flows = self._capture_generate_map(advisor)
+        assert [f["direction"] for f in flows] == [
+            "European Union → United States",
+        ]
+
+    def test_generate_map_competitor_bloc_to_partner_market_dropped(self):
+        """A bloc's flow to a receiving country is drawn only when the
+        bloc is a partner.  With nothing flowing between the United
+        States and the EU, 'European Union -> China' is a competitor's
+        export to a shared market and is dropped, like 'Brazil ->
+        China'; once the United States exports to the EU it is drawn."""
+        base = [
+            {
+                "category": "matter",
+                "source": "USA",
+                "target": "CHN",
+                "bidirectional": False,
+            },
+            {
+                "category": "matter",
+                "source": "BRA",
+                "target": "CHN",
+                "bidirectional": False,
+            },
+            {
+                "category": "matter",
+                "source": "European Union",
+                "target": "CHN",
+                "bidirectional": False,
+            },
+        ]
+        advisor = self._make_advisor(
+            self._bloc_source_json(base, receiving=["CHN"]),
+        )
+        directions = {
+            f["direction"] for f in self._capture_generate_map(advisor)
+        }
+        assert directions == {"United States → China"}
+
+        to_eu = {
+            "category": "matter",
+            "source": "USA",
+            "target": "European Union",
+            "bidirectional": False,
+        }
+        advisor = self._make_advisor(
+            self._bloc_source_json(base + [to_eu], receiving=["CHN"]),
+        )
+        directions = {
+            f["direction"] for f in self._capture_generate_map(advisor)
+        }
+        assert directions == {
+            "United States → China",
+            "United States → European Union",
+            "European Union → China",
+        }
+
+    def test_generate_map_drops_bloc_source_holding_focal(self):
+        """With Germany focal, a web flow 'European Union -> China' is
+        dropped even though the EU is on the map (China exports to it)."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+
+        advisor = self._make_advisor(self._bloc_source_json(
+            [
+                {
+                    "category": "matter",
+                    "source": "DEU",
+                    "target": "CHN",
+                    "bidirectional": False,
+                },
+                {
+                    "category": "matter",
+                    "source": "CHN",
+                    "target": "European Union",
+                    "bidirectional": False,
+                },
+            ],
+            receiving=["CHN"],
+            focal="DEU",
+        ))
+        web = {"flows": [{
+            "category": "capital",
+            "direction": "European Union → China",
+            "description": "",
+            "source_country": "European Union",
+            "source_supranational_members": list(
+                expand_supranational("European Union"),
+            ),
+        }]}
+        flows = self._capture_generate_map(
+            advisor, web_signals=web, sending="Germany",
+        )
+        directions = {f["direction"] for f in flows}
+        assert "Germany → China" in directions
+        assert "European Union → China" not in directions
+
+    def test_generate_map_bloc_to_bloc_needs_both_partners(self):
+        """A flow between two blocs is drawn only when both are partners:
+        'European Union -> ASEAN' is dropped while only the EU receives
+        from the United States, and drawn once ASEAN does too."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+
+        web = {"flows": [{
+            "category": "matter",
+            "direction": "European Union → ASEAN",
+            "description": "",
+            "source_country": "European Union",
+            "source_supranational_members": list(
+                expand_supranational("European Union"),
+            ),
+            "target_country": "ASEAN",
+            "target_supranational_members": list(
+                expand_supranational("ASEAN"),
+            ),
+        }]}
+        to_eu = {
+            "category": "matter",
+            "source": "USA",
+            "target": "European Union",
+            "bidirectional": False,
+        }
+        to_asean = dict(to_eu, target="ASEAN")
+
+        advisor = self._make_advisor(self._bloc_source_json([to_eu]))
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(advisor, web_signals=web)
+        }
+        assert "European Union → ASEAN" not in directions
+
+        advisor = self._make_advisor(
+            self._bloc_source_json([to_eu, to_asean]),
+        )
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(advisor, web_signals=web)
+        }
+        assert "European Union → ASEAN" in directions
+
+    @staticmethod
+    def _web_eu_both_ways():
+        """Web flows to the EU and back, as the web extraction stamps
+        them."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+
+        eu = list(expand_supranational("European Union"))
+        return {"flows": [
+            {
+                "category": "matter",
+                "direction": "United States → European Union",
+                "description": "",
+                "target_country": "European Union",
+                "target_supranational_members": eu,
+            },
+            {
+                "category": "capital",
+                "direction": "European Union → United States",
+                "description": "",
+                "source_country": "European Union",
+                "source_supranational_members": eu,
+            },
+        ]}
+
+    def test_generate_map_bloc_source_dropped_when_a_member_is_a_partner(self):
+        """The extraction drops a bloc whose member is named on its own;
+        the map applies the same rule to web flows and to a member that
+        _reconcile_map_countries adds after the extraction ran."""
+        to_deu = {
+            "category": "matter",
+            "source": "USA",
+            "target": "DEU",
+            "bidirectional": False,
+        }
+        advisor = self._make_advisor(
+            self._bloc_source_json([to_deu], receiving=["DEU"]),
+        )
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(
+                advisor, web_signals=self._web_eu_both_ways(),
+            )
+        }
+        assert "European Union → United States" not in directions
+
+        # Germany enters the partners only through the analysis's own
+        # receiving system, after the extraction kept both EU flows.
+        to_eu = dict(to_deu, target="European Union")
+        advisor = self._make_advisor(
+            self._bloc_source_json([to_eu, self._EU_PAYMENT]),
+        )
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(advisor, systems=[
+                {"role": "sending", "name": "United States — soybeans"},
+                {"role": "receiving", "name": "Germany — soybeans"},
+            ])
+        }
+        assert "United States → European Union" in directions
+        assert "European Union → United States" not in directions
+
+    def test_generate_map_bloc_source_dropped_when_listed_as_spillover(self):
+        """A bloc the extraction lists whole as a spillover system sends
+        no web-sourced flow either."""
+        to_chn = {
+            "category": "matter",
+            "source": "USA",
+            "target": "CHN",
+            "bidirectional": False,
+        }
+        advisor = self._make_advisor(self._bloc_source_json(
+            [to_chn], receiving=["CHN"], spillover=["European Union"],
+        ))
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(
+                advisor, web_signals=self._web_eu_both_ways(),
+            )
+        }
+        assert "European Union → United States" not in directions
+        assert "United States → China" in directions
+
+    def test_generate_map_bloc_to_bloc_into_focal_bloc_dropped(self):
+        """With Indonesia focal, ASEAN holds the focal country and is no
+        partner, so 'European Union -> ASEAN' is dropped although India
+        sends to ASEAN and Indonesia to the EU."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+
+        def _flow(src, tgt):
+            return {
+                "category": "matter",
+                "source": src,
+                "target": tgt,
+                "bidirectional": False,
+            }
+
+        advisor = self._make_advisor(self._bloc_source_json(
+            [
+                _flow("IDN", "IND"),
+                _flow("IND", "ASEAN"),
+                _flow("IDN", "European Union"),
+            ],
+            receiving=["IND"],
+            focal="IDN",
+        ))
+        web = {"flows": [{
+            "category": "matter",
+            "direction": "European Union → ASEAN",
+            "description": "",
+            "source_country": "European Union",
+            "source_supranational_members": list(
+                expand_supranational("European Union"),
+            ),
+            "target_country": "ASEAN",
+            "target_supranational_members": list(
+                expand_supranational("ASEAN"),
+            ),
+        }]}
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(
+                advisor, web_signals=web, sending="Indonesia",
+            )
+        }
+        assert "Indonesia → European Union" in directions
+        assert "European Union → ASEAN" not in directions
+
+    def test_generate_map_two_way_bloc_flow_counts_either_way(self):
+        """A two-way flow written with the bloc first is drawn like the
+        same flow written with the bloc second: China, a receiving
+        country, sends to the EU through it."""
+        advisor = self._make_advisor(self._bloc_source_json(
+            [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "CHN",
+                    "bidirectional": False,
+                },
+                {
+                    "category": "information",
+                    "source": "European Union",
+                    "target": "CHN",
+                    "bidirectional": True,
+                },
+            ],
+            receiving=["CHN"],
+        ))
+        directions = {
+            f["direction"] for f in self._capture_generate_map(advisor)
+        }
+        assert "Bidirectional (European Union ↔ China)" in directions
+
+    @pytest.mark.parametrize("sending", [
+        "United States",
+        "Michigan, United States",
+    ])
+    def test_text_fallback_map_draws_no_arrow_from_a_web_bloc(self, sending):
+        """Without map data the map is drawn from the analysis text (the
+        country map, or the ADM1 map when a state is named), with no
+        extraction to say which blocs are partners.  Web flows from a
+        bloc reach the renderer without their source bloc fields, so no
+        arrow starts at a bloc."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+        from metacouplingllm.visualization.worldmap import (
+            _get_world_geodataframe,
+            _resolve_flow_endpoints,
+        )
+
+        from ._helpers import make_parsed_analysis
+
+        def _from_bloc(name, target, target_members=None):
+            flow = {
+                "category": "capital",
+                "direction": f"{name} → {target}",
+                "description": "",
+                "source_country": name,
+                "source_supranational_members": list(
+                    expand_supranational(name),
+                ),
+            }
+            if target_members:
+                flow["target_country"] = target
+                flow["target_supranational_members"] = target_members
+            return flow
+
+        advisor = self._make_advisor({})
+        advisor._last_web_map_signals = {"flows": [
+            _from_bloc("ASEAN", "United States"),
+            _from_bloc("European Union", "Germany"),
+            _from_bloc(
+                "European Union", "ASEAN",
+                list(expand_supranational("ASEAN")),
+            ),
+        ]}
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems={"sending": {"name": sending}},
+        )
+        parsed.map_data = None
+        captured: dict[str, object] = {}
+
+        def _capture(*args, **kwargs):
+            captured["flows"] = kwargs.get("flows")
+            return None
+
+        import metacouplingllm.visualization.adm1_map as am
+        import metacouplingllm.visualization.worldmap as wm
+        originals = (wm.plot_analysis_map, am.plot_focal_adm1_map)
+        wm.plot_analysis_map = am.plot_focal_adm1_map = _capture
+        try:
+            advisor._generate_map(parsed)
+        finally:
+            wm.plot_analysis_map, am.plot_focal_adm1_map = originals
+        assert advisor._last_map_type == (
+            "adm1" if "Michigan" in sending else "country"
+        )
+        flows = captured["flows"]
+        assert len(flows) == 3
+        world = _get_world_geodataframe()
+        for flow in flows:
+            assert "source_supranational_members" not in flow
+            assert "source_supranational" not in flow
+            assert _resolve_flow_endpoints(flow, world)[0] is None
+
 
 class TestValidateAdm1Pericoupling:
     """Tests for ADM1-level pericoupling validation."""
@@ -5299,6 +5871,50 @@ class TestValidateAdm1Pericoupling:
         unions = MetacouplingAssistant._extract_unions_with_roles(parsed)
         assert "European Union" in unions
 
+    @pytest.mark.parametrize("dash", ["—", "–", "-"])
+    def test_bloc_named_before_a_spaced_dash_is_validated(self, dash):
+        """Analyses name a system as 'place — what it sends or
+        receives': 'European Union — palm products' is the EU, and the
+        validation block gets its line."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems=[
+                {
+                    "role": "sending",
+                    "name": f"Indonesia {dash} palm products",
+                    "geographic_scope": "Indonesia",
+                },
+                {
+                    "role": "receiving",
+                    "name": f"European Union {dash} palm products",
+                },
+            ],
+        )
+        assert MetacouplingAssistant._extract_unions_with_roles(parsed) == {
+            "European Union": "receiving",
+        }
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True,
+        )
+        pr = parsed.country_pericoupling_info["pair_results"]
+        assert "Indonesia (IDN) ↔ European Union: TELECOUPLED" in pr
+
+    def test_hyphen_inside_a_word_names_no_bloc(self):
+        """Only a dash with spaces around it splits a name: 'Non-EU
+        importers' is not the EU."""
+        from ._helpers import make_parsed_analysis
+
+        parsed = make_parsed_analysis(
+            coupling_classification="telecoupling",
+            systems=[
+                {"role": "sending", "name": "Indonesia — palm products"},
+                {"role": "receiving", "name": "Non-EU importers — palm oil"},
+            ],
+        )
+        assert MetacouplingAssistant._extract_unions_with_roles(parsed) == {}
+
     # ------------------------------------------------------------------
     # PR #48 — ADM1 spillover filter (Item 3)
     # ------------------------------------------------------------------
@@ -5593,6 +6209,73 @@ class TestExtractMapDataPromptBudgets:
             **kwargs,
         )
         return advisor, captured
+
+    # --- Every system and flow reaches the prompt ------------------------
+
+    def test_every_system_and_flow_reaches_the_prompt(self):
+        """The telecoupling section's systems and flows come after the
+        intracoupling and pericoupling sections' (here six intracoupling
+        flows and two pericoupling systems per role), so the summary
+        sends every entry, not the first few, and the distant partners
+        reach the extraction call."""
+        from metacouplingllm.llm.parser import CouplingSection, ParsedAnalysis
+
+        def _flow(direction, category="matter"):
+            return {
+                "category": category,
+                "direction": direction,
+                "description": "",
+            }
+
+        parsed = ParsedAnalysis(
+            coupling_classification="All three coupling types.",
+            intracoupling=CouplingSection(flows=[
+                _flow(f"Plantations → mills, stage {i}") for i in range(6)
+            ]),
+            pericoupling=CouplingSection(
+                systems=[
+                    {"role": "sending", "name": "Indonesia — palm oil"},
+                    {"role": "sending", "name": "India — payments"},
+                    {"role": "receiving", "name": "Indonesia — payments"},
+                    {"role": "receiving", "name": "India — palm oil"},
+                ],
+                flows=[
+                    _flow("Indonesia → India"),
+                    _flow("India → Indonesia", "capital"),
+                ],
+            ),
+            telecoupling=CouplingSection(
+                systems=[
+                    {"role": "sending", "name": "Indonesia — palm products"},
+                    {
+                        "role": "sending",
+                        "name": (
+                            "European Union — payments and regulatory "
+                            "information"
+                        ),
+                    },
+                    {"role": "receiving", "name": "China — palm products"},
+                    {"role": "receiving", "name": "Pakistan — palm products"},
+                ],
+                flows=[
+                    _flow("Indonesia → China and Pakistan"),
+                    _flow(
+                        "EU regulators → Indonesian exporters",
+                        "information",
+                    ),
+                ],
+            ),
+        )
+        advisor, captured = self._make_advisor_with_capture()
+        advisor._extract_map_data_from_analysis(parsed)
+        for needle in (
+            "China — palm products",
+            "Pakistan — palm products",
+            "European Union — payments and regulatory information",
+            "Indonesia → China and Pakistan",
+            "EU regulators → Indonesian exporters",
+        ):
+            assert needle in captured["user_text"], needle
 
     # --- Flow description cap (100 -> 500) -------------------------------
 

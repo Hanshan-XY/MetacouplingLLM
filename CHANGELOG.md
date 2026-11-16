@@ -113,6 +113,58 @@ file. The format is loosely based on
 
 ### Fixed
 
+- **The validation block finds a bloc named before a spaced dash.**
+  Analyses name a system as "European Union — palm products"; the bloc
+  detector behind the block's bloc line split names only at commas,
+  semicolons, slashes, parentheses, "and" and arrows, so an analysis
+  that names the EU only that way got no "↔ European Union" line. A dash
+  with spaces around it (—, – or -) now splits the name too; a hyphen
+  inside a word ("non-EU") does not. Four new tests (suite 2,328).
+- **The map-data extraction reads every system and flow of the
+  analysis.** Its summary of the analysis kept only the first two
+  systems of each role and the first eight flows. An analysis lists its
+  intracoupling and pericoupling systems and flows before its
+  telecoupling ones, so the distant partners never reached the call: in
+  the committed Indonesia run it saw 2 of 9 sending systems, 2 of 9
+  receiving systems and 8 of 13 flows, none of them telecoupling. That
+  summary named none of China, Pakistan, Bangladesh and the United
+  States, and the EU only once, in the Malaysia spillover system's text,
+  so the map's arrows to those partners rested on the web-result
+  summaries, and the telecoupling information flow from foreign
+  policymakers and buyers to Indonesian agencies and suppliers was never
+  seen. The summary now sends every system and flow, each still capped
+  in length (800 characters per system, 500 per flow description); for
+  that run's analysis the call's request, not counting the web results,
+  grows from 12,252 to 17,439 characters. One new test.
+- **A flow from a supranational bloc is drawn on the map.** The map-data
+  extraction prompt asks for each capital flow in reverse, from a
+  receiving system to the focal country (rule 6), and lets the model name
+  a union as a flow's target (rule 12), so a payment from the EU comes
+  back as "European Union → Indonesia". The extraction kept a bloc only as
+  a flow's target, so it dropped that payment, and the renderer could not
+  start an arrow at a bloc, so the same flow from the web search drew
+  nothing. The extraction now keeps a bloc as a flow's source under the
+  guards a bloc target has (no member named on its own, the other
+  endpoint not a member), and drops a flow from a bloc that holds the
+  focal country or that it lists whole as a spillover system. On the map,
+  such a flow starts at the bloc's anchor and is drawn only when the bloc
+  is a partner and the flow ends at a country on the map or at another
+  partner bloc. A bloc is a partner when the focal country or a
+  receiving country sends a flow to it (a two-way flow counts in both
+  directions) or the extraction kept a flow from it to the focal
+  country, unless it holds the focal country, one of its members is a
+  receiving country in its own right, or the extraction listed it as a
+  spillover system; the map data records such blocs as
+  `spillover_blocs`. Maps drawn from the analysis text,
+  which have no map data to say which blocs are partners, give a
+  web-sourced flow from a bloc no arrow. Each bloc on the map now gets its
+  own fill, so a bloc with a member bordering the focal country no longer
+  recolours another bloc, and the flows table of the Markdown and Word
+  exports names a bloc endpoint instead of printing "None". Replaying the
+  committed Indonesia run's map-data response through the fixed
+  extraction gives 14 flows, its 13 and the EU's capital flow to
+  Indonesia, and draws 14 arrows. Twenty-three new tests in
+  `tests/test_core.py`, `tests/test_worldmap.py` and `tests/test_output.py`.
 - **A country's name is no longer read as its namesake region.** The
   subnational-region scan behind the validation block's "Core subnational
   regions" line (also the fallback for the map data's

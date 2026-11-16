@@ -2339,9 +2339,12 @@ proposes 3-5 follow-up web-search queries, available as
 `result.suggested_followup_queries` and appended to `result.formatted`
 under "Suggested follow-up web searches".
 
-With `auto_map=True`, the map-data extraction call (§10) also receives the
-web hits: up to 100 of them, each summary truncated to 2,500 characters,
-so country names that appear late in a long summary are not cut off.
+With `auto_map=True`, the map-data extraction call (§10) reads the
+analysis's coupling classification (up to 600 characters) and every
+system and flow (each system up to 800 characters, each flow description
+up to 500), and also receives the web hits: up to 100 of them, each
+summary truncated to 2,500 characters, so country names that appear late
+in a long summary are not cut off.
 
 ### Citation grammar
 
@@ -2364,9 +2367,28 @@ NAFTA), the package:
    states (omitting the bloc) when the source names them; the package
    then expands the bloc to its member ISO codes (27, 10, 3 and 3
    member states for the EU, ASEAN, USMCA and NAFTA).
-2. **Map renderer** dissolves the member states into one region and
-   fills it as a whole: the pericoupling colour when the focal country
-   borders at least one member, otherwise the telecoupling colour.
+2. **Map renderer** dissolves each bloc's member states into one region
+   and fills it as a whole: the pericoupling colour when one of its
+   members is among the map's countries and borders the focal country,
+   otherwise the telecoupling colour.
+3. **Flows to and from a bloc** are drawn as one arrow from or to the
+   bloc's anchor, whether the bloc is the flow's target (exports to the
+   EU) or its source (the EU's payments back). The map-data extraction
+   keeps a bloc on either side only when none of its members is named
+   on its own and the other endpoint is not a member, and it drops a
+   flow from a bloc that holds the focal country or that it lists whole
+   as a spillover system. On the map, a flow from a bloc is drawn only
+   when the bloc is a partner and the flow ends at a country on the map
+   or at another partner bloc. A bloc is a partner when the focal
+   country or a receiving country sends a flow to it (a two-way flow
+   counts in both directions) or the extraction kept a flow from it to
+   the focal country, unless it holds the focal country, one of its
+   members is a receiving country in its own right, or the extraction
+   listed it as a spillover system. When there
+   is no structured map data and the map is drawn from the analysis
+   text, a bloc the text names as a flow's source is expanded into one
+   flow from each member, and a web-sourced flow from a bloc gets no
+   arrow.
 
 ### Evidence coverage note
 
