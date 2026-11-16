@@ -9,6 +9,27 @@ file. The format is loosely based on
 
 ### Added
 
+- **The validation block names a partner placed in the wrong coupling
+  section.** The country check compared coupling types only: it warned
+  when the database found an adjacent partner but the analysis had no
+  pericoupling section, or found only distant partners but the analysis
+  had no telecoupling section. A partner in the wrong section passed
+  whenever the other section existed, so an Indonesia analysis naming
+  India only under telecoupling, with Malaysia under pericoupling, was
+  reported consistent. The check now also reads which sections' systems
+  (spillover systems aside) name each partner country or bloc. A partner
+  named only in the section its database verdict contradicts gets a
+  sentence in the Note, after the coupling-type warning when that fires
+  too, and the Note ends with "Consider revising.": "The analysis places
+  Indonesia (IDN) ↔ India (IND) (at sea) only in its telecoupling
+  section, but the database classifies the pair as pericoupled." A
+  partner named in both sections is not judged, and the
+  subnational check, which finds regions anywhere in the text, still
+  compares coupling types only. Across 60 saved analyses (29 traced runs
+  and 31 A/B examples) the check reads 171 partners: 166 are named only
+  in the section their verdict implies, 5 in both sections and none only
+  in the other one, so no Note changes. Eight new tests (suite
+  2,336).
 - **`OpenAIAdapter(..., reasoning_effort=...)` and GPT-6 models.** The
   effort applies to every call the assistant makes, its native OpenAI web
   search included. With an effort, the adapter sends its requests through

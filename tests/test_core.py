@@ -5915,6 +5915,108 @@ class TestValidateAdm1Pericoupling:
         )
         assert MetacouplingAssistant._extract_unions_with_roles(parsed) == {}
 
+    # --- per-partner check: a partner named only in the wrong section ---
+
+    @staticmethod
+    def _sectioned_indonesia(peri, tele, spillover_tele=()):
+        """An Indonesia-focal analysis whose pericoupling and
+        telecoupling sections name the given partners (as receiving
+        systems) and spillover systems."""
+        from metacouplingllm.llm.parser import CouplingSection, ParsedAnalysis
+
+        def _section(partners, spillover=()):
+            if not partners and not spillover:
+                return None
+            systems = [{"role": "sending", "name": "Indonesia — palm oil"}]
+            systems += [
+                {"role": "receiving", "name": f"{p} — palm oil"}
+                for p in partners
+            ]
+            systems += [
+                {"role": "spillover", "name": f"{p} — competing producer"}
+                for p in spillover
+            ]
+            return CouplingSection(systems=systems)
+
+        return ParsedAnalysis(
+            coupling_classification="Coupling types as sectioned.",
+            intracoupling=CouplingSection(
+                systems=[{"role": "focal", "name": "Indonesia"}],
+            ),
+            pericoupling=_section(peri),
+            telecoupling=_section(tele, spillover_tele),
+        )
+
+    @staticmethod
+    def _country_note(parsed):
+        MetacouplingAssistant._validate_country_pericoupling(
+            parsed, national_mode=True, maritime_adjacency=True,
+        )
+        return parsed.country_pericoupling_info["note"]
+
+    def test_partner_named_only_under_telecoupling_is_flagged(self):
+        """India borders Indonesia at sea but is named only in the
+        telecoupling section.  A pericoupling section exists (Malaysia),
+        so the coupling-type check passes; the partner check names
+        India."""
+        note = self._country_note(
+            self._sectioned_indonesia(["Malaysia"], ["India", "China"]),
+        )
+        assert note == (
+            "The analysis places Indonesia (IDN) ↔ India (IND) (at sea) "
+            "only in its telecoupling section, but the database "
+            "classifies the pair as pericoupled. Consider revising."
+        )
+
+    def test_partner_named_only_under_pericoupling_is_flagged(self):
+        """China is named only in the pericoupling section although it is
+        distant; the analysis also has a telecoupling section."""
+        note = self._country_note(
+            self._sectioned_indonesia(["China"], ["United States"]),
+        )
+        assert (
+            "places Indonesia (IDN) ↔ China (CHN) only in its pericoupling "
+            "section, but the database classifies the pair as telecoupled."
+        ) in note
+        assert note.endswith("Consider revising.")
+
+    def test_bloc_named_only_under_pericoupling_is_flagged(self):
+        note = self._country_note(
+            self._sectioned_indonesia(["European Union"], ["China"]),
+        )
+        assert (
+            "places Indonesia (IDN) ↔ European Union only in its "
+            "pericoupling section"
+        ) in note
+
+    def test_type_warning_keeps_its_words_and_names_the_partner(self):
+        """No pericoupling section while India is adjacent: the
+        coupling-type warning comes first, then the partner."""
+        note = self._country_note(
+            self._sectioned_indonesia([], ["India", "China"]),
+        )
+        assert note == (
+            "The coupling database indicates at least one pericoupled "
+            "country pair, but the LLM classified this study differently. "
+            "The analysis places Indonesia (IDN) ↔ India (IND) (at sea) "
+            "only in its telecoupling section, but the database "
+            "classifies the pair as pericoupled. Consider revising."
+        )
+
+    @pytest.mark.parametrize("peri, tele, spillover", [
+        (["India"], ["China", "Pakistan"], ()),  # each in its own section
+        (["India"], ["India", "China"], ()),  # named in both: not judged
+        (["India"], ["China"], ("Malaysia",)),  # spillover: not validated
+        (["India"], ["European Union"], ()),
+    ])
+    def test_no_partner_flag_when_none_is_misplaced(self, peri, tele, spillover):
+        note = self._country_note(
+            self._sectioned_indonesia(peri, tele, spillover),
+        )
+        assert note == (
+            "LLM classification is consistent with the coupling database."
+        )
+
     # ------------------------------------------------------------------
     # PR #48 — ADM1 spillover filter (Item 3)
     # ------------------------------------------------------------------

@@ -41,14 +41,33 @@ ADM1_UNCHECKED = (
 COUNTRY_CONSISTENT = (
     "LLM classification is consistent with the coupling database."
 )
-COUNTRY_PERI_REVISE = (
+COUNTRY_PERI_TYPE = (
     "The coupling database indicates at least one pericoupled country "
-    "pair, but the LLM classified this study differently. Consider "
-    "revising."
+    "pair, but the LLM classified this study differently."
 )
-COUNTRY_TELE_REVISE = (
+COUNTRY_TELE_TYPE = (
     "The coupling database indicates all detected pairs are telecoupled, "
-    "but the LLM classified this study differently. Consider revising."
+    "but the LLM classified this study differently."
+)
+COUNTRY_PERI_REVISE = f"{COUNTRY_PERI_TYPE} Consider revising."
+COUNTRY_TELE_REVISE = f"{COUNTRY_TELE_TYPE} Consider revising."
+
+
+def _partner_revise(type_sentence, pair, section, verdict):
+    """The country note when the coupling-type warning is followed by a
+    partner named only in the section its database verdict contradicts."""
+    return (
+        f"{type_sentence} The analysis places {pair} only in its "
+        f"{section} section, but the database classifies the pair as "
+        f"{verdict}. Consider revising."
+    )
+
+
+# Ohio's pair under "stringent"/"moderate": Canada is named only in the
+# pericoupling section, but without the Lake Erie border it is distant.
+OHIO_CANADA_REVISE = _partner_revise(
+    COUNTRY_TELE_TYPE, "Ohio (USA036) ↔ Canada (CAN)", "pericoupling",
+    "telecoupled",
 )
 ADM1_CONSISTENT = (
     "LLM classification is consistent with the ADM1 pericoupling database."
@@ -155,7 +174,10 @@ class TestCountryValidator:
                 {"sending": {"name": "Mexico"},
                  "receiving": {"name": "United States"}},
                 "Mexico (MEX) ↔ United States (USA): PERICOUPLED",
-                COUNTRY_PERI_REVISE,
+                _partner_revise(
+                    COUNTRY_PERI_TYPE, "Mexico (MEX) ↔ United States (USA)",
+                    "telecoupling", "pericoupled",
+                ),
             ),
             (
                 "Telecoupling between Brazil and China.",
@@ -171,7 +193,10 @@ class TestCountryValidator:
                 {"sending": {"name": "Brazil"},
                  "receiving": {"name": "China"}},
                 "Brazil (BRA) ↔ China (CHN): TELECOUPLED",
-                COUNTRY_TELE_REVISE,
+                _partner_revise(
+                    COUNTRY_TELE_TYPE, "Brazil (BRA) ↔ China (CHN)",
+                    "pericoupling", "telecoupled",
+                ),
             ),
             (
                 # A spillover partner beside a classified one is skipped;
@@ -401,7 +426,10 @@ class TestTheCountryNoteReadsTheSections:
         ("sea", "pair", "notes"),
         [
             (False, "Sri Lanka (LKA) ↔ India (IND): TELECOUPLED",
-             [f"Note (country): {COUNTRY_TELE_REVISE}"]),
+             ["Note (country): " + _partner_revise(
+                 COUNTRY_TELE_TYPE, "Sri Lanka (LKA) ↔ India (IND)",
+                 "pericoupling", "telecoupled",
+             )]),
             (True, "Sri Lanka (LKA) ↔ India (IND) (at sea): PERICOUPLED",
              [f"Note: {COUNTRY_CONSISTENT}"]),
         ],
@@ -435,7 +463,10 @@ class TestTheCountryNoteReadsTheSections:
             "Brazil (BRA) ↔ China (CHN): TELECOUPLED; "
             "Brazil (BRA) ↔ Argentina (ARG): PERICOUPLED"
         )
-        assert info["note"] == COUNTRY_PERI_REVISE
+        assert info["note"] == _partner_revise(
+            COUNTRY_PERI_TYPE, "Brazil (BRA) ↔ Argentina (ARG)",
+            "telecoupling", "pericoupled",
+        )
 
     def test_a_section_claims_its_type_without_the_text_naming_it(self):
         parsed = ParsedAnalysis(
@@ -661,10 +692,10 @@ class TestOhioAcidRain:
     @pytest.mark.parametrize(
         ("standard", "verdict", "country_note", "notes"),
         [
-            ("stringent", "TELECOUPLED", COUNTRY_TELE_REVISE,
-             [f"Note (country): {COUNTRY_TELE_REVISE}"]),
-            ("moderate", "TELECOUPLED", COUNTRY_TELE_REVISE,
-             [f"Note (country): {COUNTRY_TELE_REVISE}"]),
+            ("stringent", "TELECOUPLED", OHIO_CANADA_REVISE,
+             [f"Note (country): {OHIO_CANADA_REVISE}"]),
+            ("moderate", "TELECOUPLED", OHIO_CANADA_REVISE,
+             [f"Note (country): {OHIO_CANADA_REVISE}"]),
             ("lenient", "PERICOUPLED", COUNTRY_CONSISTENT,
              [f"Note: {COUNTRY_CONSISTENT}"]),
         ],
@@ -690,9 +721,9 @@ class TestOhioAcidRain:
     @pytest.mark.parametrize(
         ("standard", "verdict", "country_note", "adm1_note", "notes"),
         [
-            ("moderate", "TELECOUPLED", COUNTRY_TELE_REVISE,
+            ("moderate", "TELECOUPLED", OHIO_CANADA_REVISE,
              ADM1_TELE_REVISE,
-             [f"Note (country): {COUNTRY_TELE_REVISE}",
+             [f"Note (country): {OHIO_CANADA_REVISE}",
               f"Note (subnational): {ADM1_TELE_REVISE}"]),
             ("lenient", "PERICOUPLED", COUNTRY_CONSISTENT,
              ADM1_CONSISTENT,
@@ -767,7 +798,7 @@ class TestTheAdm1NoteReadsTheSections:
         ("standard", "verdict", "notes"),
         [
             ("moderate", "TELECOUPLED",
-             [f"Note (country): {COUNTRY_TELE_REVISE}",
+             [f"Note (country): {OHIO_CANADA_REVISE}",
               f"Note (subnational): {ADM1_TELE_REVISE}"]),
             ("lenient", "PERICOUPLED", [BOTH_CONSISTENT]),
         ],
