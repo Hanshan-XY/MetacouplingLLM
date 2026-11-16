@@ -3442,6 +3442,17 @@ class MetacouplingAssistant:
             "spillover_countries": spillover,
             "flows": flows,
         }
+        # Blocs listed whole as spillover systems (their names resolve to
+        # no country, so spillover_countries cannot hold them):
+        # _generate_map keeps them out of the partners, so a web-sourced
+        # flow from one is not drawn either.
+        if spillover_blocs:
+            result["spillover_blocs"] = sorted(
+                name for name in (
+                    supranational_display_name(list(b))
+                    for b in spillover_blocs
+                ) if name
+            )
 
         if self._verbose:
             print(
@@ -4271,6 +4282,7 @@ class MetacouplingAssistant:
                 #    trade.
                 if map_flows:
                     from metacouplingllm.knowledge.countries import (
+                        expand_supranational,
                         resolve_country_code as _rcc,
                     )
 
@@ -4281,32 +4293,52 @@ class MetacouplingAssistant:
                     # source check below never sees one.  The blocs that
                     # count as partners, the analogue of _valid_sources:
                     # a bloc the focal country or a receiving country
-                    # sends a flow to, and a bloc the map-data
+                    # sends a flow to (a two-way flow runs both ways, so
+                    # either side of one counts), and a bloc the map-data
                     # extraction kept as the source of a flow to the
-                    # focal country (the reverse payment of rule #6; the
-                    # extraction drops blocs it lists as spillover).
+                    # focal country (the reverse payment of rule #6).
+                    # The extraction's bloc guards are applied again
+                    # here, since web flows bypass them and
+                    # _reconcile_map_countries adds partners after they
+                    # ran: a bloc that holds the focal country, has a
+                    # member that is a receiving country in its own
+                    # right, or was listed as a spillover system is no
+                    # partner.
                     _partner_blocs: set[frozenset[str]] = set()
                     for f in map_flows:
-                        members = f.get("target_supranational_members")
-                        if not members:
+                        d = str(f.get("direction", ""))
+                        parts = _FLOW_ARROW_RE.split(d)
+                        if len(parts) < 2:
                             continue
-                        parts = _FLOW_ARROW_RE.split(
-                            str(f.get("direction", "")),
-                        )
-                        if len(parts) >= 2 and _rcc(
+                        members = f.get("target_supranational_members")
+                        if members and _rcc(
                             parts[0].strip().lstrip("("),
                         ) in _valid_sources:
+                            _partner_blocs.add(frozenset(members))
+                        members = f.get("source_supranational_members")
+                        if (
+                            members
+                            and ("↔" in d or "bidirectional" in d.lower())
+                            and _rcc(parts[-1].strip().rstrip(")"))
+                            in _valid_sources
+                        ):
                             _partner_blocs.add(frozenset(members))
                     for f in raw_flows:
                         if not isinstance(f, dict):
                             continue
                         members = f.get("source_supranational_members")
-                        if (
-                            members
-                            and f.get("target") == focal_code
-                            and focal_code not in members
-                        ):
+                        if members and f.get("target") == focal_code:
                             _partner_blocs.add(frozenset(members))
+                    _spillover_blocs = {
+                        frozenset(expand_supranational(name) or [])
+                        for name in md.get("spillover_blocs", [])
+                    }
+                    _partner_blocs = {
+                        b for b in _partner_blocs
+                        if focal_code not in b
+                        and not (b & set(receiving))
+                        and b not in _spillover_blocs
+                    }
 
                     def _flow_endpoints_valid(f: dict) -> bool:
                         d = f.get("direction", "")
@@ -4320,16 +4352,13 @@ class MetacouplingAssistant:
                         if tgt_code and tgt_code not in mentioned:
                             return False
 
-                        # A flow FROM a bloc: only from a partner bloc
-                        # that does not hold the focal country, and only
-                        # to a country on the map (checked above) or to
-                        # another partner bloc, never into the bloc's
-                        # own members.
+                        # A flow FROM a bloc: only from a partner bloc,
+                        # and only to a country on the map (checked
+                        # above) or to another partner bloc, never into
+                        # the bloc's own members.
                         src_members = f.get("source_supranational_members")
                         if src_members:
                             src_set = frozenset(src_members)
-                            if focal_code in src_set:
-                                return False
                             if src_set not in _partner_blocs:
                                 return False
                             tgt_members = f.get(

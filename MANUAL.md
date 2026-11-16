@@ -2378,10 +2378,13 @@ NAFTA), the package:
    on its own and the other endpoint is not a member, and it drops a
    flow from a bloc that holds the focal country or that it lists whole
    as a spillover system. On the map, a flow from a bloc is drawn only
-   when the bloc does not hold the focal country, is a partner (the
-   focal country or a receiving country sends a flow to it, or the
-   extraction kept a flow from it to the focal country), and the flow
-   ends at a country on the map or at another partner bloc. When there
+   when the bloc is a partner and the flow ends at a country on the map
+   or at another partner bloc. A bloc is a partner when the focal
+   country or a receiving country sends a flow to it (a two-way flow
+   counts in both directions) or the extraction kept a flow from it to
+   the focal country, unless it holds the focal country, one of its
+   members is a receiving country in its own right, or the extraction
+   listed it as a spillover system. When there
    is no structured map data and the map is drawn from the analysis
    text, a bloc the text names as a flow's source is expanded into one
    flow from each member, and a web-sourced flow from a bloc gets no

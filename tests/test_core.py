@@ -4691,9 +4691,12 @@ class TestExtractMapDataSupranational:
         assert result["flows"] == []
 
     @staticmethod
-    def _capture_generate_map(advisor, web_signals=None, sending="United States"):
+    def _capture_generate_map(
+        advisor, web_signals=None, sending="United States", systems=None,
+    ):
         """Run ``_generate_map`` on the advisor's extraction and return
-        the flows handed to ``plot_analysis_map`` (stubbed)."""
+        the flows handed to ``plot_analysis_map`` (stubbed).  ``systems``
+        replaces the default single sending system named ``sending``."""
         captured: dict[str, object] = {}
 
         def _fake_plot(parsed, **kwargs):
@@ -4707,7 +4710,7 @@ class TestExtractMapDataSupranational:
             from ._helpers import make_parsed_analysis
             parsed = make_parsed_analysis(
                 coupling_classification="telecoupling",
-                systems={"sending": {"name": sending}},
+                systems=systems or {"sending": {"name": sending}},
             )
             parsed.map_data = advisor._extract_map_data_from_analysis(parsed)
             advisor._last_web_map_signals = web_signals
@@ -4925,6 +4928,163 @@ class TestExtractMapDataSupranational:
             for f in self._capture_generate_map(advisor, web_signals=web)
         }
         assert "European Union → ASEAN" in directions
+
+    @staticmethod
+    def _web_eu_both_ways():
+        """Web flows to the EU and back, as the web extraction stamps
+        them."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+
+        eu = list(expand_supranational("European Union"))
+        return {"flows": [
+            {
+                "category": "matter",
+                "direction": "United States → European Union",
+                "description": "",
+                "target_country": "European Union",
+                "target_supranational_members": eu,
+            },
+            {
+                "category": "capital",
+                "direction": "European Union → United States",
+                "description": "",
+                "source_country": "European Union",
+                "source_supranational_members": eu,
+            },
+        ]}
+
+    def test_generate_map_bloc_source_dropped_when_a_member_is_a_partner(self):
+        """The extraction drops a bloc whose member is named on its own;
+        the map applies the same rule to web flows and to a member that
+        _reconcile_map_countries adds after the extraction ran."""
+        to_deu = {
+            "category": "matter",
+            "source": "USA",
+            "target": "DEU",
+            "bidirectional": False,
+        }
+        advisor = self._make_advisor(
+            self._bloc_source_json([to_deu], receiving=["DEU"]),
+        )
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(
+                advisor, web_signals=self._web_eu_both_ways(),
+            )
+        }
+        assert "European Union → United States" not in directions
+
+        # Germany enters the partners only through the analysis's own
+        # receiving system, after the extraction kept both EU flows.
+        to_eu = dict(to_deu, target="European Union")
+        advisor = self._make_advisor(
+            self._bloc_source_json([to_eu, self._EU_PAYMENT]),
+        )
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(advisor, systems=[
+                {"role": "sending", "name": "United States — soybeans"},
+                {"role": "receiving", "name": "Germany — soybeans"},
+            ])
+        }
+        assert "United States → European Union" in directions
+        assert "European Union → United States" not in directions
+
+    def test_generate_map_bloc_source_dropped_when_listed_as_spillover(self):
+        """A bloc the extraction lists whole as a spillover system sends
+        no web-sourced flow either."""
+        to_chn = {
+            "category": "matter",
+            "source": "USA",
+            "target": "CHN",
+            "bidirectional": False,
+        }
+        advisor = self._make_advisor(self._bloc_source_json(
+            [to_chn], receiving=["CHN"], spillover=["European Union"],
+        ))
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(
+                advisor, web_signals=self._web_eu_both_ways(),
+            )
+        }
+        assert "European Union → United States" not in directions
+        assert "United States → China" in directions
+
+    def test_generate_map_bloc_to_bloc_into_focal_bloc_dropped(self):
+        """With Indonesia focal, ASEAN holds the focal country and is no
+        partner, so 'European Union -> ASEAN' is dropped although India
+        sends to ASEAN and Indonesia to the EU."""
+        from metacouplingllm.knowledge.countries import (
+            expand_supranational,
+        )
+
+        def _flow(src, tgt):
+            return {
+                "category": "matter",
+                "source": src,
+                "target": tgt,
+                "bidirectional": False,
+            }
+
+        advisor = self._make_advisor(self._bloc_source_json(
+            [
+                _flow("IDN", "IND"),
+                _flow("IND", "ASEAN"),
+                _flow("IDN", "European Union"),
+            ],
+            receiving=["IND"],
+            focal="IDN",
+        ))
+        web = {"flows": [{
+            "category": "matter",
+            "direction": "European Union → ASEAN",
+            "description": "",
+            "source_country": "European Union",
+            "source_supranational_members": list(
+                expand_supranational("European Union"),
+            ),
+            "target_country": "ASEAN",
+            "target_supranational_members": list(
+                expand_supranational("ASEAN"),
+            ),
+        }]}
+        directions = {
+            f["direction"]
+            for f in self._capture_generate_map(
+                advisor, web_signals=web, sending="Indonesia",
+            )
+        }
+        assert "Indonesia → European Union" in directions
+        assert "European Union → ASEAN" not in directions
+
+    def test_generate_map_two_way_bloc_flow_counts_either_way(self):
+        """A two-way flow written with the bloc first is drawn like the
+        same flow written with the bloc second: China, a receiving
+        country, sends to the EU through it."""
+        advisor = self._make_advisor(self._bloc_source_json(
+            [
+                {
+                    "category": "matter",
+                    "source": "USA",
+                    "target": "CHN",
+                    "bidirectional": False,
+                },
+                {
+                    "category": "information",
+                    "source": "European Union",
+                    "target": "CHN",
+                    "bidirectional": True,
+                },
+            ],
+            receiving=["CHN"],
+        ))
+        directions = {
+            f["direction"] for f in self._capture_generate_map(advisor)
+        }
+        assert "Bidirectional (European Union ↔ China)" in directions
 
     @pytest.mark.parametrize("sending", [
         "United States",
