@@ -5881,6 +5881,9 @@ class MetacouplingAssistant:
             return label
 
         emitted_codes: set[str] = set()  # PR #48: dedup vs union members
+        # Each checked partner (ISO code, or a bloc's display name) with
+        # its pair label and verdict, for the per-partner check below.
+        checked: dict[str, tuple[str, str]] = {}
         for code_b in other_codes:
             llm_role = country_roles.get(code_b, "")
 
@@ -5896,10 +5899,10 @@ class MetacouplingAssistant:
             verdict = _verdict_for(code_b)
             if verdict is None:
                 continue
-            pair_lines.append(
-                f"{left_label} ↔ {_partner(code_b, verdict)}: {verdict}"
-            )
+            pair = f"{left_label} ↔ {_partner(code_b, verdict)}"
+            pair_lines.append(f"{pair}: {verdict}")
             emitted_codes.add(code_b)
+            checked[code_b] = (pair, verdict)
 
         # PR #48: supranational unions (EU / ASEAN / USMCA / NAFTA).
         # resolve_country_code returns None for these, so they never
@@ -5935,12 +5938,56 @@ class MetacouplingAssistant:
                     f"TELECOUPLED"
                 )
             else:
-                pair_lines.append(
-                    f"{left_label} ↔ {union_name}: TELECOUPLED"
-                )
+                pair = f"{left_label} ↔ {union_name}"
+                pair_lines.append(f"{pair}: TELECOUPLED")
+                checked[union_name] = (pair, "TELECOUPLED")
 
         if pair_lines:
             info["pair_results"] = "; ".join(pair_lines)
+
+        # Per-partner check: a partner whose database verdict disagrees
+        # with the only coupling section whose systems name it.  The
+        # same detectors that found the partners read one section at a
+        # time; spillover systems are left out, as above.  A partner
+        # named in both sections, or in neither, is not judged.
+        def _named_in(section: str) -> set[str]:
+            content = getattr(parsed, section)
+            if content is None:
+                return set()
+            view = ParsedAnalysis(**{section: content})
+            named = {
+                code for code, role in (
+                    MetacouplingAssistant._extract_countries_with_roles(view)
+                ).items() if role != "spillover"
+            }
+            named |= {
+                name for name, role in (
+                    MetacouplingAssistant._extract_unions_with_roles(view)
+                ).items() if role != "spillover"
+            }
+            return named
+
+        named_peri = _named_in("pericoupling")
+        named_tele = _named_in("telecoupling")
+        partner_issues: list[str] = []
+        for key, (pair, verdict) in checked.items():
+            if (
+                verdict == "PERICOUPLED"
+                and key in named_tele and key not in named_peri
+            ):
+                section = "telecoupling"
+            elif (
+                verdict == "TELECOUPLED"
+                and key in named_peri and key not in named_tele
+            ):
+                section = "pericoupling"
+            else:
+                continue
+            partner_issues.append(
+                f"The analysis places {pair} only in its {section} "
+                f"section, but the database classifies the pair as "
+                f"{verdict.lower()}."
+            )
 
         # PR #44 (v3): national-mode queries get a
         # "core_subnational_regions" key listing all LLM-mentioned
@@ -5993,25 +6040,31 @@ class MetacouplingAssistant:
                     "coupling database (partners in the spillover "
                     "role are not checked)."
                 )
-            elif has_peri and "pericoupling" not in claimed:
-                info["note"] = (
-                    "The coupling database indicates at least one "
-                    "pericoupled country pair, but the LLM classified "
-                    "this study differently. Consider revising."
-                )
-            elif (
-                has_tele and not has_peri and "telecoupling" not in claimed
-            ):
-                info["note"] = (
-                    "The coupling database indicates all detected "
-                    "pairs are telecoupled, but the LLM classified "
-                    "this study differently. Consider revising."
-                )
             else:
-                info["note"] = (
-                    "LLM classification is consistent with the "
-                    "coupling database."
-                )
+                issues: list[str] = []
+                if has_peri and "pericoupling" not in claimed:
+                    issues.append(
+                        "The coupling database indicates at least one "
+                        "pericoupled country pair, but the LLM classified "
+                        "this study differently."
+                    )
+                elif (
+                    has_tele and not has_peri
+                    and "telecoupling" not in claimed
+                ):
+                    issues.append(
+                        "The coupling database indicates all detected "
+                        "pairs are telecoupled, but the LLM classified "
+                        "this study differently."
+                    )
+                issues += partner_issues
+                if issues:
+                    info["note"] = " ".join(issues) + " Consider revising."
+                else:
+                    info["note"] = (
+                        "LLM classification is consistent with the "
+                        "coupling database."
+                    )
 
         parsed.country_pericoupling_info = info
 

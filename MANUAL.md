@@ -912,11 +912,16 @@ COUPLING DATABASE VALIDATION
 Countries the LLM placed in the spillover role (such as the
 `[Spillover System]` above) are not listed, because adjacency cannot
 validate that indirect role; a group with no pairs is not printed. The
-Note compares coupling types, not individual partners: if the database
-shows a pericoupled pair but the analysis has no pericoupling section
-(or shows only telecoupled pairs but the analysis has no telecoupling
-section), the Note is printed as `Note (country): ...` and ends with
-"Consider revising." The sections decide, not the words of the
+Note compares coupling types and where each partner is placed. It is
+printed as `Note (country): ...` and ends with "Consider revising." when
+the database shows a pericoupled pair but the analysis has no
+pericoupling section, when it shows only telecoupled pairs but the
+analysis has no telecoupling section, or when a partner country or bloc
+is named only by the systems of the section its database verdict
+contradicts (a pericoupled partner only under telecoupling, a
+telecoupled one only under pericoupling); such a partner is named, with
+its pair, in the Note. A partner named in both sections is not judged.
+The sections decide, not the words of the
 classification, which can name a coupling type only to deny it
 ("pericoupling—not telecoupling"). When the block
 lists no pair, because every partner country has the spillover role or
@@ -1146,11 +1151,13 @@ ways:
 2. **Post-LLM validation** — After parsing the LLM response, the package
    looks up each pair between the focal system and the other named systems
    (skipping systems the model gave the spillover role) and shows the
-   database verdict for each pair. It adds a "Consider revising" note only
-   when a partner is pericoupled in the database but the analysis has no
-   pericoupling section, or when all partners are telecoupled but it has
+   database verdict for each pair. It adds a "Consider revising" note when
+   a partner is pericoupled in the database but the analysis has no
+   pericoupling section, when all partners are telecoupled but it has
    no telecoupling section (a section counts when it has systems, flows,
-   agents, causes or effects); individual partner labels are not checked.
+   agents, causes or effects), or when a partner is named only by the
+   systems of the section its verdict contradicts (the note names the
+   pair; a partner named in both sections is not judged).
    The sections decide because the prompt has the model leave out the
    section of a coupling type it finds absent, while the classification
    text can name a type only to deny it ("pericoupling—not telecoupling").
@@ -1158,7 +1165,9 @@ ways:
    regions it finds in the analysis (§13), including one the analysis
    keeps inside its own focal system, so an analysis whose focal system
    spans two adjacent regions gets a "Consider revising" note unless it
-   has a pericoupling section. Otherwise the note says the classification
+   has a pericoupling section. It compares coupling types only: it finds
+   regions anywhere in the text, not in a section's systems, so it has no
+   placement to check. Otherwise the note says the classification
    is consistent with the database. A check that looked up no pair notes
    that nothing was
    checked instead: the country check when every partner country has the
