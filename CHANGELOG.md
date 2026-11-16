@@ -70,6 +70,23 @@ file. The format is loosely based on
 
 ### Changed
 
+- **The committed example run uses the lenient coupling standard and the
+  map extraction that reads the whole analysis.**
+  `runs/indonesia_palm_oil_2026-11-16_gpt-6.1-sol_max_lenient_full-extraction/`
+  replaces `runs/indonesia_palm_oil_2026-11-14_gpt-6.1-sol_max_builtin-trace/`
+  (kept in git history) as the run the paper describes, and
+  `scripts/trace_pipeline.py` sets `coupling_standard="lenient"`, the
+  package default. The query, model, effort and every other setting are
+  unchanged. The run's trace records commit b7f2eff, where the map-data
+  extraction already received every system and flow of the analysis: 8 of
+  8 sending systems, 8 of 8 receiving systems and 15 of 15 flows. Its map
+  draws 18 arrows, the exports, payments and information flows between
+  Indonesia and India, China, the European Union, the United States,
+  Pakistan and Switzerland, among them the EU's payments to Indonesia.
+  The replaced run's map had 13 arrows and no information flows. The
+  coupling standard changes nothing for Indonesia, which has the same 11
+  neighbours under all three standards; the different partners come from
+  the model's sampling and the live web search.
 - **The committed example run is an Indonesian palm-oil analysis by
   gpt-6.1-sol at `"max"` reasoning effort.**
   `runs/indonesia_palm_oil_2026-11-14_gpt-6.1-sol_max_builtin-trace/`

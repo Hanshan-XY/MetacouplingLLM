@@ -8,15 +8,15 @@
 
 | Key | Value |
 |---|---|
-| `utc` | 2026-11-14T20:18:21.943305+00:00 |
-| `wall_clock_s` | 1708.52 |
+| `utc` | 2026-11-16T18:45:30.058172+00:00 |
+| `wall_clock_s` | 1516.32 |
 
 ## Git
 
 | Key | Value |
 |---|---|
-| `branch` | feat/gpt6-reasoning-effort |
-| `sha` | 6a46d750ea1207a29837d633afc85b43e7d963d0 |
+| `branch` | fix/bloc-source-arrows |
+| `sha` | b7f2eff28fb9b6ebd06aa16a2cc5ca5b02853f1d |
 
 ## Model
 
@@ -40,7 +40,7 @@
 | `temperature` | 0.7 |
 | `coupling_analysis` | True |
 | `de_facto_borders` | True |
-| `coupling_standard` | moderate |
+| `coupling_standard` | lenient |
 | `maritime_adjacency` | True |
 | `verbose` | True |
 
