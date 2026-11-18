@@ -91,6 +91,19 @@ file. The format is loosely based on
 
 ### Changed
 
+- **The fishing example places all 280 EEZs in a region.** Its regions come
+  from Carlson et al.'s Table S16, which lists only the 168 nations with World
+  Bank GDP values because it held their GDP correlations. Four EEZs whose
+  nation it lacks (27.11 Mt, 0.47% of the catch) therefore had no region and
+  were left out of the regional tables, the paper's Tables 4 and 5, although
+  the tables use none of the GDP values. `01_build_region_map.py` now places
+  them the way the example places other EEZs: an overseas territory takes its
+  administering country's region, the others the region of their location.
+  Asia, Africa (West), Oceania and Europe (North) each gain one EEZ. Table 4's
+  totals and shares change for those four regions; at two decimals, six cells
+  of Table 5 change (Asia's PFCI, TFCI and ENP_T, Africa (West)'s ENP_T,
+  Oceania's TFCI and ENP_T), while IFS, PFS, TFS and MFE and the order of the
+  regions stay the same.
 - **The committed example run uses the lenient coupling standard and the
   map extraction that reads the whole analysis.**
   `runs/indonesia_palm_oil_2026-11-16_gpt-6.1-sol_max_lenient_full-extraction/`

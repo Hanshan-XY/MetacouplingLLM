@@ -3,8 +3,8 @@ n_eez,280.0
 total_catch_Bt,5.732935450219479
 own_plus_adjacent_share,0.8841199722539442
 telecoupled_share,0.11588002774605569
-n_eez_region_assigned,276.0
-region_assigned_catch_share,0.9952711948117178
+n_eez_region_assigned,280.0
+region_assigned_catch_share,1.0
 n_eez_with_distant_catch,269.0
 mean_ENP_T_unweighted,3.150820818175512
 mean_nominal_distant_nations,17.598513011152416

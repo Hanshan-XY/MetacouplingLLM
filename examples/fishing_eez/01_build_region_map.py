@@ -18,11 +18,12 @@ Output:
 Join logic (nation-political, matching S16's nation-level aggregation):
   1. direct name / alias match on the EEZ name and its pre-parenthetical base;
   2. for sub-national EEZs, the parenthetical parent nation ("... (USA)", "... (Spain)");
-  3. Korea (South)/(North) disambiguated explicitly.
-Genuinely non-S16 entities (Taiwan -- excluded by Carlson for lack of a World Bank
-GDP value -- plus three minor territories: Cape Verde, Cook Islands, Ascension)
-remain unmapped; they carry no region in the paper's scheme and are dropped from
-the regional means, exactly as in Carlson's Table S16.
+  3. Korea (South)/(North) disambiguated explicitly;
+  4. the four EEZs whose nation S16 does not list (NOT_IN_S16).  S16 holds only the
+     168 nations with World Bank GDP values, the data of Carlson's GDP correlations;
+     the regional tables use none of those values, so these EEZs take a region too:
+     an overseas territory its administering country's, the others that of their
+     location.
 """
 from __future__ import annotations
 
@@ -73,6 +74,14 @@ ALIAS = {
     "usvirgin": "Virgin Islands (U.S.)", "gazastrip": "West Bank and Gaza",
 }
 
+# Join step 4: EEZ -> raw S16 "World region" for the EEZs whose nation S16 lacks.
+NOT_IN_S16 = {
+    "Ascension Islands": REG["United Kingdom"],   # administered with Saint Helena (UK)
+    "Cape Verde": "Africa_western",
+    "Cook Islands": "Oceania",
+    "Taiwan": "Asia",
+}
+
 
 def s16_lookup(name: str) -> str | None:
     n = norm(name)
@@ -100,20 +109,26 @@ def nation(eez: str) -> str | None:
 def main() -> None:
     eezs = sorted({r["focal_system_id"]
                    for r in csv.DictReader((DATA / "fishing_edge_table.csv").open(encoding="utf-8"))})
-    out, mapped = {}, 0
+    out, mapped, outside = {}, 0, []
     for eez in eezs:
         nat = nation(eez)
         if nat and nat in REG:
             raw = REG[nat]
-            out[eez] = {"grp": LABEL[raw], "region": raw}
-            mapped += 1
+        elif eez in NOT_IN_S16:
+            raw = NOT_IN_S16[eez]
+            outside.append(eez)
         else:
             out[eez] = {"grp": None, "region": None}
+            continue
+        out[eez] = {"grp": LABEL[raw], "region": raw}
+        mapped += 1
     (DATA / "eez_region.json").write_text(
         json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"wrote data/eez_region.json: {mapped}/{len(eezs)} EEZs mapped to a region")
+    print(f"assigned outside S16 ({len(outside)}): {', '.join(outside)}")
     unmapped = [e for e in eezs if out[e]["grp"] is None]
-    print(f"unmapped ({len(unmapped)}, all non-S16): {', '.join(unmapped)}")
+    if unmapped:
+        print(f"unmapped ({len(unmapped)}): {', '.join(unmapped)}")
 
 
 if __name__ == "__main__":

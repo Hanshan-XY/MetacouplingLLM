@@ -27,7 +27,7 @@ nation) and Type 3 (distant nation) tables. The database gives the same label to
 Run end-to-end, this bundle reproduces every cell of the paper's Tables 4 and 5,
 and:
 
-- **280 EEZs**, of which **276** are assigned to a region (**99.53%** of catch);
+- **280 EEZs**, each assigned to one of eleven regions;
 - **269 EEZs** with distant catch, whose unweighted mean equivalent number of
   distant fishing countries (`ENP_T`) is **3.15**, against **17.60** nominal ones;
 - total reconstructed catch **5.733 Bt**, own + adjacent share **88.4%**.
@@ -37,17 +37,17 @@ and:
 
 | region | n | IFS | PFS | TFS | MFE | PFCI | TFCI | ENP_P | ENP_T |
 |--------|--:|----:|----:|----:|----:|-----:|-----:|------:|------:|
-| Africa (West)        | 12 | 0.41 | 0.04 | 0.54 | 0.54 | 0.63 | 0.20 | 1.50 | 8.21 |
-| Oceania              | 25 | 0.44 | 0.03 | 0.53 | 0.55 | 0.76 | 0.26 | 1.34 | 3.55 |
+| Africa (West)        | 13 | 0.41 | 0.04 | 0.54 | 0.54 | 0.63 | 0.20 | 1.50 | 8.20 |
+| Oceania              | 26 | 0.44 | 0.03 | 0.53 | 0.55 | 0.76 | 0.27 | 1.34 | 3.54 |
 | North America        | 19 | 0.73 | 0.05 | 0.22 | 0.49 | 0.69 | 0.42 | 1.43 | 3.64 |
-| Europe (North)       | 24 | 0.53 | 0.33 | 0.14 | 0.69 | 0.36 | 0.27 | 2.65 | 3.38 |
+| Europe (North)       | 25 | 0.53 | 0.33 | 0.14 | 0.69 | 0.36 | 0.27 | 2.65 | 3.38 |
 | Central America      | 14 | 0.97 | 0.02 | 0.01 | 0.12 | 0.97 | 0.52 | 1.02 | 1.88 |
 
 (All **eleven** regions are written to `outputs/regional_indicators.csv` (Table 5)
 and `outputs/regional_catch.csv` (Table 4). Regions follow Carlson et al.'s Table
 S16 nation-level world-region scheme, joined to each EEZ by
-`01_build_region_map.py`; four EEZs absent from Carlson's nation list are
-unassigned (Taiwan, Cape Verde, Cook Islands, Ascension). Carlson's two African
+`01_build_region_map.py`, which also places the four EEZs whose nation S16 does
+not list (Taiwan, Cape Verde, Cook Islands, Ascension). Carlson's two African
 regions are kept separate, so West Africa — the most telecoupled region — is not
 diluted by North/East/South Africa.)
 
@@ -204,10 +204,12 @@ from Carlson's Table S16 (168 nations, 11 regions), pinned for offline use.
 `01_build_region_map.py`** by joining each EEZ to its harvesting nation (handling
 sub-EEZs such as `USA (Alaska, Subarctic)` and `Korea (South)`) and then to that
 nation's S16 world region. Carlson's two African regions are kept distinct
-(`"Africa (West)"` vs `"Africa (non-western)"`). EEZs whose nation is absent from
-Carlson's S16 list (Taiwan, Cape Verde, Cook Islands, Ascension) carry
-`grp = null` and are excluded from the regional tables, exactly as in Carlson's
-nation-level scheme.
+(`"Africa (West)"` vs `"Africa (non-western)"`). S16 lists only the 168 nations
+with World Bank GDP values, the data of Carlson's GDP correlations, which the
+regional tables do not use; the four EEZs whose nation it lacks are placed by the
+script's `NOT_IN_S16` table. Ascension takes the United Kingdom's region, as
+Saint Helena and Tristan da Cunha do; Cape Verde, the Cook Islands and Taiwan take
+the region of their location (Africa (West), Oceania, Asia).
 
 ## Edge-table construction
 

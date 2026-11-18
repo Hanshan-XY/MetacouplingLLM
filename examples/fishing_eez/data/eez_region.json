@@ -36,8 +36,8 @@
   "region": "Caribbean"
  },
  "Ascension Islands": {
-  "grp": null,
-  "region": null
+  "grp": "Europe (North)",
+  "region": "Europe_northern"
  },
  "Australia": {
   "grp": "Oceania",
@@ -136,8 +136,8 @@
   "region": "Europe_western"
  },
  "Cape Verde": {
-  "grp": null,
-  "region": null
+  "grp": "Africa (West)",
+  "region": "Africa_western"
  },
  "Cayman Isl. (UK)": {
   "grp": "Europe (E/S)",
@@ -192,8 +192,8 @@
   "region": "Africa_not western"
  },
  "Cook Islands": {
-  "grp": null,
-  "region": null
+  "grp": "Oceania",
+  "region": "Oceania"
  },
  "Corsica (France)": {
   "grp": "Europe (West)",
@@ -976,8 +976,8 @@
   "region": "Asia"
  },
  "Taiwan": {
-  "grp": null,
-  "region": null
+  "grp": "Asia",
+  "region": "Asia"
  },
  "Tanzania": {
   "grp": "Africa (non-western)",
