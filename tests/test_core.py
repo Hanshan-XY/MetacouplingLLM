@@ -265,6 +265,19 @@ class TestWebCitationsAcrossTurns:
         assert "[T1:W1]" in refined.raw
         assert "[T2:W1]" not in refined.raw
 
+    def test_report_adds_no_web_markers_of_its_own(self, monkeypatch):
+        """Inline ``[T1:Wn]`` markers are the model's citations only: a
+        line sharing words with a web result gets no marker from the
+        package, and the web-source block still lists every hit."""
+        first, _ = self._analyze_and_refine(
+            monkeypatch, MOCK_LLM_RESPONSE, MOCK_REFINE_RESPONSE,
+        )
+        body, sources = first.formatted.split("WEB SOURCES (turn 1)")
+        assert "Coffee beans exported" in body
+        assert "[T1:W" not in body
+        assert "[T1:W1] Ethiopian coffee exports" in sources
+        assert "[T1:W2] European coffee imports" in sources
+
 
 class TestAnalysisResult:
     def test_fields(self):

@@ -91,6 +91,21 @@ file. The format is loosely based on
 
 ### Changed
 
+- **The printed report's inline web markers are the model's own
+  citations.** `result.formatted` also received markers from
+  `annotate_web_citations`, which appends a web source's `[T1:Wn]` to any
+  line sharing at least three keywords with the source's title and summary,
+  if they make up at least a quarter of the line's keywords, without
+  reading what the line claims. In the committed Indonesia run it added 435
+  of the 493 web markers in the report body: 22 on one heading, "Indonesia —
+  palm oil", and every marker of the five sources the model did not cite,
+  none of whose findings the analysis uses. The report no longer calls it.
+  Replayed through the pipeline, that run's recorded response now gives the
+  report body the model's 58 markers, citing 20 of the 25 sources, and the
+  `WEB SOURCES` block still lists all 25. The Markdown and Word exports read
+  the parsed analysis and never carried the added markers.
+  `annotate_web_citations` stays exported. New test in `tests/test_core.py`
+  (suite 2,337).
 - **The fishing example places all 280 EEZs in a region.** Its regions come
   from Carlson et al.'s Table S16, which lists only the 168 nations with World
   Bank GDP values because it held their GDP correlations. Four EEZs whose

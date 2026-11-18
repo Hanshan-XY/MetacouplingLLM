@@ -5194,21 +5194,11 @@ class MetacouplingAssistant:
                         f"evidence formatting failed: {exc}"
                     )
 
-        # Optional: annotate and append web search sources. Web search
-        # runs only in analyze(), so on every turn the hits are turn 1's
-        # and keep their [T1:Wn] labels.
+        # Optional: append web search sources. Web search runs only in
+        # analyze(), so on every turn the hits are turn 1's and keep their
+        # [T1:Wn] labels. Inline [T1:Wn] markers are the model's own
+        # citations: the report adds none by matching words.
         if self._last_web_results:
-            try:
-                from metacouplingllm.knowledge.websearch import (
-                    annotate_web_citations,
-                )
-
-                formatted = annotate_web_citations(
-                    formatted, self._last_web_results,
-                    turn=1,
-                )
-            except Exception:
-                pass  # Non-fatal: skip web annotation
             formatted += self._format_web_sources(
                 self._last_web_results, turn=1,
             )
