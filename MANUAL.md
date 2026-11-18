@@ -2535,43 +2535,47 @@ Install: `pip install "metacouplingllm[indicators]"` (pulls in pandas).
 
 ### Formulas
 
-**Metacoupled flow shares (per focal system *i*):**
+Each flow from focal system $i$ to partner $j$ is attributed to one
+coupling type $c \in \lbrace I, P, T \rbrace$: intracoupling ($I$, within the focal
+system), pericoupling ($P$, to an adjacent system) or telecoupling ($T$,
+to a distant system).
+
+**MFS** — Metacoupled Flow Shares (per focal system $i$):
 
 $$
-\begin{aligned}
-\mathrm{IFS}_i &= \frac{F_{iI}}{F_{iI} + F_{iP} + F_{iT}}, \\
-\mathrm{PFS}_i &= \frac{F_{iP}}{F_{iI} + F_{iP} + F_{iT}}, \\
-\mathrm{TFS}_i &= \frac{F_{iT}}{F_{iI} + F_{iP} + F_{iT}}
-\end{aligned}
+\mathrm{MFS}_i^{c} = \frac{F_i^{c}}{F_i},
+\qquad
+F_i^{c} = \sum_j f_{ij}^{c},
+\qquad
+F_i = F_i^{I} + F_i^{P} + F_i^{T}
 $$
 
-where $F_{iI}$, $F_{iP}$, $F_{iT}$ are system $i$'s intra-, peri-, and telecoupled flow magnitudes.
+where $f_{ij}^{c}$ is the type-*c* flow from system $i$ to partner $j$, $F_i^{c}$ is system $i$'s total type-*c* flow and $F_i$ its total flow (columns `F_I` / `F_P` / `F_T` / `F_total`). The intra-, peri- and telecoupled flow shares are $\mathrm{IFS}_i = \mathrm{MFS}_i^{I}$, $\mathrm{PFS}_i = \mathrm{MFS}_i^{P}$ and $\mathrm{TFS}_i = \mathrm{MFS}_i^{T}$ (columns `IFS` / `PFS` / `TFS`).
 
 **MFE** — Metacoupled Flow Evenness (Shannon 1948 entropy, normalised to $[0, 1]$):
 
 $$
-\mathrm{MFE}_i = -\frac{1}{\ln 3} \sum_{c \,\in\, \{I,\, P,\, T\}} s_c \ln s_c,
-\qquad s_c \in \{\mathrm{IFS}_i,\ \mathrm{PFS}_i,\ \mathrm{TFS}_i\}
+\mathrm{MFE}_i = -\frac{1}{\ln 3} \sum_{c \in \lbrace I, P, T \rbrace} \mathrm{MFS}_i^{c} \ln \mathrm{MFS}_i^{c}
 $$
 
-**MFCI** — Metacoupled Flow Concentration Index (Hirschman 1945 / Herfindahl 1950 HHI, normalised per Hannah & Kay 1977; per coupling type *c*):
+**MFCI** — Metacoupled Flow Concentration Index (Hirschman 1945 / Herfindahl 1950 HHI, normalised per Hannah & Kay 1977; per coupling type $c$, reported as `IFCI` / `PFCI` / `TFCI`):
 
 $$
-\mathrm{HHI}_{ic} = \sum_j \left( \frac{f_{ij}^{c}}{F_{ic}} \right)^{2},
+\mathrm{HHI}_i^{c} = \sum_j \left( \frac{f_{ij}^{c}}{F_i^{c}} \right)^{2},
 \qquad
-\mathrm{MFCI}_{ic} = \frac{\mathrm{HHI}_{ic} - 1/n_{ic}}{1 - 1/n_{ic}},
+\mathrm{MFCI}_i^{c} = \frac{\mathrm{HHI}_i^{c} - 1/n_i^{c}}{1 - 1/n_i^{c}},
 \qquad
-\mathrm{ENP}_{ic} = \frac{1}{\mathrm{HHI}_{ic}}
+\mathrm{ENP}_i^{c} = \frac{1}{\mathrm{HHI}_i^{c}}
 $$
 
-where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_{ic} = \sum_j f_{ij}^{c}$, $n_{ic}$ is the number of partners with type-$c$ flow (partners with zero flow are not counted), and ENP is the Equivalent Number of Partners (Laakso & Taagepera 1979) — reported per coupling type as `ENP_I` / `ENP_P` / `ENP_T`, the Equivalent Number of Intra-/Peri-/Telecoupled Partners.
+where $n_i^{c}$ is the number of partners with type-*c* flow (partners with zero flow are not counted; columns `n_I` / `n_P` / `n_T`), and ENP is the Equivalent Number of Partners (Laakso & Taagepera 1979) — reported per coupling type as `ENP_I` / `ENP_P` / `ENP_T`, the Equivalent Number of Intra-/Peri-/Telecoupled Partners.
 
 Two edge-case conventions (each emits a `UserWarning`): when
-$n_{ic} = 1$ the normalisation is undefined and MFCI is defined as
+$n_i^{c} = 1$ the normalisation is undefined and MFCI is defined as
 **1** by convention (a single partner is maximal concentration —
 e.g. the intracoupling self-loop, which is why `IFCI = 1` in the
-worked example below); when $F_{ic} = 0$ MFCI is **NaN**. In the MFE
-sum, $0 \ln 0 = 0$ by convention.
+worked example below); when $F_i^{c} = 0$ MFCI and ENP are **NaN**.
+In the MFE sum, $0 \ln 0 = 0$ by convention.
 
 ### Six public functions
 

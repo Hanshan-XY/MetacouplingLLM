@@ -197,8 +197,8 @@ WRITE_METHODS_SYSTEM = (
     "Laakso & Taagepera (1979).\n"
     "- Mention the metacoupling framework citation: Liu (2017).\n"
     "- Mention edge-case conventions: 0*ln(0)=0 for MFE; "
-    "MFCI = NaN when F_ic = 0; MFCI = 1 by convention when "
-    "n_ic = 1.\n"
+    "MFCI = NaN when F_i^c = 0; MFCI = 1 by convention when "
+    "n_i^c = 1.\n"
     "- Keep it concise (3-5 sentences per indicator family).\n"
     "- Use formal academic prose, no bullet points."
 )
