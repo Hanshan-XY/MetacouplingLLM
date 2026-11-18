@@ -7,6 +7,57 @@ file. The format is loosely based on
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-18
+
+A feature release: countries can be adjacent at sea, every administrative
+border counts as adjacency by default, OpenAI models reason at a chosen
+effort, and the validation block, the automatic map and the printed report
+follow the analysis more closely. The default `coupling_standard` changes
+from `"moderate"` to `"lenient"`; no documented API is removed or renamed.
+
+Highlights:
+
+- **Maritime adjacency for countries**: with `maritime_adjacency=True`
+  (default `False`), two countries are also adjacent when their waters
+  share a boundary in the Marine Regions Maritime Boundaries Geodatabase
+  (version 12; CC BY 4.0): 387 country pairs, 257 of them not adjacent on
+  land. The country lookups and maps, `build_adjacency(level="adm0")`, the
+  prompt hint and the validation block take the toggle, and the hint and
+  the block say when a pair is adjacent only at sea.
+- **Every administrative border counts by default**: the default
+  `coupling_standard` is `"lenient"`, so units that meet only across a
+  river or lake are pericoupled whether or not a bridge links them, and
+  the default views are the full databases (8,462 ADM1 pairs and 326
+  country pairs; 8,026 and 321 under the former `"moderate"` default).
+  `"moderate"` and `"stringent"` are unchanged.
+- **OpenAI reasoning effort and GPT-6 models**:
+  `OpenAIAdapter(..., reasoning_effort=...)` sets the effort of every call,
+  native web search included, through the Responses API, which takes
+  gpt-6.1-sol's `"max"`; these requests run in background mode, so the
+  SDK's 10-minute read timeout does not cut off a long one. Run traces
+  record the effort and the adjacency settings.
+- **The validation block follows the analysis**: it anchors on the focal
+  system's country, names a partner placed only in the coupling section
+  its database verdict contradicts, compares its verdicts with the
+  coupling sections the analysis holds (in the country and the ADM1
+  notes), finds a bloc named before a spaced dash, says when it finds no
+  country besides the focal one, and reads the adjectives of small states
+  ("Sri Lankan", "Bahamian", "Fijian").
+- **The automatic map draws what the analysis says**: the map-data
+  extraction reads every system and flow (it kept the first two systems
+  of each role and the first eight flows), a flow from a supranational
+  bloc such as the EU's payments to Indonesia is drawn, and the map
+  follows the analysis's focal country and partners.
+- **Inline web markers are the model's own citations**: the printed report
+  no longer adds a web source's marker to lines that only share keywords
+  with its summary.
+- **Examples and documentation**: the committed example run is an
+  Indonesian palm-oil analysis by gpt-6.1-sol at `"max"` effort under the
+  lenient standard; the fishing example labels every flow with the
+  package's country database (Carlson et al.'s label for 97.3% of their
+  adjacent and distant flows) and places all 280 EEZs in a region; MANUAL
+  §16 writes the indicator formulas in the paper's notation.
+
 ### Added
 
 - **The validation block names a partner placed in the wrong coupling
