@@ -2550,7 +2550,7 @@ F_i^{c} = \sum_j f_{ij}^{c},
 F_i = F_i^{I} + F_i^{P} + F_i^{T}
 $$
 
-where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_i^{c}$ is system $i$'s total type-$c$ flow and $F_i$ its total flow (columns `F_I` / `F_P` / `F_T` / `F_total`). The intra-, peri- and telecoupled flow shares are $\mathrm{IFS}_i = \mathrm{MFS}_i^{I}$, $\mathrm{PFS}_i = \mathrm{MFS}_i^{P}$ and $\mathrm{TFS}_i = \mathrm{MFS}_i^{T}$ (columns `IFS` / `PFS` / `TFS`).
+where $f_{ij}^{c}$ is the type-*c* flow from system $i$ to partner $j$, $F_i^{c}$ is system $i$'s total type-*c* flow and $F_i$ its total flow (columns `F_I` / `F_P` / `F_T` / `F_total`). The intra-, peri- and telecoupled flow shares are $\mathrm{IFS}_i = \mathrm{MFS}_i^{I}$, $\mathrm{PFS}_i = \mathrm{MFS}_i^{P}$ and $\mathrm{TFS}_i = \mathrm{MFS}_i^{T}$ (columns `IFS` / `PFS` / `TFS`).
 
 **MFE** — Metacoupled Flow Evenness (Shannon 1948 entropy, normalised to $[0, 1]$):
 
@@ -2568,7 +2568,7 @@ $$
 \mathrm{ENP}_i^{c} = \frac{1}{\mathrm{HHI}_i^{c}}
 $$
 
-where $n_i^{c}$ is the number of partners with type-$c$ flow (partners with zero flow are not counted; columns `n_I` / `n_P` / `n_T`), and ENP is the Equivalent Number of Partners (Laakso & Taagepera 1979) — reported per coupling type as `ENP_I` / `ENP_P` / `ENP_T`, the Equivalent Number of Intra-/Peri-/Telecoupled Partners.
+where $n_i^{c}$ is the number of partners with type-*c* flow (partners with zero flow are not counted; columns `n_I` / `n_P` / `n_T`), and ENP is the Equivalent Number of Partners (Laakso & Taagepera 1979) — reported per coupling type as `ENP_I` / `ENP_P` / `ENP_T`, the Equivalent Number of Intra-/Peri-/Telecoupled Partners.
 
 Two edge-case conventions (each emits a `UserWarning`): when
 $n_i^{c} = 1$ the normalisation is undefined and MFCI is defined as

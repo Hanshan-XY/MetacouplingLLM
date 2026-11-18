@@ -104,7 +104,9 @@ file. The format is loosely based on
   helper's prompt use the same symbols. On GitHub the MFE sum also lost
   its braces and showed commas for its thin spaces, because Markdown
   removes a backslash before punctuation such as `{` or `,` before the math
-  is rendered; the set is now written with `\lbrace` and `\rbrace`. No
+  is rendered; the set is now written with `\lbrace` and `\rbrace`. GitHub
+  also left `type-$c$` unrendered, dollar signs included, because math
+  that follows a hyphen is not recognised; it now reads `type-*c*`. No
   computed value changes.
 - **The printed report's inline web markers are the model's own
   citations.** `result.formatted` also received markers from
