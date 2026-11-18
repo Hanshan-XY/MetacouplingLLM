@@ -2536,7 +2536,7 @@ Install: `pip install "metacouplingllm[indicators]"` (pulls in pandas).
 ### Formulas
 
 Each flow from focal system $i$ to partner $j$ is attributed to one
-coupling type $c \in \{I, P, T\}$: intracoupling ($I$, within the focal
+coupling type $c \in \lbrace I, P, T \rbrace$: intracoupling ($I$, within the focal
 system), pericoupling ($P$, to an adjacent system) or telecoupling ($T$,
 to a distant system).
 
@@ -2555,7 +2555,7 @@ where $f_{ij}^{c}$ is the type-$c$ flow from system $i$ to partner $j$, $F_i^{c}
 **MFE** — Metacoupled Flow Evenness (Shannon 1948 entropy, normalised to $[0, 1]$):
 
 $$
-\mathrm{MFE}_i = -\frac{1}{\ln 3} \sum_{c \,\in\, \{I,\, P,\, T\}} \mathrm{MFS}_i^{c} \ln \mathrm{MFS}_i^{c}
+\mathrm{MFE}_i = -\frac{1}{\ln 3} \sum_{c \in \lbrace I, P, T \rbrace} \mathrm{MFS}_i^{c} \ln \mathrm{MFS}_i^{c}
 $$
 
 **MFCI** — Metacoupled Flow Concentration Index (Hirschman 1945 / Herfindahl 1950 HHI, normalised per Hannah & Kay 1977; per coupling type $c$, reported as `IFCI` / `PFCI` / `TFCI`):

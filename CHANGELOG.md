@@ -101,7 +101,11 @@ file. The format is loosely based on
   coupling types I, P and T, maps the symbols to the output columns, and
   states that ENP, like MFCI, is NaN when a coupling type has no flow. The
   flow-share and MFCI docstrings in `indicators/core.py` and the indicator
-  helper's prompt use the same symbols. No computed value changes.
+  helper's prompt use the same symbols. On GitHub the MFE sum also lost
+  its braces and showed commas for its thin spaces, because Markdown
+  removes a backslash before punctuation such as `{` or `,` before the math
+  is rendered; the set is now written with `\lbrace` and `\rbrace`. No
+  computed value changes.
 - **The printed report's inline web markers are the model's own
   citations.** `result.formatted` also received markers from
   `annotate_web_citations`, which appends a web source's `[T1:Wn]` to any
