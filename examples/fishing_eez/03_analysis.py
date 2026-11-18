@@ -20,9 +20,8 @@ package's labels and per-EEZ indicator table.  The package classifies the flows 
 computes the indicators; this script aggregates them by region.
 
   * Regions follow the 'grp' field of eez_region.json (Carlson et al.'s Table S16
-    scheme, joined by 01_build_region_map.py).  The eleven regions cover 276 of the
-    280 EEZs; four EEZs absent from Carlson's nation list are unassigned (Taiwan,
-    Cape Verde, Cook Islands, Ascension) and are left out of both tables.
+    scheme, joined by 01_build_region_map.py, which also places the four EEZs whose
+    nation S16 does not list).  The eleven regions cover all 280 EEZs.
   * Regional indicator means are CATCH-WEIGHTED (weight = F_total).  An EEZ with no
     flow in a coupling type has no PFCI/TFCI/ENP for it, so those means cover only
     EEZs with positive catch in that type, with the weights renormalized.
