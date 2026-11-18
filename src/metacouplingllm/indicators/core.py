@@ -95,10 +95,9 @@ def compute_flow_shares(
 ) -> "pd.DataFrame":
     """Compute Intracoupled / Pericoupled / Telecoupled Flow Shares.
 
-    Formulas (MANUAL.md §16):
-      IFS_i = F_iI / (F_iI + F_iP + F_iT)
-      PFS_i = F_iP / (F_iI + F_iP + F_iT)
-      TFS_i = F_iT / (F_iI + F_iP + F_iT)
+    Formulas (MANUAL.md §16), for coupling type c in {I, P, T}:
+      MFS_i^c = F_i^c / F_i,  where F_i = F_i^I + F_i^P + F_i^T
+      IFS_i = MFS_i^I,  PFS_i = MFS_i^P,  TFS_i = MFS_i^T
 
     Parameters
     ----------
@@ -280,13 +279,13 @@ def compute_mfci(
     pd.DataFrame with one row per (system, *group_cols, coupling_type)
     carrying [n_partners, HHI, MFCI, effective_n_partners].
     Coupling-type values are ``"I"`` / ``"P"`` / ``"T"`` (always
-    all three rows per group, even when ``F_ic = 0``, with numeric
+    all three rows per group, even when ``F_i^c = 0``, with numeric
     columns set to ``NaN``).
 
     Edge cases
     ----------
-    - ``F_ic == 0``: ``MFCI = NaN`` + ``UserWarning``.
-    - ``n_ic == 1``: ``MFCI = 1`` by convention + ``UserWarning``
+    - ``F_i^c == 0``: ``MFCI = NaN`` + ``UserWarning``.
+    - ``n_i^c == 1``: ``MFCI = 1`` by convention + ``UserWarning``
       (e.g. the intracoupling self-loop).
     """
     pd = _require_pandas()

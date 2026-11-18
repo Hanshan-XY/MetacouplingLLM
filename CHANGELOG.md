@@ -91,6 +91,17 @@ file. The format is loosely based on
 
 ### Changed
 
+- **The MANUAL writes the indicator formulas in the paper's notation.**
+  §16 put the coupling type in a subscript (`F_{ic}`, `HHI_{ic}`,
+  `n_{ic}`) everywhere except the partner flow `f_{ij}^{c}`, and wrote MFE
+  with shares `s_c` that it defined only as one of IFS, PFS and TFS. It now
+  puts the type in a superscript throughout, as the paper does (`F_i^c`,
+  `HHI_i^c`, `MFCI_i^c`, `ENP_i^c`, `n_i^c`), defines the flow share
+  `MFS_i^c = F_i^c / F_i` with `IFS_i = MFS_i^I` and so on, names the
+  coupling types I, P and T, maps the symbols to the output columns, and
+  states that ENP, like MFCI, is NaN when a coupling type has no flow. The
+  flow-share and MFCI docstrings in `indicators/core.py` and the indicator
+  helper's prompt use the same symbols. No computed value changes.
 - **The printed report's inline web markers are the model's own
   citations.** `result.formatted` also received markers from
   `annotate_web_citations`, which appends a web source's `[T1:Wn]` to any
