@@ -2048,7 +2048,7 @@ exported for custom pipelines.
 | `sanitize_turn_citations(text, turn_passage_counts, turn_web_counts, current_turn)` | Strip out-of-range citation markers; returns `(sanitized_text, invalid_markers)`. |
 | `extract_turn_cited_ids(text)` | The `(k, kind, N)` tuples of the turn-scoped markers used in `text`. |
 | `format_web_context(results, turn=1)` | Format `search_web()` results as the prompt's web-context section. |
-| `annotate_web_citations(formatted, web_results, min_keyword_overlap=3, min_overlap_ratio=0.25, turn=1)` | Add inline `[Tk:Wn]` citations to the lines of formatted text that match a web result. |
+| `annotate_web_citations(formatted, web_results, min_keyword_overlap=3, min_overlap_ratio=0.25, turn=1)` | Append a web result's `[Tk:Wn]` marker to each line of formatted text that shares keywords with its title and summary. Reports do not apply it, because shared words do not show that a source supports a line: their inline markers are the model's own citations. |
 | `extract_web_map_signals(query, results, llm_client, *, min_confidence=0.7, max_targets=6, temperature=0.0, max_tokens=8192)` | One model call that extracts validated map-ready countries and flows from web results (the source of `result.web_map_signals`); returns a dict or `None`. `max_tokens` is not sent to an OpenAI model that reasons (§4). |
 | `format_web_map_signals_context(signals)` | Format those signals as a prompt-ready section. |
 
